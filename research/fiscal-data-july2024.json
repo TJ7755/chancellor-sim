@@ -1,0 +1,1754 @@
+{
+  "_meta": {
+    "title": "UK Fiscal Data - July 2024 Starting State",
+    "description": "Comprehensive fiscal parameters for a Chancellor simulation game beginning July 2024 (post-general election). Complements economic-parameters.json which contains model mechanics.",
+    "asOf": "2024-07-05",
+    "context": "Labour government elected 4 July 2024 with large majority. Keir Starmer PM, Rachel Reeves Chancellor (first female Chancellor). Inheriting post-COVID, post-energy-crisis fiscal position.",
+    "sources": [
+      "OBR Economic and Fiscal Outlook, March 2024",
+      "OBR Public Finances Databank",
+      "HMRC Tax Receipts and National Insurance Contributions (monthly)",
+      "ONS Public Sector Finances, July 2024",
+      "ONS GDP First Quarterly Estimate, Q2 2024",
+      "ONS Consumer Price Inflation, July 2024",
+      "ONS Labour Market Overview, July 2024",
+      "Bank of England Monetary Policy Summary, June 2024",
+      "HM Treasury Budget 2024 documents",
+      "DMO (Debt Management Office) Annual Review 2023-24",
+      "IFS Green Budget 2024",
+      "IFS Taxlab data"
+    ],
+    "units": {
+      "monetary": "GBP billions unless stated otherwise",
+      "rates": "Percent unless stated otherwise",
+      "thresholds": "GBP per year unless stated otherwise"
+    }
+  },
+
+  "taxRates": {
+    "_description": "All major UK tax rates and thresholds in effect from April 2024 (2024-25 tax year). These are the rates as inherited by the incoming Labour government.",
+
+    "incomeTax": {
+      "personalAllowance": {
+        "amount": 12570,
+        "taperThreshold": 100000,
+        "taperRate": 0.50,
+        "_note": "Allowance reduced by £1 for every £2 earned above £100,000. Fully withdrawn at £125,140. Frozen at £12,570 since 2021-22 (fiscal drag)."
+      },
+      "bands": [
+        {
+          "name": "Basic rate",
+          "rate": 20,
+          "from": 12571,
+          "to": 50270,
+          "_bandWidth": 37700
+        },
+        {
+          "name": "Higher rate",
+          "rate": 40,
+          "from": 50271,
+          "to": 125140,
+          "_bandWidth": 74870
+        },
+        {
+          "name": "Additional rate",
+          "rate": 45,
+          "from": 125141,
+          "to": null,
+          "_note": "Threshold reduced from £150,000 to £125,140 from April 2023"
+        }
+      ],
+      "scottishRates": {
+        "_note": "Scotland sets its own income tax rates since 2017. Included for completeness as affects ~2.7m taxpayers.",
+        "bands": [
+          { "name": "Starter rate", "rate": 19, "from": 12571, "to": 14877 },
+          { "name": "Basic rate", "rate": 20, "from": 14877, "to": 26562 },
+          { "name": "Intermediate rate", "rate": 21, "from": 26562, "to": 43663 },
+          { "name": "Higher rate", "rate": 42, "from": 43663, "to": 75001 },
+          { "name": "Advanced rate", "rate": 45, "from": 75001, "to": 125140 },
+          { "name": "Top rate", "rate": 48, "from": 125141, "to": null }
+        ]
+      },
+      "dividendTax": {
+        "allowance": 500,
+        "_note": "Reduced from £1,000 in 2023-24, and from £2,000 in 2022-23",
+        "basicRate": 8.75,
+        "higherRate": 33.75,
+        "additionalRate": 39.35
+      },
+      "savingsAllowance": {
+        "basicRatePayer": 1000,
+        "higherRatePayer": 500,
+        "additionalRatePayer": 0
+      },
+      "estimatedRevenue": 269,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25. Fiscal drag (frozen thresholds + wage growth) adding ~£6bn/year in additional revenue.",
+      "taxpayerNumbers": {
+        "totalIncomeTaxPayers_millions": 34.1,
+        "basicRatePayers_millions": 27.4,
+        "higherRatePayers_millions": 6.3,
+        "additionalRatePayers_thousands": 440,
+        "_source": "HMRC Income Tax liabilities statistics, projected for 2024-25",
+        "_note": "Fiscal drag from frozen thresholds pulling ~1.3m additional people into higher rate since 2021-22"
+      }
+    },
+
+    "nationalInsurance": {
+      "employee": {
+        "class1": {
+          "primaryThreshold": 12570,
+          "_perWeek": 242,
+          "upperEarningsLimit": 50270,
+          "_uelPerWeek": 967,
+          "mainRate": 8,
+          "aboveUELRate": 2,
+          "_history": "Cut from 12% to 10% in January 2024, then to 8% from April 2024. Pre-January 2024 rate was 12%."
+        },
+        "class2": {
+          "_description": "Self-employed flat rate",
+          "status": "Abolished from April 2024",
+          "_previousRate": "£3.45/week"
+        },
+        "class4": {
+          "_description": "Self-employed on profits",
+          "lowerProfitsLimit": 12570,
+          "upperProfitsLimit": 50270,
+          "mainRate": 6,
+          "aboveUpperRate": 2,
+          "_history": "Cut from 9% to 8% in January 2024, then to 6% from April 2024"
+        }
+      },
+      "employer": {
+        "secondaryThreshold": 9100,
+        "rate": 13.8,
+        "employmentAllowance": 10500,
+        "_note": "Employment Allowance of £10,500 reduces employer NIC for eligible small businesses. Threshold raised from £5,000 to £10,500 from April 2024."
+      },
+      "estimatedRevenue": 178,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25 (employee + employer combined)",
+      "taxpayerNumbers": {
+        "class1Contributors_millions": 29.7,
+        "class4Contributors_millions": 3.6,
+        "employersPayingNIC_millions": 1.7,
+        "_source": "HMRC National Insurance statistics, 2024-25 projections"
+      },
+      "revenueBreakdown": {
+        "employeeClass1": 68,
+        "employerClass1": 96,
+        "selfEmployedClass4": 8,
+        "class2and3": 1,
+        "otherReceipts": 5,
+        "_unit": "GBP billions, approximate 2024-25"
+      }
+    },
+
+    "vat": {
+      "standardRate": 20,
+      "reducedRate": 5,
+      "_reducedRateApplies": "Domestic fuel/power, children's car seats, smoking cessation products, some energy-saving materials",
+      "zeroRate": 0,
+      "_zeroRateApplies": "Most food, children's clothing, books/newspapers, public transport, prescription medicines, water/sewerage",
+      "exemptCategories": "Financial services, education, health services, burial/cremation, insurance, postal services, betting/lottery",
+      "registrationThreshold": 90000,
+      "_note": "Increased from £85,000 to £90,000 from April 2024",
+      "flatRateScheme": true,
+      "estimatedRevenue": 171,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25",
+      "registeredBusinesses_millions": 2.3,
+      "_vatGap": "HMRC estimates the VAT gap (difference between theoretical and actual receipts) at ~5% or ~£9bn"
+    },
+
+    "corporationTax": {
+      "mainRate": 25,
+      "_mainRateApplies": "Profits above £250,000",
+      "smallProfitsRate": 19,
+      "_smallProfitsApplies": "Profits up to £50,000",
+      "marginalReliefRange": {
+        "from": 50000,
+        "to": 250000,
+        "effectiveMarginalRate": 26.5,
+        "_note": "Marginal relief fraction of 3/200 applies between lower and upper limits"
+      },
+      "bankSurcharge": 3,
+      "_bankSurchargeNote": "Additional 3% on banking sector profits above £100m (reduced from 8% when main rate went to 25%)",
+      "energyProfitsLevy": {
+        "rate": 35,
+        "_totalEffectiveRate": 75,
+        "_note": "Energy Profits Levy (windfall tax) at 35% on top of 40% ring-fence CT = 75% total. Due to expire March 2029.",
+        "investmentAllowance": 29
+      },
+      "annualInvestmentAllowance": 1000000,
+      "_aiaNote": "Permanently set at £1m from April 2023",
+      "fullExpensing": {
+        "status": "Permanent from April 2024",
+        "_description": "100% first-year deduction for qualifying plant and machinery investment. Replaces super-deduction.",
+        "estimatedCost": 11
+      },
+      "rdReliefRate": {
+        "smeScheme": {
+          "deduction": 86,
+          "creditRate": 10,
+          "_note": "Enhanced deduction reduced from 130% to 86%, credit rate reduced from 14.5% to 10% from April 2023"
+        },
+        "rdecScheme": {
+          "creditRate": 20,
+          "_note": "Merged R&D scheme from April 2024 at 20% above-the-line credit"
+        }
+      },
+      "estimatedRevenue": 88,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25. Significant increase from ~£64bn in 2022-23 due to rate rise from 19% to 25%.",
+      "taxpayerNumbers": {
+        "activeCompanies_millions": 2.9,
+        "companiesPayingCT_millions": 1.5,
+        "companiesPayingMainRate_thousands": 80,
+        "companiesPayingSmallProfitsRate_thousands": 1400,
+        "_source": "HMRC Corporation Tax statistics, 2024-25 projections"
+      }
+    },
+
+    "capitalGainsTax": {
+      "annualExemptAmount": 3000,
+      "_note": "Reduced from £6,000 in 2023-24 and £12,300 in 2022-23",
+      "standardAssets": {
+        "basicRate": 10,
+        "higherRate": 20
+      },
+      "residentialProperty": {
+        "basicRate": 18,
+        "higherRate": 28,
+        "_note": "Higher rates apply to gains on residential property that is not the main residence"
+      },
+      "carriedInterest": {
+        "rate": 28,
+        "_note": "Taxed at 28% regardless of income level"
+      },
+      "businessAssetDisposalRelief": {
+        "rate": 10,
+        "lifetimeLimit": 1000000,
+        "_note": "Formerly Entrepreneurs' Relief. 10% rate on qualifying business disposals up to £1m lifetime limit."
+      },
+      "investorsRelief": {
+        "rate": 10,
+        "lifetimeLimit": 10000000
+      },
+      "estimatedRevenue": 15,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25. Highly volatile - depends on asset prices and transaction volumes.",
+      "taxpayerNumbers": {
+        "individualsPayingCGT_thousands": 370,
+        "_note": "Expected to increase significantly due to reduced annual exempt amount. Was ~280,000 in 2021-22 at £12,300 AEA.",
+        "_source": "HMRC Capital Gains Tax statistics"
+      }
+    },
+
+    "inheritanceTax": {
+      "nilRateBand": 325000,
+      "_frozenSince": "2009. Frozen until at least April 2028.",
+      "residenceNilRateBand": 175000,
+      "_rnrbNote": "Additional allowance when main residence passed to direct descendants. Also frozen until 2028. Tapers for estates above £2m.",
+      "effectiveThresholdSinglePerson": 500000,
+      "effectiveThresholdMarriedCouple": 1000000,
+      "_transferableNote": "Unused nil-rate band and RNRB transferable between spouses, giving £1m effective threshold for a couple",
+      "rate": 40,
+      "charityReduction": 36,
+      "_charityNote": "Rate reduced to 36% if 10%+ of estate left to charity",
+      "estimatedRevenue": 7.5,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25. Rising due to frozen thresholds and house price growth.",
+      "numberOfEstatesPayingIHT": 28000,
+      "_percentOfDeaths": 4.4
+    },
+
+    "stampDutyLandTax": {
+      "_note": "England and Northern Ireland only. Scotland has LBTT, Wales has LTT.",
+      "residentialBands": [
+        { "from": 0, "to": 250000, "rate": 0 },
+        { "from": 250001, "to": 925000, "rate": 5 },
+        { "from": 925001, "to": 1500000, "rate": 10 },
+        { "from": 1500001, "to": null, "rate": 12 }
+      ],
+      "firstTimeBuyers": {
+        "nilRateBand": 425000,
+        "maxPropertyValue": 625000,
+        "rateBetween425kAnd625k": 5
+      },
+      "additionalPropertySurcharge": 3,
+      "_surchargeNote": "3pp surcharge on all bands for second homes, buy-to-let, and non-UK residents",
+      "nonResidentSurcharge": 2,
+      "commercialBands": [
+        { "from": 0, "to": 150000, "rate": 0 },
+        { "from": 150001, "to": 250000, "rate": 2 },
+        { "from": 250001, "to": null, "rate": 5 }
+      ],
+      "estimatedRevenue": 14,
+      "_revenueNote": "OBR March 2024 forecast for residential + commercial SDLT"
+    },
+
+    "fuelDuty": {
+      "mainRatePencePerLitre": 52.95,
+      "_history": "Standard rate was 57.95p/litre. The 5p temporary cut was introduced in March 2022 and extended through 2024-25. Main rate has been frozen at 57.95p since 2011 (13 consecutive freezes before the cut).",
+      "scheduledRPI_uprating": "Suspended since 2011. Each annual freeze costs ~£0.8bn in foregone revenue.",
+      "redDiesel": {
+        "ratePencePerLitre": 11.14,
+        "_note": "Rebated diesel for agriculture, rail, and non-road vehicles"
+      },
+      "estimatedRevenue": 25,
+      "_revenueNote": "OBR March 2024 forecast for 2024-25. Would be ~£10bn higher if duty had risen with RPI since 2011.",
+      "costOfFreezesSince2011": 100,
+      "_cumulativeCostNote": "Estimated cumulative revenue foregone from 13 years of freezes and the 5p cut, relative to RPI-indexed counterfactual"
+    },
+
+    "councilTax": {
+      "averageBandDEngland": 2171,
+      "_year": "2024-25",
+      "socialCarePrecept": {
+        "_note": "Councils can levy additional 2% precept for adult social care on top of core council tax"
+      },
+      "referendumThreshold": {
+        "corePrinciple": 3,
+        "socialCarePrecept": 2,
+        "_totalMaxWithoutReferendum": 5,
+        "_note": "Councils can raise council tax by up to 5% (3% core + 2% social care precept) without triggering a local referendum"
+      },
+      "bandMultipliers": {
+        "A": 0.667, "B": 0.778, "C": 0.889, "D": 1.000,
+        "E": 1.222, "F": 1.444, "G": 1.667, "H": 2.000
+      },
+      "valuationBasis": "1991 property values (England and Scotland). Widely considered outdated. No revaluation since 1993 in England.",
+      "estimatedRevenue": 46,
+      "_revenueNote": "Total council tax receipts across England, Scotland, Wales, 2024-25"
+    },
+
+    "businessRates": {
+      "standardMultiplier": 0.546,
+      "_multiplierNote": "54.6p in the pound of rateable value for 2024-25",
+      "smallBusinessMultiplier": 0.499,
+      "smallBusinessRateRelief": {
+        "fullReliefBelow": 12000,
+        "taperTo": 15000,
+        "_note": "100% relief for properties with rateable value below £12,000, tapering to 0% at £15,000"
+      },
+      "retailHospitalityLeisureRelief": 75,
+      "_rhlNote": "75% business rates relief for retail, hospitality and leisure properties (capped at £110,000 per business) for 2024-25",
+      "valuationBasis": "2023 revaluation based on April 2021 rental values",
+      "estimatedRevenue": 32,
+      "_revenueNote": "Net of reliefs, 2024-25"
+    },
+
+    "alcoholDuties": {
+      "_reform": "New alcohol duty system from August 2023, taxing by strength (ABV)",
+      "ratesPerLitreOfPureAlcohol": {
+        "spirits": 31.64,
+        "wine": 28.50,
+        "beer": 21.01,
+        "cider": 9.67
+      },
+      "draughtRelief": {
+        "_note": "Reduced rates for draught products below 8.5% ABV served from containers >=20 litres",
+        "discountPercent": 9.2
+      },
+      "estimatedRevenue": 13
+    },
+
+    "tobaccoDuty": {
+      "cigarettesAdValoremRate": 16.5,
+      "_ofRetailPrice": "Percent of retail price",
+      "cigarettesSpecificPerThousand": 294.54,
+      "handRollingTobaccoPerKg": 396.08,
+      "minimumExciseTax": "£393.45 per 1,000 cigarettes",
+      "escalator": "RPI + 2% duty escalator on all tobacco products",
+      "estimatedRevenue": 9
+    },
+
+    "insurancePremiumTax": {
+      "standardRate": 12,
+      "higherRate": 20,
+      "_higherRateApplies": "Travel insurance, electrical/mechanical appliance insurance",
+      "estimatedRevenue": 8
+    },
+
+    "airPassengerDuty": {
+      "shortHaul": {
+        "reduced": 7, "standard": 13, "higher": 26,
+        "_note": "Reduced = economy, standard = other, higher = private jets. Domestic flights and <2,000 miles."
+      },
+      "longHaul": {
+        "band_A_2001_5500mi": { "reduced": 88, "standard": 194, "higher": 581 },
+        "band_B_above_5500mi": { "reduced": 92, "standard": 200, "higher": 601 }
+      },
+      "estimatedRevenue": 4
+    },
+
+    "vehicleExciseDuty": {
+      "firstYearRates": "£0-£2,745 based on CO2 emissions",
+      "standardYearlyRate": 180,
+      "_note": "After first year, flat rate of £180 for most vehicles. Expensive car supplement of £390/year for cars over £40,000 for years 2-6.",
+      "electricVehicles": {
+        "currentRate": 0,
+        "_note": "Zero-rated until April 2025, when EVs will begin paying VED"
+      },
+      "estimatedRevenue": 8
+    },
+
+    "environmentalLevies": {
+      "climateChangeLevy": {
+        "_description": "Tax on energy delivered to non-domestic users",
+        "rates2024_25": {
+          "electricity": 0.00775,
+          "gas": 0.00568,
+          "lpg": 0.03640,
+          "solidFuels": 0.04449,
+          "_unit": "GBP per kilowatt hour (electricity/gas) or per kilogram (LPG/solid fuels)"
+        },
+        "climateChangeAgreements": {
+          "_description": "Energy-intensive businesses can negotiate reduced CCL rates in exchange for meeting emissions targets",
+          "discountElectricity": 92,
+          "discountGas": 81,
+          "_unit": "Percent discount on main rates"
+        },
+        "estimatedRevenue": 2
+      },
+      "carbonPriceSupport": {
+        "ratePerTonneCO2": 18.08,
+        "_note": "UK-specific carbon floor price for electricity generation, frozen since 2016"
+      },
+      "ukETS": {
+        "_description": "UK Emissions Trading Scheme (replaced EU ETS post-Brexit)",
+        "pricePerTonneCO2_approx": 40,
+        "_note": "Market price fluctuates. £40-50 range in mid-2024."
+      },
+      "landfillTax": {
+        "standardRatePerTonne": 103.70,
+        "lowerRatePerTonne": 3.25,
+        "estimatedRevenue": 0.5
+      },
+      "aggregatesLevy": {
+        "ratePerTonne": 2.03,
+        "estimatedRevenue": 0.4
+      },
+      "plasticPackagingTax": {
+        "ratePerTonne": 217.85,
+        "_applies": "Plastic packaging with less than 30% recycled content",
+        "estimatedRevenue": 0.3
+      }
+    },
+
+    "otherTaxesAndDuties": {
+      "bettingAndGamingDuties": {
+        "generalBettingDuty": {
+          "rate": 15,
+          "_applies": "Percent of net stake receipts for fixed-odds and other betting"
+        },
+        "poolBettingDuty": {
+          "rate": 15,
+          "_applies": "Percent of net pool betting receipts"
+        },
+        "remoteGamingDuty": {
+          "rate": 21,
+          "_applies": "Percent of remote gaming provider profits (online gambling)"
+        },
+        "gamingDutyBands": [
+          { "from": 0, "to": 2782500, "rate": 15 },
+          { "from": 2782501, "to": 6135000, "rate": 20 },
+          { "from": 6135001, "to": 11420000, "rate": 30 },
+          { "from": 11420001, "to": null, "rate": 50 }
+        ],
+        "_gamingDutyNote": "Banded rates apply to gross gaming yield from casino premises",
+        "machinegamesDuty": {
+          "standardRate": 25,
+          "lowerRate": 5,
+          "_lowerRateApplies": "Category D and C gaming machines in pubs/arcades",
+          "_standardApplies": "Fixed-odds betting terminals and other high-stake machines"
+        },
+        "lotteryDuty": {
+          "rate": 12,
+          "_applies": "Percent of ticket price for National Lottery draws"
+        },
+        "bingoDuty": {
+          "rate": 10,
+          "_applies": "Percent of bingo receipts"
+        },
+        "estimatedRevenue": 3,
+        "_revenueNote": "Combined betting, gaming, lottery and bingo duties 2024-25"
+      },
+      "customsDuties": {
+        "_description": "Taxes on imported goods under the UK Global Tariff (UKGT), which replaced the EU Common External Tariff from 1 January 2021",
+        "regime": "UK Global Tariff (UKGT)",
+        "averageTariffRate": 5.7,
+        "_unit": "Percent (trade-weighted average applied tariff)",
+        "simplifiedTariffBands": {
+          "zeroRated": "47% of tariff lines are duty-free",
+          "standardRates": "Remaining lines at rates from 2% to 48%",
+          "highestRates": "Certain agricultural products, vehicles, clothing"
+        },
+        "keyRates": {
+          "clothingAndTextiles": "6.5-12%",
+          "vehicles": "6.5-22% (most cars 6.5% under trade deals)",
+          "food": "Varies widely: 0-48%, with complex quota systems",
+          "electronics": "Most at 0% following ITA expansion"
+        },
+        "tradePreferences": {
+          "_note": "UK has FTAs with ~70+ countries including EU (TCA), Japan, Australia, NZ, CPTPP",
+          "preferentialTradeShare": 65,
+          "_unit": "Percent of UK imports entering at preferential (reduced or zero) rates"
+        },
+        "estimatedRevenue": 4,
+        "_revenueNote": "Net customs duties receipts 2024-25 (after EU TCA adjustments and trade deal preferences)"
+      },
+      "petroleumRevenueTax": {
+        "_description": "Tax on profits from oil and gas extraction on the UK Continental Shelf",
+        "ringFenceCorporationTax": {
+          "rate": 30,
+          "_note": "10pp supplement on top of standard 19% gives effective 30% rate for ring-fenced oil and gas profits (retained at 30% when main CT went to 25%)"
+        },
+        "supplementaryCharge": {
+          "rate": 10,
+          "_note": "Additional 10% on ring-fenced profits (reduced from 20% in 2016 and 32% in 2015)"
+        },
+        "energyProfitsLevy": {
+          "rate": 35,
+          "_note": "Windfall tax introduced May 2022. Combined with RFCT (30%) + SC (10%) gives total headline rate of 75%.",
+          "investmentAllowance": 29,
+          "_allowanceNote": "29% investment allowance (reduced from 80% decarbonisation allowance in November 2022)",
+          "expiryDate": "March 2029"
+        },
+        "totalEffectiveRate": 75,
+        "petroleumRevenueTaxLegacy": {
+          "rate": 0,
+          "_note": "PRT was reduced to 0% from 1 January 2016. Effectively abolished but remains on statute book for pre-March 1993 fields."
+        },
+        "estimatedRevenue": {
+          "ringFenceCTandSC": 3,
+          "energyProfitsLevy": 2,
+          "total": 5,
+          "_note": "Declining as North Sea production falls and EPL investment allowance is claimed. Revenue highly volatile with oil/gas prices.",
+          "_unit": "GBP billions, 2024-25 forecast"
+        }
+      },
+      "bankLevy": {
+        "rate": 0.10,
+        "_applies": "Percent of qualifying liabilities above £20bn",
+        "estimatedRevenue": 1.5,
+        "bankCorporationTaxSurcharge": {
+          "rate": 3,
+          "threshold": 100000000,
+          "_note": "3% surcharge on banking profits above £100m, on top of 25% main CT rate giving 28% total rate for banks. Reduced from 8% surcharge when main CT rose to 25%.",
+          "estimatedRevenue": 1.2,
+          "_unit": "GBP billions from surcharge specifically"
+        },
+        "_combinedBankTaxRevenue": "Bank levy (£1.5bn) + bank surcharge (£1.2bn) = ~£2.7bn total bank-specific taxes"
+      },
+      "softDrinksIndustryLevy": {
+        "lowerBandPerLitre": 0.2137,
+        "higherBandPerLitre": 0.2899,
+        "_thresholdGramsOfSugarPer100ml": "Lower: 5-8g, Higher: above 8g",
+        "estimatedRevenue": 0.3
+      },
+      "digitalServicesTax": {
+        "rate": 2,
+        "_applies": "2% of UK-linked revenues of search engines, social media platforms, and online marketplaces with global revenues >£500m and UK revenues >£25m",
+        "estimatedRevenue": 0.8
+      }
+    },
+
+    "taxAllowancesAndReliefs": {
+      "isas": {
+        "annualAllowance": 20000,
+        "lifetimeISA_allowance": 4000,
+        "_note": "£4,000 sub-limit within the £20,000 ISA allowance for Lifetime ISA"
+      },
+      "pensions": {
+        "annualAllowance": 60000,
+        "_note": "Restored from £40,000 in April 2023",
+        "lifetimeAllowance": "Abolished from April 2024",
+        "_lta_history": "Was £1,073,100. Abolished to address senior NHS staff retention crisis.",
+        "taxReliefCost": 48,
+        "_unit": "GBP billions estimated total pension tax relief cost 2024-25"
+      },
+      "marriedCouplesAllowance": {
+        "transferableAmount": 1260,
+        "_note": "10% of personal allowance transferable between married couples/civil partners where neither pays higher rate"
+      }
+    },
+
+    "nationalLivingWage": {
+      "hourlyRate": 11.44,
+      "_fromApril": 2024,
+      "ageThreshold": 21,
+      "_note": "Lowered from 23 to 21 from April 2024. Applies to workers aged 21 and over.",
+      "underageRates": {
+        "age18to20": 8.60,
+        "under18": 6.40,
+        "apprentice": 6.40
+      }
+    },
+
+    "studentLoanRepayment": {
+      "plan1": { "threshold": 22015, "rate": 9 },
+      "plan2": { "threshold": 27295, "rate": 9 },
+      "plan4_scotland": { "threshold": 27660, "rate": 9 },
+      "plan5_from2023": { "threshold": 25000, "rate": 9 },
+      "postgraduateLoan": { "threshold": 21000, "rate": 6 }
+    }
+  },
+
+  "governmentRevenue": {
+    "_description": "Total government receipts forecast for 2024-25 (OBR March 2024)",
+    "totalCurrentReceipts": 1078,
+
+    "breakdownBySource": {
+      "incomeTax": 269,
+      "nationalInsurance": 178,
+      "vat": 171,
+      "corporationTax": 88,
+      "councilTax": 46,
+      "businessRates": 32,
+      "fuelDuties": 25,
+      "capitalGainsTax": 15,
+      "stampDutyLandTax": 14,
+      "alcoholDuties": 13,
+      "tobaccoDuties": 9,
+      "insurancePremiumTax": 8,
+      "vehicleExciseDuty": 8,
+      "inheritanceTax": 7.5,
+      "petroleumRevenueTaxAndEPL": 5,
+      "customsDuties": 4,
+      "airPassengerDuty": 4,
+      "bettingAndGamingDuties": 3,
+      "environmentalLevies": 3.2,
+      "bankLevyAndSurcharge": 1.5,
+      "otherTaxes": 7.3,
+      "_otherTaxesIncludes": "Digital Services Tax (£0.8bn), Soft Drinks Levy (£0.3bn), Plastic Packaging Tax (£0.3bn), other minor duties",
+      "nonTaxReceipts": 22,
+      "_nonTaxNote": "Interest and dividend receipts, gross operating surplus, rent and other current transfers"
+    },
+
+    "hmrcTaxReceipts": {
+      "_description": "HMRC-administered tax receipts only (excludes council tax, business rates, and non-tax receipts)",
+      "totalHMRCreceipts2024_25": 848,
+      "_source": "OBR March 2024 forecast for HMRC-administered receipts"
+    },
+
+    "revenueToGDPRatio": 39.7,
+    "_note": "Highest tax burden since early 1950s. Forecast to rise to ~37.1% in 2024-25 (HMRC measure) or ~39.7% (total receipts including non-tax). Fiscal drag from frozen thresholds is a major driver.",
+
+    "taxBurdenTrend": {
+      "_description": "Total tax receipts as percent of GDP",
+      "2019_20_preCovid": 33.2,
+      "2020_21_covid": 32.6,
+      "2021_22": 33.8,
+      "2022_23": 34.9,
+      "2023_24": 36.1,
+      "2024_25_forecast": 36.8,
+      "_note": "HMRC measure (excludes non-tax receipts). Approaching historically unprecedented levels for the UK."
+    }
+  },
+
+  "governmentSpending": {
+    "_description": "Total managed expenditure breakdown for 2024-25",
+
+    "totalManagedExpenditure": 1189,
+    "_tmeBreakdown": {
+      "departmentalExpenditureLimits": {
+        "resourceDEL": 487,
+        "capitalDEL": 73,
+        "totalDEL": 560
+      },
+      "annuallyManagedExpenditure": {
+        "totalAME": 629,
+        "_includes": "Social security, debt interest, public service pensions, locally-financed expenditure, other AME"
+      }
+    },
+
+    "byFunction": {
+      "socialProtection": {
+        "total": 310,
+        "breakdown": {
+          "statePensionAndPensionCredit": {
+            "total": 130,
+            "newStatePension": {
+              "weeklyRate": 221.20,
+              "_annualFull": 11502,
+              "recipients_millions": 8.5
+            },
+            "basicStatePension": {
+              "weeklyRate": 169.50,
+              "_legacy": true
+            },
+            "tripleLock": {
+              "_description": "State pension rises by highest of: earnings growth, CPI inflation, or 2.5%",
+              "2024_25_uplift": 8.5,
+              "_appliedMeasure": "Average earnings growth (July 2023)",
+              "_annualCost": "Triple lock cost ~£3bn/year above earnings-only indexation"
+            },
+            "pensionCredit": 5,
+            "_takeUpRate": "~63% of eligible pensioners claim - significant underclaiming"
+          },
+          "universalCredit": {
+            "total": 50,
+            "claimants_millions": 6.1,
+            "standardAllowance": {
+              "single_under25": 311.68,
+              "single_over25": 393.45,
+              "couple_under25": 489.23,
+              "couple_over25": 617.56,
+              "_unit": "GBP per month"
+            },
+            "elements": {
+              "childElement": { "first": 315.00, "subsequent": 269.58, "_perMonth": true },
+              "housingElement": "Actual rent up to LHA rate",
+              "childcareElement": "85% of childcare costs up to £950.92/month (2 children)",
+              "disabilityElements": "LCWRA: £416.19/month",
+              "carerElement": 198.31
+            },
+            "taper": {
+              "rate": 55,
+              "_note": "55% withdrawal rate on net earnings above work allowance",
+              "workAllowance": {
+                "withHousing": 404,
+                "withoutHousing": 673,
+                "_perMonth": true
+              }
+            },
+            "twchildlimit": {
+              "_description": "Support limited to first two children for new claims from April 2017",
+              "_affectedFamilies": 400000,
+              "_debated": "Significant pressure to abolish"
+            }
+          },
+          "disabilityBenefits": {
+            "total": 33,
+            "personalIndependencePayment_PIP": 22,
+            "_pipClaimants_millions": 3.5,
+            "disabilityLivingAllowance_DLA": 6,
+            "_dlaNote": "Legacy benefit, new claims replaced by PIP",
+            "attendanceAllowance": 5,
+            "_growthNote": "Disability benefit spending growing rapidly - forecast to reach ~£40bn+ by 2028-29"
+          },
+          "housingBenefit": {
+            "total": 18,
+            "_note": "Declining as claimants migrate to UC housing element. Residual mainly for pension-age claimants and supported housing."
+          },
+          "childBenefit": {
+            "total": 12,
+            "firstChild": 25.60,
+            "subsequentChildren": 16.95,
+            "_perWeek": true,
+            "highIncomeChargeThreshold": 60000,
+            "_note": "HICBC threshold raised from £50,000 to £60,000 from April 2024"
+          },
+          "carerAllowance": {
+            "weeklyRate": 81.90,
+            "earningsLimit": 151,
+            "_perWeek": true,
+            "total": 4
+          },
+          "otherWorkingAge": 15,
+          "winterFuelPayment": {
+            "total": 2,
+            "_standardPayment": "£200 (aged 66-79) or £300 (aged 80+)",
+            "_note": "Previously universal for pensioners. Labour restricted to Pension Credit recipients from winter 2024-25, saving ~£1.5bn."
+          }
+        }
+      },
+
+      "health": {
+        "total": 180,
+        "nhsEngland": {
+          "totalBudget": 164,
+          "_rdel": "£164bn resource DEL for NHS England 2024-25",
+          "workforce": {
+            "totalStaff": 1400000,
+            "_note": "NHS England is the largest employer in Europe",
+            "doctors": 170000,
+            "nurses": 350000,
+            "otherClinical": 350000,
+            "nonClinical": 530000
+          },
+          "waitingList": {
+            "total_millions": 7.6,
+            "_note": "Elective care waiting list. Was ~4.4m pre-COVID. Target to reduce to pre-pandemic levels.",
+            "waitingOver18months": 20000,
+            "waitingOver52weeks": 300000
+          }
+        },
+        "publicHealth": 5,
+        "socialCare": {
+          "_note": "Primarily local authority funded. Central government contribution through grants and precepts.",
+          "totalPublicSpend": 27,
+          "localAuthorityFunded": 20,
+          "nhsContinuingCare": 7,
+          "_reform": "Social care reform (Dilnot cap at £86,000) delayed indefinitely from October 2025"
+        },
+        "otherHealthSpending": 11
+      },
+
+      "education": {
+        "total": 105,
+        "breakdown": {
+          "schools": 60,
+          "_perPupilFunding": "~£7,690 average per pupil in England (2024-25)",
+          "higherEducation": 12,
+          "furtherEducationAndSkills": 14,
+          "earlyYears": 8,
+          "_earlyYearsNote": "Significant expansion: 30 hours free childcare being extended to children from 9 months by September 2025",
+          "studentLoans_RAB": 8,
+          "_rabNote": "Resource Accounting and Budgeting charge - estimated long-run cost of new student loans issued",
+          "otherEducation": 3
+        }
+      },
+
+      "defence": {
+        "total": 55,
+        "percentOfGDP": 2.3,
+        "_natoTarget": "2% (UK exceeds this). Government pledged to reach 2.5% at unspecified future date.",
+        "breakdown": {
+          "equipmentAndSupport": 20,
+          "personnel": 13,
+          "infrastructure": 5,
+          "operationsAndPeacekeeping": 3,
+          "nuclear": 7,
+          "_nuclearNote": "Dreadnought-class submarine programme, AWE, and nuclear warhead costs",
+          "otherDefence": 7
+        },
+        "armedForcesPersonnel": {
+          "regulars": 139000,
+          "reserves": 27000,
+          "civilServants": 63000,
+          "_recruitmentNote": "Armed forces below target strength. Recruitment and retention crisis esp. in Army."
+        }
+      },
+
+      "debtInterest": {
+        "total": 89,
+        "_measure": "Central government net debt interest on a national accounts basis",
+        "components": {
+          "conventionalGilts": 50,
+          "indexLinkedGilts": 25,
+          "_indexLinkedNote": "~25% of gilts are index-linked (to RPI). High inflation massively increased these payments - peaked at ~£120bn in 2022-23.",
+          "bankOfEnglandAPF": 14,
+          "_apfNote": "Losses on the Asset Purchase Facility (QE unwinding). BoE selling gilts at a loss as yields have risen above the coupon rates on purchased gilts. Government indemnity covers losses.",
+          "other": 0
+        },
+        "debtInterestHistory": {
+          "2019_20": 38,
+          "2020_21": 27,
+          "2021_22": 70,
+          "2022_23": 116,
+          "2023_24": 94,
+          "2024_25_forecast": 89,
+          "_note": "2022-23 spike driven by index-linked gilt payments due to high RPI inflation. Falling as inflation normalises."
+        },
+        "percentOfRevenue": 8.3,
+        "_note": "Debt interest as percent of total receipts. Must stay manageable for fiscal sustainability."
+      },
+
+      "publicOrderAndSafety": {
+        "total": 40,
+        "policing": 18,
+        "prisonsAndProbation": 10,
+        "courts": 5,
+        "fireServices": 4,
+        "other": 3
+      },
+
+      "transport": {
+        "total": 32,
+        "_includes": "Road maintenance (Highways England), rail subsidies, local transport grants, HS2",
+        "hs2": {
+          "revisedBudget": 66,
+          "_note": "Euston to West Midlands only (northern leg cancelled October 2023). Total budget revised to £66bn (including Euston). Original full-network budget was £55.7bn in 2015 prices.",
+          "annualSpend2024_25": 8
+        }
+      },
+
+      "housingAndCommunities": {
+        "total": 14,
+        "_includes": "DLUHC departmental spending, housing subsidies, Homes England",
+        "affordableHomesTarget": 300000,
+        "_perYear": true,
+        "_note": "Government target of 300k homes/year consistently missed. Actual completions ~220-250k."
+      },
+
+      "internationalDevelopment": {
+        "total": 15,
+        "percentOfGNI": 0.5,
+        "_note": "Reduced from 0.7% of GNI target in 2021 due to COVID fiscal pressures. Government pledged to restore 0.7% when fiscal conditions allow.",
+        "_annualSaving": "Cutting from 0.7% to 0.5% saves ~£5-6bn/year"
+      },
+
+      "otherSpending": {
+        "environmentAndAgriculture": 8,
+        "scienceAndInnovation": 12,
+        "energyAndClimate": 7,
+        "_includes": "DESNZ spending, renewable subsidies, insulation schemes",
+        "localGovernmentCentralGrants": 15,
+        "devolved_scots_wales_ni": {
+          "scotland": 42,
+          "wales": 18,
+          "northernIreland": 15,
+          "_note": "Barnett formula-based block grants. Determined by changes in comparable English departmental spending."
+        }
+      }
+    },
+
+    "spendingToGDPRatio": 43.7,
+    "_note": "Higher than pre-2020 levels (~38-40%) but lower than COVID peak (~52%). OBR projects gradual decline towards ~42%.  Historical average since 1951: ~40%."
+  },
+
+  "fiscalPosition": {
+    "_description": "Headline fiscal indicators as of July 2024",
+
+    "publicSectorNetDebt": {
+      "nominal": 2744,
+      "percentOfGDP": 99.5,
+      "_measure": "PSND excluding public sector banks",
+      "_withBoE": {
+        "percentOfGDP": 98.0,
+        "_note": "Including Bank of England. Different measures give different headline figures."
+      },
+      "_history": {
+        "2007_preCrisis": 36,
+        "2010": 65,
+        "2015": 81,
+        "2019_preCovid": 84,
+        "2020_covid": 96,
+        "2022_postCovid": 98,
+        "2024_july": 99.5,
+        "_unit": "Percent of GDP"
+      },
+      "_projections": {
+        "obrMarch2024": {
+          "2024_25": 93.2,
+          "2025_26": 94.3,
+          "2026_27": 94.0,
+          "2027_28": 93.2,
+          "2028_29": 92.9,
+          "_note": "OBR March 2024 forecast showed debt peaking then falling - meeting fiscal rules (narrowly). Uses PSND ex BoE measure."
+        }
+      }
+    },
+
+    "publicSectorNetBorrowing": {
+      "forecast2024_25": 87,
+      "_obrMarch2024": "OBR forecast March 2024",
+      "likelyOutturn": 115,
+      "_outturnNote": "By the Autumn Budget (October 2024), revised estimate for 2024-25 was revised significantly upward to ~£127bn due to higher spending plans and public sector pay settlements.",
+      "percentOfGDP_forecast": 3.1,
+      "percentOfGDP_likely": 4.2,
+      "_history": {
+        "2019_20_preCovid": 57,
+        "2020_21_covid": 317,
+        "2021_22": 121,
+        "2022_23": 137,
+        "2023_24": 122,
+        "2024_25_forecast": 87,
+        "_unit": "GBP billions"
+      }
+    },
+
+    "currentBudgetBalance": {
+      "forecast2024_25": -17,
+      "_note": "Current budget deficit of ~£17bn (OBR March 2024). This is the measure used for Labour's fiscal rule - needs to be in balance within 5 years.",
+      "_definition": "Current receipts minus current expenditure (excluding net investment). A deficit means day-to-day spending exceeds day-to-day revenue."
+    },
+
+    "structuralDeficit": {
+      "estimate": 2.1,
+      "_unit": "Percent of GDP, cyclically-adjusted",
+      "_note": "The deficit that would remain even if the economy were at full capacity. Indicates the underlying fiscal position."
+    },
+
+    "fiscalHeadroom": {
+      "againstCurrentBudgetRule": 8.9,
+      "_unit": "GBP billions (OBR March 2024, against current budget balance target in 5th year)",
+      "againstDebtRule": 8.9,
+      "_note": "Extremely thin fiscal headroom. Smallest since OBR was created. Any adverse shock would push Chancellor off course. Headroom was increased to ~£22bn in October 2024 by changing the debt measure to PSNFL."
+    }
+  },
+
+  "macroeconomicContext": {
+    "_description": "Key economic indicators as at July 2024",
+
+    "gdp": {
+      "nominalGDP": 2730,
+      "_unit": "GBP billions, annualised Q2 2024",
+      "realGrowth": {
+        "q1_2024": 0.7,
+        "q2_2024": 0.6,
+        "_unit": "Percent, quarter-on-quarter",
+        "2023_annual": 0.1,
+        "2024_forecast": 0.8,
+        "2025_forecast": 1.9,
+        "2026_forecast": 2.0,
+        "_forecastSource": "OBR March 2024",
+        "_note": "UK had a technical recession in Q3-Q4 2023 but recovered in Q1 2024"
+      },
+      "gdpPerCapita": 40325,
+      "_unit2": "GBP per person, nominal",
+      "outputGap": -0.4,
+      "_unit3": "Percent (OBR estimate, small negative gap in mid-2024)"
+    },
+
+    "inflation": {
+      "cpiHeadline": {
+        "june2024": 2.0,
+        "july2024": 2.2,
+        "_target": "2.0% (Bank of England target)",
+        "_note": "Inflation had fallen from peak of 11.1% (October 2022) back to near target"
+      },
+      "cpih": {
+        "july2024": 2.7,
+        "_note": "CPI including owner occupiers' housing costs. Always slightly above CPI."
+      },
+      "coreInflation": {
+        "july2024": 3.3,
+        "_note": "CPI excluding food and energy. Remained stubbornly above headline CPI indicating persistent domestic price pressure."
+      },
+      "rpi": {
+        "july2024": 3.6,
+        "_note": "Retail Prices Index. Used for index-linked gilts, rail fares, student loans. Generally 1-1.5pp above CPI."
+      },
+      "servicesInflation": {
+        "july2024": 5.2,
+        "_note": "Key metric for Bank of England decision-making. Remained elevated due to wage growth feeding into labour-intensive services."
+      }
+    },
+
+    "labourMarket": {
+      "unemployment": {
+        "iloRate": 4.2,
+        "_unit": "Percent, three months to June 2024",
+        "claimantCount": 1600000,
+        "youthUnemployment": 12.3,
+        "_unit2": "Percent, 16-24 year olds"
+      },
+      "employment": {
+        "employmentRate": 74.5,
+        "_unit": "Percent, working-age (16-64)",
+        "totalEmployment_millions": 33.0
+      },
+      "economicInactivity": {
+        "rate": 22.1,
+        "_note": "Elevated relative to pre-COVID (21.0%). Driven by long-term sickness increase.",
+        "longTermSick_millions": 2.8,
+        "_note2": "Long-term sickness rose from 2.0m pre-COVID to 2.8m by 2024. Major structural challenge."
+      },
+      "averageEarnings": {
+        "totalGrowth": 5.7,
+        "regularGrowth": 5.8,
+        "_unit": "Percent annual growth, three months to June 2024",
+        "_note": "Real wage growth positive since mid-2023 as pay growth exceeds inflation"
+      },
+      "vacancies": 889000,
+      "_vacancyNote": "Fallen from peak of 1.3m in 2022 but still above pre-COVID (~800k). V/U ratio declining."
+    },
+
+    "monetaryPolicy": {
+      "bankRate": 5.25,
+      "_asOf": "July 2024",
+      "_note": "Held at 5.25% since August 2023. Cut to 5.00% on 1 August 2024 (narrow 5-4 vote).",
+      "marketExpectations": {
+        "_asOfJuly2024": "Markets pricing 2-3 cuts by end of 2024, reaching ~4.5% by year-end",
+        "terminalRate": "~3.5% expected by end of 2025"
+      },
+      "quantitativeEasing": {
+        "peakAPF": 895,
+        "_unit": "GBP billions (peak gilt holdings)",
+        "currentAPF": 700,
+        "_note": "Active quantitative tightening (QT) underway. BoE reducing gilt holdings by ~£100bn/year through active sales and maturities.",
+        "apfLosses": {
+          "_description": "HM Treasury indemnifies the BoE for losses on gilt sales",
+          "estimatedTotalLoss": 150,
+          "_note": "Gilts purchased at low yields (high prices) being sold/maturing at high yields (low prices). Estimated lifetime loss of £100-200bn."
+        }
+      }
+    },
+
+    "financialMarkets": {
+      "giltYields": {
+        "twoYear": 4.15,
+        "fiveYear": 4.05,
+        "tenYear": 4.15,
+        "thirtyYear": 4.55,
+        "_asOf": "Late July 2024, approximate",
+        "_note": "Yield curve slightly inverted at short end (2y > 10y), indicating market expects rate cuts"
+      },
+      "exchangeRates": {
+        "gbpUsd": 1.29,
+        "gbpEur": 1.18,
+        "sterlingERI": 105,
+        "_eriNote": "Trade-weighted effective exchange rate index (January 2005 = 100). Sterling had recovered from Truss-era lows."
+      },
+      "equityMarkets": {
+        "ftse100": 8280,
+        "ftse250": 21100,
+        "_asOf": "Late July 2024, approximate"
+      },
+      "housePrices": {
+        "averageUK": 288000,
+        "annualChange": 0.5,
+        "_unit": "Percent, broadly flat after 2022-23 falls",
+        "priceToEarningsRatio": 7.5,
+        "_note": "National average. London ~12x, some areas ~5x. Affordability remains historically stretched."
+      },
+      "creditRatings": {
+        "moodys": { "rating": "Aa3", "outlook": "Stable" },
+        "standardAndPoors": { "rating": "AA", "outlook": "Stable" },
+        "fitch": { "rating": "AA-", "outlook": "Stable" },
+        "_note": "All three agencies have UK well below AAA. Further downgrades possible if debt trajectory worsens."
+      }
+    },
+
+    "demographics": {
+      "population_millions": 67.7,
+      "workingAgePopulation_millions": 42.0,
+      "_workingAgeDefinition": "16-64 years old",
+      "populationGrowth": 0.6,
+      "_unit": "Percent per year",
+      "medianAge": 40.5,
+      "oldAgeDependencyRatio": 29.5,
+      "_oadrNote": "Number of people of state pension age+ per 100 working-age adults. Rising as population ages.",
+      "netMigration": 685000,
+      "_year": "Year ending June 2023 estimate",
+      "_note": "Historically high net migration. ONS provisional estimate later revised. Migration a major political issue.",
+      "fertilityRate": 1.49,
+      "_fertilityNote": "Below replacement level (2.1). Lowest on record. Long-term fiscal implications for pensions and health spending."
+    }
+  },
+
+  "fiscalRules": {
+    "_description": "Labour's fiscal framework as articulated prior to and immediately after the July 2024 election. Chancellor Rachel Reeves.",
+
+    "stabilityRule": {
+      "name": "The Stability Rule (current budget rule)",
+      "definition": "The current budget must be in balance - that is, day-to-day spending must be covered by revenues - by the end of a rolling five-year forecast period.",
+      "measure": "Public sector current budget balance",
+      "_note": "This excludes net investment (capital spending) from the target, allowing borrowing for investment. This is the key philosophical distinction from Conservative fiscal rules.",
+      "flexibility": "Rolling target means it shifts each forecast, giving some flexibility. But consistently pushing the target out would damage credibility."
+    },
+
+    "investmentRule": {
+      "name": "The Investment Rule (debt rule)",
+      "definition": "Public sector net debt must be falling as a share of GDP by the fifth year of the OBR's rolling forecast.",
+      "measure": "Public sector net debt excluding Bank of England (PSND ex BoE)",
+      "_note": "In the October 2024 Autumn Budget, Reeves changed this to public sector net financial liabilities (PSNFL), which is a broader measure. This created ~£50bn of additional headroom for borrowing to invest.",
+      "debtMeasureChange": {
+        "original": "PSND ex BoE",
+        "changed_to": "PSNFL (Public Sector Net Financial Liabilities)",
+        "_rationale": "PSNFL counts financial assets (student loans, equity stakes, lending) against liabilities. Gives credit for investments that generate returns.",
+        "_criticism": "Seen by some as moving the goalposts. But supported by economists who argued PSNFL is a more comprehensive measure."
+      }
+    },
+
+    "investmentProtection": {
+      "name": "Golden rule for investment",
+      "definition": "Investment spending (capital DEL) is excluded from the current budget rule, protecting it from cuts during fiscal consolidation.",
+      "_rationale": "Borrowing to invest can raise future GDP and revenues, making it self-financing in the long run. OBR multiplier evidence supports higher returns from capital than current spending."
+    },
+
+    "spendingReviews": {
+      "cycle": "Multi-year spending reviews (typically 3 years)",
+      "_note": "Reeves announced a multi-year spending review to be completed in spring 2025, covering 2025-26 to 2027-28.",
+      "departmental_efficiency": "Commitment to 2% annual productivity improvement in some departments"
+    },
+
+    "institutionalFramework": {
+      "obr": {
+        "role": "Independent forecasting and fiscal assessment. All major fiscal events must be accompanied by an OBR forecast.",
+        "_note": "Labour explicitly committed to never sidelining the OBR (implicit contrast with Truss mini-budget)."
+      },
+      "charterForBudgetResponsibility": {
+        "_description": "Legal framework requiring government to set out fiscal rules and have them assessed by the OBR",
+        "status": "Updated by Reeves to reflect new fiscal rules"
+      }
+    },
+
+    "headroom": {
+      "_description": "Buffer above the minimum needed to meet fiscal rules",
+      "obrMarch2024": 8.9,
+      "obrOctober2024_newMeasure": 22,
+      "_unit": "GBP billions against the binding fiscal rule",
+      "_note": "Razor-thin headroom by historical standards. Any adverse shock (slower growth, higher spending, global downturn) could breach the rules. Previous Chancellors have had £20-60bn of headroom."
+    }
+  },
+
+  "tradeAndExternalSector": {
+    "_description": "UK trade and balance of payments data as of Q1 2024 (latest available in July 2024)",
+
+    "currentAccount": {
+      "balance": -83,
+      "percentOfGDP": -3.1,
+      "_unit": "GBP billions per year (four-quarter rolling total to Q1 2024)",
+      "_note": "UK has run a persistent current account deficit since 1984. Financed by capital inflows (foreign investment in UK assets).",
+      "_history": {
+        "2019": -2.7,
+        "2020": -2.5,
+        "2021": -1.5,
+        "2022": -3.8,
+        "2023": -3.3,
+        "2024_q1_rolling": -3.1,
+        "_unit": "Percent of GDP"
+      }
+    },
+
+    "tradeBalance": {
+      "totalTradeBalance": -42,
+      "_unit": "GBP billions (four-quarter rolling total to Q1 2024)",
+      "goodsBalance": -154,
+      "servicesBalance": 112,
+      "_note": "UK runs a large deficit in goods trade but a large surplus in services (financial services, professional services, tech). Services surplus partially offsets goods deficit.",
+      "topTradingPartners": {
+        "exports": {
+          "1_usa": 18.3,
+          "2_eu27": 42.2,
+          "3_china": 4.8,
+          "_unit": "Percent of total UK exports, approximate 2023",
+          "_note": "EU collectively remains largest partner despite Brexit-related trade friction"
+        },
+        "imports": {
+          "1_eu27": 42.8,
+          "2_china": 12.6,
+          "3_usa": 10.2,
+          "_unit": "Percent of total UK imports, approximate 2023"
+        }
+      }
+    },
+
+    "tradeOpenness": {
+      "totalTradePercentOfGDP": 62,
+      "_note": "Sum of exports and imports as percent of GDP. UK goods trade intensity ~15% below pre-Brexit trend (OBR estimate)."
+    },
+
+    "foreignDirectInvestment": {
+      "inwardFDIStock": 2100,
+      "outwardFDIStock": 1900,
+      "_unit": "GBP billions, approximate 2023",
+      "_note": "UK remains one of the largest recipients and sources of FDI globally, though inward flows have slowed post-Brexit."
+    },
+
+    "internationalInvestmentPosition": {
+      "netIIP": -680,
+      "_unit": "GBP billions, approximate Q1 2024",
+      "_note": "UK is a net debtor to the rest of the world, though investment income balance has historically been close to zero due to higher returns on UK overseas assets."
+    }
+  },
+
+  "productivity": {
+    "_description": "UK productivity indicators as of mid-2024. The 'productivity puzzle' remains the central structural challenge for the UK economy.",
+
+    "outputPerHour": {
+      "index": 102.2,
+      "_base": "2019 Q4 = 100",
+      "_unit": "ONS output per hour worked index",
+      "_note": "Essentially flat since the pandemic. UK output per hour is ~15-20% below France, Germany, and the US."
+    },
+
+    "outputPerWorker": {
+      "index": 100.5,
+      "_base": "2019 Q4 = 100",
+      "_note": "Growth has been marginally positive but well below historical trend."
+    },
+
+    "productivityGrowthRate": {
+      "latestAnnual": 0.5,
+      "_unit": "Percent per year, output per hour, approximate mid-2024",
+      "_preCrisisTrend": 2.0,
+      "_post2008Trend": 0.5,
+      "_gap": "If pre-2008 productivity growth had continued, UK GDP per capita would be approximately £9,000 higher (or ~£300bn more total GDP)."
+    },
+
+    "internationalComparison": {
+      "_outputPerHourRelativeToUS": {
+        "uk": 82,
+        "germany": 95,
+        "france": 98,
+        "japan": 67,
+        "italy": 80,
+        "_unit": "Index, US = 100, approximate 2023 PPP-adjusted",
+        "_source": "OECD productivity statistics"
+      }
+    },
+
+    "sectoralProductivity": {
+      "_note": "Significant variation across sectors. Finance and tech sectors have seen some growth; public services and low-skill services have stagnated.",
+      "manufacturing": { "growthRate": 1.2, "_unit": "Percent per year post-2010 average" },
+      "informationAndCommunication": { "growthRate": 3.5 },
+      "financialServices": { "growthRate": -0.5, "_note": "Negative due to post-crisis regulation and measurement issues" },
+      "publicAdministration": { "growthRate": 0.0 },
+      "retailAndHospitality": { "growthRate": 0.8 }
+    },
+
+    "multifactorProductivity": {
+      "growthRate": 0.2,
+      "_unit": "Percent per year, approximate recent trend",
+      "_note": "MFP captures technological progress and efficiency improvements beyond capital and labour input growth. Near-zero growth reflects stalling innovation diffusion."
+    },
+
+    "businessInvestment": {
+      "percentOfGDP": 10.1,
+      "_unit": "Percent of GDP, 2024 estimate",
+      "_note": "Below OECD average of ~13%. UK business investment has been persistently low, particularly since the 2016 Brexit referendum. Currently ~10% below pre-referendum trend.",
+      "_history": {
+        "2016_preReferendum": 10.8,
+        "2019_preCovid": 10.2,
+        "2024_estimate": 10.1,
+        "_unit": "Percent of GDP"
+      }
+    }
+  },
+
+  "realWageGrowth": {
+    "_description": "Derived real wage growth figures as of mid-2024",
+    "nominalTotalPayGrowth": 5.7,
+    "nominalRegularPayGrowth": 5.8,
+    "cpiInflation": 2.0,
+    "realTotalPayGrowth": 3.7,
+    "realRegularPayGrowth": 3.8,
+    "_unit": "Percent, three months to June 2024 vs year earlier",
+    "_note": "Real wages turned positive in mid-2023 after over two years of negative real pay growth during the cost-of-living crisis. However, real wages have only just recovered to 2008 pre-crisis levels - representing a 'lost 16 years' for living standards.",
+    "_history": {
+      "2022_peakNegative": -3.0,
+      "2023_H1": -1.5,
+      "2023_H2": 1.2,
+      "2024_H1": 3.8,
+      "_unit": "Percent approximate real regular pay growth"
+    }
+  },
+
+  "regionalEconomicDisparities": {
+    "_description": "GVA per head by region, 2022 data (latest available in July 2024). ONS regional GVA estimates.",
+
+    "gvaPerHead2022": {
+      "london": {
+        "value": 67500,
+        "indexUK100": 178
+      },
+      "southEast": {
+        "value": 35800,
+        "indexUK100": 94
+      },
+      "eastOfEngland": {
+        "value": 31200,
+        "indexUK100": 82
+      },
+      "scotland": {
+        "value": 30600,
+        "indexUK100": 81
+      },
+      "southWest": {
+        "value": 29500,
+        "indexUK100": 78
+      },
+      "northWest": {
+        "value": 29000,
+        "indexUK100": 76
+      },
+      "eastMidlands": {
+        "value": 27000,
+        "indexUK100": 71
+      },
+      "westMidlands": {
+        "value": 28200,
+        "indexUK100": 74
+      },
+      "yorkshireAndHumber": {
+        "value": 26800,
+        "indexUK100": 71
+      },
+      "northEast": {
+        "value": 24500,
+        "indexUK100": 65
+      },
+      "wales": {
+        "value": 24200,
+        "indexUK100": 64
+      },
+      "northernIreland": {
+        "value": 25200,
+        "indexUK100": 66
+      },
+      "_unit": "GBP per person, nominal, 2022",
+      "_ukAverage": 37900,
+      "_source": "ONS Regional gross value added (balanced) per head by ITL1 region"
+    },
+
+    "londonToRestRatio": 2.3,
+    "_note": "London's GVA per head is 2.3x the average of all other regions. This is one of the most extreme regional disparities in the OECD. Only Paris vs rest of France is comparable.",
+
+    "levellingUpContext": {
+      "gapTrend": "Widening since 2010. London and South East have pulled further ahead.",
+      "productivityDisparities": "Output per hour in London is ~35% above UK average. In Wales and North East, it is ~15-20% below.",
+      "investmentDisparities": "Per capita public investment in London has historically been 2-3x that of Northern regions, though this has narrowed somewhat.",
+      "_source": "IFS Deaton Review (2022), UK2070 Commission reports"
+    }
+  },
+
+  "obrMarch2024Forecasts": {
+    "_description": "Complete OBR Economic and Fiscal Outlook forecast tables from March 2024 (Spring Budget). These were the official forecasts in force when Labour took office in July 2024.",
+    "_source": "OBR Economic and Fiscal Outlook, March 2024",
+
+    "gdpGrowth": {
+      "2023": 0.1,
+      "2024": 0.8,
+      "2025": 1.9,
+      "2026": 2.0,
+      "2027": 1.8,
+      "2028": 1.7,
+      "_unit": "Percent, real GDP growth, calendar year",
+      "_note": "2023 showing near-stagnation after the energy crisis. OBR expected a gradual recovery building to trend growth by 2026."
+    },
+
+    "cpiInflation": {
+      "_measure": "Q4 year-on-year",
+      "2023_q4": 4.2,
+      "2024_q4": 2.2,
+      "2025_q4": 1.5,
+      "2026_q4": 1.6,
+      "2027_q4": 1.8,
+      "2028_q4": 2.0,
+      "_unit": "Percent",
+      "_note": "OBR expected inflation to undershoot the 2% target in 2025-26 before returning to target by 2028."
+    },
+
+    "unemployment": {
+      "_measure": "Q4 rate, ILO basis",
+      "2023_q4": 4.3,
+      "2024_q4": 4.5,
+      "2025_q4": 4.3,
+      "2026_q4": 4.2,
+      "2027_q4": 4.1,
+      "2028_q4": 4.1,
+      "_unit": "Percent",
+      "_note": "OBR expected unemployment to peak in 2024 as lagged effects of interest rate rises fed through, then gradually decline."
+    },
+
+    "averageEarningsGrowth": {
+      "2023": 7.1,
+      "2024": 3.7,
+      "2025": 2.7,
+      "2026": 2.9,
+      "2027": 3.2,
+      "2028": 3.2,
+      "_unit": "Percent, whole economy",
+      "_note": "Expected sharp deceleration from the post-pandemic/cost-of-living spike."
+    },
+
+    "bankRate": {
+      "_measure": "Market-implied path from March 2024 gilt curves",
+      "2024_q2": 5.25,
+      "2024_q4": 4.75,
+      "2025_q4": 3.75,
+      "2026_q4": 3.50,
+      "2027_q4": 3.50,
+      "2028_q4": 3.50,
+      "_unit": "Percent",
+      "_note": "OBR uses market-implied interest rate path. Markets in March 2024 expected Bank Rate to fall to ~3.5% by 2026 and remain there."
+    },
+
+    "publicSectorNetBorrowing": {
+      "2023_24_forecast": 114.1,
+      "2024_25": 87.2,
+      "2025_26": 61.8,
+      "2026_27": 39.4,
+      "2027_28": 24.0,
+      "2028_29": 6.6,
+      "_unit": "GBP billions",
+      "_note": "Showed borrowing falling sharply towards near-balance by 2028-29. This was contingent on very tight departmental spending limits from 2025-26 onwards - the 'implied fiscal tightening' that many analysts considered unrealistic."
+    },
+
+    "publicSectorNetBorrowingPercentGDP": {
+      "2023_24": 4.2,
+      "2024_25": 3.1,
+      "2025_26": 2.1,
+      "2026_27": 1.3,
+      "2027_28": 0.8,
+      "2028_29": 0.2,
+      "_unit": "Percent of GDP"
+    },
+
+    "publicSectorNetDebt": {
+      "_measure": "PSND excluding Bank of England, as percent of GDP",
+      "2023_24": 91.7,
+      "2024_25": 93.2,
+      "2025_26": 94.3,
+      "2026_27": 94.0,
+      "2027_28": 93.2,
+      "2028_29": 92.9,
+      "_unit": "Percent of GDP",
+      "_note": "Debt projected to peak at 94.3% in 2025-26 then decline. Meeting the fiscal mandate required debt falling in the final year, which was achieved by a margin of only £8.9bn."
+    },
+
+    "currentBudgetBalance": {
+      "2023_24": -31.9,
+      "2024_25": -17.0,
+      "2025_26": -7.0,
+      "2026_27": 8.0,
+      "2027_28": 21.0,
+      "2028_29": 34.0,
+      "_unit": "GBP billions (negative = deficit, positive = surplus)",
+      "_note": "Labour's fiscal rule requires the current budget to be in balance by the 5th year. This showed it reaching surplus by 2026-27."
+    },
+
+    "structuralBorrowing": {
+      "_measure": "Cyclically-adjusted PSNB",
+      "2023_24": 3.5,
+      "2024_25": 2.1,
+      "2025_26": 1.4,
+      "2026_27": 0.7,
+      "2027_28": 0.3,
+      "2028_29": -0.2,
+      "_unit": "Percent of GDP",
+      "_note": "The structural deficit was projected to close by 2028-29 on the March forecast, but this relied on unspecified spending restraint."
+    },
+
+    "centralGovernmentNetCashRequirement": {
+      "2024_25": 128,
+      "_unit": "GBP billions",
+      "_note": "The CGNCR measures how much the government actually needs to borrow in cash terms. Typically exceeds PSNB due to financial transactions (student loans issued, etc.)."
+    },
+
+    "debtInterest": {
+      "2023_24": 94,
+      "2024_25": 89,
+      "2025_26": 84,
+      "2026_27": 82,
+      "2027_28": 82,
+      "2028_29": 84,
+      "_unit": "GBP billions, central government net debt interest",
+      "_note": "Falling from 2022-23 peak of £116bn as index-linked gilt costs decline with lower RPI inflation. Still historically high."
+    },
+
+    "totalManagedExpenditure": {
+      "2023_24": 1197,
+      "2024_25": 1189,
+      "2025_26": 1213,
+      "2026_27": 1225,
+      "2027_28": 1253,
+      "2028_29": 1280,
+      "_unit": "GBP billions",
+      "_note": "Implies very tight real-terms growth in departmental spending from 2025-26 onwards. Non-protected departments faced real cuts of 1-2% per year."
+    },
+
+    "totalReceipts": {
+      "2023_24": 1078,
+      "2024_25": 1103,
+      "2025_26": 1152,
+      "2026_27": 1186,
+      "2027_28": 1229,
+      "2028_29": 1274,
+      "_unit": "GBP billions",
+      "_note": "Revenue rising as a share of GDP due to fiscal drag (frozen income tax thresholds) and the corporation tax rate increase to 25%."
+    },
+
+    "outputGap": {
+      "2023": -0.8,
+      "2024": -0.4,
+      "2025": 0.0,
+      "2026": 0.1,
+      "2027": 0.0,
+      "2028": 0.0,
+      "_unit": "Percent of potential GDP",
+      "_note": "Small negative output gap closing by 2025. Economy reaching estimated potential capacity."
+    },
+
+    "trendGrowthAssumptions": {
+      "trendGDPGrowth": 1.6,
+      "trendProductivityGrowth": 0.9,
+      "trendEmploymentGrowth": 0.7,
+      "_unit": "Percent per year",
+      "_note": "OBR's estimate of UK potential growth. Well below pre-2008 trend of ~2.5%. Productivity assumption is particularly conservative but reflects post-2008 reality."
+    },
+
+    "impliedDepartmentalSpending": {
+      "_description": "The OBR's borrowing projections implied extremely tight departmental spending from 2025-26 onwards",
+      "resourceDELAnnualRealGrowth": {
+        "2024_25": 1.1,
+        "2025_26_to_2028_29": 0.8,
+        "_unit": "Percent per year in real terms",
+        "_note": "With NHS and defence protected, unprotected departments (justice, local government, home office, etc.) faced real-terms cuts of 1.9% per year. IFS described this as 'not credible' given existing service pressures."
+      }
+    }
+  },
+
+  "keyRisksAndChallenges": {
+    "_description": "Structural fiscal risks faced by the incoming Chancellor. Useful for game scenario planning.",
+
+    "ageing": {
+      "statePensionCost2024": 130,
+      "statePensionCost2050_projected": 210,
+      "_unit": "GBP billions in 2024 prices, approximate",
+      "healthCostPressure": "Real NHS spending has grown ~3.6% per year historically. Even 2% annual real growth adds ~£4bn/year.",
+      "socialCareDemand": "Working-age social care needs rising 3-4% per year. Unfunded pressure on local government."
+    },
+
+    "climate": {
+      "netzero2050Cost": {
+        "annual_investment_needed": 60,
+        "_unit": "GBP billions per year public + private combined",
+        "_publicShare": "Government estimates ~£10-20bn/year of public spending needed"
+      },
+      "carbonTaxRevenueLoss": "As economy decarbonises, fuel duty (~£25bn) and other fossil fuel revenues (~£5bn) will decline over 10-30 years"
+    },
+
+    "productivity": {
+      "_description": "UK productivity growth has stalled since 2008. If productivity grew at pre-2008 rates, GDP would be ~£9,000 per person higher today.",
+      "trendGrowthReduction": "OBR trend growth estimate of 1.5% vs pre-2008 trend of 2.5%. This 1pp difference compounds enormously over time."
+    },
+
+    "brexitOngoing": {
+      "tradeIntensityReduction": "UK goods trade ~15% below pre-Brexit trend by 2024 per OBR/academic estimates",
+      "regulatoryDivergence": "Growing divergence from EU regulation creating additional trade barriers",
+      "investmentDrag": "Business investment remains ~10% below pre-referendum trend"
+    },
+
+    "defence": {
+      "nATO_2pct_floor": "2% GDP floor requires ~£55bn. Pressure to reach 2.5% adds ~£14bn/year.",
+      "ukraineSupport": "Ongoing military and economic support commitment",
+      "equipmentProgramme": "Significant unfunded gap in defence equipment plan (~£17bn over 10 years per NAO)"
+    },
+
+    "nhs": {
+      "waitingList": "7.6m on elective waiting list (July 2024). Clearing backlog requires sustained above-inflation funding growth.",
+      "capitalBacklog": "Estimated £11.6bn maintenance backlog across NHS estate",
+      "workforceShortages": "~112,000 vacancies across NHS England"
+    },
+
+    "indexLinkedGilts": {
+      "share": 25,
+      "_unit": "Percent of total gilt stock",
+      "_risk": "Any inflation spike immediately increases debt interest payments. £1bn extra debt interest per unexpected 1pp of RPI inflation."
+    }
+  },
+
+  "politicalContext": {
+    "_description": "Political starting conditions for the game",
+
+    "government": {
+      "party": "Labour",
+      "pm": "Keir Starmer",
+      "chancellor": "Rachel Reeves",
+      "majority": 174,
+      "_seats": "Labour 412, Conservative 121, Liberal Democrats 72, SNP 9, Others 36 (out of 650)",
+      "electionDate": "2024-07-04",
+      "_nextElection": "Must be held by July 2029 (5-year maximum term)"
+    },
+
+    "manifesto_fiscal_pledges": {
+      "no_increase_in": ["Income tax rates", "National Insurance rates", "VAT rate", "Corporation tax rate"],
+      "_note": "Reeves and Starmer repeatedly pledged not to raise these four taxes. This significantly constrained revenue-raising options.",
+      "pledged_to_raise": [
+        "VAT on private school fees (5-7% of schools, ~£1.5bn revenue)",
+        "Carried interest taxed as income (£0.5-1bn)",
+        "Non-dom tax status abolished (£2-3bn, uncertain)",
+        "Energy windfall tax extension and tightening"
+      ],
+      "spending_pledges": [
+        "40,000 more NHS appointments per week",
+        "6,500 new teachers",
+        "13,000 more neighbourhood police",
+        "Great British Energy (public clean energy company)",
+        "National Wealth Fund (£7.3bn capitalisation)"
+      ]
+    },
+
+    "publicOpinion": {
+      "_july2024": {
+        "nhsTopPriority": true,
+        "costOfLivingConcern": true,
+        "taxFatigue": "Polling shows public resistant to further tax rises after frozen thresholds",
+        "publicServicesDeterioration": "Widespread perception that public services (NHS, schools, courts, local government) have deteriorated significantly since 2010"
+      }
+    }
+  },
+
+  "readyReckoners": {
+    "_description": "Quick-reference table of approximate revenue/cost impacts of common policy changes. Based on OBR ready reckoners adjusted for 2024-25 tax base.",
+
+    "taxChanges": {
+      "incomeTaxBasicRate1p": {
+        "revenueChange": 7.0,
+        "_direction": "1p increase raises ~£7bn"
+      },
+      "incomeTaxHigherRate1p": {
+        "revenueChange": 2.0,
+        "_direction": "1p increase raises ~£2bn"
+      },
+      "incomeTaxAdditionalRate1p": {
+        "revenueChange": 0.2,
+        "_direction": "1p increase raises ~£200m (small tax base, high avoidance elasticity)"
+      },
+      "personalAllowance1000Change": {
+        "revenueChange": 6.2,
+        "_direction": "£1,000 reduction raises ~£6.2bn"
+      },
+      "employeeNI1pp": {
+        "revenueChange": 6.0,
+        "_direction": "1pp increase raises ~£6bn"
+      },
+      "employerNI1pp": {
+        "revenueChange": 8.5,
+        "_direction": "1pp increase raises ~£8.5bn (broader base due to lower threshold)"
+      },
+      "vatStandardRate1pp": {
+        "revenueChange": 7.5,
+        "_direction": "1pp increase raises ~£7.5bn"
+      },
+      "corporationTax1pp": {
+        "revenueChange": 3.2,
+        "_direction": "1pp increase raises ~£3.2bn (before behavioural response)"
+      },
+      "cgtAlignWithIncomeTax": {
+        "revenueChange": 7,
+        "_note": "Very uncertain. HMRC estimates range from £5-14bn depending on behavioural assumptions. Forestalling effects significant in first year."
+      },
+      "fuelDuty1pPerLitre": {
+        "revenueChange": 0.5,
+        "_direction": "1p/litre increase raises ~£500m"
+      },
+      "councilTax1pp": {
+        "revenueChange": 0.5,
+        "_direction": "1pp increase raises ~£500m"
+      },
+      "ihtNilRateBandChange10k": {
+        "revenueChange": 0.1,
+        "_direction": "£10k reduction in NRB raises ~£100m"
+      },
+      "alcoholDuty1pp": {
+        "revenueChange": 0.13
+      },
+      "tobaccoDuty1pp": {
+        "revenueChange": 0.09
+      },
+      "stampDutyRate1pp": {
+        "revenueChange": 0.8,
+        "_note": "Highly sensitive to housing market transactions volume"
+      }
+    },
+
+    "spendingChanges": {
+      "statePensionTripleLockRemoval": {
+        "saving_perYear": 3,
+        "_note": "Replacing triple lock with earnings-only indexation saves ~£3bn/year, growing over time"
+      },
+      "universalCredit5ppTaperReduction": {
+        "cost_perYear": 3.5
+      },
+      "publicSectorPayRise1ppAboveInflation": {
+        "cost": 2.5
+      },
+      "freeSchoolMealsExpansion": {
+        "cost": 1.0,
+        "_note": "Extending to all primary school children"
+      },
+      "socialCareCapIntroduction": {
+        "cost": 5,
+        "_note": "£86,000 lifetime cap on care costs. Delayed indefinitely, would cost ~£5bn/year once fully operational."
+      },
+      "defenceSpendingTo2_5pctGDP": {
+        "additionalCost": 14
+      },
+      "restoring0_7pctODA": {
+        "additionalCost": 6
+      }
+    }
+  }
+}

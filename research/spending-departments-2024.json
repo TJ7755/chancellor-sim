@@ -1,0 +1,579 @@
+{
+  "_description": "UK Government Spending by Department - 2024-25 fiscal year. Based on OBR March 2024 EFO and Spring Budget 2024 plans.",
+  "_source": "OBR Economic and Fiscal Outlook March 2024; HM Treasury PESA 2024; Spring Budget 2024",
+
+  "totalManagedExpenditure": {
+    "tme_total": 1226,
+    "_unit": "GBP billions, 2024-25",
+    "tme_pct_gdp": 44.6,
+    "breakdown": {
+      "departmentalExpenditureLimits": {
+        "resourceDEL": 434,
+        "capitalDEL": 100,
+        "totalDEL": 534
+      },
+      "annuallyManagedExpenditure": {
+        "totalAME": 692,
+        "_components": [
+          "Social security benefits (~290bn)",
+          "Debt interest (~89bn)",
+          "NHS provider spending classified as AME",
+          "Local authority self-financed expenditure (~55bn)",
+          "Public service pensions (~55bn)",
+          "Student loans (RAB charge ~20bn)",
+          "EU financial settlement payments",
+          "Other AME items"
+        ]
+      }
+    }
+  },
+
+  "departments": {
+    "dhsc": {
+      "name": "Department of Health and Social Care",
+      "secretary": "Victoria Atkins (pre-election), Wes Streeting (post-July 2024)",
+      "totalDEL": 180.4,
+      "resourceDEL": 168.4,
+      "capitalDEL": 12.0,
+      "_unit": "GBP billions",
+      "staffHeadcount": 10800,
+      "_nhsStaff": "NHS England employs ~1.4 million, making it the largest employer in Europe",
+      "keySpendingAreas": {
+        "nhsEnglandRevenue": 164.9,
+        "publicHealth": 3.5,
+        "socialCareGrants": 7.5,
+        "departmentAdmin": 0.5,
+        "capitalInvestment": {
+          "newHospitalsProgramme": 3.7,
+          "diagnosticEquipment": 1.5,
+          "digitalTransformation": 2.0,
+          "maintenanceBacklog": 4.8,
+          "_backlogNote": "Total estimated maintenance backlog: £11.6bn. Annual capital insufficient to prevent backlog growing."
+        }
+      },
+      "nhsSpendingBreakdown": {
+        "staffCosts": 75,
+        "drugsAndConsumables": 20,
+        "primaryCare": 18,
+        "mentalHealth": 16,
+        "specialisedCommissioning": 22,
+        "other": 13.9,
+        "_unit": "GBP billions approximate"
+      },
+      "pressures": [
+        "7.6m elective waiting list (July 2024)",
+        "112,000 staff vacancies across NHS England",
+        "£11.6bn maintenance backlog",
+        "Agency spending ~£10bn/year displacing permanent recruitment",
+        "Social care interface: delayed discharges costing ~£2bn/year in NHS beds",
+        "Mental health referrals up ~30% post-COVID",
+        "GP access crisis: average 2+ weeks for routine appointment"
+      ],
+      "realGrowthHistory": {
+        "longTermAverage": 3.6,
+        "2010_2015": 1.1,
+        "2015_2019": 1.6,
+        "2020_2024": 4.2,
+        "_unit": "Percent per year real terms",
+        "_note": "COVID years distort 2020-2024 average. Underlying trend ~2.5% post-2022."
+      }
+    },
+
+    "education": {
+      "name": "Department for Education",
+      "secretary": "Gillian Keegan (pre-election), Bridget Phillipson (post-July 2024)",
+      "totalDEL": 105.3,
+      "resourceDEL": 93.3,
+      "capitalDEL": 12.0,
+      "_unit": "GBP billions",
+      "staffHeadcount": 7200,
+      "keySpendingAreas": {
+        "schools": {
+          "coreFunding": 59.4,
+          "pupilPremium": 2.9,
+          "teachersPensionGrant": 2.2,
+          "freeSchoolMeals": 1.3,
+          "perPupilFunding2024_25": 7460,
+          "_perPupilNote": "Real-terms per-pupil funding in 2024-25 was approximately at 2010 levels after a decade of erosion"
+        },
+        "furtherEducation": 7.2,
+        "higherEducation": 1.8,
+        "earlyYears": 8.0,
+        "send": 10.5,
+        "apprenticeships": 2.7,
+        "capitalProgrammes": {
+          "schoolRebuilding": 3.0,
+          "freeSchoolsAndExpansions": 2.0,
+          "raac_remediation": 1.5,
+          "feColleges": 1.2,
+          "maintenanceAndCondition": 4.3,
+          "_note": "RAAC concrete crisis (2023) revealed decades of underinvestment in school buildings"
+        }
+      },
+      "pressures": [
+        "SEND deficit: cumulative local authority SEND deficits exceeding £4bn nationally",
+        "Teacher recruitment crisis: secondary school targets missed for 9 consecutive years",
+        "Teacher retention: ~33,000 leaving per year, especially in STEM and early career",
+        "Real-terms per-pupil funding eroded ~9% 2010-2020 before partial recovery",
+        "Early years: childcare expansion (phased from April 2024) costs £4-5bn when fully rolled out",
+        "School buildings: ~700,000 pupils in schools with major condition needs"
+      ]
+    },
+
+    "mod": {
+      "name": "Ministry of Defence",
+      "secretary": "Grant Shapps (pre-election), John Healey (post-July 2024)",
+      "totalDEL": 55.6,
+      "resourceDEL": 39.0,
+      "capitalDEL": 16.6,
+      "_unit": "GBP billions",
+      "defenceSpendingPctGDP": 2.07,
+      "natoTarget": 2.0,
+      "aspirationalTarget": 2.5,
+      "staffHeadcount": 60000,
+      "_armedForcesPersonnel": "Regular: ~144,000; Reserve: ~30,000; MOD civilians: ~60,000",
+      "keySpendingAreas": {
+        "armyRevenue": 11.0,
+        "navyRevenue": 8.5,
+        "rafRevenue": 7.5,
+        "equipmentPlan": 16.6,
+        "nuclearDeterrent": 3.5,
+        "ukrAid": 2.5,
+        "intelligence": 2.2,
+        "_note": "Equipment plan has an unfunded gap estimated at £7-17bn over 10 years (NAO)"
+      },
+      "pressures": [
+        "Ukraine: ongoing military aid commitment (~£2.5bn/year)",
+        "Equipment plan affordability gap: £7-17bn (NAO)",
+        "Recruitment and retention crisis: Army ~7% below strength target",
+        "Nuclear deterrent renewal (Dreadnought submarines): costs escalating",
+        "Pressure to reach 2.5% GDP (additional ~£14bn/year from current level)",
+        "Ammunition stocks depleted by Ukraine donations need replenishment"
+      ]
+    },
+
+    "homeOffice": {
+      "name": "Home Office",
+      "secretary": "James Cleverly (pre-election), Yvette Cooper (post-July 2024)",
+      "totalDEL": 19.8,
+      "resourceDEL": 18.3,
+      "capitalDEL": 1.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 38000,
+      "keySpendingAreas": {
+        "policing": 11.5,
+        "immigration": 4.5,
+        "counterTerrorism": 1.2,
+        "borders": 1.1,
+        "fireAndRescue": 0.5,
+        "other": 1.0
+      },
+      "pressures": [
+        "Asylum backlog: ~175,000 cases pending decision (July 2024)",
+        "Rwanda scheme costs (pre-cancellation by Labour): ~£290m already spent",
+        "Hotel accommodation for asylum seekers: ~£8m/day",
+        "Police officer numbers: recovering from 21,000 cut during austerity",
+        "Organised crime (NCA) funding inadequate for growing threats",
+        "Counter-terrorism: evolving threat landscape post-Hamas/Israel"
+      ]
+    },
+
+    "moj": {
+      "name": "Ministry of Justice",
+      "secretary": "Alex Chalk (pre-election), Shabana Mahmood (post-July 2024)",
+      "totalDEL": 12.2,
+      "resourceDEL": 10.7,
+      "capitalDEL": 1.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 88000,
+      "keySpendingAreas": {
+        "prisonsAndProbation": 5.5,
+        "courtsAndTribunals": 2.8,
+        "legalAid": 1.9,
+        "youthJustice": 0.4,
+        "departmentAndOther": 1.6
+      },
+      "pressures": [
+        "Prison population at record ~88,000 (capacity ~88,900): system at breaking point",
+        "Crown Court backlog: ~67,000 cases (tripled since 2019)",
+        "258 courts closed during austerity, remaining courts crumbling",
+        "Legal aid funding still ~30% below 2010 levels in real terms",
+        "Prison building programme behind schedule",
+        "Probation service struggling after botched privatisation and renationalisation"
+      ]
+    },
+
+    "dwp": {
+      "name": "Department for Work and Pensions",
+      "secretary": "Mel Stride (pre-election), Liz Kendall (post-July 2024)",
+      "totalDEL": 8.4,
+      "resourceDEL": 7.8,
+      "capitalDEL": 0.6,
+      "_ameSpending": "Most DWP spending is AME (benefits). DEL covers administration only.",
+      "_unit": "GBP billions",
+      "staffHeadcount": 83000,
+      "benefitSpending_AME": {
+        "_total": 290,
+        "_unit": "GBP billions, 2024-25",
+        "statePension": {
+          "basic": 36,
+          "newStatePension": 94,
+          "total": 130,
+          "_note": "Triple lock: rises by highest of CPI, earnings growth, or 2.5%. Cost ~£130bn/year. Single biggest item of public spending."
+        },
+        "universalCredit": 38,
+        "housingBenefit": 18,
+        "personalIndependencePayment": 22,
+        "disabilityLivingAllowance": 7,
+        "employmentSupportAllowance": 8,
+        "attendanceAllowance": 7,
+        "childBenefit": 12.6,
+        "carerAllowance": 4,
+        "pensionCredit": 6,
+        "winterFuelPayment": 2,
+        "bereavementBenefits": 0.5,
+        "other": 5
+      },
+      "pressures": [
+        "State pension triple lock: costs growing ~£3-5bn/year above inflation",
+        "Disability benefits rising rapidly: PIP caseload growing ~5% per year",
+        "Post-COVID economic inactivity: 2.8m long-term sick (up from 2.0m pre-COVID)",
+        "Universal Credit: ~6 million claimants, system under strain",
+        "Cost of living pressures still driving increased claims",
+        "Fraud and error in benefits estimated at ~£8.3bn/year"
+      ]
+    },
+
+    "hmTreasury": {
+      "name": "HM Treasury",
+      "chancellor": "Jeremy Hunt (pre-election), Rachel Reeves (post-July 2024)",
+      "totalDEL": 0.8,
+      "resourceDEL": 0.7,
+      "capitalDEL": 0.1,
+      "_unit": "GBP billions",
+      "staffHeadcount": 2300,
+      "_note": "Tiny departmental budget but controls all other departments' spending. Houses the fiscal policy-making function."
+    },
+
+    "transport": {
+      "name": "Department for Transport",
+      "secretary": "Mark Harper (pre-election), Louise Haigh (post-July 2024)",
+      "totalDEL": 31.2,
+      "resourceDEL": 13.5,
+      "capitalDEL": 17.7,
+      "_unit": "GBP billions",
+      "staffHeadcount": 18000,
+      "keySpendingAreas": {
+        "railSubsidy": 5.5,
+        "nationalRoads": 7.0,
+        "localRoads": 3.5,
+        "hs2": 6.0,
+        "busSubsidy": 1.5,
+        "aviation": 0.5,
+        "maritime": 0.3,
+        "other": 6.9,
+        "_hs2Note": "HS2 Phase 1 (London-Birmingham) proceeding. Phase 2 (to Manchester) cancelled October 2023. Estimated total cost £60-70bn for Phase 1 alone."
+      },
+      "pressures": [
+        "HS2 cost escalation: Phase 1 now estimated at £60-70bn",
+        "Rail franchising model effectively nationalised post-COVID (GBR creation delayed)",
+        "Road maintenance backlog estimated at £12bn+",
+        "Northern Powerhouse Rail cancelled alongside HS2 Phase 2",
+        "Electric vehicle infrastructure investment needs",
+        "Bus services declining in rural and suburban areas"
+      ]
+    },
+
+    "dluhc_mhclg": {
+      "name": "Ministry of Housing, Communities and Local Government",
+      "secretary": "Michael Gove (pre-election), Angela Rayner (post-July 2024)",
+      "totalDEL": 12.1,
+      "resourceDEL": 8.6,
+      "capitalDEL": 3.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 3600,
+      "keySpendingAreas": {
+        "localGovernmentGrants": 5.5,
+        "homelessnessAndRoughSleeping": 1.0,
+        "buildingSafetyFund": 1.5,
+        "planning": 0.3,
+        "housingCapital": 2.5,
+        "levellingUpFunds": 1.3
+      },
+      "pressures": [
+        "Local authority funding crisis: 7 councils have effectively declared bankruptcy (s114 notices)",
+        "Building safety remediation post-Grenfell: estimated £15-50bn total cost",
+        "Housing targets: 1.5m homes over parliament (300,000/year) vs ~220,000 delivered",
+        "Homelessness: 100,000+ in temporary accommodation",
+        "Council tax system based on 1991 valuations, deeply outdated"
+      ]
+    },
+
+    "defra": {
+      "name": "Department for Environment, Food and Rural Affairs",
+      "secretary": "Steve Barclay (pre-election), Steve Reed (post-July 2024)",
+      "totalDEL": 7.2,
+      "resourceDEL": 5.2,
+      "capitalDEL": 2.0,
+      "_unit": "GBP billions",
+      "staffHeadcount": 26000,
+      "keySpendingAreas": {
+        "farmSubsidies_ELM": 2.4,
+        "environmentAgency": 1.5,
+        "floodDefences": 1.2,
+        "naturalEngland": 0.4,
+        "wasteAndRecycling": 0.3,
+        "other": 1.4,
+        "_note": "Post-Brexit: transitioning from EU Common Agricultural Policy to Environmental Land Management (ELM) scheme"
+      },
+      "pressures": [
+        "Agricultural transition: farmers facing income uncertainty as BPS payments phased out",
+        "Flood risk: climate change increasing severe flooding frequency",
+        "Water quality: sewage discharge crisis requires infrastructure investment",
+        "Biodiversity decline accelerating despite commitments",
+        "Food security concerns post-Brexit and post-Ukraine"
+      ]
+    },
+
+    "dsit": {
+      "name": "Department for Science, Innovation and Technology",
+      "secretary": "Michelle Donelan (pre-election), Peter Kyle (post-July 2024)",
+      "totalDEL": 12.0,
+      "resourceDEL": 6.5,
+      "capitalDEL": 5.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 3500,
+      "keySpendingAreas": {
+        "ukri_research": 7.3,
+        "aiAndDigital": 1.5,
+        "spaceAndTelecoms": 0.8,
+        "cyberSecurity": 0.5,
+        "other": 1.9,
+        "_note": "UK R&D spending target: 2.4% of GDP by 2027 (currently ~1.7% public+private). Government target is for public R&D spending of £20bn/year by 2024-25."
+      }
+    },
+
+    "dcms": {
+      "name": "Department for Culture, Media and Sport",
+      "secretary": "Lucy Frazer (pre-election), Lisa Nandy (post-July 2024)",
+      "totalDEL": 2.3,
+      "resourceDEL": 1.5,
+      "capitalDEL": 0.8,
+      "_unit": "GBP billions",
+      "staffHeadcount": 1200,
+      "keySpendingAreas": {
+        "artsAndHeritage": 0.6,
+        "broadcasting": 0.3,
+        "sport": 0.4,
+        "digital": 0.3,
+        "gamblingRegulation": 0.1,
+        "other": 0.6
+      }
+    },
+
+    "fcdo": {
+      "name": "Foreign, Commonwealth and Development Office",
+      "secretary": "David Cameron (pre-election), David Lammy (post-July 2024)",
+      "totalDEL": 15.2,
+      "resourceDEL": 12.7,
+      "capitalDEL": 2.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 18000,
+      "keySpendingAreas": {
+        "officialDevelopmentAssistance": 11.4,
+        "diplomaticNetwork": 2.0,
+        "bbc_worldService": 0.4,
+        "conflictAndStability": 1.0,
+        "other": 0.4,
+        "_odaNote": "ODA currently at ~0.5% of GNI (cut from 0.7% target in 2021 to fund post-COVID pressures). Restoring to 0.7% would cost additional ~£6bn/year."
+      },
+      "pressures": [
+        "ODA cut from 0.7% to 0.5% GNI: reduced development programmes globally",
+        "Ukraine aid commitments",
+        "China strategy and Indo-Pacific tilt requiring diplomatic resource reallocation",
+        "British Council: funding squeezed, closures",
+        "Pressure to restore 0.7% ODA target (costs ~£6bn/year)"
+      ]
+    },
+
+    "desnz": {
+      "name": "Department for Energy Security and Net Zero",
+      "secretary": "Claire Coutinho (pre-election), Ed Miliband (post-July 2024)",
+      "totalDEL": 5.8,
+      "resourceDEL": 2.8,
+      "capitalDEL": 3.0,
+      "_unit": "GBP billions",
+      "staffHeadcount": 6000,
+      "keySpendingAreas": {
+        "energySubsidies": 1.5,
+        "renewablesSupport": 1.0,
+        "nuclearNewBuild": 1.0,
+        "homeInsulation": 1.2,
+        "hydrogenStrategy": 0.5,
+        "other": 0.6,
+        "_note": "Does not include energy price guarantee costs (AME, was ~£40bn in 2022-23)"
+      },
+      "labourPolicies": {
+        "greatBritishEnergy": {
+          "capitalisation": 8.3,
+          "_overParliament": "Phased over parliament. Publicly-owned clean energy company.",
+          "annualSpending": 1.7
+        },
+        "nationalWealthFund": {
+          "capitalisation": 7.3,
+          "_focus": "Green industries, ports, steel, automotive"
+        },
+        "homeInsulationUpgrade": {
+          "warmHomePlan": 6.6,
+          "_overParliament": "Phased. Insulate 5 million homes."
+        }
+      }
+    },
+
+    "cabinetOffice": {
+      "name": "Cabinet Office",
+      "secretary": "Oliver Dowden (pre-election), Pat McFadden (post-July 2024)",
+      "totalDEL": 3.5,
+      "resourceDEL": 3.0,
+      "capitalDEL": 0.5,
+      "_unit": "GBP billions",
+      "staffHeadcount": 11000,
+      "_note": "Houses the civil service reform agenda, government digital services, procurement, and political coordination."
+    },
+
+    "hmrc": {
+      "name": "HM Revenue and Customs",
+      "totalDEL": 5.5,
+      "resourceDEL": 5.2,
+      "capitalDEL": 0.3,
+      "_unit": "GBP billions",
+      "staffHeadcount": 66000,
+      "_note": "HMRC collects ~£848bn in tax revenues. Every £1 invested in HMRC compliance typically returns £5-18 in additional revenue.",
+      "taxGapEstimate": {
+        "total": 36,
+        "_unit": "GBP billions (2021-22 estimate)",
+        "asPercentOfLiabilities": 4.8,
+        "_note": "The tax gap represents the difference between tax owed and tax collected. Largest components: VAT (£7.6bn), income tax/NI/CGT (£6.4bn), corporation tax (£5.9bn)."
+      }
+    }
+  },
+
+  "localGovernment": {
+    "_description": "Aggregate local government spending in England (councils, combined authorities)",
+    "totalSpending": 120,
+    "selfFinancedExpenditure": 55,
+    "centralGovernmentGrants": 44,
+    "councilTaxRevenue": 46,
+    "businessRatesRetained": 30,
+    "_unit": "GBP billions approximate",
+    "pressures": [
+      "7 councils have issued Section 114 notices (effective bankruptcy declarations) since 2020",
+      "Real-terms central funding per dwelling cut ~29% from 2010-2020",
+      "Adult social care costs rising ~5% per year, unfunded",
+      "Children's social care costs rising ~10% per year",
+      "Temporary accommodation costs for homelessness spiralling",
+      "Infrastructure maintenance backlog: roads, buildings, IT systems",
+      "Council tax referendum cap limits revenue growth to ~5% per year"
+    ]
+  },
+
+  "devolvedAdministrations": {
+    "_description": "Block grants to devolved governments via the Barnett formula",
+    "scotland": {
+      "blockGrant": 41.0,
+      "population": 5.45,
+      "perCapitaSpend": 7523,
+      "_barnettNote": "Scotland receives ~20% more per capita than England through Barnett. Has devolved tax powers (Scottish Rate of IT, LBTT, etc.)",
+      "_unit": "GBP billions / millions / GBP"
+    },
+    "wales": {
+      "blockGrant": 18.0,
+      "population": 3.13,
+      "perCapitaSpend": 5751,
+      "_note": "Wales receives ~15% more per capita than England. Limited tax-varying powers.",
+      "_unit": "GBP billions / millions / GBP"
+    },
+    "northernIreland": {
+      "blockGrant": 15.5,
+      "population": 1.90,
+      "perCapitaSpend": 8158,
+      "_note": "NI receives ~25% more per capita than England. Stormont collapsed 2022-2024, adding to governance challenges.",
+      "_unit": "GBP billions / millions / GBP"
+    },
+    "barnettFormula": {
+      "_description": "The Barnett formula determines changes in devolved block grants based on changes in comparable English spending",
+      "mechanism": "If English departmental spending changes by £X, devolved admins receive population-proportion * £X",
+      "convergenceEffect": "Slowly converges per-capita spending towards English levels over time (but very slowly)",
+      "criticism": "Does not reflect actual spending needs. Favours Scotland over Wales despite Wales having greater deprivation."
+    }
+  },
+
+  "debtInterest": {
+    "centralGovernmentDebtInterest": 89,
+    "_unit": "GBP billions, 2024-25 OBR forecast",
+    "_note": "Debt interest has tripled from ~£30bn (2020-21) due to higher interest rates and index-linked gilts repricing with inflation.",
+    "sensitivity": {
+      "per1ppBankRate": 10.5,
+      "_unit": "GBP billions additional debt interest per 1pp rise in Bank Rate sustained for a year",
+      "_note": "Due to high proportion of index-linked and floating-rate debt. About 25% of gilt stock is index-linked."
+    },
+    "asPercentOfRevenue": 8.3,
+    "_revenueNote": "Debt interest consumes ~8% of all government revenue -- higher than total education spending. Before rate rises it was ~3%."
+  },
+
+  "spendingRules": {
+    "_description": "Key spending control mechanisms in UK public finance",
+    "spendingReviewCycle": "Multi-year (typically 3 years) setting departmental DEL totals",
+    "currentReviewPeriod": "2022-23 to 2024-25 (set by Sunak/Hunt). Reeves announced new multi-year review for 2025-26 to 2027-28.",
+    "fiscalDragOnSpending": {
+      "_description": "Unless spending plans are explicitly increased, real per-capita spending falls as population grows and inflation erodes nominal budgets",
+      "impliedAusterityInPlans": {
+        "unprotectedDepartments_realGrowth": -1.9,
+        "_unit": "Percent per year real terms after protecting NHS and defence",
+        "_note": "IFS described existing Spring 2024 spending plans as 'not credible' given service pressures. This implies cuts to justice, local government, home office, HMRC, DEFRA, and others that are politically very difficult."
+      }
+    }
+  },
+
+  "gameCalibration": {
+    "_description": "Parameters for the simulation game",
+    "spendingMultipliers": {
+      "nhsSpending1bn": {
+        "gdpImpact": 0.04,
+        "jobs": 8000,
+        "approvalImpact": 1.5,
+        "_note": "NHS spending has the highest political return"
+      },
+      "defenceSpending1bn": {
+        "gdpImpact": 0.03,
+        "jobs": 5000,
+        "approvalImpact": 0.5,
+        "_note": "Politically less visible but internationally significant"
+      },
+      "educationSpending1bn": {
+        "gdpImpact": 0.03,
+        "jobs": 7000,
+        "approvalImpact": 1.0,
+        "_longTermGrowthBoost": 0.02
+      },
+      "infrastructureSpending1bn": {
+        "gdpImpact": 0.08,
+        "jobs": 12000,
+        "approvalImpact": 0.3,
+        "_note": "Highest GDP multiplier but low immediate political return"
+      },
+      "benefitSpending1bn": {
+        "gdpImpact": 0.06,
+        "approvalImpact": -0.5,
+        "_note": "High multiplier (recipients spend immediately) but politically unpopular with median voter"
+      }
+    },
+    "departmentProtection": {
+      "_description": "Which departments are politically 'protected' from cuts",
+      "hardProtected": ["NHS/DHSC", "State Pension"],
+      "softProtected": ["Defence (post-Ukraine)", "Education (schools)"],
+      "unprotected": ["Justice", "Local Government", "DEFRA", "DCMS", "Home Office (non-police)", "FCDO/ODA"],
+      "_note": "Cutting a 'hard protected' department carries 3-5x the approval cost of cutting an 'unprotected' one"
+    }
+  }
+}

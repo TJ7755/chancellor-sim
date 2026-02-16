@@ -1,0 +1,1009 @@
+{
+  "_meta": {
+    "title": "UK Chancellor Simulation - Economic Model Parameters",
+    "version": "1.0.0",
+    "description": "Calibrated economic parameters for a UK fiscal policy simulation game, derived from IMF, OBR, Bank of England, and academic research.",
+    "units": {
+      "multipliers": "Change in GDP per unit change in fiscal instrument (dimensionless ratio)",
+      "elasticities": "Percentage change in outcome per percentage change in input",
+      "rates": "Percentage points unless otherwise noted",
+      "lags": "Quarters",
+      "monetary": "GBP billions (2024 prices) unless otherwise noted"
+    }
+  },
+
+  "fiscalMultipliers": {
+    "_description": "How £1 of fiscal policy change affects GDP. Values represent cumulative impact multipliers. Sources: IMF Fiscal Monitor (2010, 2012), Blanchard & Leigh (2013), OBR fiscal multipliers (2023), Ramey (2019) survey.",
+
+    "taxMultipliers": {
+      "_note": "Tax multipliers are typically negative: a tax INCREASE reduces GDP. Values shown as absolute magnitude; apply negative sign for tax increases.",
+
+      "incomeTax": {
+        "impact": -0.35,
+        "firstYear": -0.50,
+        "secondYear": -0.70,
+        "longRun": -0.80,
+        "source": "OBR certified model; consistent with Romer & Romer (2010) finding of -1.0 to -3.0 for US but UK open-economy leakage reduces this. Mountford & Uhlig (2009) find lower values for open economies."
+      },
+      "vat": {
+        "impact": -0.35,
+        "firstYear": -0.50,
+        "secondYear": -0.55,
+        "longRun": -0.60,
+        "source": "OBR model. VAT changes pass through quickly to prices. Crossley, Low & Sleeman (2014) study of 2008 UK VAT cut found significant spending response."
+      },
+      "corporationTax": {
+        "impact": -0.10,
+        "firstYear": -0.20,
+        "secondYear": -0.35,
+        "longRun": -0.55,
+        "source": "Corporation tax has slower, more uncertain effects working through investment. OBR model; Mertens & Ravn (2013). Long-run effects are larger as capital stock adjusts."
+      },
+      "nationalInsurance": {
+        "impact": -0.30,
+        "firstYear": -0.45,
+        "secondYear": -0.60,
+        "longRun": -0.65,
+        "source": "Similar to income tax but split between employer (affecting labour demand) and employee (affecting take-home pay). OBR model."
+      },
+      "capitalGainsTax": {
+        "impact": -0.05,
+        "firstYear": -0.10,
+        "secondYear": -0.15,
+        "longRun": -0.25,
+        "source": "Small base, high behavioural response. Significant forestalling/avoidance effects. HMRC behavioural analysis."
+      },
+      "fuelDuty": {
+        "impact": -0.15,
+        "firstYear": -0.25,
+        "secondYear": -0.25,
+        "longRun": -0.20,
+        "source": "Regressive, affects transport costs. Short-run demand relatively inelastic. OBR ready reckoner."
+      },
+      "councilTax": {
+        "impact": -0.25,
+        "firstYear": -0.40,
+        "secondYear": -0.50,
+        "longRun": -0.50,
+        "source": "Broad-based, unavoidable. Effects on lower-income households give higher marginal propensity to consume effect."
+      }
+    },
+
+    "spendingMultipliers": {
+      "currentSpending": {
+        "_description": "Day-to-day government spending (wages, supplies, services)",
+        "impact": 0.50,
+        "firstYear": 0.70,
+        "secondYear": 0.80,
+        "longRun": 0.60,
+        "source": "OBR model; Ramey (2011); Auerbach & Gorodnichenko (2012). Direct demand injection but crowding-out reduces long-run effect."
+      },
+      "capitalInvestment": {
+        "_description": "Infrastructure, buildings, equipment - includes productive capacity effects",
+        "impact": 0.50,
+        "firstYear": 1.00,
+        "secondYear": 1.30,
+        "longRun": 1.50,
+        "source": "IMF World Economic Outlook (2014) Chapter 3 found multipliers of 1.5+ for public investment in advanced economies. Abiad, Furceri & Topalova (2016). Higher because it adds to productive capacity."
+      },
+      "transferPayments": {
+        "_description": "Benefits, pensions, universal credit, tax credits",
+        "impact": 0.40,
+        "firstYear": 0.60,
+        "secondYear": 0.70,
+        "longRun": 0.55,
+        "source": "Recipients have high marginal propensity to consume. Brewer, Saez & Shephard (2010). Johnson, Parker & Souleles (2006). Slightly lower than current spending because of saving leakage."
+      },
+      "nhs": {
+        "_description": "NHS spending - politically salient, directly employs ~1.4m people",
+        "impact": 0.55,
+        "firstYear": 0.80,
+        "secondYear": 0.90,
+        "longRun": 0.70,
+        "source": "Large employer with domestic supply chains. Claxton et al (2015) on NHS productivity. Similar to current spending but higher employment intensity."
+      },
+      "defence": {
+        "_description": "Defence spending - significant import leakage for equipment",
+        "impact": 0.40,
+        "firstYear": 0.60,
+        "secondYear": 0.70,
+        "longRun": 0.55,
+        "source": "Import content reduces domestic multiplier. Barro & Redlick (2011). Domestic employment effects remain significant."
+      },
+      "education": {
+        "_description": "Education spending - long-run human capital effects",
+        "impact": 0.50,
+        "firstYear": 0.75,
+        "secondYear": 0.85,
+        "longRun": 1.10,
+        "source": "Long-run returns through human capital accumulation. Hanushek & Woessmann (2012). Short-run similar to current spending; long-run productivity gains."
+      }
+    },
+
+    "stateDependent": {
+      "_description": "Multipliers vary significantly with the state of the economy. Auerbach & Gorodnichenko (2012, 2013) is the key reference.",
+      "recessionMultiplierScaling": {
+        "deepRecession": 2.0,
+        "mildRecession": 1.5,
+        "normalTimes": 1.0,
+        "boom": 0.5,
+        "source": "Auerbach & Gorodnichenko (2012) find spending multipliers of ~2.5 in recessions vs ~0.0 in expansions for US. Baum, Poplawski-Ribeiro & Weber (2012) find similar for EU. Scale factor applied to base multipliers above.",
+        "outputGapThresholds": {
+          "deepRecession": -3.0,
+          "mildRecession": -1.0,
+          "normalTimes": [-1.0, 1.0],
+          "boom": 1.0
+        }
+      },
+      "zeroBoundAmplification": {
+        "multiplierBoost": 1.5,
+        "source": "Christiano, Eichenbaum & Rebelo (2011); Woodford (2011). When interest rates are at zero lower bound, monetary policy cannot offset fiscal changes, so multipliers are larger."
+      },
+      "fiscalConsolidationInRecession": {
+        "warning": "IMF (2012) acknowledged underestimating fiscal multipliers during European austerity. Blanchard & Leigh (2013) showed actual multipliers were 0.9-1.7 vs assumed 0.5.",
+        "adjustedMultiplier": 1.3,
+        "source": "Blanchard & Leigh (2013) 'Growth Forecast Errors and Fiscal Multipliers', IMF Working Paper."
+      }
+    },
+
+    "openEconomyAdjustments": {
+      "_description": "UK is an open economy (~30% trade/GDP). Import leakage reduces domestic multipliers.",
+      "importLeakageRate": 0.30,
+      "exchangeRateOffset": {
+        "_note": "Fiscal expansion can depreciate currency (via expected future taxes) or appreciate it (via interest rates). Net effect uncertain.",
+        "expansionDepreciationBias": -0.02,
+        "source": "Mundell-Fleming model suggests fiscal expansion appreciates currency under floating rates, but UK experience is mixed. Corsetti, Meier & Muller (2012)."
+      }
+    }
+  },
+
+  "inflationSensitivity": {
+    "_description": "How policy actions and shocks feed through to inflation. Bank of England targeting 2% CPI.",
+
+    "demandPullInflation": {
+      "outputGapCoefficient": 0.30,
+      "_interpretation": "A 1 percentage point positive output gap adds ~0.3pp to inflation per year",
+      "lagStructure": {
+        "quarter1": 0.05,
+        "quarter2": 0.10,
+        "quarter3": 0.15,
+        "quarter4": 0.20,
+        "quarter5to8": 0.30,
+        "_note": "Peak impact at 6-8 quarters. Full pass-through takes ~2 years."
+      },
+      "source": "Bank of England Quarterly Model; Batini & Haldane (1999); Bean (2006)."
+    },
+
+    "costPushInflation": {
+      "energyPricePassThrough": {
+        "directWeight": 0.07,
+        "_interpretation": "Energy is ~7% of CPI basket directly",
+        "indirectPassThrough": 0.15,
+        "_interpretation2": "A 10% energy price rise adds ~1.5pp to core inflation over 12 months via supply chains",
+        "lagQuarters": 3,
+        "source": "ONS CPI weights; Millard & Sheredy (2019); Forbes, Kirkham & Sheredy (2021)."
+      },
+      "importPricePassThrough": {
+        "exchangeRatePassThrough": 0.25,
+        "_interpretation": "A 10% sterling depreciation adds ~2.5pp to CPI over 2-3 years",
+        "lagQuarters": 6,
+        "source": "Forbes (2015) 'Much ado about something'; Campa & Goldberg (2005). UK pass-through has increased post-Brexit."
+      },
+      "wagePriceSpiral": {
+        "wageToInflationPassThrough": 0.20,
+        "_interpretation": "A 1pp rise in wage growth adds ~0.2pp to inflation",
+        "inflationToWagePassThrough": 0.35,
+        "_interpretation2": "A 1pp rise in inflation adds ~0.35pp to wage growth expectations",
+        "source": "Broadbent (2022); Haldane (2017). Second-round effects are key concern for BoE."
+      }
+    },
+
+    "phillipsCurve": {
+      "_description": "Relationship between unemployment and inflation for the UK",
+      "slope": -0.30,
+      "_interpretation": "A 1pp fall in unemployment below NAIRU adds ~0.3pp to inflation",
+      "nairu": 4.25,
+      "_unit": "Percent unemployment rate",
+      "inflationExpectationsAnchor": 2.0,
+      "expectationsWeight": 0.60,
+      "_interpretation2": "60% of inflation determination is from expectations, 40% from slack",
+      "flatteningTrend": {
+        "_note": "Phillips curve has flattened since 1990s",
+        "pre2000Slope": -0.50,
+        "post2000Slope": -0.30,
+        "post2008Slope": -0.20,
+        "source": "Hooper, Mishkin & Sufi (2020); Miles, Panizza & Reis (2017). UK evidence in Broadbent (2017)."
+      },
+      "source": "Ball & Mazumder (2011); Blanchard (2016). UK specific estimates from Nickell (2003), Bell & Blanchflower (2018)."
+    },
+
+    "monetaryPolicyReaction": {
+      "_description": "How Bank of England responds to inflation (affects game's interest rate environment)",
+      "taylorRuleCoefficients": {
+        "inflationGapCoefficient": 1.50,
+        "outputGapCoefficient": 0.50,
+        "neutralRate": 3.50,
+        "_formula": "rate = neutral + 1.5*(inflation - 2.0) + 0.5*(output_gap)",
+        "source": "Taylor (1993); Clarida, Gali & Gertler (1998). Neutral rate estimate from BoE (2023) suggesting R* of ~1-1.5% real, plus 2% inflation target."
+      },
+      "effectiveLowerBound": 0.10,
+      "policyLagQuarters": 6,
+      "_note": "BoE estimates monetary policy takes 18-24 months for full transmission"
+    }
+  },
+
+  "marketReactions": {
+    "_description": "How financial markets respond to fiscal policy. Critical for game realism after 2022 mini-budget.",
+
+    "giltYields": {
+      "debtToGdpSensitivity": {
+        "baseEffect": 0.03,
+        "_interpretation": "Each 1pp rise in debt-to-GDP adds ~3bp to 10-year gilt yields",
+        "nonLinearThresholds": {
+          "below60pct": { "bpPerPP": 2, "_note": "Below 60% debt/GDP, low sensitivity" },
+          "sixtyTo80pct": { "bpPerPP": 3, "_note": "Moderate sensitivity" },
+          "eightyTo100pct": { "bpPerPP": 4, "_note": "Increasing concern" },
+          "hundredTo120pct": { "bpPerPP": 6, "_note": "Growing fiscal risk premium" },
+          "above120pct": { "bpPerPP": 9, "_note": "Significant risk premium, approaching danger zone" }
+        },
+        "source": "Laubach (2009); Engen & Hubbard (2005) find 2-5bp per 1pp debt/GDP for US. Afonso (2010) for European estimates. UK benefits from reserve currency status and long avg maturity."
+      },
+      "deficitSensitivity": {
+        "bpPerPpDeficit": 8,
+        "_interpretation": "Each 1pp rise in deficit-to-GDP adds ~8bp to gilt yields",
+        "source": "Ardagna, Caselli & Lane (2007); Faini (2006). Flow of new borrowing matters alongside stock."
+      },
+      "fiscalCredibility": {
+        "credibleFrameworkDiscount": -50,
+        "_interpretation": "Having credible fiscal rules reduces yields by ~50bp vs no framework",
+        "ruleBreakingPenalty": {
+          "minorBreachBP": 15,
+          "majorBreachBP": 40,
+          "abandonmentBP": 80,
+          "_note": "Penalty for breaking announced fiscal rules"
+        },
+        "obrAbolitionPenalty": 50,
+        "source": "Debrun, Hauner & Kumar (2009); IMF (2009) on fiscal institutions. UK experience with OBR since 2010."
+      },
+      "marketSentimentShock": {
+        "_description": "Sudden loss of confidence scenario (Truss-style)",
+        "trigger": "Unfunded fiscal expansion exceeding market expectations by >2% GDP",
+        "yieldSpikeBP": 150,
+        "peakDuration": "2-4 weeks",
+        "currencyDepreciation": -0.10,
+        "pensionFundStress": true,
+        "source": "September-October 2022 gilt crisis. 30-year yields rose ~160bp in days. Bank of England emergency intervention required."
+      }
+    },
+
+    "creditRatings": {
+      "_description": "Sovereign credit rating triggers based on UK historical experience",
+      "currentUKRatings": {
+        "moodys": "Aa3",
+        "sandp": "AA",
+        "fitch": "AA-",
+        "asOf": "2024"
+      },
+      "historicalChanges": [
+        {
+          "date": "2013-02-22",
+          "agency": "Moodys",
+          "change": "Aaa to Aa1",
+          "reason": "Subdued growth prospects, rising debt burden, challenges to fiscal consolidation",
+          "debtToGdpAtTime": 85,
+          "deficitAtTime": -6.5
+        },
+        {
+          "date": "2013-04-12",
+          "agency": "Fitch",
+          "change": "AAA to AA+",
+          "reason": "Weaker economic and fiscal outlook, delayed deficit reduction",
+          "debtToGdpAtTime": 87,
+          "deficitAtTime": -6.3
+        },
+        {
+          "date": "2016-06-27",
+          "agency": "S&P",
+          "change": "AAA to AA",
+          "reason": "Brexit vote - weaker policy framework, economic outlook uncertainty",
+          "debtToGdpAtTime": 87,
+          "deficitAtTime": -3.3
+        },
+        {
+          "date": "2016-06-28",
+          "agency": "Fitch",
+          "change": "AA+ to AA",
+          "reason": "Brexit uncertainty, risk to economic outlook",
+          "debtToGdpAtTime": 87,
+          "deficitAtTime": -3.3
+        },
+        {
+          "date": "2017-09-22",
+          "agency": "Moodys",
+          "change": "Aa1 to Aa2",
+          "reason": "Fiscal weakening, Brexit uncertainty eroding institutional strength",
+          "debtToGdpAtTime": 86,
+          "deficitAtTime": -2.3
+        },
+        {
+          "date": "2020-10-16",
+          "agency": "Moodys",
+          "change": "Aa2 to Aa3",
+          "reason": "COVID fiscal deterioration, weakening fiscal capacity, Brexit impact",
+          "debtToGdpAtTime": 103,
+          "deficitAtTime": -15.0
+        },
+        {
+          "date": "2024-10-01",
+          "agency": "Fitch",
+          "change": "AA- (affirmed with stable outlook)",
+          "reason": "High but stabilising debt, credible fiscal framework",
+          "debtToGdpAtTime": 98,
+          "deficitAtTime": -4.5
+        }
+      ],
+      "downgradeTriggers": {
+        "debtToGdpRising": "Sustained rise in debt-to-GDP above 100% without credible stabilisation plan",
+        "deficitPersistence": "Structural deficit above 3% of GDP for 3+ years",
+        "growthShock": "Sustained GDP growth below 1% reducing tax revenues",
+        "institutionalWeakening": "Undermining BoE independence or OBR credibility",
+        "politicalInstability": "Inability to deliver fiscal plans due to political dysfunction",
+        "source": "Rating agency methodology documents: Moody's Sovereign Rating Methodology (2019), S&P Sovereign Rating Methodology (2017), Fitch Sovereign Rating Criteria (2020)."
+      },
+      "ratingImpactOnYields": {
+        "oneNotchDowngradeBP": 15,
+        "twoNotchDowngradeBP": 35,
+        "belowAAThresholdBP": 60,
+        "source": "Afonso, Furceri & Gomes (2012); Cantor & Packer (1996). UK impact moderated by deep, liquid gilt market."
+      }
+    },
+
+    "currencyReaction": {
+      "fiscalExpansionImpact": {
+        "unfundedExpansionPerPctGDP": -0.02,
+        "_interpretation": "Each 1% GDP unfunded fiscal expansion depreciates sterling ~2%",
+        "fundedExpansionImpact": "Approximately neutral - depends on growth vs borrowing balance"
+      },
+      "interestRateDifferentialImpact": {
+        "perPPDifferential": 0.04,
+        "_interpretation": "Each 1pp UK rate above US rate appreciates sterling ~4%"
+      }
+    }
+  },
+
+  "growthSensitivities": {
+    "_description": "How various policy levers and conditions affect UK GDP growth",
+
+    "businessConfidence": {
+      "investmentElasticity": 1.50,
+      "_interpretation": "A 10% rise in business confidence index leads to ~15% rise in business investment over 2 years",
+      "confidenceDrivers": {
+        "taxPolicyCertainty": 0.25,
+        "regulatoryStability": 0.20,
+        "demandOutlook": 0.30,
+        "exchangeRateStability": 0.10,
+        "politicalStability": 0.15,
+        "_note": "Weights summing to 1.0 for composite confidence index"
+      },
+      "source": "Bloom (2009) on uncertainty; Baker, Bloom & Davis (2016) Economic Policy Uncertainty Index. CBI Industrial Trends Survey evidence."
+    },
+
+    "corporationTax": {
+      "revenueMaximisingRate": 28,
+      "_unit": "Percent",
+      "currentRate": 25,
+      "rateToFDIElasticity": -0.7,
+      "_interpretation": "A 1pp rise in corporation tax reduces FDI inflows by ~0.7%",
+      "rateToInvestmentElasticity": -0.4,
+      "_interpretation2": "A 1pp rise in corporation tax reduces domestic business investment by ~0.4%",
+      "rateToGrowthEffect": {
+        "shortRunPerPP": -0.02,
+        "longRunPerPP": -0.05,
+        "_interpretation": "A 1pp rise in corp tax reduces growth by 0.02pp short-run, 0.05pp long-run per year"
+      },
+      "historicalUKRates": {
+        "2010": 28,
+        "2011": 26,
+        "2012": 24,
+        "2013": 23,
+        "2014": 21,
+        "2015": 20,
+        "2017": 19,
+        "2023": 25
+      },
+      "source": "Devereux & Griffith (2003); De Mooij & Ederveen (2003) meta-analysis of 25 studies finds semi-elasticity of FDI to tax of -3.3. OECD (2010). Suarez Serrato & Zidar (2016)."
+    },
+
+    "interestRates": {
+      "rateToGDPEffect": {
+        "perPPChange": -0.30,
+        "lagQuarters": 6,
+        "_interpretation": "A 1pp rise in Bank Rate reduces GDP by ~0.3% after 18 months",
+        "channels": {
+          "mortgageChannel": 0.40,
+          "businessInvestment": 0.25,
+          "exchangeRate": 0.20,
+          "wealthEffect": 0.15,
+          "_note": "Share of transmission through each channel"
+        }
+      },
+      "source": "Bank of England Quarterly Bulletin (2012) 'The transmission mechanism of monetary policy'; Cloyne & Huertgen (2016)."
+    },
+
+    "lafferCurve": {
+      "_description": "Tax rates at which revenues begin declining due to behavioural response",
+      "incomeTax": {
+        "revenueMaximisingTopRate": {
+          "low": 54,
+          "central": 60,
+          "high": 70,
+          "_unit": "Percent marginal rate (combined income tax + NI)"
+        },
+        "taxableIncomeElasticity": {
+          "topEarners": 0.45,
+          "middleEarners": 0.20,
+          "lowerEarners": 0.10,
+          "_interpretation": "A 1% rise in (1-tax rate) increases reported taxable income by this percentage"
+        },
+        "source": "Saez, Slemrod & Giertz (2012) survey finds ETI of 0.12-0.40. Brewer, Saez & Shephard (2010) for UK. HMRC (2012) find top rate ETI of 0.45-0.48 supporting 45p rate over 50p."
+      },
+      "corporationTax": {
+        "revenueMaximisingRate": {
+          "low": 25,
+          "central": 28,
+          "high": 33
+        },
+        "source": "Clausing (2007); Devereux (2007). OECD average ~23%. Competitive pressure from Ireland (12.5%), suggesting UK maximum is constrained by international competition."
+      },
+      "capitalGainsTax": {
+        "revenueMaximisingRate": {
+          "low": 25,
+          "central": 28,
+          "high": 35
+        },
+        "behaviouralResponse": "Very high - significant timing, avoidance, and emigration responses",
+        "source": "Agersnap & Zidar (2021); HMRC CGT behavioural analysis. Very sensitive to lock-in effects and international mobility."
+      }
+    },
+
+    "productivityGrowth": {
+      "historicalTrends": {
+        "pre2008Average": 2.0,
+        "post2008To2019Average": 0.5,
+        "post2020Estimate": 0.7,
+        "_unit": "Percent per year, output per hour"
+      },
+      "productivityPuzzleFactors": [
+        "Low business investment since 2008",
+        "Sectoral shift to lower-productivity services",
+        "Zombie firms surviving in low-rate environment",
+        "Skills mismatch and training underinvestment",
+        "Brexit uncertainty reducing investment",
+        "Measurement issues in digital economy"
+      ],
+      "policyImpactOnProductivity": {
+        "rdSpendingElasticity": 0.10,
+        "_interpretation": "A 10% rise in public R&D spending eventually raises productivity growth by ~1pp",
+        "infrastructureElasticity": 0.08,
+        "educationElasticity": 0.12,
+        "_lags": "5-15 years for full effects",
+        "source": "Haskel & Wallis (2013); Crafts (2009) on UK infrastructure. OBR (2023) assumptions on trend productivity growth."
+      },
+      "source": "ONS productivity statistics; Tenreyro (2018) on UK productivity puzzle; Haldane (2017) 'Productivity Puzzles'."
+    },
+
+    "tradeAndBrexit": {
+      "brexitGDPHit": {
+        "obrEstimate": -4.0,
+        "governmentEstimate": -4.9,
+        "cepEstimate": -5.5,
+        "_unit": "Percent of GDP over 15 years vs remaining in EU",
+        "_note": "Structural reduction in trade openness and investment"
+      },
+      "tradeElasticity": {
+        "exportElasticityToGrowth": 0.80,
+        "importElasticityToGrowth": 1.20,
+        "_interpretation": "UK imports are more sensitive to growth than exports (structural trade deficit)"
+      },
+      "source": "OBR (2020 and 2023) Brexit impact assessment; Dhingra et al (2017) CEP Brexit Analysis; UK Government (2018) Long-Term Economic Analysis."
+    }
+  },
+
+  "labourMarket": {
+    "_description": "UK labour market dynamics and relationships",
+
+    "okunsLaw": {
+      "coefficient": -0.35,
+      "_interpretation": "A 1pp fall in GDP growth raises unemployment by ~0.35pp",
+      "inverseCoefficient": -2.86,
+      "_interpretation2": "A 1pp rise in unemployment corresponds to ~2.86% GDP below potential",
+      "ukSpecificRange": [-0.30, -0.40],
+      "lagQuarters": 2,
+      "_note": "UK labour market is relatively flexible by European standards, so Okun coefficient is between US (~0.5) and continental Europe (~0.2)",
+      "source": "Ball, Leigh & Loungani (2017); Lee (2000) for UK estimates. OBR employment forecasting model."
+    },
+
+    "naturalRate": {
+      "nairu": {
+        "current": 4.25,
+        "range": [3.75, 4.75],
+        "_unit": "Percent ILO unemployment rate",
+        "historicalEvolution": {
+          "1980s": 8.0,
+          "1990s": 6.5,
+          "2000s": 5.0,
+          "2010s": 4.5,
+          "2020s": 4.25
+        },
+        "_note": "NAIRU has fallen due to labour market reforms (1980s-90s), flexible labour market, and gig economy. But estimates are highly uncertain."
+      },
+      "source": "Sheredy & Sheredy (2022); Ball & Mankiw (2002). BoE Monetary Policy Report estimates."
+    },
+
+    "wageGrowth": {
+      "phillipsCurveWageCoefficient": -0.45,
+      "_interpretation": "A 1pp fall in unemployment below NAIRU raises wage growth by ~0.45pp",
+      "inflationExpectationsPassThrough": 0.40,
+      "_interpretation2": "A 1pp rise in inflation expectations raises wage demands by ~0.40pp",
+      "productivityComponentWeight": 0.30,
+      "_interpretation3": "Approx 30% of wage growth is driven by productivity growth in the long run",
+      "minimumWageEffect": {
+        "biteRatio": 0.60,
+        "_interpretation": "NLW is ~60% of median hourly pay (one of the highest bite ratios in OECD)",
+        "employmentElasticity": -0.10,
+        "_interpretation2": "A 10% rise in minimum wage may reduce covered employment by ~1%",
+        "source": "Dube (2019); Low Pay Commission analysis; Manning (2021)."
+      },
+      "publicSectorPayPremium": {
+        "averagePremium": 0.05,
+        "_interpretation": "Public sector pays ~5% more than private sector on average (varying by occupation and including pensions)",
+        "publicSettlementSpillover": 0.30,
+        "_interpretation2": "A 1pp rise in public sector pay settlement feeds ~0.3pp into private sector settlements"
+      },
+      "source": "Bell & Blanchflower (2018, 2020); Haldane (2017); ONS ASHE data."
+    },
+
+    "economicInactivity": {
+      "currentRate": 21.5,
+      "_unit": "Percent of working-age population, 2024",
+      "postCovidIncrease": 0.8,
+      "_unit2": "Percentage points above pre-COVID trend",
+      "mainComponents": {
+        "students": 27,
+        "longTermSick": 28,
+        "lookingAfterFamily": 19,
+        "retired": 14,
+        "other": 12,
+        "_unit": "Percent of inactive population, approximate 2024"
+      },
+      "source": "ONS Labour Force Survey; IFS (2023) on post-COVID inactivity; Health Foundation (2023)."
+    }
+  },
+
+  "historicalCalibration": {
+    "_description": "Key historical episodes for model calibration and validation",
+
+    "financialCrisis2008": {
+      "timeline": {
+        "q3_2008": "Lehman Brothers collapse",
+        "q4_2008": "Bank bailouts, VAT cut to 15%",
+        "q1_2009": "GDP contraction accelerates",
+        "q2_2009": "Quantitative easing begins, Bank Rate cut to 0.5%",
+        "q3_2009": "Recession officially ends"
+      },
+      "keyMetrics": {
+        "peakToTroughGDP": -6.0,
+        "_unit": "Percent",
+        "peakToTroughDuration": "6 quarters (Q1 2008 to Q3 2009)",
+        "precrisisGrowth": 2.5,
+        "recoveryGrowth2010": 1.7,
+        "deficitPreCrisis2007": -2.6,
+        "deficitPeak2009": -10.1,
+        "_unit2": "Percent of GDP",
+        "debtPreCrisis2007": 42,
+        "debtPost2010": 75,
+        "_unit3": "Percent of GDP",
+        "unemploymentPreCrisis": 5.2,
+        "unemploymentPeak": 8.1,
+        "_unit4": "Percent, ILO measure",
+        "bankRateChange": "From 5.75% (Jul 2007) to 0.5% (Mar 2009)",
+        "quantitativeEasingRound1": 200,
+        "_unit5": "GBP billions"
+      },
+      "policyResponse": {
+        "vatCutCost": 12.5,
+        "vatCutDuration": "13 months (Dec 2008 to Jan 2010)",
+        "bankBailoutCost": 137,
+        "_unit": "GBP billions peak exposure (RBS, Lloyds, Bradford & Bingley, Northern Rock)",
+        "fiscalStimulusPackage": 20,
+        "_note": "Relatively modest compared to US/China"
+      },
+      "source": "ONS GDP data; OBR Historical public finances databank; Bank of England statistical database; Darling (2011) 'Back from the Brink'."
+    },
+
+    "austerity2010to2015": {
+      "timeline": {
+        "jun2010": "Emergency Budget - Osborne announces austerity",
+        "oct2010": "Comprehensive Spending Review - 19% average departmental cuts",
+        "2011_2012": "Growth stalls, 'double dip' fears",
+        "2013": "Growth finally picks up",
+        "2015": "Deficit halved, debt still rising"
+      },
+      "keyMetrics": {
+        "totalConsolidation": 6.0,
+        "_unit": "Percent of GDP, cumulative fiscal tightening 2010-2015",
+        "spendingCutsShare": 0.80,
+        "taxRisesShare": 0.20,
+        "_note": "Roughly 80:20 spending cuts to tax rises ratio",
+        "deficitReduction": {
+          "from": -10.1,
+          "to": -4.4,
+          "_unit": "Percent of GDP"
+        },
+        "debtPath": {
+          "2010": 75,
+          "2012": 82,
+          "2015": 84,
+          "_unit": "Percent of GDP - debt continued rising despite austerity"
+        },
+        "gdpGrowth": {
+          "2010": 1.7,
+          "2011": 1.3,
+          "2012": 1.4,
+          "2013": 2.1,
+          "2014": 2.6,
+          "2015": 2.4,
+          "_unit": "Percent"
+        },
+        "giltYields10Year": {
+          "jun2010": 3.5,
+          "dec2010": 3.5,
+          "dec2011": 2.0,
+          "dec2012": 1.8,
+          "dec2013": 3.0,
+          "dec2015": 1.9,
+          "_unit": "Percent",
+          "_note": "Yields fell, but driven largely by global factors and QE rather than fiscal credibility alone"
+        },
+        "unemploymentPath": {
+          "2010": 7.9,
+          "2011": 8.1,
+          "2012": 7.9,
+          "2013": 7.6,
+          "2014": 6.1,
+          "2015": 5.3,
+          "_unit": "Percent"
+        }
+      },
+      "debateAndLessons": {
+        "proAusterity": "Restored market confidence, reduced deficit, gilt yields fell",
+        "antiAusterity": "Unnecessarily slowed recovery, multipliers were larger than Treasury assumed, GDP only recovered pre-crisis levels in 2014",
+        "imfReassessment": "IMF (2012, 2013) acknowledged multipliers were 2-3x larger than initially assumed during consolidation",
+        "obrReassessment": "OBR later estimated austerity reduced GDP growth by 1-1.5pp per year in 2011-2013"
+      },
+      "source": "OBR Economic and Fiscal Outlooks 2010-2015; IFS Green Budget series; Born, Muller & Pfeifer (2020); Wren-Lewis (2016)."
+    },
+
+    "covidResponse2020": {
+      "timeline": {
+        "mar2020": "First lockdown, Furlough scheme announced",
+        "apr2020": "GDP falls 25% in single month",
+        "jul2020": "Partial reopening",
+        "nov2020": "Second lockdown",
+        "jan2021": "Third lockdown",
+        "jul2021": "Full reopening ('Freedom Day')",
+        "sep2021": "Furlough scheme ends"
+      },
+      "keyMetrics": {
+        "peakGDPDrop": -25.0,
+        "_unit": "Percent month-on-month (April 2020)",
+        "annualGDPChange2020": -11.0,
+        "recoveryGrowth2021": 7.6,
+        "recoveryGrowth2022": 4.3,
+        "_unit2": "Percent",
+        "deficitPeak2020_21": -15.0,
+        "_unit3": "Percent of GDP",
+        "debtPeak": 100,
+        "_unit4": "Percent of GDP (crossed 100% for first time since 1960s)",
+        "totalFiscalSupport": 376,
+        "_unit5": "GBP billions (direct spending and tax measures)",
+        "furloughCost": 70,
+        "bounceBackLoansCost": 47,
+        "eatOutToHelpOutCost": 0.8,
+        "_unit6": "GBP billions"
+      },
+      "furloughScheme": {
+        "peakCoverage": 8900000,
+        "_unit": "Workers (May 2020)",
+        "percentOfWorkforce": 30,
+        "replacementRate": 80,
+        "_unit2": "Percent of salary up to £2,500/month",
+        "unemploymentWithout": "OECD estimated UK unemployment could have reached 13-15% without furlough",
+        "actualUnemploymentPeak": 5.1
+      },
+      "giltYields": {
+        "preCovid": 0.6,
+        "duringPeak": 0.2,
+        "postVaccine": 0.8,
+        "_unit": "Percent, 10-year gilt yield",
+        "_note": "Yields stayed low despite massive borrowing due to BoE QE (£450bn total)"
+      },
+      "source": "ONS GDP data; OBR (2021) COVID fiscal analysis; NAO (2021) COVID cost tracker; BoE QE data."
+    },
+
+    "trussMinibudget2022": {
+      "timeline": {
+        "sep06_2022": "Truss becomes PM",
+        "sep23_2022": "Mini-budget announced by Kwarteng",
+        "sep26_2022": "Sterling falls to near-record low vs USD",
+        "sep28_2022": "BoE emergency gilt-buying intervention",
+        "oct03_2022": "45p tax cut reversed",
+        "oct14_2022": "Kwarteng sacked, Hunt becomes Chancellor",
+        "oct17_2022": "Hunt reverses almost entire mini-budget",
+        "oct25_2022": "Truss resigns as PM"
+      },
+      "minibudgetMeasures": {
+        "totalUnfundedCost": 45,
+        "_unit": "GBP billions per year",
+        "keyMeasures": [
+          "Income tax basic rate cut to 19p (from 20p) brought forward",
+          "45p additional rate abolished entirely",
+          "National Insurance rise reversed",
+          "Corporation tax rise cancelled (staying at 19% not going to 25%)",
+          "Stamp duty cuts",
+          "Energy price guarantee (£60bn+ over 2 years)",
+          "IR35 reforms reversed"
+        ],
+        "noOBRForecast": true,
+        "_note": "Crucially, no OBR forecast accompanied the announcement"
+      },
+      "marketReaction": {
+        "giltYield10Year": {
+          "before": 3.50,
+          "peak": 4.50,
+          "changeBP": 100,
+          "_period": "23 Sep to 28 Sep 2022"
+        },
+        "giltYield30Year": {
+          "before": 3.80,
+          "peak": 5.10,
+          "changeBP": 130,
+          "_period": "23 Sep to 28 Sep 2022"
+        },
+        "sterlingVsDollar": {
+          "before": 1.12,
+          "trough": 1.035,
+          "changePercent": -7.5,
+          "_note": "Intraday low of $1.035 on 26 Sep, lowest ever for cable"
+        },
+        "mortgageRates": {
+          "averageBefore": 4.5,
+          "averageAfter": 6.5,
+          "productsWithdrawn": 1600,
+          "_note": "Lenders withdrew ~40% of mortgage products"
+        },
+        "pensionFundCrisis": {
+          "ldiFundsAffected": true,
+          "collateralCallsBillions": 50,
+          "boeInterventionSize": 65,
+          "_unit": "GBP billions (BoE gilt buying facility)",
+          "_note": "LDI (liability-driven investment) strategies faced margin calls threatening DB pension fund solvency"
+        }
+      },
+      "aftermath": {
+        "fiscalCostOfReversals": "£30-40bn of measures reversed",
+        "longerTermYieldImpact": 30,
+        "_unit": "Basis points estimated permanent 'Truss premium' on gilts",
+        "mortgageCostIncrease": 900,
+        "_unit2": "GBP per year for average new mortgage",
+        "credibilityLessons": [
+          "OBR scrutiny essential for market confidence",
+          "Fiscal rules must be maintained or clearly replaced",
+          "Unfunded tax cuts treated differently from unfunded spending (ideological signal)",
+          "Speed and scale of market punishment has increased",
+          "Pension fund leverage created systemic vulnerability",
+          "Political credibility can be destroyed in days"
+        ]
+      },
+      "source": "Bank of England Financial Stability Report (2022); OBR (2022) November EFO; House of Commons Treasury Committee inquiry; IFS analysis."
+    }
+  },
+
+  "modelParameters": {
+    "_description": "Derived parameters for the simulation engine, combining the above into usable game mechanics",
+
+    "gdpCalculation": {
+      "baseGrowthRate": 1.5,
+      "_unit": "Percent per year, UK trend growth (OBR estimate 2024)",
+      "formula": "growth = baseGrowth + fiscalImpulse + monetaryImpulse + externalShocks + confidenceEffect",
+      "components": {
+        "consumption": 0.63,
+        "governmentSpending": 0.20,
+        "investment": 0.17,
+        "netExports": -0.02,
+        "_note": "Approximate GDP expenditure shares, 2024"
+      }
+    },
+
+    "deficitCalculation": {
+      "taxRevenueToGDPElasticity": 1.05,
+      "_interpretation": "A 1% rise in GDP raises tax revenues by ~1.05% (slightly greater than 1 due to progressive taxes)",
+      "spendingToGDPElasticity": -0.20,
+      "_interpretation2": "A 1% rise in GDP reduces government spending by ~0.2% (automatic stabilisers: unemployment benefits, etc.)",
+      "automaticStabiliserSize": 0.50,
+      "_interpretation3": "Automatic stabilisers offset ~50% of GDP fluctuations on the fiscal balance",
+      "source": "OBR (2023) fiscal multipliers and ready reckoners; Girouard & Andre (2005) OECD methodology."
+    },
+
+    "debtDynamics": {
+      "formula": "debt_ratio(t+1) = debt_ratio(t) * (1 + interest_rate - growth_rate) / (1 + growth_rate) + primary_deficit(t)",
+      "interestRateGrowthDifferential": {
+        "historical1990to2007": -1.5,
+        "historical2008to2021": -3.0,
+        "current2024": 1.5,
+        "longRunProjection": 0.5,
+        "_unit": "Percentage points (r - g)",
+        "_note": "When r-g is negative, debt ratios are easier to stabilise. Current positive r-g makes fiscal consolidation harder."
+      },
+      "debtMaturityProtection": {
+        "averageMaturity": 14.0,
+        "_unit": "Years (UK has one of longest average maturities among advanced economies)",
+        "rolloverPerYear": 7,
+        "_unit2": "Percent of total debt rolled over annually",
+        "_note": "Long maturity insulates budget from interest rate spikes but means rates eventually feed through"
+      },
+      "source": "DMO Annual Review; OBR Fiscal Risks Report (2023); Mehrotra & Sergeyev (2021)."
+    },
+
+    "policySensitivities": {
+      "_description": "Quick-reference lookup: how policy changes map to outcomes",
+      "incomeTax1pChange": {
+        "revenueImpact": 7.0,
+        "_unit": "GBP billions per 1p on basic rate",
+        "gdpImpact": -0.05,
+        "_unit2": "Percentage points in first year",
+        "source": "OBR ready reckoners (2023). Higher rate 1p change yields ~£2bn."
+      },
+      "vatChange1pp": {
+        "revenueImpact": 7.5,
+        "_unit": "GBP billions per 1pp on standard rate",
+        "gdpImpact": -0.05,
+        "inflationImpact": 0.50,
+        "_unit2": "Percentage points direct CPI impact",
+        "source": "OBR ready reckoners; ONS CPI calculation methodology."
+      },
+      "corporationTaxChange1pp": {
+        "revenueImpact": 3.2,
+        "_unit": "GBP billions per 1pp",
+        "gdpImpactFirstYear": -0.01,
+        "gdpImpactLongRun": -0.04,
+        "source": "OBR ready reckoners (2023); HMRC corporation tax statistics."
+      },
+      "fuelDutyChange1pPerLitre": {
+        "revenueImpact": 0.5,
+        "inflationImpact": 0.06,
+        "_unit": "GBP billions / percentage points",
+        "source": "OBR ready reckoners."
+      },
+      "nhsSpending1bnIncrease": {
+        "gdpImpact": 0.04,
+        "employmentImpact": 8000,
+        "_unit": "Percentage points GDP / jobs",
+        "source": "OBR and HMT estimates."
+      },
+      "publicSectorPayRise1pp": {
+        "cost": 2.5,
+        "_unit": "GBP billions per 1pp across all public sector",
+        "gdpImpact": 0.03,
+        "inflationImpact": 0.05,
+        "source": "OBR ready reckoners; IFS estimates."
+      },
+      "benefitUprating1pp": {
+        "cost": 2.8,
+        "_unit": "GBP billions per 1pp above baseline indexation",
+        "gdpImpact": 0.02,
+        "distributionalImpact": "Strongly progressive - benefits lowest quintile most",
+        "source": "OBR ready reckoners; DWP benefit expenditure tables."
+      },
+      "capitalInvestment1bnIncrease": {
+        "shortRunGDPImpact": 0.04,
+        "longRunGDPImpact": 0.10,
+        "supplyCapacityEffect": true,
+        "_note": "Only capital spending has permanent supply-side effect",
+        "source": "IMF WEO (2014) Chapter 3; OBR estimates."
+      }
+    },
+
+    "eventTriggers": {
+      "_description": "Conditions that trigger special events in the game",
+      "marketCrisis": {
+        "conditions": [
+          "Unfunded fiscal expansion > 2% GDP without OBR forecast",
+          "Debt-to-GDP trajectory rising and exceeding 110% with no plan",
+          "Breaking fiscal rules combined with poor growth outlook",
+          "Combined deficit > 8% GDP outside recession"
+        ],
+        "effects": {
+          "yieldSpike": [100, 200],
+          "currencyDrop": [-5, -15],
+          "confidenceCrash": -30,
+          "_unit": "Basis points / percent / index points"
+        }
+      },
+      "recessionTrigger": {
+        "conditions": [
+          "Interest rates rise > 3pp in 12 months",
+          "Major trading partner recession (EU/US)",
+          "Energy price shock > 100% annual increase",
+          "Financial sector stress (bank failures)"
+        ]
+      },
+      "politicalCrisis": {
+        "conditions": [
+          "Approval rating below 20%",
+          "Multiple policy U-turns in single fiscal event",
+          "Backbench revolt on flagship policy",
+          "Loss of market confidence forcing policy reversal"
+        ]
+      },
+      "creditDowngrade": {
+        "conditions": [
+          "Debt-to-GDP above 105% and rising",
+          "Deficit above 5% GDP for 2+ years outside crisis",
+          "Weakening of independent fiscal institutions",
+          "Sustained growth below 1% with fiscal deterioration"
+        ]
+      }
+    },
+
+    "startingConditions2024": {
+      "_description": "Approximate initial conditions if game starts in 2024/25",
+      "gdpNominal": 2700,
+      "gdpReal2019Prices": 2300,
+      "_unit": "GBP billions",
+      "gdpGrowth": 0.6,
+      "inflation": 4.0,
+      "unemployment": 4.2,
+      "bankRate": 5.25,
+      "debtToGDP": 98,
+      "deficitToGDP": -4.5,
+      "totalManagedExpenditure": 1189,
+      "totalRevenue": 1078,
+      "_unit2": "GBP billions",
+      "ten_year_gilt_yield": 4.2,
+      "populationMillions": 67.7,
+      "workingAgePopulationMillions": 42.0,
+      "publicSectorEmploymentMillions": 5.9,
+      "source": "OBR Economic and Fiscal Outlook (March 2024); ONS; BoE."
+    }
+  },
+
+  "sourcesSummary": {
+    "primarySources": [
+      "OBR Economic and Fiscal Outlook (various years) - obr.uk",
+      "OBR Ready Reckoners and Fiscal Multipliers (2023)",
+      "OBR Fiscal Risks Report (2021, 2023)",
+      "Bank of England Quarterly Model documentation",
+      "Bank of England Monetary Policy Report (various years)",
+      "IMF World Economic Outlook, especially October 2012 and October 2014",
+      "IMF Fiscal Monitor (2010, 2014, 2018)",
+      "ONS GDP, CPI, Labour Market statistics",
+      "HMRC Tax ready reckoners and behavioural analysis"
+    ],
+    "keyAcademicPapers": [
+      "Auerbach & Gorodnichenko (2012) 'Measuring the Output Responses to Fiscal Policy' AEJ:EP",
+      "Blanchard & Leigh (2013) 'Growth Forecast Errors and Fiscal Multipliers' AER",
+      "Ramey (2019) 'Ten Years after the Financial Crisis: What Have We Learned from the Renaissance in Fiscal Research?' JEP",
+      "Romer & Romer (2010) 'The Macroeconomic Effects of Tax Changes' AER",
+      "Christiano, Eichenbaum & Rebelo (2011) 'When Is the Government Spending Multiplier Large?' JPE",
+      "Saez, Slemrod & Giertz (2012) 'The Elasticity of Taxable Income' JEL",
+      "Ball, Leigh & Loungani (2017) 'Okun's Law: Fit at 50?' JMaCB",
+      "Bloom (2009) 'The Impact of Uncertainty Shocks' Econometrica",
+      "Forbes (2015) 'Much Ado About Something: Revised Estimates of the Impact of Exchange Rate Changes' BoE Working Paper",
+      "De Mooij & Ederveen (2003) 'Taxation and Foreign Direct Investment: A Synthesis of Empirical Research' ITPF",
+      "Devereux & Griffith (2003) 'Evaluating Tax Policy for Location Decisions' IJEF",
+      "Laubach (2009) 'New Evidence on the Interest Rate Effects of Budget Deficits and Debt' JMCB",
+      "Brewer, Saez & Shephard (2010) 'Means-Testing and Tax Rates on Earnings' in Mirrlees Review"
+    ]
+  }
+}

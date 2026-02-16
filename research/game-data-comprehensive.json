@@ -1,0 +1,307 @@
+{
+  "_description": "Comprehensive starting state and game parameters for the UK Chancellor simulation. Consolidates all research into a single game-ready data file.",
+  "_asOf": "July 2024 (Labour government takes office)",
+  "_version": "1.0",
+
+  "startingState": {
+    "date": "2024-07-05",
+    "government": {
+      "party": "Labour",
+      "pm": "Keir Starmer",
+      "chancellor": "Rachel Reeves",
+      "majority": 174,
+      "labourSeats": 411,
+      "nextElectionDeadline": "2029-07-04"
+    },
+    "economy": {
+      "gdpNominal_bn": 2730,
+      "gdpGrowthRate": 0.6,
+      "inflationCPI": 2.0,
+      "inflationCore": 3.3,
+      "inflationServices": 5.2,
+      "unemploymentRate": 4.2,
+      "employmentRate": 74.5,
+      "economicInactivityRate": 22.1,
+      "wageGrowthTotal": 5.7,
+      "wageGrowthReal": 3.7,
+      "population_m": 67.7,
+      "workingAgePop_m": 42.0,
+      "outputGap": -0.4,
+      "trendGrowth": 1.5
+    },
+    "publicFinances": {
+      "totalRevenue_bn": 1078,
+      "totalSpending_bn": 1226,
+      "deficit_bn": 87,
+      "deficitPctGDP": 3.2,
+      "debtNominal_bn": 2744,
+      "debtPctGDP": 99.5,
+      "debtInterest_bn": 89,
+      "fiscalHeadroom_bn": 8.9,
+      "currentBudgetBalance_bn": -17,
+      "structuralDeficit_pctGDP": 2.1
+    },
+    "financialMarkets": {
+      "bankRate": 5.25,
+      "giltYield2y": 4.15,
+      "giltYield10y": 4.15,
+      "giltYield30y": 4.55,
+      "gbpUsd": 1.29,
+      "gbpEur": 1.18,
+      "ftse100": 8280,
+      "averageHousePrice": 288000,
+      "averageMortgageRate2y": 5.5
+    },
+    "approvalRatings": {
+      "government": 45,
+      "chancellor": 42,
+      "backbenchSatisfaction": 70
+    },
+    "publicServices": {
+      "nhsWaitingList_m": 7.6,
+      "aePerformance4hr_pct": 74,
+      "nhsVacancies": 112000,
+      "crownCourtBacklog": 67000,
+      "prisonPopulation": 88000,
+      "prisonCapacity": 88900,
+      "policeOfficers": 149000
+    }
+  },
+
+  "taxLevers": {
+    "_description": "Available tax policy changes and their effects",
+    "incomeTax": {
+      "currentBasicRate": 20,
+      "currentHigherRate": 40,
+      "currentAdditionalRate": 45,
+      "personalAllowance": 12570,
+      "higherThreshold": 50270,
+      "additionalThreshold": 125140,
+      "revenuePerBasicRate1p": 7.0,
+      "revenuePerHigherRate1p": 2.0,
+      "revenuePerAdditionalRate1p": 0.2,
+      "revenuePerPA1000reduction": 6.2,
+      "manifestoPledge": "No increase in rates",
+      "pledgeBreakCost_approval": -6
+    },
+    "nationalInsurance": {
+      "currentEmployeeRate": 8,
+      "currentEmployerRate": 13.8,
+      "revenuePerEmployeeNI1pp": 6.0,
+      "revenuePerEmployerNI1pp": 8.5,
+      "manifestoPledge": "No increase in rates",
+      "pledgeBreakCost_approval": -6
+    },
+    "vat": {
+      "currentStandardRate": 20,
+      "revenuePerVAT1pp": 7.5,
+      "inflationImpactPer1pp": 0.45,
+      "gdpImpactPer1pp": -0.05,
+      "manifestoPledge": "No increase",
+      "pledgeBreakCost_approval": -8
+    },
+    "corporationTax": {
+      "currentMainRate": 25,
+      "currentSmallProfitsRate": 19,
+      "revenuePer1pp": 3.2,
+      "manifestoPledge": "No increase",
+      "pledgeBreakCost_approval": -4
+    },
+    "capitalGainsTax": {
+      "currentBasicRate": 10,
+      "currentHigherRate": 20,
+      "currentPropertyBasicRate": 18,
+      "currentPropertyHigherRate": 28,
+      "revenueIfAlignedWithIncomeTax": 7.0,
+      "_uncertainty": "Very high. Range £5-14bn depending on behavioural response.",
+      "manifestoPledge": "None - can increase",
+      "politicalCost_approval": -2
+    },
+    "fiscalDrag": {
+      "currentFrozenThresholds": true,
+      "frozenUntil": "2027-28",
+      "revenuePerYear_bn": 6.0,
+      "additionalTaxpayersPerYear": 600000,
+      "approvalCostPerYear": -0.5,
+      "_note": "Stealth tax. Most revenue-efficient, least politically costly per pound raised."
+    },
+    "fuelDuty": {
+      "currentRate_pPerLitre": 52.95,
+      "frozenSince": 2011,
+      "revenuePer1p": 0.5,
+      "inflationImpactPer1p": 0.06,
+      "_note": "Fuel duty has been frozen for 13 years. Each year's freeze costs ~£0.5bn in foregone revenue."
+    }
+  },
+
+  "spendingLevers": {
+    "_description": "Available spending policy changes",
+    "nhsFunding": {
+      "current_bn": 180.4,
+      "realGrowthNeededToMaintain": 2.0,
+      "realGrowthNeededToImprove": 3.5,
+      "multiplier_gdp": 0.04,
+      "approvalImpactPer1bnIncrease": 1.5,
+      "waitingListChangePerBnAboveTrend": -200000,
+      "_note": "NHS is the highest-return spending for approval. Cutting it is political suicide."
+    },
+    "defenceSpending": {
+      "current_bn": 55.6,
+      "currentPctGDP": 2.07,
+      "costToReach2_5pct": 14.0,
+      "approvalImpactIfCut": -3.0,
+      "_note": "Post-Ukraine, defence cuts are much more politically costly than pre-2022."
+    },
+    "statePension": {
+      "cost_bn": 130,
+      "tripleLockCostAboveEarnings_bn": 3.0,
+      "removingTripleLockApprovalCost": -8,
+      "_note": "Pensioners vote at higher rates. Triple lock removal is politically explosive."
+    },
+    "publicSectorPay": {
+      "costPer1ppRise_bn": 2.5,
+      "strikeProbabilityIfRealCut": 0.6,
+      "approvalImpactOfStrikeWave": -5,
+      "_note": "Below-inflation pay settlements trigger strikes under both Labour and Conservative governments."
+    },
+    "capitalInvestment": {
+      "current_bn": 100,
+      "multiplier_gdp": 0.08,
+      "longTermGrowthEffect": 0.10,
+      "approvalImpactPer1bn": 0.3,
+      "_note": "Highest GDP multiplier but lowest immediate political return. Essential for long-term growth."
+    },
+    "welfare": {
+      "universalCredit_bn": 38,
+      "costPer1ppBenefitUpratingAboveBaseline": 2.8,
+      "multiplier_gdp": 0.06,
+      "approvalImpactOfCut": -1.5,
+      "_note": "High multiplier (recipients spend immediately) but cuts are less politically costly than NHS/pension cuts."
+    }
+  },
+
+  "economicModel": {
+    "fiscalMultipliers": {
+      "governmentConsumption": {"year1": 0.9, "year2": 0.4, "_note": "Above 1 in recession, below 1 in boom"},
+      "governmentInvestment": {"year1": 1.0, "year2": 0.8, "_longRun": 1.5},
+      "incomeTaxCut": {"year1": 0.3, "year2": 0.2},
+      "vatCut": {"year1": 0.4, "year2": 0.1},
+      "benefitIncrease": {"year1": 0.6, "year2": 0.2},
+      "corporationTaxCut": {"year1": 0.1, "year2": 0.2}
+    },
+    "automaticStabilisers": {
+      "taxRevenueElasticityToGDP": 1.05,
+      "spendingElasticityToGDP": -0.20,
+      "overallStabiliserSize": 0.50
+    },
+    "okunsLaw": {
+      "coefficient": -0.35,
+      "lagQuarters": 2
+    },
+    "phillipsCurve": {
+      "wageCoefficient": -0.45,
+      "nairu": 4.25
+    },
+    "debtDynamics": {
+      "averageDebtMaturity_years": 14,
+      "annualRollover_pct": 7,
+      "indexLinkedShare_pct": 25,
+      "debtInterestPer1ppYield_bn": 8.0,
+      "debtInterestPer1ppRPI_bn": 4.0
+    }
+  },
+
+  "eventSystem": {
+    "marketCrisis": {
+      "triggerConditions": [
+        "Unfunded fiscal expansion >2% GDP without OBR",
+        "Debt-to-GDP above 110% and rising with no plan",
+        "Breaking fiscal rules AND poor growth outlook",
+        "Deficit >8% GDP outside recession"
+      ],
+      "effects": {
+        "giltYieldSpike_bp": [100, 200],
+        "sterlingDrop_pct": [-5, -15],
+        "approvalDrop": [-10, -20],
+        "mortgageRateSpike_pp": [1.5, 3.0]
+      }
+    },
+    "creditDowngrade": {
+      "triggerConditions": [
+        "Debt-to-GDP above 105% and rising",
+        "Deficit above 5% GDP for 2+ years",
+        "Weakening fiscal institutions"
+      ],
+      "effects": {
+        "giltYieldIncrease_bp": [10, 20],
+        "approvalDrop": -3,
+        "credibilityDrop": -15
+      }
+    },
+    "backbenchRevolt": {
+      "triggerCondition": "backbenchSatisfaction below 40",
+      "probability": 0.7,
+      "effects": {
+        "approvalDrop": -5,
+        "mediaIntensity": 2.0,
+        "policyReversalPressure": true
+      }
+    },
+    "ifsVerdict": {
+      "timing": "3 days after each fiscal event",
+      "positiveVerdict": {"approvalBoost": 3, "credibilityBoost": 10},
+      "negativeVerdict": {"approvalDrop": -4, "credibilityDrop": -15, "giltYieldIncrease_bp": 10}
+    },
+    "strikeWave": {
+      "triggerCondition": "Public sector real pay cut >3% cumulative",
+      "sectors": ["rail", "teachers", "nurses", "doctors", "civilServants"],
+      "approvalCostPerMonth": -3,
+      "gdpCostPerMonth_pct": -0.05,
+      "resolution": "Pay settlement costing £2-5bn typically required"
+    }
+  },
+
+  "manifestoPledges": {
+    "_description": "Labour manifesto pledges that constrain fiscal policy",
+    "taxLocks": [
+      {"pledge": "No increase in income tax rates", "breakCost_approval": -6},
+      {"pledge": "No increase in NI rates", "breakCost_approval": -6},
+      {"pledge": "No increase in VAT rate", "breakCost_approval": -8},
+      {"pledge": "No increase in corporation tax rate", "breakCost_approval": -4}
+    ],
+    "spendingPledges": [
+      {"pledge": "40,000 more NHS appointments per week", "cost_bn": 2.0},
+      {"pledge": "6,500 new teachers", "cost_bn": 0.4},
+      {"pledge": "13,000 more neighbourhood police", "cost_bn": 0.9},
+      {"pledge": "Great British Energy", "cost_bn": 1.7},
+      {"pledge": "National Wealth Fund", "cost_bn": 1.5}
+    ],
+    "revenueRaisers": [
+      {"pledge": "VAT on private school fees", "revenue_bn": 1.5},
+      {"pledge": "Carried interest as income", "revenue_bn": 0.7},
+      {"pledge": "Non-dom status abolition", "revenue_bn": 2.5, "_uncertainty": "High"},
+      {"pledge": "Energy windfall tax extension", "revenue_bn": 1.0}
+    ]
+  },
+
+  "credibilityIndex": {
+    "startingValue": 65,
+    "scale": "0-100",
+    "thresholds": {
+      "strong": 70,
+      "adequate": 50,
+      "weak": 40,
+      "crisis": 20
+    },
+    "factors": {
+      "obrForecastPresent": {"bonus": 10, "absencePenalty": -30},
+      "fiscalRulesCompliance": {"bonus": 5, "breachPenalty": -20},
+      "headroomPerBn": 1,
+      "debtTrajectoryFalling": 5,
+      "debtTrajectoryRising": -5,
+      "ifsPositive": 10,
+      "ifsNegative": -20,
+      "policyReversal": -10
+    }
+  }
+}

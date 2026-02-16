@@ -1,0 +1,357 @@
+{
+  "_description": "UK Political Structure post-July 2024 General Election. Research for Chancellor simulation game.",
+  "_source": "Electoral Commission results, parliamentary records, polling data, political analysis. As of July 2024.",
+
+  "electionResults2024": {
+    "date": "2024-07-04",
+    "turnout": 59.9,
+    "_turnoutNote": "Lowest since 2001. Suggests lack of enthusiasm rather than positive mandate for Labour.",
+    "seats": {
+      "labour": 411,
+      "conservative": 121,
+      "liberalDemocrats": 72,
+      "reformUK": 5,
+      "snp": 9,
+      "greenParty": 4,
+      "plaidCymru": 4,
+      "sinnFein": 7,
+      "dup": 5,
+      "sdlp": 2,
+      "allianceParty": 1,
+      "speaker": 1,
+      "independents": 6,
+      "other": 3,
+      "totalSeats": 650
+    },
+    "voteShare": {
+      "labour": 33.7,
+      "conservative": 23.7,
+      "reformUK": 14.3,
+      "liberalDemocrats": 12.2,
+      "greenParty": 6.7,
+      "snp": 2.5,
+      "other": 6.9,
+      "_unit": "Percent"
+    },
+    "labourMajority": 174,
+    "_majorityNote": "Massive seat majority but built on just 33.7% vote share -- the lowest vote share for a majority government in modern UK history. The majority is 'wide but shallow'.",
+    "keySwingData": {
+      "averageSwingLabToCon": 10.2,
+      "labourGainedSeats": 209,
+      "conservativeLostSeats": 251,
+      "reformImpact": "Reform UK split the right-wing vote, costing Conservatives an estimated 50-80 seats",
+      "_note": "Many Labour seats won with <40% vote share due to Reform splitting the right. These seats are vulnerable in a two-party contest."
+    }
+  },
+
+  "labourFactions": {
+    "_description": "Internal Labour party factions the player-Chancellor must navigate",
+
+    "starmeriteCentre": {
+      "approximateMPs": 200,
+      "description": "Core Starmer loyalists. Pragmatic, centrist, fiscally cautious.",
+      "keyFigures": ["Keir Starmer", "Rachel Reeves", "Pat McFadden", "Wes Streeting", "Bridget Phillipson"],
+      "policyPriorities": [
+        "Fiscal responsibility and credibility",
+        "Economic growth as primary objective",
+        "NHS reform alongside funding",
+        "Tough on immigration (echoing Conservative rhetoric)",
+        "Pro-business, pro-investment"
+      ],
+      "rebellionTriggers": "Unlikely to rebel against leadership. Would only break ranks if policy dramatically shifted leftward.",
+      "approvalWeight": 0.4,
+      "_note": "This is the governing faction. Their preferences drive baseline policy."
+    },
+
+    "softLeft": {
+      "approximateMPs": 100,
+      "description": "Centre-left. Loyal to Labour but with social democratic instincts stronger than Starmer's.",
+      "keyFigures": ["Angela Rayner", "Lisa Nandy", "Ed Miliband", "Andy Burnham (Mayor)"],
+      "policyPriorities": [
+        "Workers' rights (New Deal for Working People)",
+        "Green investment and industrial strategy",
+        "NHS as public service (resist privatisation)",
+        "Housing and council investment",
+        "Poverty reduction"
+      ],
+      "rebellionTriggers": [
+        "Any move toward NHS privatisation or PFI-style deals",
+        "Welfare cuts that increase child poverty",
+        "Failure to implement workers' rights pledges",
+        "Excessive fiscal austerity that cuts public services"
+      ],
+      "rebellionThreshold": "Would abstain before voting against. 15-30 abstentions on key votes.",
+      "approvalWeight": 0.25
+    },
+
+    "socialistCampaignGroup": {
+      "approximateMPs": 15,
+      "description": "Hard left. Corbyn-era survivors. Many were deselected or chose not to stand.",
+      "keyFigures": ["John McDonnell", "Diane Abbott", "Richard Burgon", "Zarah Sultana"],
+      "policyPriorities": [
+        "Public ownership of utilities and rail",
+        "Wealth tax and much higher taxes on the rich",
+        "Major redistribution and poverty elimination",
+        "Anti-NATO, anti-nuclear weapons",
+        "Palestinian solidarity"
+      ],
+      "rebellionTriggers": [
+        "Any fiscal consolidation that cuts welfare",
+        "Military spending increases",
+        "Immigration enforcement measures",
+        "Private sector involvement in public services",
+        "Foreign policy alignment with US"
+      ],
+      "rebellionThreshold": "Will vote against regularly. Too small to defeat government alone.",
+      "approvalWeight": 0.05
+    },
+
+    "tradeUnionWing": {
+      "approximateMPs": 50,
+      "description": "MPs with strong union ties. Overlap with soft left.",
+      "keyUnions": {
+        "unite": {"generalSecretary": "Sharon Graham", "members": 1200000, "politicalLeaning": "Left", "strikeReadiness": "Very high"},
+        "unison": {"generalSecretary": "Christina McAnea", "members": 1300000, "politicalLeaning": "Centre-left", "strikeReadiness": "Moderate"},
+        "gmb": {"generalSecretary": "Gary Smith", "members": 580000, "politicalLeaning": "Centre-left", "strikeReadiness": "Moderate"}
+      },
+      "policyPriorities": [
+        "Public sector pay restoration",
+        "Workers' rights legislation (day-one employment rights)",
+        "Repeal of anti-strike legislation",
+        "NHS funding and staffing",
+        "Oppose outsourcing and privatisation"
+      ],
+      "rebellionTriggers": [
+        "Public sector pay freeze or below-inflation settlement",
+        "Failure to repeal anti-strike laws",
+        "Outsourcing or privatisation of public services"
+      ],
+      "strikeCalibration": {
+        "_note": "Under a Labour government, unions are more reluctant to strike but will if provoked. The 'embarrassment threshold' is higher but not infinite.",
+        "strikeProbabilityMultiplier": 0.5,
+        "_interpretation": "Strike probability is roughly halved under a Labour government vs Conservative, but returns to normal if pay cuts persist beyond 18 months"
+      },
+      "approvalWeight": 0.15
+    },
+
+    "blueLabour": {
+      "approximateMPs": 30,
+      "description": "Socially conservative Labour MPs from post-industrial seats. Pro-worker but culturally traditional.",
+      "policyPriorities": [
+        "Immigration reduction and enforcement",
+        "Community and family values",
+        "Manufacturing and industrial jobs",
+        "Anti-metropolitan elite sentiment",
+        "Tough on crime"
+      ],
+      "rebellionTriggers": [
+        "Immigration policy perceived as too liberal",
+        "Cultural 'woke' policies",
+        "Industrial areas losing out to London investment"
+      ],
+      "approvalWeight": 0.10
+    },
+
+    "newLabourRevivalists": {
+      "approximateMPs": 40,
+      "description": "Blairite modernisers. Pro-market, pro-EU alignment (informally), pro-reform.",
+      "keyFigures": ["Wes Streeting", "Peter Kyle", "Liz Kendall"],
+      "policyPriorities": [
+        "NHS reform and efficiency (not just more money)",
+        "Private sector partnerships",
+        "Education reform and skills",
+        "Tech and innovation policy",
+        "Pragmatic fiscal policy"
+      ],
+      "rebellionTriggers": [
+        "Policy shifts toward Corbyn-era positions",
+        "Union capture of government policy",
+        "Anti-business rhetoric"
+      ],
+      "approvalWeight": 0.05
+    }
+  },
+
+  "pmChancellorDynamic": {
+    "starmerReeves": {
+      "relationship": "Professional and respectful but not close personal allies",
+      "strengths": [
+        "Both share fiscal caution and centrist instincts",
+        "Reeves has genuine economics expertise (Bank of England background)",
+        "Starmer delegates fiscal policy to Reeves more than Blair did to Brown",
+        "United on key messaging: growth, fiscal responsibility, 'no return to austerity'"
+      ],
+      "tensions": [
+        "Reeves is more fiscally conservative than some of Starmer's political instincts",
+        "Spending departments lobby Starmer directly to override Treasury resistance",
+        "Reeves's fiscal rules constrain Starmer's desire to show visible change quickly",
+        "Immigration: Home Office/Treasury tension on asylum costs"
+      ],
+      "powerBalance": "Treasury is dominant in fiscal matters but less dominant than under Brown. No. 10 retains more control over political strategy."
+    },
+    "historicalPrecedents": [
+      {"pair": "Blair-Brown (1997-2007)", "dynamic": "Rivalry and parallel power centres. Brown controlled fiscal policy almost entirely. Resulted in strong fiscal discipline but also spending splurge in 2000s.", "lesson": "A dominant Chancellor can maintain fiscal discipline but at cost of political tension."},
+      {"pair": "Brown-Darling (2007-2010)", "dynamic": "PM dominated but respected Darling's expertise during financial crisis. Darling was more cautious than Brown wanted.", "lesson": "PM-Chancellor alignment under crisis is essential."},
+      {"pair": "Cameron-Osborne (2010-2016)", "dynamic": "Very close allies. Osborne was 'co-PM'. Austerity was joint political project.", "lesson": "Alignment enables dramatic fiscal action but creates groupthink risk."},
+      {"pair": "May-Hammond (2017-2019)", "dynamic": "Tension. Hammond wanted pragmatic Brexit; May's political team wanted boldness. Hammond was sidelined.", "lesson": "PM-Chancellor misalignment on the dominant political issue paralyses fiscal policy."},
+      {"pair": "Johnson-Sunak (2019-2022)", "dynamic": "Initial collaboration during COVID. Broke down over spending restraint. Sunak resigned, precipitating Johnson's fall.", "lesson": "A Chancellor who publicly positions as fiscally responsible gains personal credibility but creates PM tension."},
+      {"pair": "Truss-Kwarteng (2022)", "dynamic": "Total alignment on supply-side ideology. No internal checks. Both sacked within weeks.", "lesson": "PM-Chancellor alignment without external checks (OBR, markets) is catastrophic."}
+    ]
+  },
+
+  "opposition": {
+    "conservatives": {
+      "seats": 121,
+      "state": "Worst defeat in party history. Leadership contest pending (July-November 2024).",
+      "leadershipCandidates": ["Kemi Badenoch", "Robert Jenrick", "James Cleverly", "Tom Tugendhat"],
+      "_note": "Badenoch eventually won. Party deciding between centrist modernisation and right-wing pivot.",
+      "fiscalPosition": "Will attack Labour on both higher taxes and wasteful spending. Hypocritical but effective.",
+      "threatLevel": "Low in near term (2024-25). Medium term depends on leadership direction."
+    },
+    "reformUK": {
+      "seats": 5,
+      "voteShare": 14.3,
+      "leader": "Nigel Farage (MP for Clacton)",
+      "threat": "Primary threat is pulling Conservatives rightward and fragmenting the right. Could deprive Conservatives of recovery if Reform maintains 10%+ vote share.",
+      "fiscalPosition": "Tax cuts funded by spending cuts on 'waste', net zero cancellation, immigration reduction. Simplistic but populist."
+    },
+    "liberalDemocrats": {
+      "seats": 72,
+      "leader": "Ed Davey",
+      "position": "Centre. Strong in affluent southern England seats. Attacks from the left on NHS, social care, environment.",
+      "fiscalPosition": "More willing to advocate tax rises for public services than either major party."
+    },
+    "snp": {
+      "seats": 9,
+      "state": "Collapsed from 48 seats. Internal turmoil, leadership changes, police investigation.",
+      "relevance": "Reduced Westminster influence. Devolution and Barnett formula still create fiscal complexity."
+    }
+  },
+
+  "mediaLandscape": {
+    "newspapers": {
+      "dailyMail": {"lean": "Right/hard-right", "influence": "Very high", "circulationOnline": "Highest UK news site", "fiscalStance": "Anti-tax, anti-spending, anti-immigration", "attitudeToLabour": "Hostile"},
+      "theSun": {"lean": "Right/populist", "influence": "High", "fiscalStance": "Anti-tax on working people, pro-NHS", "attitudeToLabour": "Cautiously neutral (backed Labour in 2024 briefly)"},
+      "dailyTelegraph": {"lean": "Right/libertarian-conservative", "influence": "High among elites", "fiscalStance": "Low tax, small state, pro-business", "attitudeToLabour": "Hostile"},
+      "theTimes": {"lean": "Centre-right", "influence": "High among politicians", "fiscalStance": "Fiscally responsible, pragmatic", "attitudeToLabour": "Fair but scrutinising"},
+      "theGuardian": {"lean": "Centre-left", "influence": "High among progressives", "fiscalStance": "Pro-public spending, tax the rich", "attitudeToLabour": "Broadly supportive but will criticise from the left"},
+      "dailyMirror": {"lean": "Left/Labour-supporting", "influence": "Medium", "fiscalStance": "Pro-worker, pro-NHS", "attitudeToLabour": "Supportive"},
+      "financialTimes": {"lean": "Centre/liberal", "influence": "Very high among markets and policymakers", "fiscalStance": "Evidence-based, pro-growth, fiscally responsible", "attitudeToLabour": "Fair. Will praise or criticise based on policy quality."},
+      "dailyExpress": {"lean": "Right", "influence": "Low-medium", "fiscalStance": "Anti-tax, pro-pensioner", "attitudeToLabour": "Hostile"}
+    },
+    "broadcast": {
+      "bbc": {"obligation": "Impartial by charter", "influence": "Highest of any single outlet", "_note": "Sets the news agenda. Government attacks on BBC bias from both sides are routine."},
+      "itv": {"lean": "Mainstream centrist", "influence": "High for news bulletins"},
+      "channel4": {"lean": "Centre-left editorially", "influence": "Medium. Privatisation debate ongoing."},
+      "gbNews": {"lean": "Right/populist", "influence": "Growing. Reform UK-aligned."},
+      "sky": {"lean": "Centrist", "influence": "Medium-high"}
+    },
+    "thinkTanks": {
+      "ifs": {"name": "Institute for Fiscal Studies", "lean": "Non-partisan", "influence": "Very high. Post-budget analysis is definitive.", "role": "Credibility adjudicator for fiscal policy."},
+      "resolutionFoundation": {"lean": "Centre-left", "influence": "High. Living standards analysis.", "keyFigure": "Torsten Bell (later became Labour MP/minister)"},
+      "ippr": {"lean": "Centre-left", "influence": "Medium. Policy ideas for Labour."},
+      "policyExchange": {"lean": "Centre-right", "influence": "Medium. Conservative ideas factory."},
+      "adamSmithInstitute": {"lean": "Right/libertarian", "influence": "Low-medium. Free market advocacy."},
+      "newEconomicsFoundation": {"lean": "Left", "influence": "Low-medium. Alternative economics."},
+      "centreForPolicyStudies": {"lean": "Right/Thatcherite", "influence": "Low-medium. Was behind Truss agenda."}
+    }
+  },
+
+  "backbenchRevoltMechanics": {
+    "_description": "How rebellions work in Parliament and when they matter",
+    "labourMajority": 174,
+    "rebellionThresholds": {
+      "symbolic": {"mps": 10, "effect": "Media story. No policy impact. Signal of discontent."},
+      "significant": {"mps": 30, "effect": "Government takes notice. May modify policy. Opposition can amplify."},
+      "dangerous": {"mps": 60, "effect": "Government may lose vote if opposition unites. Major political crisis."},
+      "defeatingMajority": {"mps": 88, "effect": "Government loses the vote (needs 88+ rebels if all opposition votes against). Leadership crisis."},
+      "_note": "With a 174-seat majority, it takes 88 Labour MPs voting against to defeat the government. This is a very high bar."
+    },
+    "whippingSystem": {
+      "threeLineWhip": "Must attend and vote with government. Breaking = serious consequences.",
+      "twoLineWhip": "Must attend. Abstention acceptable in some circumstances.",
+      "freeVote": "No party instruction. Rare on fiscal matters.",
+      "consequences": ["Loss of committee positions", "Deselection threat", "Withdrawal of patronage", "In extreme cases: removal of whip (expulsion from parliamentary party)"]
+    },
+    "historicalRevoltExamples": [
+      {"year": 2003, "issue": "Iraq War", "rebels": 139, "outcome": "Government won but with opposition support. Massive political damage.", "lesson": "Even huge rebellions may not defeat government if opposition is divided."},
+      {"year": 2005, "issue": "90-day detention", "rebels": 49, "outcome": "Government defeated. Blair's first Commons defeat.", "lesson": "Civil liberties issues can unite unusual coalitions."},
+      {"year": 2016, "issue": "Syria airstrikes (Cameron)", "rebels": 30, "outcome": "Government won with opposition support.", "lesson": "Foreign policy rebellions are relatively common."},
+      {"year": 2019, "issue": "Brexit (Johnson)", "rebels": 21, "outcome": "Rebels expelled from party. Government lost majority.", "lesson": "Mass expulsion can backfire catastrophically."}
+    ],
+    "plpMechanics": {
+      "_description": "Parliamentary Labour Party has its own internal mechanisms",
+      "plpMeetings": "Weekly when Parliament sits. PM, Chancellor attend. Can be stormy.",
+      "confidenceVote": "PLP can pass a motion of no confidence in the leader. Requires 20% of PLP to trigger (currently ~82 MPs). Not binding but politically devastating if lost.",
+      "nec": "National Executive Committee can intervene on party policy and discipline."
+    }
+  },
+
+  "interestGroupReactions": {
+    "_description": "How key interest groups react to different fiscal policies",
+    "cbi": {
+      "name": "Confederation of British Industry",
+      "represents": "Large businesses",
+      "preferences": ["Low corporation tax", "Deregulation", "Infrastructure investment", "Immigration flexibility for skills"],
+      "reactionToCorpTaxRise": "Strongly negative. Will warn of investment flight.",
+      "reactionToNhsFunding": "Neutral to positive (healthy workforce benefits business)",
+      "influence": "Medium. Damaged by sexual harassment scandal (2023) but recovering."
+    },
+    "bma": {
+      "name": "British Medical Association",
+      "represents": "Doctors",
+      "keyDemand": "Pay restoration (junior doctors claimed 35% real-terms cut since 2008)",
+      "reactionToNhsCuts": "Extremely vocal. Will pursue industrial action.",
+      "influence": "High. Public trusts doctors."
+    },
+    "rcn": {
+      "name": "Royal College of Nursing",
+      "represents": "Nurses",
+      "keyDemand": "Pay restoration, safe staffing levels",
+      "reactionToPayFreeze": "Unprecedented willingness to strike demonstrated in 2022-23",
+      "influence": "Very high. Nurses have highest public trust of any profession."
+    },
+    "tuc": {
+      "name": "Trades Union Congress",
+      "represents": "6.5 million workers across affiliated unions",
+      "preferences": ["Public sector pay rises", "Workers' rights", "Anti-outsourcing"],
+      "influenceOnLabour": "Significant via funding and conference votes. Less direct policy control than historically."
+    }
+  },
+
+  "gameCalibration": {
+    "approvalRatingModel": {
+      "startingApproval": 45,
+      "_note": "New government honeymoon. Typically declines 5-10 points in first year.",
+      "decayRate": 0.5,
+      "_unit": "Points per month natural decay in first year, slowing over time",
+      "lossAversion": 2.0,
+      "_interpretation": "Negative events are weighted 2x vs positive events in approval calculations (behavioural economics)",
+      "mediaCycleHalfLife": 5,
+      "_unit": "Days. How quickly a single news story fades.",
+      "cumulativeEffects": {
+        "_note": "Unlike individual events which decay, cumulative service quality changes (NHS waiting lists, crime, potholes) compound and become permanent drags on approval."
+      }
+    },
+    "backbenchSatisfaction": {
+      "starting": 70,
+      "_scale": "0-100",
+      "drainFactors": [
+        {"factor": "Public sector pay freeze", "impact": -5, "_perYear": true},
+        {"factor": "Welfare cuts", "impact": -8},
+        {"factor": "Broken manifesto pledge", "impact": -10, "_perPledge": true},
+        {"factor": "Approval rating below 30%", "impact": -3, "_perMonth": true},
+        {"factor": "Media narrative of incompetence", "impact": -5},
+        {"factor": "Constituency casework complaints rising", "impact": -2, "_perYear": true}
+      ],
+      "boostFactors": [
+        {"factor": "Visible NHS improvement", "impact": 5},
+        {"factor": "Economic growth above 2%", "impact": 3},
+        {"factor": "Approval rating above 40%", "impact": 2, "_perMonth": true},
+        {"factor": "Major policy success", "impact": 5}
+      ],
+      "revoltThreshold": 40,
+      "_note": "Below 40, backbench rebellions become likely on any contentious vote."
+    }
+  }
+}

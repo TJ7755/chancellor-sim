@@ -1,0 +1,341 @@
+{
+  "_description": "UK Monetary Policy, Fiscal Rules, and Gilt Market Mechanics - supplementary research for Chancellor simulation game",
+  "_source": "Bank of England, OBR, DMO, IFS analysis, academic literature. Data as of July 2024.",
+
+  "bankOfEngland": {
+    "mpcComposition_july2024": {
+      "_description": "Monetary Policy Committee as of July 2024. 9 members: Governor, 3 Deputy Governors, Chief Economist, 4 external members.",
+      "members": [
+        {"name": "Andrew Bailey", "role": "Governor", "lean": "Centrist/slightly dovish", "termEnd": "2028-03", "_note": "Tends to seek consensus. Criticised for slow response to inflation in 2021-22."},
+        {"name": "Ben Broadbent", "role": "Deputy Governor (Monetary Policy)", "lean": "Hawkish", "termEnd": "2024-06", "_note": "Expert on investment and productivity. Term ending."},
+        {"name": "Sarah Breeden", "role": "Deputy Governor (Financial Stability)", "lean": "Centrist", "termEnd": "2028-11", "_note": "Financial stability background. Newer to MPC."},
+        {"name": "Dave Ramsden", "role": "Deputy Governor (Markets & Banking)", "lean": "Dovish", "termEnd": "2028-09", "_note": "Former Treasury official. Consistently among first to call for rate changes."},
+        {"name": "Huw Pill", "role": "Chief Economist", "lean": "Hawkish", "termEnd": "2027-09", "_note": "Former Goldman Sachs and ECB. Data-driven, cautious on inflation persistence."},
+        {"name": "Swati Dhingra", "role": "External member", "lean": "Dovish", "termEnd": "2025-08", "_note": "LSE trade economist. Consistently voted for earlier/deeper rate cuts. Led dissent on rates."},
+        {"name": "Catherine Mann", "role": "External member", "lean": "Hawkish", "termEnd": "2024-08", "_note": "Former OECD Chief Economist. Very hawkish on inflation persistence."},
+        {"name": "Megan Greene", "role": "External member", "lean": "Hawkish", "termEnd": "2026-07", "_note": "Former Kroll Chief Economist. Concerned about services inflation persistence."},
+        {"name": "Jonathan Haskel", "role": "External member", "lean": "Hawkish", "termEnd": "2024-08", "_note": "Imperial College. Productivity and intangibles expert. Hawkish on rates."}
+      ],
+      "votingPatternJune2024": {
+        "decision": "Hold at 5.25%",
+        "vote": "7-2 (Dhingra and Ramsden voted for cut to 5.00%)"
+      },
+      "votingPatternAugust2024": {
+        "decision": "Cut to 5.00%",
+        "vote": "5-4 (Bailey, Breeden, Dhingra, Ramsden, Broadbent voted cut; Pill, Mann, Greene, Haskel voted hold)",
+        "_note": "Very narrow. Bailey's vote was decisive."
+      }
+    },
+
+    "reactionFunction": {
+      "_description": "Simplified representation of how the MPC sets interest rates",
+      "taylorRule": {
+        "formula": "bankRate = neutralRate + 1.5*(inflation - target) + 0.5*(outputGap)",
+        "neutralRate_estimate": 3.5,
+        "inflationTarget": 2.0,
+        "_note": "Modified Taylor rule. MPC also considers: exchange rate, asset prices, credit conditions, forward-looking inflation expectations, and labour market tightness."
+      },
+      "keyInputs": [
+        "CPI inflation (target: 2%)",
+        "Services inflation (key indicator of domestic price pressure)",
+        "Wage growth (Phillips curve indicator)",
+        "Inflation expectations (household surveys, market breakevens)",
+        "Output gap (OBR/BoE estimates, significant uncertainty)",
+        "Credit conditions (bank lending standards)",
+        "Global factors (commodity prices, US/EU monetary policy)"
+      ],
+      "rateChangeBehaviour": {
+        "typicalIncrement": 0.25,
+        "largeIncrement": 0.50,
+        "_note": "0.50pp moves used in crisis situations (e.g., rapid rate rises in 2022). The MPC almost never moves by more than 0.50pp.",
+        "meetingFrequency": "8 times per year (roughly every 6 weeks)",
+        "forwardGuidance": "BoE provides verbal guidance but avoids committing to a rate path. Uses phrases like 'data-dependent' and 'restrictive for an extended period.'"
+      }
+    },
+
+    "quantitativeTightening": {
+      "peakAPF": 895,
+      "currentAPF_july2024": 690,
+      "qtPace": 100,
+      "_unit": "GBP billions",
+      "_qtPaceUnit": "GBP billions per year (combination of active sales and maturing gilts)",
+      "mechanism": {
+        "activeSales": "BoE sells gilts from APF at market prices (typically at a loss vs purchase price)",
+        "maturities": "Gilts reaching maturity are not reinvested",
+        "splitApprox": "Roughly 50/50 active sales vs maturities"
+      },
+      "apfLosses": {
+        "estimatedTotalLifetimeLoss": 150,
+        "_range": [100, 200],
+        "_unit": "GBP billions",
+        "_note": "Gilts were purchased at high prices (low yields, 2009-2021) and are being sold/maturing at low prices (high yields). HM Treasury indemnifies the BoE for these losses, so they add directly to public borrowing.",
+        "cashTransfersToTreasuryDuringQE": 120,
+        "_transferNote": "During QE, the BoE transferred ~£120bn in coupon income to Treasury. The lifetime APF operation will be net-negative after accounting for sale losses."
+      },
+      "marketImpact": {
+        "giltYieldImpactPerAnnum": 10,
+        "_unit": "Basis points per year of QT at £100bn/year pace",
+        "_note": "Estimates vary widely (5-25bp). QT mechanically increases gilt supply in the market, pushing yields higher."
+      }
+    },
+
+    "fiscalMonetaryInteraction": {
+      "_description": "How fiscal and monetary policy interact, and risks of conflict",
+      "normalOperation": "Fiscal policy sets structural spending/tax levels; monetary policy manages the cycle. The BoE offsets fiscal loosening with higher rates and fiscal tightening with lower rates.",
+      "fiscalDominanceRisk": {
+        "_description": "When fiscal policy becomes so expansionary that the central bank cannot control inflation without causing a debt crisis",
+        "conditions": [
+          "Debt-to-GDP above ~120% with rising trajectory",
+          "Government primary deficit persistently above 3% of GDP",
+          "Interest payments consuming >12% of revenue",
+          "Political pressure on central bank independence"
+        ],
+        "_ukRisk": "UK is not currently in fiscal dominance territory but is closer than at any point since the 1970s. Debt/GDP near 100%, interest payments near 8% of revenue.",
+        "historicalExamples": {
+          "uk1970s": "Callaghan government pressured BoE to keep rates low despite rising inflation. IMF intervention required in 1976.",
+          "turkey2020s": "Erdogan pressured central bank to cut rates despite high inflation. Currency collapse followed.",
+          "_lesson": "Central bank independence is critical for credibility but requires fiscal policy to be broadly sustainable."
+        }
+      },
+      "rateFiscalFeedback": {
+        "_description": "Higher rates increase debt interest, worsening the fiscal position, potentially requiring more borrowing",
+        "debtInterestSensitivity": {
+          "per1ppBankRate": 10.5,
+          "per1ppGiltYield": 8.0,
+          "_unit": "GBP billions per year additional debt interest",
+          "_note": "The 25% index-linked share means inflation spikes also increase debt interest directly"
+        },
+        "doomLoopScenario": {
+          "_description": "Theoretical scenario where fiscal expansion -> higher rates -> higher debt interest -> more borrowing -> higher rates",
+          "triggerConditions": "Requires unfunded fiscal expansion of >3% GDP with loss of market confidence",
+          "ukMitigatingFactors": [
+            "Long average debt maturity (14 years) means rate rises feed through slowly",
+            "BoE independence means monetary policy can anchor expectations",
+            "OBR provides independent fiscal assessment",
+            "UK still retains reserve currency benefits (partial)"
+          ]
+        }
+      }
+    }
+  },
+
+  "fiscalRulesHistory": {
+    "_description": "Complete history of UK fiscal rules since 1997 and their fate",
+
+    "rules": [
+      {
+        "era": "1997-2008 (Blair/Brown)",
+        "name": "Golden Rule + Sustainable Investment Rule",
+        "goldenRule": "Current budget in balance or surplus over the economic cycle",
+        "investmentRule": "Net debt below 40% of GDP over the cycle",
+        "fate": "Technically met by defining the cycle generously. Abandoned in 2008 financial crisis when deficit hit 10% of GDP and debt rose above 40%.",
+        "lesson": "Defining 'the economic cycle' is subjective, allowing manipulation."
+      },
+      {
+        "era": "2010-2015 (Osborne I)",
+        "name": "Charter for Budget Responsibility (2011)",
+        "rule": "Cyclically-adjusted current budget balance by end of rolling 5-year period; net debt falling as % of GDP by 2015-16",
+        "fate": "Debt target missed repeatedly (debt continued rising). Current budget target met by 2014-15.",
+        "lesson": "Rolling targets can be pushed back each forecast."
+      },
+      {
+        "era": "2015-2016 (Osborne II)",
+        "name": "Fiscal Charter (2015)",
+        "rule": "Budget surplus by 2019-20; net debt falling every year",
+        "fate": "Abandoned after Brexit referendum (2016). Hammond explicitly dropped the surplus target.",
+        "lesson": "Absolute surplus targets are unrealistic and get abandoned at the first shock."
+      },
+      {
+        "era": "2016-2019 (Hammond)",
+        "name": "Revised fiscal mandate",
+        "rule": "Cyclically-adjusted deficit below 2% of GDP by 2020-21; net debt falling as % of GDP by 2020-21",
+        "fate": "COVID made all fiscal targets irrelevant. Rules suspended in 2020.",
+        "lesson": "External shocks override all rules."
+      },
+      {
+        "era": "2020-2022 (Sunak)",
+        "name": "New Charter for Budget Responsibility (2021)",
+        "rule": "Underlying debt (PSND ex BoE) falling as % GDP by 3rd year of forecast; current budget in balance by 3rd year",
+        "fate": "Met with razor-thin headroom (~£10bn). Truss then abandoned all rules in the mini-budget.",
+        "lesson": "Tight headroom means rules are easily breached by adverse economic developments."
+      },
+      {
+        "era": "2022-2024 (Hunt)",
+        "name": "Revised Charter (November 2022)",
+        "rule": "PSND ex BoE falling as % GDP by 5th year; PSNB below 3% of GDP by 5th year",
+        "fate": "Met with very thin headroom. Extended to 5th year to buy more flexibility.",
+        "lesson": "Longer time horizons are more forgiving but less credible."
+      },
+      {
+        "era": "2024- (Reeves)",
+        "name": "Labour Fiscal Rules",
+        "stabilityRule": "Current budget in balance by end of rolling 5-year forecast (day-to-day spending covered by revenues)",
+        "investmentRule": "PSNFL (public sector net financial liabilities) falling as % GDP by 5th year of forecast",
+        "fate": "Current. Changed debt measure from PSND to PSNFL in October 2024, creating ~£50bn additional headroom.",
+        "lesson": "Changing the debt measure is seen as 'moving the goalposts' but is defensible on economic grounds."
+      }
+    ],
+
+    "keyInsight": "Every UK fiscal rule since 1997 has been either broken, changed, or abandoned within 5 years. The purpose of fiscal rules is less about strict compliance and more about signalling fiscal discipline to markets and the OBR. The market cares more about the credibility of the framework than whether specific rules are met to the penny."
+  },
+
+  "giltMarket": {
+    "issuance": {
+      "issuer": "Debt Management Office (DMO), an executive agency of HM Treasury",
+      "annualGrossIssuance2024_25": 265,
+      "netIssuance": 128,
+      "_unit": "GBP billions",
+      "_netNote": "Net = gross issuance minus gilt redemptions. CGNCR (Central Government Net Cash Requirement) determines the borrowing need.",
+      "auctionProcess": {
+        "frequency": "~3 auctions per week (Tuesday, Wednesday, Thursday typically)",
+        "types": ["Outright tender (standard auction)", "Mini-tenders", "Syndications (for new benchmark gilts)"],
+        "coverRatio_typical": 2.5,
+        "_note": "Bid-to-cover ratio. Below 2.0x signals weak demand. Below 1.5x is a crisis indicator."
+      }
+    },
+
+    "giltTypes": {
+      "conventional": {
+        "shareOfStock": 0.58,
+        "description": "Fixed coupon, fixed maturity. Majority of issuance.",
+        "keyBenchmarks": ["2-year", "5-year", "10-year", "30-year", "50-year"]
+      },
+      "indexLinked": {
+        "shareOfStock": 0.25,
+        "description": "Coupon and principal linked to RPI (not CPI). 3-month indexation lag.",
+        "_risk": "Any inflation spike immediately increases debt service. Estimated cost: £1bn extra debt interest per unexpected 1pp of RPI.",
+        "_note": "UK has one of the highest proportions of index-linked debt among advanced economies, making fiscal position very inflation-sensitive."
+      },
+      "green": {
+        "shareOfStock": 0.02,
+        "description": "Proceeds allocated to eligible green expenditures. Issued since 2021.",
+        "_note": "Typically prices ~2-3bp below conventional gilts (the 'greenium')."
+      },
+      "treasuryBills": {
+        "description": "Short-term (1, 3, 6 month) discount instruments for cash management",
+        "outstanding": 40,
+        "_unit": "GBP billions approximate"
+      }
+    },
+
+    "ownership": {
+      "_asOf": "Q2 2024 approximate",
+      "bankOfEngland": {
+        "share": 0.27,
+        "_note": "Declining as QT proceeds"
+      },
+      "insuranceAndPensions": {
+        "share": 0.28,
+        "_note": "Largest non-BoE holder. LDI strategies concentrate holdings in long-dated gilts."
+      },
+      "overseas": {
+        "share": 0.26,
+        "_note": "Foreign investors hold ~26% of gilts. Most price-sensitive buyer group."
+      },
+      "banks": {
+        "share": 0.06
+      },
+      "householdsAndNSI": {
+        "share": 0.04,
+        "_note": "NS&I savings products (Premium Bonds etc.) are government borrowing."
+      },
+      "other": {
+        "share": 0.09,
+        "_includes": "Hedge funds, mutual funds, local authorities, public corporations"
+      }
+    },
+
+    "yieldSensitivity": {
+      "_description": "How gilt yields respond to fiscal and other announcements",
+      "fiscalExpansion1pctGDP_fundedWithOBR": {
+        "tenYearYieldChange": 10,
+        "_unit": "Basis points",
+        "_note": "Well-communicated, OBR-scored fiscal expansion. Modest yield impact."
+      },
+      "fiscalExpansion1pctGDP_unfundedNoOBR": {
+        "tenYearYieldChange": 50,
+        "_range": [30, 100],
+        "_unit": "Basis points",
+        "_note": "Truss-type scenario. Can be much higher if compounded by credibility concerns."
+      },
+      "bankRateChange25bp": {
+        "twoYearYieldChange": 10,
+        "tenYearYieldChange": 5,
+        "_note": "Short-end more sensitive to Bank Rate. Long-end driven by term premium and fiscal outlook."
+      },
+      "termPremium": {
+        "current_estimate": 50,
+        "_unit": "Basis points above expected future short rates",
+        "_note": "Term premium reflects compensation for duration risk, supply uncertainty, and inflation risk. Post-Truss, UK term premium estimated to have risen ~30bp permanently.",
+        "drivers": [
+          "Fiscal credibility (lower credibility = higher term premium)",
+          "Supply of gilts (more issuance = higher term premium)",
+          "BoE QT (reduces demand, raises term premium)",
+          "Global factors (US Treasury term premium spills over)",
+          "Inflation uncertainty (higher uncertainty = higher term premium)"
+        ]
+      }
+    },
+
+    "ldiCrisis2022": {
+      "_description": "The LDI (Liability-Driven Investment) crisis during the Truss mini-budget",
+      "whatIsLDI": "Pension funds use leverage (repos, swaps) to match their long-dated liabilities with gilt positions. Typical leverage: 3-4x.",
+      "whatWentWrong": [
+        "Rapid gilt yield rise triggered margin/collateral calls on leveraged LDI positions",
+        "Pension funds forced to sell gilts to meet margin calls",
+        "Gilt selling caused further yield rises (pro-cyclical feedback loop)",
+        "Some pension funds were hours from insolvency",
+        "BoE forced to intervene with emergency gilt purchases (up to £65bn)"
+      ],
+      "gameRelevance": {
+        "_note": "A rapid gilt yield rise of >100bp in <1 week can trigger LDI-style systemic instability. The Chancellor must be aware that gilt market moves are non-linear: beyond a certain speed/magnitude, self-reinforcing dynamics kick in."
+      }
+    }
+  },
+
+  "gameParameters_fiscalMonetary": {
+    "_description": "Derived parameters for how fiscal and monetary policy interact in the game",
+
+    "boeRateResponse": {
+      "_description": "How the BoE responds to fiscal policy changes",
+      "fiscalExpansion1pctGDP": {
+        "bankRateIncrease": 0.50,
+        "_unit": "Percentage points over 12 months",
+        "_note": "BoE partially offsets fiscal loosening with tighter monetary policy. This is the key constraint on fiscal expansion."
+      },
+      "fiscalContraction1pctGDP": {
+        "bankRateDecrease": 0.25,
+        "_unit": "Percentage points over 12 months",
+        "_note": "BoE partially offsets fiscal tightening with looser monetary policy, but less aggressively (asymmetric response)."
+      }
+    },
+
+    "debtInterestCascade": {
+      "per1ppAverageYield": {
+        "additionalDebtInterest": 8.0,
+        "_unit": "GBP billions per year",
+        "_note": "Average yield on outstanding debt rises slowly due to 14-year average maturity. Only ~7% of debt is rolled over each year."
+      },
+      "per1ppInflation_indexLinked": {
+        "additionalDebtInterest": 4.0,
+        "_unit": "GBP billions in the first year",
+        "_note": "25% of gilt stock is RPI-linked. Each 1pp of RPI increases interest on these gilts by ~£4bn."
+      }
+    },
+
+    "credibilityIndex": {
+      "_description": "A composite measure for the game to track fiscal credibility",
+      "components": [
+        {"factor": "OBR forecast published with fiscal event", "weight": 0.25, "effect": "Presence/absence. No OBR = -30 points."},
+        {"factor": "Fiscal rules compliance", "weight": 0.20, "effect": "Meeting rules = +0. Breaching = -20 per rule breached."},
+        {"factor": "Headroom vs fiscal rules", "weight": 0.15, "effect": "+1 per £5bn of headroom above minimum."},
+        {"factor": "Debt trajectory", "weight": 0.15, "effect": "Falling = +5/year. Rising = -5/year."},
+        {"factor": "IFS verdict", "weight": 0.10, "effect": "'Credible' = +10. 'Numbers don't add up' = -20."},
+        {"factor": "Recent policy reversals", "weight": 0.10, "effect": "Each U-turn = -10."},
+        {"factor": "International comparison", "weight": 0.05, "effect": "UK spreads vs Germany. Widening = negative."}
+      ],
+      "startingValue": 65,
+      "scale": "0-100. Below 40: market crisis likely. Below 20: Truss-level crisis. Above 70: strong credibility. Above 85: exceptional."
+    }
+  }
+}

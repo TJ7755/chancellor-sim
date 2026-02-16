@@ -1,0 +1,1047 @@
+{
+  "_meta": {
+    "title": "UK Chancellor Simulation - Economic Formulas (Executable)",
+    "version": "1.0.0",
+    "description": "Complete formula specifications for implementation. All coefficients, lags, and thresholds are ready to use in code.",
+    "units": {
+      "monetary": "GBP billions unless specified",
+      "rates": "Percentage points (not decimals: 5.0 = 5%, not 0.05)",
+      "time": "Months unless specified",
+      "indices": "0-100 scale unless specified"
+    }
+  },
+
+  "startingConditions": {
+    "_date": "2024-07-05",
+    "macroeconomic": {
+      "GDP_nominal": 2730,
+      "GDP_real_2024prices": 2730,
+      "GDP_growth_annual": 0.6,
+      "CPI_annual": 2.0,
+      "RPI_annual": 3.6,
+      "core_inflation": 3.3,
+      "services_inflation": 5.2,
+      "unemployment_rate": 4.2,
+      "NAIRU": 4.25,
+      "wage_growth_annual": 5.7,
+      "real_wage_growth": 3.7,
+      "output_gap": -0.4,
+      "Bank_Rate": 5.25,
+      "trend_growth_annual": 1.5,
+      "trend_growth_monthly": 0.125
+    },
+    "fiscal": {
+      "total_revenue_annual": 1078,
+      "total_spending_annual": 1189,
+      "deficit_annual": 111,
+      "deficit_to_GDP": 4.1,
+      "debt_stock": 2744,
+      "debt_to_GDP": 98.0,
+      "debt_interest_annual": 89,
+      "fiscal_headroom": 8.9,
+      "credibility_index": 65
+    },
+    "financial": {
+      "gilt_yield_2yr": 4.15,
+      "gilt_yield_10yr": 4.15,
+      "gilt_yield_30yr": 4.55,
+      "mortgage_rate_2yr": 5.50,
+      "sterling_GBP_USD": 1.29,
+      "sterling_index": 100,
+      "house_price_index": 100,
+      "average_house_price": 288
+    },
+    "services": {
+      "NHS_quality": 62,
+      "education_quality": 68,
+      "infrastructure_quality": 58,
+      "law_order_quality": 52,
+      "NHS_waiting_list_millions": 7.6
+    },
+    "political": {
+      "government_approval": 45,
+      "chancellor_approval": 42,
+      "backbench_satisfaction": 70,
+      "months_in_office": 0
+    }
+  },
+
+  "taxRevenue": {
+    "_description": "All tax revenue formulas: actualRevenue = baseRevenue × (1 + rateChange)^elasticity × (1 + GDP_growth)^gdpElasticity × adjustments",
+
+    "incomeTax": {
+      "baseline_annual": 269,
+      "formula": "IT[t] = base × (1 + rate_change) × (1 + GDP_growth[t-2])^1.10 × (1 - avoidance_response)",
+      "GDP_elasticity": 1.10,
+      "lag_months": 2,
+      "avoidance_elasticity_top_rate": 0.45,
+      "basic_rate_current": 20,
+      "higher_rate_current": 40,
+      "additional_rate_current": 45,
+      "manifesto_lock": true,
+      "manifesto_break_approval_cost": -6,
+      "ready_reckoners": {
+        "basic_rate_1pp": 7.0,
+        "higher_rate_1pp": 2.0,
+        "additional_rate_1pp": 0.2,
+        "personal_allowance_minus_1000": 6.2
+      },
+      "multiplier_year1": -0.50,
+      "multiplier_year2": -0.70,
+      "multiplier_longrun": -0.80
+    },
+
+    "nationalInsurance": {
+      "baseline_employee_annual": 68,
+      "baseline_employer_annual": 96,
+      "formula": "NI[t] = (base_employee × (1 + employee_rate) + base_employer × (1 + employer_rate)) × (1 + employment_growth[t-1])^1.05",
+      "employment_elasticity": 1.05,
+      "lag_months": 1,
+      "employee_rate_current": 8,
+      "employer_rate_current": 13.8,
+      "manifesto_lock_employee": true,
+      "manifesto_lock_employer": "arguable",
+      "manifesto_break_approval_cost_employee": -6,
+      "manifesto_break_approval_cost_employer": -3,
+      "ready_reckoners": {
+        "employee_1pp": 6.0,
+        "employer_1pp": 8.5
+      },
+      "multiplier_year1": -0.45,
+      "multiplier_year2": -0.60,
+      "multiplier_longrun": -0.65
+    },
+
+    "VAT": {
+      "baseline_annual": 171,
+      "formula": "VAT[t] = base × (1 + rate_change) × (1 + consumption_growth[t])^1.15 × (1 + inflation_passthrough)",
+      "consumption_elasticity": 1.15,
+      "consumption_components": {
+        "GDP_weight": 0.50,
+        "real_wage_weight": 0.30,
+        "sentiment_weight": 0.20
+      },
+      "inflation_passthrough": "rate_change × 0.50",
+      "lag_months": 0,
+      "rate_current": 20,
+      "manifesto_lock": true,
+      "manifesto_break_approval_cost": -8,
+      "ready_reckoner_1pp": 7.5,
+      "multiplier_year1": -0.50,
+      "multiplier_year2": -0.55,
+      "multiplier_longrun": -0.60
+    },
+
+    "corporationTax": {
+      "baseline_annual": 88,
+      "formula": "CT[t] = base × (1 + rate_change)^0.60 × (1 + GDP_growth[t-6])^1.30 × (1 - FDI_flight[t-12])",
+      "revenue_elasticity": 0.60,
+      "GDP_elasticity": 1.30,
+      "lag_months": 6,
+      "FDI_flight_elasticity": 0.007,
+      "FDI_flight_lag_months": 12,
+      "rate_current": 25,
+      "laffer_curve_peak": 28,
+      "manifesto_lock": true,
+      "manifesto_break_approval_cost": -4,
+      "ready_reckoner_1pp": 3.2,
+      "multiplier_year1": -0.20,
+      "multiplier_year2": -0.35,
+      "multiplier_longrun": -0.55
+    },
+
+    "capitalGainsTax": {
+      "baseline_annual": 15,
+      "formula": "CGT[t] = base × (1 + rate_change)^0.40 × (1 + asset_prices[t-3])^1.50 × forestalling_factor[t]",
+      "revenue_elasticity": 0.40,
+      "asset_price_elasticity": 1.50,
+      "lag_months": 3,
+      "asset_price_components": {
+        "stock_market_weight": 0.60,
+        "house_price_weight": 0.40
+      },
+      "forestalling_factors": {
+        "announcement_3months_before": 2.0,
+        "implementation_month": 0.5,
+        "normal": 1.0
+      },
+      "rate_current_basic": 10,
+      "rate_current_higher": 20,
+      "rate_current_property": 28,
+      "manifesto_lock": false,
+      "align_with_income_tax_revenue": {
+        "low_estimate": 5,
+        "high_estimate": 14,
+        "note": "Very uncertain due to behavioural response"
+      },
+      "approval_cost": -3,
+      "multiplier_year1": -0.10,
+      "multiplier_year2": -0.15,
+      "multiplier_longrun": -0.25
+    },
+
+    "fuelDuty": {
+      "baseline_annual": 25,
+      "formula": "FD[t] = base × (1 + rate_change) × (1 - EV_penetration[t])^0.80 × (1 + GDP_growth[t])^0.60",
+      "EV_erosion_monthly": 0.002,
+      "GDP_elasticity": 0.60,
+      "rate_current_pence_per_litre": 52.95,
+      "frozen_since": 2011,
+      "ready_reckoner_1p_per_litre": 0.5,
+      "approval_cost_per_penny": -0.5,
+      "approval_cost_5p_rise": -4,
+      "multiplier_year1": -0.25,
+      "multiplier_year2": -0.25,
+      "multiplier_longrun": -0.20
+    },
+
+    "councilTax": {
+      "baseline_annual": 46,
+      "formula": "CT[t] = base × (1 + central_mandate) × (1 + local_variation[t]) × (1 + housing_stock_growth[t])",
+      "local_variation_mean": 0.025,
+      "local_variation_std": 0.015,
+      "housing_stock_growth_monthly": 0.0015,
+      "referendum_threshold_annual": 0.05,
+      "ready_reckoner_1pp": 0.5,
+      "multiplier_year1": -0.40,
+      "multiplier_year2": -0.50,
+      "multiplier_longrun": -0.50
+    },
+
+    "stampDuty": {
+      "baseline_annual": 14,
+      "volatility": "very_high",
+      "housing_market_sensitivity": 2.0
+    },
+
+    "inheritanceTax": {
+      "baseline_annual": 7.5,
+      "frozen_thresholds_effect": 0.15
+    },
+
+    "otherTaxes": {
+      "alcohol_annual": 13,
+      "tobacco_annual": 9,
+      "business_rates_annual": 32,
+      "VED_annual": 8,
+      "APD_annual": 4,
+      "IPT_annual": 8,
+      "other_annual": 30
+    }
+  },
+
+  "fiscalMultipliers": {
+    "_description": "GDP impact per £1bn spending change or tax change. Format: [year1, year2, longrun]",
+
+    "spending": {
+      "current_government_consumption": {
+        "year1": 0.70,
+        "year2": 0.80,
+        "longrun": 0.60,
+        "lag_distribution_months": {
+          "0-6": 0.60,
+          "7-12": 0.30,
+          "13-24": 0.10
+        }
+      },
+      "capital_investment": {
+        "year1": 1.00,
+        "year2": 1.30,
+        "longrun": 1.50,
+        "lag_distribution_months": {
+          "0-6": 0.20,
+          "7-12": 0.40,
+          "13-36": 0.40
+        },
+        "note": "Highest long-run multiplier due to productive capacity increase"
+      },
+      "transfer_payments": {
+        "year1": 0.60,
+        "year2": 0.70,
+        "longrun": 0.55,
+        "lag_distribution_months": {
+          "0-6": 0.70,
+          "7-12": 0.25,
+          "13-18": 0.05
+        }
+      },
+      "NHS": {
+        "year1": 0.80,
+        "year2": 0.90,
+        "longrun": 0.70,
+        "note": "Higher than general current spending due to employment intensity"
+      },
+      "education": {
+        "year1": 0.75,
+        "year2": 0.85,
+        "longrun": 1.10,
+        "note": "Long-run multiplier >1 due to human capital effects (60-month lag)"
+      },
+      "defence": {
+        "year1": 0.60,
+        "year2": 0.70,
+        "longrun": 0.55,
+        "note": "Import leakage reduces multiplier"
+      }
+    },
+
+    "taxes": {
+      "note": "Tax multipliers are NEGATIVE (tax increase reduces GDP)",
+      "incomeTax": {
+        "year1": -0.50,
+        "year2": -0.70,
+        "longrun": -0.80
+      },
+      "VAT": {
+        "year1": -0.50,
+        "year2": -0.55,
+        "longrun": -0.60
+      },
+      "corporationTax": {
+        "year1": -0.20,
+        "year2": -0.35,
+        "longrun": -0.55
+      },
+      "nationalInsurance": {
+        "year1": -0.45,
+        "year2": -0.60,
+        "longrun": -0.65
+      },
+      "capitalGainsTax": {
+        "year1": -0.10,
+        "year2": -0.15,
+        "longrun": -0.25
+      }
+    },
+
+    "stateDependence": {
+      "_description": "Multipliers scale with economic state",
+      "recession_deep": {
+        "output_gap_threshold": -3.0,
+        "multiplier_scale": 2.0
+      },
+      "recession_mild": {
+        "output_gap_threshold": -1.0,
+        "multiplier_scale": 1.5
+      },
+      "normal": {
+        "output_gap_range": [-1.0, 1.0],
+        "multiplier_scale": 1.0
+      },
+      "boom": {
+        "output_gap_threshold": 1.0,
+        "multiplier_scale": 0.5
+      },
+      "zero_lower_bound_boost": 1.5
+    }
+  },
+
+  "GDP": {
+    "formula": "GDP_growth[q] = base_trend + fiscal_impulse + monetary_impulse + external + confidence + productivity",
+    "base_trend_annual": 1.5,
+    "base_trend_quarterly": 0.375,
+    "base_trend_monthly": 0.125,
+
+    "fiscal_impulse": {
+      "formula": "Σ(spending_change[i] × multiplier[type] × lag_weight[i]) - Σ(tax_change[i] × tax_multiplier[type] × lag_weight[i])",
+      "see_multipliers": "fiscalMultipliers section"
+    },
+
+    "monetary_impulse": {
+      "formula": "-0.30 × (Bank_Rate[t] - Bank_Rate[t-18]) / 4",
+      "coefficient": -0.30,
+      "lag_quarters": 6,
+      "lag_months": 18,
+      "note": "1pp Bank Rate rise reduces GDP by 0.30% after 18 months"
+    },
+
+    "external_sector": {
+      "formula": "0.30 × EU_growth + 0.15 × US_growth - 0.10 × oil_shock",
+      "EU_weight": 0.30,
+      "US_weight": 0.15,
+      "oil_weight": -0.10
+    },
+
+    "confidence": {
+      "formula": "0.002 × (business_confidence - 100) + 0.001 × (consumer_confidence - 100)",
+      "business_coefficient": 0.002,
+      "consumer_coefficient": 0.001
+    },
+
+    "productivity": {
+      "formula": "(NHS_quality + education_quality + infrastructure_quality - 180) / 10000",
+      "note": "Services below average (60 each) create drag on GDP"
+    },
+
+    "components": {
+      "consumption": 0.63,
+      "government": 0.20,
+      "investment": 0.17,
+      "net_exports": -0.02
+    }
+  },
+
+  "inflation": {
+    "formula": "CPI[t] = 0.40×CPI[t-1] + 0.35×expectations + 0.15×domestic_pressure + 0.10×import_prices",
+
+    "persistence": 0.40,
+    "expectations_weight": 0.35,
+    "domestic_pressure_weight": 0.15,
+    "import_prices_weight": 0.10,
+
+    "expectations": {
+      "anchored": {
+        "condition": "credibility_index > 50",
+        "value": 2.0
+      },
+      "partial_deanchoring": {
+        "condition": "30 < credibility_index < 50",
+        "formula": "0.70 × CPI[t] + 0.30 × 2.0"
+      },
+      "fully_deanchored": {
+        "condition": "credibility_index < 30",
+        "formula": "CPI[t]"
+      }
+    },
+
+    "domestic_pressure": {
+      "formula": "0.30 × output_gap[t-3] + 0.25 × wage_growth[t-2]",
+      "output_gap_coefficient": 0.30,
+      "output_gap_lag": 3,
+      "wage_coefficient": 0.25,
+      "wage_lag": 2
+    },
+
+    "import_prices": {
+      "formula": "0.25 × sterling_depreciation[t-6] + 0.50 × energy_prices[t-3]",
+      "FX_passthrough": 0.25,
+      "FX_lag": 6,
+      "energy_passthrough": 0.50,
+      "energy_lag": 3,
+      "note": "10% sterling depreciation adds 2.5pp to CPI over 18 months"
+    },
+
+    "RPI": {
+      "formula": "CPI + 1.0",
+      "note": "RPI used for index-linked gilts and pensions"
+    }
+  },
+
+  "labourMarket": {
+    "okunsLaw": {
+      "formula": "unemployment[t] = unemployment[t-2] - 0.35 × (GDP_growth[t] - trend_growth)",
+      "coefficient": -0.35,
+      "lag_months": 2,
+      "NAIRU": 4.25
+    },
+
+    "phillipsCurve": {
+      "formula": "wage_growth[t] = 2.5 + 0.40×inflation_exp - 0.45×(unemployment - NAIRU) + 0.30×productivity_growth",
+      "base_wage_growth": 2.5,
+      "inflation_expectations_coefficient": 0.40,
+      "unemployment_gap_coefficient": -0.45,
+      "productivity_coefficient": 0.30
+    },
+
+    "economicInactivity": {
+      "starting_rate": 21.5,
+      "long_term_sick_millions": 2.8,
+      "structural_increase_monthly": 0.002
+    }
+  },
+
+  "bankOfEngland": {
+    "taylorRule": {
+      "formula": "target_rate = neutral_rate + 1.5×(CPI - target) + 0.5×output_gap",
+      "neutral_rate": 3.50,
+      "inflation_target": 2.00,
+      "inflation_coefficient": 1.50,
+      "output_gap_coefficient": 0.50
+    },
+
+    "adjustmentSpeed": {
+      "formula": "Bank_Rate[t] = 0.70×Bank_Rate[t-1] + 0.30×target_rate",
+      "smoothing": 0.70,
+      "note": "MPC moves gradually toward target"
+    },
+
+    "fiscal_monetary_interaction": {
+      "formula": "BoE_response = 0.50 × fiscal_impulse[t-6] / GDP",
+      "coefficient": 0.50,
+      "lag_months": 6,
+      "note": "1% GDP fiscal loosening triggers 0.50pp rate rise over 12 months"
+    },
+
+    "meeting_frequency": {
+      "per_year": 8,
+      "months_between": 1.5
+    },
+
+    "increment_sizes": {
+      "typical": 0.25,
+      "crisis": 0.50
+    },
+
+    "quantitativeTightening": {
+      "current_APF_billions": 690,
+      "QT_pace_annual": 100,
+      "APF_loss_monthly": 1.2,
+      "gilt_yield_impact_per_100bn": 10
+    }
+  },
+
+  "debtDynamics": {
+    "identity": {
+      "formula": "debt_to_GDP[t] = debt_to_GDP[t-1] × (1 + r - g) / (1 + g) + primary_deficit_to_GDP",
+      "note": "r = interest rate, g = nominal GDP growth. If r > g, debt harder to stabilise"
+    },
+
+    "average_maturity_years": 14,
+    "rollover_rate_annual": 0.071,
+    "rollover_rate_monthly": 0.0059,
+
+    "index_linked_share": 0.25,
+    "conventional_share": 0.58,
+    "other_share": 0.17,
+
+    "debt_interest": {
+      "formula": "interest[t] = conventional_share × debt × avg_conv_yield + IL_share × debt × IL_yield × (1 + RPI/100) + APF_loss",
+      "APF_loss_monthly": 1.2
+    },
+
+    "averageYieldEvolution": {
+      "formula": "avg_yield[t] = avg_yield[t-1] × 0.993 + new_yield[t] × 0.007",
+      "persistence": 0.993,
+      "note": "Only 0.7% of debt rolls over each month (14-year maturity)"
+    },
+
+    "sensitivity": {
+      "per_1pp_yield_rise_annual": 8.0,
+      "per_1pp_RPI_rise_annual": 4.0
+    }
+  },
+
+  "giltMarket": {
+    "yieldDetermination": {
+      "formula": "yield_10yr = neutral_rate + inflation_exp + term_premium + fiscal_risk_premium",
+      "neutral_rate": 1.50,
+      "base_term_premium": 0.50
+    },
+
+    "debt_sensitivity": {
+      "formula_piecewise": {
+        "below_60": "0.02 × (debt_to_GDP - 60)",
+        "60_to_80": "0.03 × (debt_to_GDP - 60)",
+        "80_to_100": "0.04 × (debt_to_GDP - 80) + 0.60",
+        "100_to_120": "0.06 × (debt_to_GDP - 100) + 1.40",
+        "above_120": "0.09 × (debt_to_GDP - 120) + 2.60"
+      },
+      "note": "Non-linear escalation. Above 100% debt/GDP, markets become increasingly nervous"
+    },
+
+    "deficit_sensitivity": {
+      "basis_points_per_pp_deficit": 8,
+      "formula": "0.08 × deficit_to_GDP"
+    },
+
+    "credibility_penalty": {
+      "index_above_70": -0.25,
+      "index_50_to_70": 0.00,
+      "index_40_to_50": 0.15,
+      "index_20_to_40": 0.50,
+      "index_below_20": 2.00,
+      "note": "Credibility <20 is Truss scenario"
+    },
+
+    "market_crisis": {
+      "triggers": {
+        "unfunded_expansion_no_OBR": {
+          "threshold_pct_GDP": 2.0,
+          "probability": 0.60
+        },
+        "debt_above_110_rising": {
+          "probability": 0.40
+        },
+        "fiscal_rules_breach_poor_growth": {
+          "probability": 0.30
+        },
+        "credibility_below_30": {
+          "probability": 0.50
+        },
+        "deficit_above_8_no_recession": {
+          "probability": 0.35
+        }
+      },
+      "effects": {
+        "gilt_yield_spike_bp": [100, 200],
+        "sterling_depreciation_pct": [-5, -15],
+        "mortgage_rate_spike_pp": [1.5, 3.0],
+        "approval_loss": [-10, -20],
+        "credibility_crash": -30,
+        "PM_intervention_probability": 0.70
+      }
+    },
+
+    "credit_downgrade": {
+      "triggers": {
+        "debt_above_105_rising": 0.30,
+        "deficit_above_5_for_2years": 0.25,
+        "weaken_institutions": 0.40,
+        "growth_below_1_for_3years": 0.20
+      },
+      "effects": {
+        "yield_impact_bp_per_notch": [10, 20],
+        "approval_loss": -3,
+        "credibility_loss": -10
+      }
+    }
+  },
+
+  "mortgageMarket": {
+    "mortgage_rate_formula": "mortgage_2yr = two_year_swap_rate + bank_margin",
+    "bank_margin": 1.50,
+    "two_year_swap_formula": "expected_avg_bank_rate[0_to_24months] + term_premium",
+
+    "fixed_rate_share": 0.80,
+    "effective_adjustment_speed_annual": 0.40,
+
+    "consumption_response": {
+      "formula": "consumption_growth = base + 0.40×real_wage - 0.20×mortgage_shock[t-3] + 0.25×wealth + 0.15×confidence",
+      "real_wage_coefficient": 0.40,
+      "mortgage_shock_coefficient": -0.20,
+      "mortgage_shock_lag": 3,
+      "wealth_coefficient": 0.25,
+      "confidence_coefficient": 0.15,
+      "mortgage_shock_formula": "(mortgage_rate[t] - mortgage_rate[t-24]) × homeownership × mortgage_debt_to_income"
+    }
+  },
+
+  "publicServices": {
+    "NHS": {
+      "starting_quality": 62,
+      "maintenance_funding_real_growth_annual": 2.5,
+      "formula": "NHS_quality[t] = NHS_quality[t-1] + funding_shock[t-6] - degradation[t]",
+
+      "degradation_rates_monthly": {
+        "real_growth_below_minus1": -1.50,
+        "real_growth_minus1_to_0": -0.80,
+        "real_growth_0_to_1": -0.40,
+        "real_growth_1_to_2": -0.20,
+        "real_growth_2_to_2.5": -0.10,
+        "real_growth_above_2.5": 0.00
+      },
+
+      "waiting_list": {
+        "starting_millions": 7.6,
+        "formula": "waiting_list[t] = waiting_list[t-1] × (1 + growth_rate)",
+        "growth_rate_formula": "-0.005 × (NHS_quality - 62)",
+        "target_millions": 5.0,
+        "crisis_threshold_millions": 10.0
+      },
+
+      "approval_impact": {
+        "formula": "-0.25 × max(0, 60 - NHS_quality)",
+        "note": "Per month. Quality 40 = -5 approval/month"
+      },
+
+      "productivity_spillover": {
+        "formula": "-0.005 × max(0, 65 - NHS_quality)",
+        "note": "Poor NHS reduces GDP via sickness absence. Annual percentage point drag."
+      },
+
+      "approval_per_1bn_spending": 1.5,
+      "GDP_multiplier_per_1bn": 0.04
+    },
+
+    "education": {
+      "starting_quality": 68,
+      "maintenance_funding_real_growth_annual": 1.5,
+      "formula": "education_quality[t] = education_quality[t-1] + 0.20 × (real_funding_growth[t-12] - 1.5%)",
+
+      "degradation_rates_monthly": {
+        "real_growth_below_0": -0.50,
+        "real_growth_0_to_1.5": -0.20,
+        "real_growth_above_1.5": 0.00
+      },
+
+      "human_capital": {
+        "formula": "education_capital[t] = education_capital[t-1] + 0.0002 × (spending_growth[t-60] - 1.0%)",
+        "lag_months": 60,
+        "note": "Today's education spending affects productivity 5 years later"
+      },
+
+      "long_run_GDP_effect": {
+        "formula": "long_run_growth += 0.10 × (education_capital - 100)",
+        "note": "Education above baseline adds to trend growth"
+      },
+
+      "approval_per_1bn_spending": 1.0
+    },
+
+    "infrastructure": {
+      "starting_quality": 58,
+      "maintenance_capex_pct_GDP": 1.8,
+      "formula": "infrastructure[t] = infrastructure[t-1] + capex_effect[t-12] - depreciation",
+
+      "depreciation_monthly": 0.15,
+      "depreciation_condition": "if capex < maintenance_baseline",
+
+      "deferred_maintenance": {
+        "year_0_to_2": 1.0,
+        "year_3_to_5": 1.5,
+        "year_5_to_10": 2.5,
+        "year_10_plus": 4.0,
+        "note": "£1 deferred becomes £2.50-4.00 after 5-10 years"
+      }
+    },
+
+    "police_justice": {
+      "starting_quality": 52,
+      "maintenance_funding_real_growth": 1.0,
+      "degradation_monthly": -0.30,
+      "approval_impact_if_below_55": -0.5
+    }
+  },
+
+  "politicalApproval": {
+    "government_approval": {
+      "starting": 45,
+      "formula": "approval[t] = approval[t-1] + policy_effects + economic_effects + events - decay",
+
+      "economic_effects": {
+        "real_wage_coefficient": 0.20,
+        "unemployment_change_coefficient": -0.50,
+        "NHS_penalty_formula": "-0.25 × max(0, 60 - NHS_quality)"
+      },
+
+      "natural_decay_monthly": {
+        "months_0_to_12": 0.50,
+        "months_12_to_36": 0.30,
+        "months_36_plus": 0.20
+      },
+
+      "loss_aversion": 2.0,
+
+      "manifesto_breaks": {
+        "income_tax": -6,
+        "NI_employee": -6,
+        "NI_employer": -3,
+        "VAT": -8,
+        "corporation_tax": -4,
+        "triple_lock_removal": -8
+      },
+
+      "PM_intervention": {
+        "approval_below_25_for_3months": 0.30,
+        "approval_below_20_for_3months": 0.70
+      }
+    },
+
+    "chancellor_approval": {
+      "starting": 42,
+      "formula": "chancellor = 0.70×government_approval + 0.20×(credibility/2) + 0.10×economic_performance",
+
+      "sacking_threshold": {
+        "approval_below_20_for_3months": 0.60,
+        "market_crisis_lasting_2weeks": 0.70
+      }
+    },
+
+    "backbench_satisfaction": {
+      "starting": 70,
+      "revolt_threshold": 40,
+
+      "drains": {
+        "manifesto_break": -10,
+        "welfare_cuts": -8,
+        "public_sector_pay_freeze_annual": -5,
+        "government_approval_below_30_monthly": -3
+      },
+
+      "revolt_probability": {
+        "satisfaction_below_40": 0.50,
+        "satisfaction_below_30": 0.80
+      },
+
+      "revolt_size": {
+        "typical_range": [30, 60],
+        "note": "Dangerous but not fatal with 174 majority"
+      }
+    }
+  },
+
+  "credibilityIndex": {
+    "starting": 65,
+    "scale": "0-100",
+
+    "components": {
+      "OBR_forecast_present": {
+        "weight": 0.25,
+        "effect_present": 0,
+        "effect_absent": -30
+      },
+      "fiscal_rules_compliance": {
+        "weight": 0.20,
+        "effect_met": 0,
+        "effect_breached_per_rule": -20
+      },
+      "headroom_vs_rules": {
+        "weight": 0.15,
+        "effect_formula": "+1 per £5bn headroom"
+      },
+      "debt_trajectory": {
+        "weight": 0.15,
+        "effect_falling_annual": 5,
+        "effect_rising_annual": -5
+      },
+      "IFS_verdict": {
+        "weight": 0.10,
+        "effect_positive": 10,
+        "effect_negative": -20
+      },
+      "policy_reversals": {
+        "weight": 0.10,
+        "effect_per_uturn": -10
+      },
+      "international_comparison": {
+        "weight": 0.05,
+        "note": "UK gilt spread vs Germany"
+      }
+    },
+
+    "thresholds": {
+      "above_85": "Exceptional credibility",
+      "above_70": "Strong credibility",
+      "50_to_70": "Adequate",
+      "40_to_50": "Weak",
+      "below_40": "Market crisis likely",
+      "below_20": "Truss-level crisis"
+    }
+  },
+
+  "automaticStabilisers": {
+    "revenue_elasticity_to_GDP": 1.05,
+    "spending_elasticity_to_GDP": -0.20,
+    "overall_stabiliser_size": 0.50,
+    "formula": "cyclical_revenue_change = 1.05 × GDP_deviation × total_revenue",
+    "note": "A 1% GDP fall automatically reduces deficit by 0.5% through tax/spending changes"
+  },
+
+  "readyReckoners": {
+    "_description": "Quick reference: fiscal impact of common policy changes",
+
+    "taxes": {
+      "income_tax_basic_1pp": {
+        "revenue_bn": 7.0,
+        "GDP_impact_pct": -0.05,
+        "approval": -6,
+        "manifesto_locked": true
+      },
+      "income_tax_higher_1pp": {
+        "revenue_bn": 2.0,
+        "GDP_impact_pct": -0.02,
+        "approval": -3,
+        "manifesto_locked": true
+      },
+      "NI_employee_1pp": {
+        "revenue_bn": 6.0,
+        "GDP_impact_pct": -0.045,
+        "approval": -5,
+        "manifesto_locked": true
+      },
+      "NI_employer_1pp": {
+        "revenue_bn": 8.5,
+        "GDP_impact_pct": -0.03,
+        "approval": -3,
+        "manifesto_locked": "arguable"
+      },
+      "VAT_1pp": {
+        "revenue_bn": 7.5,
+        "GDP_impact_pct": -0.05,
+        "approval": -8,
+        "manifesto_locked": true
+      },
+      "corporation_tax_1pp": {
+        "revenue_bn": 3.2,
+        "GDP_impact_pct_year1": -0.02,
+        "GDP_impact_pct_longrun": -0.05,
+        "approval": -2,
+        "manifesto_locked": true
+      },
+      "CGT_align_with_income_tax": {
+        "revenue_bn_range": [5, 14],
+        "GDP_impact_pct": -0.10,
+        "approval": -3,
+        "manifesto_locked": false
+      },
+      "fiscal_drag_frozen_thresholds_annual": {
+        "revenue_bn": 6.0,
+        "GDP_impact_pct": -0.03,
+        "approval_per_year": -0.5,
+        "note": "Stealth tax, low visibility"
+      },
+      "personal_allowance_minus_1000": {
+        "revenue_bn": 6.2,
+        "GDP_impact_pct": -0.04,
+        "approval": -3
+      },
+      "fuel_duty_1p_per_litre": {
+        "revenue_bn": 0.5,
+        "GDP_impact_pct": -0.01,
+        "approval": -0.5
+      },
+      "fuel_duty_5p_per_litre": {
+        "revenue_bn": 2.5,
+        "GDP_impact_pct": -0.06,
+        "approval": -4
+      }
+    },
+
+    "spending": {
+      "NHS_1bn": {
+        "GDP_impact_pct": 0.04,
+        "approval": 1.5,
+        "note": "Highest political return"
+      },
+      "education_1bn": {
+        "GDP_impact_pct": 0.03,
+        "approval": 1.0
+      },
+      "defence_1bn": {
+        "GDP_impact_pct": 0.03,
+        "approval": 0.5
+      },
+      "capital_investment_1bn": {
+        "GDP_impact_pct_year1": 0.08,
+        "GDP_impact_pct_longrun": 0.10,
+        "approval": 0.3,
+        "note": "Lowest immediate return, highest long-run multiplier"
+      },
+      "public_sector_pay_1pp_above_inflation": {
+        "cost_bn": 2.5,
+        "GDP_impact_pct": 0.03,
+        "approval": -0.5,
+        "note": "Unpopular but avoids strikes"
+      },
+      "triple_lock_removal": {
+        "saving_bn_annual": 3.0,
+        "approval": -8,
+        "note": "Replacing with earnings-only indexation"
+      },
+      "UC_taper_reduction_5pp": {
+        "cost_bn": 3.5
+      },
+      "free_school_meals_extension": {
+        "cost_bn": 1.0
+      },
+      "social_care_cap_introduction": {
+        "cost_bn": 5.0
+      },
+      "defence_to_2.5pct_GDP": {
+        "additional_cost_bn": 14
+      },
+      "ODA_restore_to_0.7pct": {
+        "additional_cost_bn": 6
+      }
+    }
+  },
+
+  "eventProbabilities": {
+    "strike_wave": {
+      "trigger": "public_sector_real_pay_cut_cumulative > 3%",
+      "base_probability_under_labour": 0.10,
+      "base_probability_under_conservative": 0.20,
+      "duration_threshold_months": 18,
+      "effects": {
+        "approval_per_month": -3,
+        "GDP_per_month": -0.05,
+        "resolution_cost_bn": [2, 5]
+      }
+    },
+
+    "global_recession": {
+      "probability_annual": 0.10,
+      "GDP_impact_pct": -2.0,
+      "duration_months": 6
+    },
+
+    "energy_shock": {
+      "probability_annual": 0.05,
+      "oil_price_change_pct": 50,
+      "inflation_impact_pp": 2.0
+    },
+
+    "pandemic": {
+      "probability_annual": 0.01,
+      "GDP_impact_pct": -10,
+      "spending_increase_pct": 20
+    }
+  },
+
+  "winConditions": {
+    "successful_chancellor": {
+      "government_approval_at_election": ">35%",
+      "backbench_satisfaction": ">45",
+      "credibility_index": ">50",
+      "GDP_growth_average": ">1.5%",
+      "fiscal_rules_status": "Met or credibly on track",
+      "market_crises": 0,
+      "NHS_waiting_list": "Falling or stable"
+    },
+
+    "lose_conditions": {
+      "market_crisis": "Truss scenario triggered",
+      "backbench_revolt": "Key legislation defeated",
+      "approval_collapse": "Below 20% for 6+ months",
+      "debt_spiral": "Above 110% GDP with no plan",
+      "sacked_by_PM": true
+    }
+  },
+
+  "simulationFlow": {
+    "monthly_sequence": [
+      "1_exogenous_updates",
+      "2_player_input",
+      "3_tax_revenue_calculation",
+      "4_spending_execution",
+      "5_fiscal_aggregates",
+      "6_GDP_growth",
+      "7_labour_market",
+      "8_inflation",
+      "9_BoE_response",
+      "10_gilt_market",
+      "11_mortgage_housing",
+      "12_service_quality",
+      "13_productivity",
+      "14_political_approval",
+      "15_event_checks",
+      "16_reporting"
+    ],
+
+    "quarterly_updates": [
+      "GDP_official_statistics",
+      "OBR_forecast_update",
+      "BoE_inflation_report",
+      "trade_balance",
+      "productivity_data"
+    ],
+
+    "annual_updates": [
+      "fiscal_year_close",
+      "budget_autumn_statement",
+      "pay_review_bodies",
+      "credit_rating_review",
+      "election_if_due"
+    ],
+
+    "update_frequencies": {
+      "GDP_official": "quarterly",
+      "CPI": "monthly",
+      "unemployment": "monthly",
+      "public_finances": "monthly",
+      "OBR_forecast": "fiscal_events",
+      "BoE_MPC_meeting": "every_1.5_months",
+      "fiscal_events": "typically_2_per_year"
+    }
+  }
+}
