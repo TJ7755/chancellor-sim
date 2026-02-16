@@ -527,6 +527,18 @@ export interface ServicesState {
   nhsQuality: number; // 0-100
   educationQuality: number; // 0-100
   infrastructureQuality: number; // 0-100
+  mentalHealthAccess: number; // 0-100
+  primaryCareAccess: number; // 0-100
+  socialCareQuality: number; // 0-100
+  prisonSafety: number; // 0-100
+  courtBacklogPerformance: number; // 0-100
+  legalAidAccess: number; // 0-100
+  policingEffectiveness: number; // 0-100
+  borderSecurityPerformance: number; // 0-100
+  railReliability: number; // 0-100
+  affordableHousingDelivery: number; // 0-100
+  floodResilience: number; // 0-100
+  researchInnovationOutput: number; // 0-100
 }
 
 export function createInitialServicesState(): ServicesState {
@@ -534,6 +546,18 @@ export function createInitialServicesState(): ServicesState {
     nhsQuality: 62,
     educationQuality: 68,
     infrastructureQuality: 58,
+    mentalHealthAccess: 56,
+    primaryCareAccess: 59,
+    socialCareQuality: 52,
+    prisonSafety: 47,
+    courtBacklogPerformance: 50,
+    legalAidAccess: 51,
+    policingEffectiveness: 57,
+    borderSecurityPerformance: 55,
+    railReliability: 54,
+    affordableHousingDelivery: 48,
+    floodResilience: 53,
+    researchInnovationOutput: 63,
   };
 }
 

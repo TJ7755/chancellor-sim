@@ -28,6 +28,20 @@ export interface MinimalStateForSocialMedia {
     unemploymentRate?: number;
     inflationCPI?: number;
   };
+  services?: {
+    nhsQuality?: number;
+    educationQuality?: number;
+    infrastructureQuality?: number;
+    mentalHealthAccess?: number;
+    prisonSafety?: number;
+    courtBacklogPerformance?: number;
+    policingEffectiveness?: number;
+  };
+  fiscal?: {
+    vatRate?: number;
+    corporationTaxRate?: number;
+    detailedTaxes?: Array<{ id: string; currentRate: number }>;
+  };
   turn?: number;
 }
 
@@ -35,7 +49,7 @@ export interface MinimalStateForSocialMedia {
 export interface SocialMediaPost {
   id: string;
   author: string;
-  authorType: 'citizen' | 'journalist' | 'economist' | 'politician' | 'activist';
+  authorType: 'citizen' | 'journalist' | 'economist' | 'politician' | 'activist' | 'business';
   handle: string;
   content: string;
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -96,7 +110,19 @@ const INFLUENCERS = {
     { name: 'Aaron Bastani', handle: '@AaronBastani', leaning: 'left' },
     { name: 'Nigel Farage', handle: '@Nigel_Farage', leaning: 'right' },
   ],
+  business: [
+    { name: 'Alison Rose', handle: '@AlisonRoseUK', organisation: 'UK Finance' },
+    { name: 'Miles Celic', handle: '@Miles_Celic', organisation: 'TheCityUK' },
+    { name: 'Emma Bridgewater', handle: '@BritishMakerCEO', organisation: 'SME Federation' },
+  ],
 };
+
+function getDetailedTaxRate(state: MinimalStateForSocialMedia, id: string, fallback: number): number {
+  const taxes = state.fiscal?.detailedTaxes;
+  if (!Array.isArray(taxes)) return fallback;
+  const found = taxes.find((tax) => tax.id === id);
+  return found?.currentRate ?? fallback;
+}
 
 // Generate sentiment based on game state
 export function calculateSocialMediaSentiment(state: MinimalStateForSocialMedia): SocialMediaSentiment {
@@ -104,6 +130,12 @@ export function calculateSocialMediaSentiment(state: MinimalStateForSocialMedia)
   const growth = state.economy?.growthRate ?? state.economy?.gdpGrowthAnnual ?? 2;
   const unemployment = state.economy?.unemployment ?? state.economy?.unemploymentRate ?? 4;
   const inflation = state.economy?.inflation ?? state.economy?.inflationCPI ?? 2;
+  const mentalHealthAccess = state.services?.mentalHealthAccess ?? 55;
+  const prisonSafety = state.services?.prisonSafety ?? 50;
+  const courtBacklogPerformance = state.services?.courtBacklogPerformance ?? 50;
+  const vatRate = state.fiscal?.vatRate ?? state.economy?.taxRate ?? 20;
+  const vatDomesticEnergy = getDetailedTaxRate(state, 'vatDomesticEnergy', 5);
+  const energyProfitsLevy = getDetailedTaxRate(state, 'energyProfitsLevy', 35);
 
   // Base sentiment on approval rating
   let positive = approval * 0.6; // 0-60
@@ -116,6 +148,12 @@ export function calculateSocialMediaSentiment(state: MinimalStateForSocialMedia)
   if (unemployment > 5) negative += 10;
   if (inflation > 3) negative += 10;
   if (inflation < 2) positive += 5;
+  if (mentalHealthAccess < 50) negative += 8;
+  if (prisonSafety < 48) negative += 6;
+  if (courtBacklogPerformance < 50) negative += 6;
+  if (vatRate > 20) negative += (vatRate - 20) * 2.5;
+  if (vatDomesticEnergy > 5) negative += (vatDomesticEnergy - 5) * 1.8;
+  if (energyProfitsLevy > 40) positive += 2;
 
   // Normalise to 100
   const total = positive + negative + neutral;
@@ -146,6 +184,10 @@ export function generateTrendingHashtags(state: MinimalStateForSocialMedia, rece
   const approval = state.political?.publicApproval ?? state.political?.governmentApproval ?? 50;
   const growth = state.economy?.growthRate ?? state.economy?.gdpGrowthAnnual ?? 2;
   const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? 50;
+  const mentalHealthAccess = state.services?.mentalHealthAccess ?? 55;
+  const prisonSafety = state.services?.prisonSafety ?? 50;
+  const vatRate = state.fiscal?.vatRate ?? 20;
+  const vatDomesticEnergy = getDetailedTaxRate(state, 'vatDomesticEnergy', 5);
 
   // Always include budget-related hashtag
   hashtags.push({
@@ -213,6 +255,33 @@ export function generateTrendingHashtags(state: MinimalStateForSocialMedia, rece
     });
   }
 
+  if (vatRate > 20 || vatDomesticEnergy > 5) {
+    hashtags.push({
+      tag: '#VATRise',
+      posts: Math.floor(7000 + Math.random() * 5000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  }
+
+  if (mentalHealthAccess < 50) {
+    hashtags.push({
+      tag: '#MentalHealthCrisis',
+      posts: Math.floor(6500 + Math.random() * 4000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  }
+
+  if (prisonSafety < 45) {
+    hashtags.push({
+      tag: '#PrisonOvercrowding',
+      posts: Math.floor(4500 + Math.random() * 3000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  }
+
   // Cost of living
   if (state.economy?.inflation && state.economy.inflation > 3) {
     hashtags.push({
@@ -236,6 +305,12 @@ export function generateSocialMediaPosts(
   const approval = state.political?.publicApproval ?? state.political?.governmentApproval ?? 50;
   const growth = state.economy?.growthRate ?? state.economy?.gdpGrowthAnnual ?? 2;
   const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? 50;
+  const vatRate = state.fiscal?.vatRate ?? 20;
+  const vatDomesticEnergy = getDetailedTaxRate(state, 'vatDomesticEnergy', 5);
+  const corporationTaxRate = state.fiscal?.corporationTaxRate ?? 25;
+  const energyProfitsLevy = getDetailedTaxRate(state, 'energyProfitsLevy', 35);
+  const mentalHealthAccess = state.services?.mentalHealthAccess ?? 55;
+  const prisonSafety = state.services?.prisonSafety ?? 50;
 
   // Function to pick random influencer
   const pickInfluencer = <T extends keyof typeof INFLUENCERS>(type: T): typeof INFLUENCERS[T][number] => {
@@ -323,6 +398,52 @@ export function generateSocialMediaPosts(
     verified: true,
   });
 
+  if (vatRate > 20 || vatDomesticEnergy > 5) {
+    posts.push({
+      id: `post-${Date.now()}-vat-citizen`,
+      author: 'Amira from Bristol',
+      authorType: 'citizen',
+      handle: '@cakecounter_uk',
+      content: `My weekly shop costs more again. Even basics and bakery items feel pricier after these VAT changes. How are families meant to cope? #VATRise`,
+      sentiment: 'negative',
+      likes: Math.floor(900 + Math.random() * 2200),
+      retweets: Math.floor(250 + Math.random() * 900),
+      timestamp: new Date(Date.now() - 420000),
+      verified: false,
+    });
+  }
+
+  if (corporationTaxRate > 25 || energyProfitsLevy > 35) {
+    const businessVoice = pickInfluencer('business');
+    posts.push({
+      id: `post-${Date.now()}-business`,
+      author: businessVoice.name,
+      authorType: 'business',
+      handle: businessVoice.handle,
+      content: `The Treasury's granular tax changes are increasing planning uncertainty for firms. Business needs stability, not constant parameter shifts.`,
+      sentiment: 'negative',
+      likes: Math.floor(700 + Math.random() * 1800),
+      retweets: Math.floor(180 + Math.random() * 650),
+      timestamp: new Date(Date.now() - 240000),
+      verified: true,
+    });
+  }
+
+  if (mentalHealthAccess < 50 || prisonSafety < 45) {
+    posts.push({
+      id: `post-${Date.now()}-services-watch`,
+      author: 'Policy Watch UK',
+      authorType: 'activist',
+      handle: '@PolicyWatchUK',
+      content: `Local services are under real strain: mental health access and prison safety indicators are both deteriorating. Constituencies will feel this quickly.`,
+      sentiment: 'negative',
+      likes: Math.floor(1200 + Math.random() * 2600),
+      retweets: Math.floor(350 + Math.random() * 1000),
+      timestamp: new Date(Date.now() - 300000),
+      verified: true,
+    });
+  }
+
   // Generate activist posts
   const activist = pickInfluencer('activists');
   if (approval < 35 && activist.leaning === 'left') {
@@ -355,7 +476,6 @@ function generateCitizenPosts(
   count: number
 ): SocialMediaPost[] {
   const posts: SocialMediaPost[] = [];
-  const approval = state.political?.publicApproval ?? state.political?.governmentApproval ?? 50;
   const inflation = state.economy?.inflation ?? state.economy?.inflationCPI ?? 2;
 
   const negativeTemplates = [
@@ -417,14 +537,18 @@ function generateCitizenPosts(
   return posts;
 }
 
-// Calculate impact on approval (small modifier)
+// CRITICAL FIX: Social media impact amplified to be meaningful
+// Modern politics: social media IS a major driver of public opinion
+// Range: -8 to +8 points per turn (was -1 to +1, essentially pointless)
 export function calculateSocialMediaImpact(sentiment: SocialMediaSentiment): number {
-  // Social media should have a SMALL impact on approval
-  // Range: -2 to +2 points per turn
   const baseImpact = (sentiment.positive - sentiment.negative) / 50; // -2 to +2
   const volumeMultiplier = sentiment.volume / 100; // 0 to 1
 
-  return baseImpact * volumeMultiplier * 0.5; // Further reduce to ensure it's minor
+  // Amplified: 4x multiplier instead of 0.5x
+  // When social media is very negative (80% negative sentiment) + high volume (100%):
+  // Impact = (-80-20)/50 * 1.0 * 4.0 = -2.0 * 4.0 = -8 points
+  // When positive (70% positive) + high volume: +3 * 4.0 = +6 points
+  return baseImpact * volumeMultiplier * 4.0;
 }
 
 // Social Media Sidebar Component

@@ -72,7 +72,7 @@ export interface NewspaperSource {
 export interface OppositionQuote {
   speaker: string;               // Name and title
   quote: string;
-  party: 'Labour' | 'LibDem' | 'SNP';
+  party: 'Conservative' | 'LibDem' | 'SNP' | 'Reform';
 }
 
 export interface NewsArticle {
@@ -135,6 +135,56 @@ const NEWSPAPERS: NewspaperSource[] = [
     priorities: ['pensions', 'property', 'middle_class', 'law_and_order']
   }
 ];
+
+function normaliseText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function buildRecentNewsCorpus(state: any): string {
+  const recent = state?.recentNewspapers;
+  if (!Array.isArray(recent) || recent.length === 0) {
+    return '';
+  }
+
+  return recent
+    .slice(-18)
+    .flatMap((article: any) => {
+      if (!article) return [];
+      const parts: string[] = [];
+      if (typeof article.headline === 'string') parts.push(article.headline);
+      if (typeof article.subheading === 'string') parts.push(article.subheading);
+      if (Array.isArray(article.paragraphs)) {
+        parts.push(...article.paragraphs.filter((p: any) => typeof p === 'string'));
+      }
+      if (article.oppositionQuote?.quote) parts.push(article.oppositionQuote.quote);
+      return parts;
+    })
+    .join(' ')
+    .toLowerCase();
+}
+
+function countOccurrences(haystack: string, needle: string): number {
+  if (!haystack || !needle) return 0;
+  const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const matches = haystack.match(new RegExp(escaped, 'g'));
+  return matches ? matches.length : 0;
+}
+
+function pickLeastRepeated(candidates: string[], recentCorpus: string): string {
+  if (!Array.isArray(candidates) || candidates.length === 0) return '';
+  if (!recentCorpus) return candidates[Math.floor(Math.random() * candidates.length)];
+
+  const scored = candidates.map((candidate) => {
+    const normalisedCandidate = normaliseText(candidate);
+    const keyPhrase = normalisedCandidate.split(',')[0];
+    const score = countOccurrences(recentCorpus, normalisedCandidate) * 3 + countOccurrences(recentCorpus, keyPhrase);
+    return { candidate, score };
+  });
+
+  const minScore = Math.min(...scored.map((entry) => entry.score));
+  const shortlist = scored.filter((entry) => entry.score === minScore).map((entry) => entry.candidate);
+  return shortlist[Math.floor(Math.random() * shortlist.length)];
+}
 
 // ============================================================================
 // EVENT TEMPLATES
@@ -961,6 +1011,33 @@ const HEADLINE_TEMPLATES: HeadlineTemplate[] = [
   }
 ];
 
+const GENERIC_HEADLINE_POOL: Array<{ headline: string; subheading: string }> = [
+  { headline: 'Treasury Faces Tough Autumn Trade-Offs', subheading: 'Ministers weigh tax, spending, and borrowing choices as economic indicators send mixed signals.' },
+  { headline: 'Regional Growth Gap Back in Focus', subheading: 'Business groups call for targeted transport, skills, and planning reform to unlock local investment.' },
+  { headline: 'Mortgage Pressure Keeps Households Cautious', subheading: 'Higher refinancing costs continue to squeeze disposable income despite steadier inflation readings.' },
+  { headline: 'NHS Managers Warn on Winter Capacity', subheading: 'Trust leaders say staffing and social care bottlenecks remain critical ahead of colder months.' },
+  { headline: 'Treasury Signals “No Easy Options” on Fiscal Room', subheading: 'Officials point to fragile headroom and persistent demand pressures in key public services.' },
+  { headline: 'Retail Footfall Softens Outside Major Cities', subheading: 'High streets report subdued demand as consumers prioritise essentials and utility bills.' },
+  { headline: 'Business Investment Plans Hold, but Confidence Patchy', subheading: 'Firms cite policy uncertainty and financing costs as barriers to larger capital commitments.' },
+  { headline: 'Public Sector Pay Talks Enter Delicate Phase', subheading: 'Departments seek settlements that avoid disruption while limiting long-term fiscal spillovers.' },
+  { headline: 'Infrastructure Pipeline Under Review', subheading: 'Treasury and departments reassess sequencing to protect delivery and value for money.' },
+  { headline: 'Exporters Seek Sterling Stability', subheading: 'Manufacturers say predictable currency conditions matter as much as headline tax rates.' },
+  { headline: 'Treasury Urged to Clarify Medium-Term Tax Path', subheading: 'Employers and households call for fewer policy reversals and clearer multi-year signalling.' },
+  { headline: 'Court Delays and Prison Pressures Raise Justice Alarm', subheading: 'Sector leaders warn prolonged backlogs are creating knock-on costs across policing and probation.' },
+  { headline: 'Consumer Confidence Edges Higher, Spending Still Tentative', subheading: 'Sentiment improves modestly but households remain wary of future bills and borrowing costs.' },
+  { headline: 'Fiscal Debate Shifts from Size to Composition', subheading: 'Economists argue the quality of spending changes now matters more than aggregate totals alone.' },
+  { headline: 'Skills Shortages Persist in Key Sectors', subheading: 'Employers report recruitment bottlenecks in health, logistics, construction, and digital services.' },
+  { headline: 'Energy Policy Choices Reopen Cost-of-Living Debate', subheading: 'Analysts say household bill trajectories depend on both global prices and domestic tax settings.' },
+  { headline: 'City Traders Watch OBR Signals Closely', subheading: 'Markets focus on credibility, implementation detail, and delivery risk rather than headline rhetoric.' },
+  { headline: 'Small Firms Ask for Simpler Tax Administration', subheading: 'Owners say compliance complexity is becoming a larger burden than statutory rates alone.' },
+  { headline: 'Local Councils Warn of Service Strain', subheading: 'Authorities report rising demand in social care, temporary accommodation, and safeguarding.' },
+  { headline: 'Treasury Briefing Points to “Narrow Landing Zone”', subheading: 'Officials describe a constrained path balancing growth ambitions with fiscal discipline.' },
+  { headline: 'Rail Reliability and Bus Provision Become Budget Battleground', subheading: 'Regional leaders push for stable multi-year settlements to improve commuter confidence.' },
+  { headline: 'Debt Interest Bills Keep Pressure on Spending Plans', subheading: 'Even modest market moves are reshaping departmental assumptions for the year ahead.' },
+  { headline: 'BoE-Treasury Coordination Under Scrutiny', subheading: 'Commentators debate how fiscal and monetary settings interact in a low-growth environment.' },
+  { headline: 'Policy Fatigue Sets In as Households Seek Predictability', subheading: 'Voters tell pollsters they want fewer surprises and clearer long-term direction from ministers.' },
+];
+
 // ============================================================================
 // OPPOSITION QUOTES GENERATION
 // ============================================================================
@@ -1199,13 +1276,15 @@ function generateOppositionQuote(state: any, newspaper: NewspaperSource): Opposi
   const newspaperKey = newspaper.name.toLowerCase().replace('the ', '').replace('daily ', '') as keyof typeof template.quotes;
   const quotes = template.quotes[newspaperKey] || template.quotes.guardian;
 
-  // Random quote
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
+  const recentCorpus = buildRecentNewsCorpus(state);
+
+  // Prefer quotes that have not appeared recently.
+  const quote = pickLeastRepeated(quotes, recentCorpus);
 
   // Generate appropriate speaker (opposition to a Labour government = Conservative, LibDem, Reform)
   const speakers = [
-    { speaker: 'Jeremy Hunt MP, Shadow Chancellor', party: 'Labour' as const },
-    { speaker: 'Mel Stride MP, Shadow Work and Pensions Secretary', party: 'Labour' as const },
+    { speaker: 'Jeremy Hunt MP, Shadow Chancellor', party: 'Conservative' as const },
+    { speaker: 'Mel Stride MP, Shadow Work and Pensions Secretary', party: 'Conservative' as const },
     { speaker: 'Ed Davey MP, Liberal Democrat Leader', party: 'LibDem' as const },
     { speaker: 'Sarah Olney MP, Lib Dem Treasury Spokesperson', party: 'LibDem' as const },
     { speaker: 'Stephen Flynn MP, SNP Westminster Leader', party: 'SNP' as const }
@@ -1288,14 +1367,13 @@ function generateLeadStory(state: any, newspaper: NewspaperSource, event: Random
  */
 function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: RandomEvent): string[] {
   const paragraphs: string[] = [];
-  const headline = `Economic Context`;
 
   const gdpGrowth = state.economy?.gdpGrowthAnnual ?? 0;
   const inflation = state.economy?.inflationCPI ?? 2;
-  const unemployment = state.economy?.unemploymentRate ?? 4;
   const deficit = state.fiscal?.deficitPctGDP ?? 3;
   const debt = state.fiscal?.debtToGdpPercent ?? 100;
   const emergencyProgrammes: EmergencyProgramme[] = state.emergencyProgrammes?.active || [];
+  const recentCorpus = buildRecentNewsCorpus(state);
 
   // Opening paragraph setting context
   let contextParaText = '';
@@ -1348,6 +1426,56 @@ function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: R
     }
   }
 
+  const mentalHealthAccess = state.services?.mentalHealthAccess;
+  const prisonSafety = state.services?.prisonSafety;
+  const courtBacklogPerformance = state.services?.courtBacklogPerformance;
+  if (typeof mentalHealthAccess === 'number' && mentalHealthAccess < 50) {
+    const mentalHealthOptions = [
+      `Constituency-level mental health services are under mounting pressure, with the national access index now at ${mentalHealthAccess.toFixed(0)}/100. Backbench MPs in high-need areas warn that delayed treatment is feeding wider social and economic strain.`,
+      `Mental health access remains strained at ${mentalHealthAccess.toFixed(0)}/100. Clinicians say longer waits are increasing pressure on A&E departments and primary care.`,
+      `Service leaders report continued stress in mental health provision, with access measured at ${mentalHealthAccess.toFixed(0)}/100 and waiting times still elevated in several regions.`,
+    ];
+    paragraphs.push(pickLeastRepeated(mentalHealthOptions, buildRecentNewsCorpus(state)));
+  }
+  if (typeof prisonSafety === 'number' && prisonSafety < 48 && Math.random() < 0.55) {
+    const prisonOptions = [
+      `Justice indicators are deteriorating: prison safety has slipped to ${prisonSafety.toFixed(0)}/100, while MPs on the Justice Committee report escalating violence and staffing shortages across the estate.`,
+      `Prison safety is now ${prisonSafety.toFixed(0)}/100, with inspectors warning that workforce churn and overcrowding are limiting rehabilitation outcomes.`,
+      `The prison estate remains under pressure at ${prisonSafety.toFixed(0)}/100 on safety metrics, prompting renewed calls for staffing and capacity reform.`,
+    ];
+    paragraphs.push(pickLeastRepeated(prisonOptions, buildRecentNewsCorpus(state)));
+  }
+  if (typeof courtBacklogPerformance === 'number' && courtBacklogPerformance < 50 && Math.random() < 0.55) {
+    const courtOptions = [
+      `Court performance remains weak at ${courtBacklogPerformance.toFixed(0)}/100, with legal professionals warning that delayed hearings are undermining confidence in the rule of law.`,
+      `Tribunal and Crown Court throughput is still subdued at ${courtBacklogPerformance.toFixed(0)}/100, extending waits for victims, defendants, and witnesses.`,
+      `Legal sector bodies said court backlog performance of ${courtBacklogPerformance.toFixed(0)}/100 remains inconsistent with timely justice delivery.`,
+    ];
+    paragraphs.push(pickLeastRepeated(courtOptions, buildRecentNewsCorpus(state)));
+  }
+
+  const vatRate = state.taxation?.vatRate;
+  const vatDomesticEnergy = state.taxation?.vatDomesticEnergy;
+  if ((typeof vatRate === 'number' && vatRate > 20) || (typeof vatDomesticEnergy === 'number' && vatDomesticEnergy > 5)) {
+    const householdTaxOptions = [
+      `Household tax pressures are intensifying. Consumer groups report rising complaints that higher VAT settings are filtering through to everyday purchases, with one shopper saying even "a basic cake run for the family" now costs noticeably more.`,
+      `Families report that recent VAT choices are feeding through to routine spending, with campaigners warning that essentials and utility-linked costs are taking a larger share of disposable income.`,
+      `Consumer organisations said VAT-related price pressures are now visible in day-to-day bills, adding to wider cost-of-living anxiety in lower and middle income households.`,
+    ];
+    paragraphs.push(pickLeastRepeated(householdTaxOptions, recentCorpus));
+  }
+
+  const corporationTaxRate = state.taxation?.corporationTaxRate;
+  const energyProfitsLevy = state.taxation?.energyProfitsLevy;
+  if ((typeof corporationTaxRate === 'number' && corporationTaxRate > 25) || (typeof energyProfitsLevy === 'number' && energyProfitsLevy > 35)) {
+    const businessTaxOptions = [
+      `Business leaders criticised the cumulative burden of granular tax adjustments. A manufacturing chief executive told the paper that repeated parameter changes are "making investment planning materially harder" and called for greater tax stability.`,
+      `Employers said frequent tax parameter revisions are undermining confidence in medium-term planning, with firms asking for clearer multi-year guidance from the Treasury.`,
+      `Industry groups warned that policy churn across business taxes is complicating capital budgeting decisions and may delay hiring and investment in exposed sectors.`,
+    ];
+    paragraphs.push(pickLeastRepeated(businessTaxOptions, recentCorpus));
+  }
+
   // Ensure at least one context paragraph
   while (paragraphs.length === 0) {
     paragraphs.push(`The government must now decide how to respond whilst managing broader economic and political pressures.`);
@@ -1362,6 +1490,7 @@ function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: R
  */
 function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headline: string, event?: RandomEvent): string[] {
   const paragraphs: string[] = [];
+  const recentCorpus = buildRecentNewsCorpus(state);
 
   // If there's an event, use lead + secondary structure
   if (event) {
@@ -1381,7 +1510,12 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
   if (gdpGrowth < -0.1) {
     paragraphs.push(`The UK economy contracted by ${Math.abs(gdpGrowth).toFixed(1)}% last quarter, marking ${gdpGrowth < -0.2 ? 'a significant recession' : 'a technical recession'} as output fell for the second consecutive quarter. The Office for National Statistics data showed weakness across manufacturing, construction, and consumer-facing services.`);
   } else if (gdpGrowth > 0.5) {
-    paragraphs.push(`Britain's economy expanded by ${gdpGrowth.toFixed(1)}% last quarter, the strongest growth in over a year. The ONS figures showed broad-based expansion with business investment and consumer spending both contributing positively. However, economists cautioned that sustaining this pace would be challenging.`);
+    const growthParagraphOptions = [
+      `Britain's economy expanded by ${gdpGrowth.toFixed(1)}% last quarter. The ONS figures pointed to stronger activity across business investment and consumer-facing services, though economists cautioned that momentum can fade quickly under tighter financial conditions.`,
+      `The latest ONS release showed quarterly growth of ${gdpGrowth.toFixed(1)}%, with gains spread across services and parts of manufacturing. Analysts said the result was encouraging but warned against assuming a straight-line recovery.`,
+      `UK output rose by ${gdpGrowth.toFixed(1)}% over the quarter, according to official data. Forecasters said the picture remains mixed, with resilient demand in some sectors offset by weaker confidence in others.`,
+    ];
+    paragraphs.push(pickLeastRepeated(growthParagraphOptions, recentCorpus));
   } else {
     paragraphs.push(`The economy grew modestly at ${gdpGrowth.toFixed(1)}% last quarter, a subdued performance reflecting ongoing headwinds from tight monetary policy and weak business confidence. The Chancellor had forecast stronger growth at this stage of the recovery.`);
   }
@@ -1414,30 +1548,103 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
   // Market reaction
   if (state.markets?.giltYield10yr !== undefined && state.markets.giltYield10yr > 4.5) {
     const giltYield = state.markets.giltYield10yr ?? 4.5;
-    const ftText = "Analysts said the move reflected deteriorating fiscal credibility and raised questions about the Treasury's market access at reasonable cost";
-    const otherText = "The sell-off threatens to push mortgage rates higher, adding to homeowners' pain";
-    paragraphs.push(`Bond markets reacted ${giltYield > 5.5 ? 'brutally' : 'negatively'}, with 10-year gilt yields ${giltYield > 5.5 ? 'spiking' : 'rising'} to ${giltYield.toFixed(2)}%. ${newspaper.name === 'Financial Times' ? ftText : otherText}.`);
+    const yieldChange = state.markets?.giltYield10yrChange ?? 0;
+    const bankRate = state.economy?.boeBaseRate ?? state.economy?.bankRate ?? 4.5;
+    const riskSpread = giltYield - bankRate;
+    let movementVerb = 'edging higher';
+    let reactionTone = 'cautiously';
+
+    if (yieldChange >= 0.35) {
+      movementVerb = 'jumping sharply';
+      reactionTone = 'abruptly';
+    } else if (yieldChange >= 0.15) {
+      movementVerb = 'rising decisively';
+      reactionTone = 'negatively';
+    } else if (yieldChange >= 0.05) {
+      movementVerb = 'moving higher';
+      reactionTone = 'warily';
+    } else if (yieldChange <= -0.15) {
+      movementVerb = 'falling back';
+      reactionTone = 'more positively';
+    } else if (yieldChange < 0) {
+      movementVerb = 'easing slightly';
+      reactionTone = 'more calmly';
+    }
+
+    const ftOptions = [
+      `Analysts said the move reflected shifting views on fiscal credibility and medium-term debt dynamics.`,
+      `Dealers said pricing remained sensitive to the credibility of the fiscal path rather than single announcements.`,
+      `Strategists noted that market access remains solid, but funding costs still respond quickly to policy surprises.`,
+    ];
+    const nonFtOptions = [
+      `The move could feed through into mortgage pricing if sustained over coming months.`,
+      `Borrowing costs for households and firms may rise if this trend persists.`,
+      `Lenders said sustained moves in gilts typically feed into household borrowing costs with a lag.`,
+    ];
+
+    const spreadOptions = riskSpread > 1.2
+      ? [
+          `Traders pointed to a widening gap over Bank Rate, suggesting investors are demanding a higher fiscal risk premium.`,
+          `The widening spread against policy rates was read as a credibility signal rather than a pure monetary-policy effect.`,
+          `Dealers said the move looked increasingly risk-premium driven, with concern centred on fiscal trajectory rather than inflation alone.`,
+        ]
+      : [
+          `Much of the move was attributed to the expected path of policy rates rather than disorderly fiscal repricing.`,
+          `Strategists said the gilt move remained broadly aligned with monetary-policy expectations and global rate moves.`,
+          `Market participants described the repricing as primarily rate-led, with limited evidence of acute fiscal stress.`,
+        ];
+
+    const tail = newspaper.name === 'Financial Times'
+      ? pickLeastRepeated(ftOptions, recentCorpus)
+      : pickLeastRepeated(nonFtOptions, recentCorpus);
+    const spreadTail = pickLeastRepeated(spreadOptions, recentCorpus);
+
+    paragraphs.push(`Bond markets reacted ${reactionTone}, with 10-year gilt yields ${movementVerb} to ${giltYield.toFixed(2)}%. ${tail} ${spreadTail}`);
   }
 
   // Newspaper-specific angle
   switch (newspaper.name) {
     case 'The Guardian':
-      paragraphs.push(`Trade unions and poverty campaigners warned the government's austerity approach was inflicting unnecessary hardship on the most vulnerable. "Ministers are making political choices to protect the wealthy whilst cutting support for those who need it most," said one charity director.`);
+      paragraphs.push(pickLeastRepeated([
+        `Trade unions and poverty campaigners warned the government's austerity approach was inflicting unnecessary hardship on the most vulnerable. "Ministers are making political choices to protect the wealthy whilst cutting support for those who need it most," said one charity director.`,
+        `Anti-poverty organisations argued that the policy mix risks widening inequality, with charities warning that lower-income households are absorbing disproportionate pressure.`,
+        `Campaign groups said ministers were underestimating the social cost of tighter settings, pointing to rising demand for emergency support across several regions.`,
+      ], recentCorpus));
       break;
     case 'The Telegraph':
-      paragraphs.push(`Business leaders expressed frustration at the tax burden, with one FTSE 100 chief executive saying: "Britain has become one of the least competitive places to invest in the developed world. We need a government that backs enterprise, not one that sees business as a piggy bank."`);
+      paragraphs.push(pickLeastRepeated([
+        `Business leaders expressed frustration at the tax burden, with one FTSE 100 chief executive saying: "Britain has become one of the least competitive places to invest in the developed world. We need a government that backs enterprise, not one that sees business as a piggy bank."`,
+        `Executives renewed calls for a pro-enterprise reset, arguing that predictable tax and planning frameworks matter more than one-off headline announcements.`,
+        `Industry voices said competitiveness concerns are deepening, with firms comparing UK policy volatility unfavourably with peer economies.`,
+      ], recentCorpus));
       break;
     case 'The Times':
-      paragraphs.push(`Senior government figures acknowledged privately that the political window for controversial reforms was narrowing. The Chancellor faces a difficult choice between fiscal credibility and electoral viability, with the party trailing in polls across all regions.`);
+      paragraphs.push(pickLeastRepeated([
+        `Senior government figures acknowledged privately that the political window for controversial reforms was narrowing. The Chancellor faces a difficult choice between fiscal credibility and electoral viability, with the party trailing in polls across all regions.`,
+        `Whitehall officials said privately that room for politically costly reform is shrinking, increasing pressure for a sharper prioritisation of near-term deliverables.`,
+        `Insiders described an increasingly tight policy corridor, with ministers balancing market signalling against mounting electoral sensitivity.`,
+      ], recentCorpus));
       break;
     case 'Financial Times':
-      paragraphs.push(`Credit rating agencies are monitoring UK fiscal developments closely, with S&P warning that continued debt trajectory deterioration could trigger a downgrade from the current AA rating. Such a move would increase borrowing costs and further limit the Chancellor's room for manoeuvre.`);
+      paragraphs.push(pickLeastRepeated([
+        `Credit rating agencies are monitoring UK fiscal developments closely, with S&P warning that continued debt trajectory deterioration could trigger a downgrade from the current AA rating. Such a move would increase borrowing costs and further limit the Chancellor's room for manoeuvre.`,
+        `Ratings analysts said the UK remains investment grade with substantial institutional strengths, but warned that persistent slippage could narrow fiscal flexibility.`,
+        `Market participants noted that rating outlook commentary is increasingly focused on implementation credibility and medium-term debt stabilisation.`,
+      ], recentCorpus));
       break;
     case 'The Sun':
-      paragraphs.push(`Our readers are furious. "I've worked all my life and now can't afford to put the heating on," said Janet, 67, from Doncaster. "What are we paying these politicians for?" The Treasury had not responded to our requests for comment by the time of publication.`);
+      paragraphs.push(pickLeastRepeated([
+        `Our readers are furious. "I've worked all my life and now can't afford to put the heating on," said Janet, 67, from Doncaster. "What are we paying these politicians for?" The Treasury had not responded to our requests for comment by the time of publication.`,
+        `Readers told us they are fed up with rising bills and policy U-turns. "Every month there’s a new squeeze and no clear plan," said one father of three in Kent.`,
+        `Families across the country said household budgets are stretched to breaking point, with many questioning whether ministers understand day-to-day pressures.`,
+      ], recentCorpus));
       break;
     case 'Daily Mail':
-      paragraphs.push(`Middle-class families who "did everything right" – saving for retirement, buying property, working hard – now find themselves worse off than benefits claimants, according to a Policy Exchange analysis. "The system punishes aspiration and rewards dependency," claimed one backbench MP.`);
+      paragraphs.push(pickLeastRepeated([
+        `Middle-class families who "did everything right" – saving for retirement, buying property, working hard – now find themselves worse off than benefits claimants, according to a Policy Exchange analysis. "The system punishes aspiration and rewards dependency," claimed one backbench MP.`,
+        `Commentators warned that squeezed households in commuter and suburban seats feel increasingly overtaxed, with ministers facing pressure to show they back aspiration.`,
+        `Backbench critics argued current policy settings are eroding incentives for work and saving, calling for a clearer pro-family tax strategy.`,
+      ], recentCorpus));
       break;
   }
 
@@ -1471,6 +1678,7 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
   // If there's a special event, that's the headline. Otherwise, find best matching template.
   let headline: string;
   let subheading: string;
+  const recentCorpus = buildRecentNewsCorpus(state);
 
   if (event) {
     // Create event-focused headline
@@ -1484,15 +1692,34 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
       subheading = event.description;
     }
   } else {
-    // Find best matching template
+    // Find matching templates, then pick with diversity rather than always taking the top one.
     const sorted = [...HEADLINE_TEMPLATES]
       .filter(t => t.conditions(state))
       .sort((a, b) => b.priority - a.priority);
 
-    const template = sorted[0] || HEADLINE_TEMPLATES[HEADLINE_TEMPLATES.length - 1];
+    const topTemplates = sorted.slice(0, Math.min(4, sorted.length));
+    const weightedPool = topTemplates.flatMap((template, idx) => {
+      const weight = Math.max(1, 5 - idx);
+      return Array.from({ length: weight }, () => template);
+    });
+    const template = (weightedPool.length > 0
+      ? weightedPool[Math.floor(Math.random() * weightedPool.length)]
+      : HEADLINE_TEMPLATES[HEADLINE_TEMPLATES.length - 1]);
     const biasedVersion = template.biasedVersions[selectedNewspaper.bias];
-    headline = biasedVersion.headline;
-    subheading = biasedVersion.subheading;
+
+    const useGenericPool = Math.random() < 0.45;
+    if (useGenericPool) {
+      const genericHeadline = pickLeastRepeated(
+        GENERIC_HEADLINE_POOL.map((entry) => entry.headline),
+        recentCorpus
+      );
+      const chosenGeneric = GENERIC_HEADLINE_POOL.find((entry) => entry.headline === genericHeadline) || GENERIC_HEADLINE_POOL[0];
+      headline = chosenGeneric.headline;
+      subheading = chosenGeneric.subheading;
+    } else {
+      headline = biasedVersion.headline;
+      subheading = biasedVersion.subheading;
+    }
   }
 
   // Generate article paragraphs (passes event for lead story if available)

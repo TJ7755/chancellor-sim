@@ -1,13 +1,14 @@
 // Main Game Component - Hyper-Realistic UK Chancellor Simulation
 // Integrates all systems into a complete playable game
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   GameStateProvider,
   useGameState,
   useGameActions,
   useGameMetadata,
   useMPSystem,
+  DifficultyMode,
 } from './game-state';
 import { ManifestoDisplay, MANIFESTO_TEMPLATES, OneClickActionResult } from './manifesto-system';
 import { TutorialModal, HelpButton } from './tutorial-system';
@@ -23,15 +24,150 @@ import { SocialMediaSidebar } from './social-media-system';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 
+interface AnalysisHistoricalSnapshot {
+  turn: number;
+  date: string;
+  gdpGrowth: number;
+  inflation: number;
+  unemployment: number;
+  deficit: number;
+  debt: number;
+  approval: number;
+  giltYield: number;
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+
+const createMonthString = (year: number, month: number): string => {
+  const monthString = month.toString().padStart(2, '0');
+  return `${year}-${monthString}`;
+};
+
+const generateResearchAlignedHistoricalBaseline = (): AnalysisHistoricalSnapshot[] => {
+  const history: AnalysisHistoricalSnapshot[] = [];
+  const startYear = 2014;
+  const startMonth = 7;
+  const totalMonths = 120;
+
+  const pushSnapshot = (
+    monthIndex: number,
+    gdpGrowth: number,
+    inflation: number,
+    unemployment: number,
+    deficit: number,
+    debt: number,
+    approval: number
+  ) => {
+    const absoluteMonth = (startMonth - 1) + monthIndex;
+    const year = startYear + Math.floor(absoluteMonth / 12);
+    const month = (absoluteMonth % 12) + 1;
+    const riskPremium = Math.max(0, debt - 85) * 0.025;
+    const inflationPremium = Math.max(0, inflation - 2) * 0.18;
+    const giltYield = clamp(1.2 + inflation * 0.45 + riskPremium + inflationPremium, 0.6, 6.8);
+
+    history.push({
+      turn: monthIndex - totalMonths,
+      date: createMonthString(year, month),
+      gdpGrowth,
+      inflation,
+      unemployment,
+      deficit,
+      debt,
+      approval,
+      giltYield,
+    });
+  };
+
+  for (let i = 0; i < totalMonths; i++) {
+    let gdpGrowth = 1.4;
+    let inflation = 2.0;
+    let unemployment = 4.5;
+    let deficit = 3.2;
+    let debt = 90;
+    let approval = 42;
+
+    if (i < 24) {
+      const progress = i / 24;
+      gdpGrowth = 2.5 - progress * 0.3;
+      inflation = 0.6 + progress * 0.7;
+      unemployment = 6.0 - progress * 1.1;
+      deficit = 4.8 - progress * 1.0;
+      debt = 83.5 + progress * 2.0;
+      approval = 41 + Math.sin(i / 5) * 1.8;
+    } else if (i < 36) {
+      const progress = (i - 24) / 12;
+      gdpGrowth = 2.0 - progress * 0.7;
+      inflation = 1.2 + progress * 1.9;
+      unemployment = 4.9 + progress * 0.2;
+      deficit = 3.6 - progress * 0.2;
+      debt = 86.0 + progress * 1.2;
+      approval = 39 - progress * 2.5;
+    } else if (i < 72) {
+      const progress = (i - 36) / 36;
+      gdpGrowth = 1.6 + Math.sin(i / 7) * 0.25 - progress * 0.2;
+      inflation = 2.4 + Math.sin(i / 6) * 0.35;
+      unemployment = 4.4 - progress * 0.5 + Math.sin(i / 9) * 0.1;
+      deficit = 2.7 - progress * 0.4;
+      debt = 87.2 - progress * 2.1;
+      approval = 36 + Math.sin(i / 5) * 1.2;
+    } else if (i < 84) {
+      const progress = (i - 72) / 12;
+      gdpGrowth = -10.5 + progress * 17.5;
+      inflation = 0.9 + progress * 1.2;
+      unemployment = 4.0 + progress * 1.4;
+      deficit = 12.0 + Math.sin(i / 2) * 2.0;
+      debt = 86.0 + progress * 12.0;
+      approval = 34 - progress * 3.5;
+    } else if (i < 96) {
+      const progress = (i - 84) / 12;
+      gdpGrowth = 6.8 - progress * 4.8;
+      inflation = 2.1 + progress * 2.2;
+      unemployment = 5.2 - progress * 0.9;
+      deficit = 10.5 - progress * 4.5;
+      debt = 98.0 + progress * 1.0;
+      approval = 31 + progress * 3.0;
+    } else {
+      const progress = (i - 96) / 24;
+      gdpGrowth = 1.4 - progress * 0.7 + Math.sin(i / 8) * 0.25;
+      inflation = 10.2 - progress * 8.2 + Math.sin(i / 5) * 0.25;
+      unemployment = 4.2 - progress * 0.05 + Math.sin(i / 10) * 0.08;
+      deficit = 5.0 - progress * 1.8;
+      debt = 99.0 + progress * 0.5;
+      approval = 33 + Math.sin(i / 4) * 1.5;
+    }
+
+    if (i >= 99 && i <= 101) {
+      approval -= 4.5;
+      inflation += 0.5;
+      deficit += 0.6;
+    }
+
+    pushSnapshot(
+      i,
+      gdpGrowth,
+      inflation,
+      unemployment,
+      deficit,
+      debt,
+      clamp(approval, 25, 52)
+    );
+  }
+
+  return history;
+};
+
+const ANALYSIS_HISTORICAL_BASELINE = generateResearchAlignedHistoricalBaseline();
+
 // ===========================
 // Game Start Screen
 // ===========================
 
-const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: FiscalRuleId) => void }> = ({
+const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: FiscalRuleId, difficultyMode: DifficultyMode) => void }> = ({
   onStart,
 }) => {
   const [selectedManifesto, setSelectedManifesto] = useState<string>('random');
   const [selectedFiscalRule, setSelectedFiscalRule] = useState<FiscalRuleId>('starmer-reeves');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyMode>('standard');
   const [step, setStep] = useState<'manifesto' | 'fiscal-rules'>('manifesto');
 
   if (step === 'fiscal-rules') {
@@ -104,6 +240,45 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
               })}
             </div>
 
+            <div className="mb-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-3">Difficulty</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => setSelectedDifficulty('forgiving')}
+                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                    selectedDifficulty === 'forgiving'
+                      ? 'border-green-700 bg-green-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="font-semibold text-green-800">Forgiving</div>
+                  <div className="text-xs text-gray-600 mt-1">Lower volatility, later crisis triggers</div>
+                </button>
+                <button
+                  onClick={() => setSelectedDifficulty('standard')}
+                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                    selectedDifficulty === 'standard'
+                      ? 'border-blue-700 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="font-semibold text-blue-800">Standard</div>
+                  <div className="text-xs text-gray-600 mt-1">Balanced realism and playability</div>
+                </button>
+                <button
+                  onClick={() => setSelectedDifficulty('realistic')}
+                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                    selectedDifficulty === 'realistic'
+                      ? 'border-red-700 bg-red-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="font-semibold text-red-800">Realistic</div>
+                  <div className="text-xs text-gray-600 mt-1">Higher volatility, stricter political/market discipline</div>
+                </button>
+              </div>
+            </div>
+
             <div className="flex gap-4">
               <button
                 onClick={() => setStep('manifesto')}
@@ -114,7 +289,8 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
               <button
                 onClick={() => onStart(
                   selectedManifesto === 'random' ? '' : selectedManifesto,
-                  selectedFiscalRule
+                  selectedFiscalRule,
+                  selectedDifficulty
                 )}
                 className="flex-1 bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-sm transition-colors text-lg"
               >
@@ -244,10 +420,77 @@ const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({
 
   const survived = metadata.currentTurn >= 60;
 
+  // Calculate performance score (0-100)
+  const calcScore = () => {
+    let score = 0;
+
+    // Survival bonus (max 20 points)
+    score += Math.min(20, (metadata.currentTurn / 60) * 20);
+
+    // Economic management (max 30 points)
+    const gdp = gameState.economic.gdpGrowthAnnual;
+    const inflation = gameState.economic.inflationCPI;
+    const unemployment = gameState.economic.unemploymentRate;
+    // GDP: 0-10 points (best at 2-3%)
+    score += Math.max(0, 10 - Math.abs(gdp - 2.5) * 3);
+    // Inflation: 0-10 points (best near 2%)
+    score += Math.max(0, 10 - Math.abs(inflation - 2.0) * 3);
+    // Unemployment: 0-10 points (best below 4.5%)
+    score += Math.max(0, 10 - Math.max(0, unemployment - 3.5) * 3);
+
+    // Fiscal responsibility (max 20 points)
+    const deficit = gameState.fiscal.deficitPctGDP;
+    const debt = gameState.fiscal.debtPctGDP;
+    // Deficit: 0-10 points (best below 2%)
+    score += Math.max(0, 10 - Math.max(0, deficit - 1) * 2.5);
+    // Debt: 0-10 points (best below 90%)
+    score += Math.max(0, 10 - Math.max(0, debt - 80) * 0.3);
+
+    // Political standing (max 15 points)
+    score += Math.min(10, gameState.political.governmentApproval / 6);
+    score += Math.min(5, gameState.political.pmTrust / 15);
+
+    // Manifesto adherence (max 10 points)
+    score += Math.max(0, 10 - gameState.manifesto.totalViolations * 3);
+
+    // Public services (max 5 points)
+    const serviceValues = [
+      gameState.services.nhsQuality,
+      gameState.services.educationQuality,
+      gameState.services.infrastructureQuality,
+      gameState.services.mentalHealthAccess,
+      gameState.services.primaryCareAccess,
+      gameState.services.socialCareQuality,
+      gameState.services.prisonSafety,
+      gameState.services.courtBacklogPerformance,
+      gameState.services.legalAidAccess,
+      gameState.services.policingEffectiveness,
+      gameState.services.borderSecurityPerformance,
+      gameState.services.railReliability,
+      gameState.services.affordableHousingDelivery,
+      gameState.services.floodResilience,
+      gameState.services.researchInnovationOutput,
+    ];
+    const avgService = serviceValues.reduce((sum, value) => sum + value, 0) / serviceValues.length;
+    score += Math.min(5, (avgService / 100) * 5);
+
+    return Math.round(Math.max(0, Math.min(100, score)));
+  };
+
+  const score = calcScore();
+  const grade = score >= 85 ? 'A+' : score >= 75 ? 'A' : score >= 65 ? 'B' :
+                score >= 55 ? 'C' : score >= 45 ? 'D' : score >= 30 ? 'E' : 'F';
+  const gradeLabel = score >= 85 ? 'Outstanding Chancellor' : score >= 75 ? 'Highly Competent' :
+                     score >= 65 ? 'Capable Manager' : score >= 55 ? 'Adequate' :
+                     score >= 45 ? 'Below Expectations' : score >= 30 ? 'Poor Performance' : 'Catastrophic';
+  const gradeColor = score >= 65 ? 'text-green-700' : score >= 45 ? 'text-yellow-700' : 'text-red-700';
+  const borderColor = survived ? 'border-green-700' : 'border-red-700';
+  const headerBg = survived ? 'bg-green-700' : 'bg-red-700';
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-8 z-50">
-      <div className="max-w-2xl w-full bg-white shadow-2xl rounded-sm border-t-8 border-red-700">
-        <div className="bg-red-700 text-white p-6">
+      <div className={`max-w-2xl w-full bg-white shadow-2xl rounded-sm border-t-8 ${borderColor}`}>
+        <div className={`${headerBg} text-white p-6`}>
           <h2 className="text-3xl font-bold">
             {survived ? 'Term Complete' : 'Chancellorship Ended'}
           </h2>
@@ -256,6 +499,14 @@ const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({
         <div className="p-8">
           <div className="mb-6">
             <p className="text-xl text-gray-800 leading-relaxed">{reason}</p>
+          </div>
+
+          {/* Performance Grade */}
+          <div className="mb-6 text-center bg-gray-50 p-6 rounded-sm">
+            <div className="text-sm text-gray-500 uppercase tracking-wide mb-1">Performance Rating</div>
+            <div className={`text-6xl font-black ${gradeColor}`}>{grade}</div>
+            <div className={`text-lg font-semibold ${gradeColor}`}>{gradeLabel}</div>
+            <div className="text-sm text-gray-500 mt-1">Score: {score}/100</div>
           </div>
 
           <div className="grid grid-cols-2 gap-4 mb-6">
@@ -342,7 +593,7 @@ const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({
 
           <button
             onClick={onRestart}
-            className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-sm transition-colors"
+            className={`w-full ${headerBg} hover:opacity-90 text-white font-bold py-3 px-6 rounded-sm transition-colors`}
           >
             Start New Game
           </button>
@@ -711,6 +962,16 @@ const AnalysisTab: React.FC = () => {
   const snapshots = gameState.simulation.monthlySnapshots;
   const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'political' | 'markets'>('economic');
 
+  const fullSnapshots = useMemo(() => {
+    if (!snapshots || snapshots.length === 0) {
+      return ANALYSIS_HISTORICAL_BASELINE;
+    }
+
+    const firstGameDate = snapshots[0].date;
+    const baselineBeforeGame = ANALYSIS_HISTORICAL_BASELINE.filter((snapshot) => snapshot.date < firstGameDate);
+    return [...baselineBeforeGame, ...snapshots];
+  }, [snapshots]);
+
   const fiscalRule = getFiscalRuleById(gameState.political.chosenFiscalRule);
   const compliance = gameState.political.fiscalRuleCompliance || {
     overallCompliant: true,
@@ -739,9 +1000,25 @@ const AnalysisTab: React.FC = () => {
     { id: 'markets' as const, label: 'Markets' },
   ];
 
+  const buildUncertaintyBands = (values: number[], floor: number): number[] => {
+    return values.map((_, index) => {
+      const start = Math.max(0, index - 11);
+      const sample = values.slice(start, index + 1);
+      if (sample.length < 3) return floor;
+      const mean = sample.reduce((sum, value) => sum + value, 0) / sample.length;
+      const variance = sample.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / sample.length;
+      return Math.max(floor, Math.sqrt(variance));
+    });
+  };
+
+  const withBands = (rawData: { label: string; value: number }[], floor: number) => {
+    const bands = buildUncertaintyBands(rawData.map((entry) => entry.value), floor);
+    return rawData.map((entry, index) => ({ ...entry, band: bands[index] }));
+  };
+
   // Helper to render a simple line chart using SVG
   const MiniChart: React.FC<{
-    data: { label: string; value: number }[];
+    data: { label: string; value: number; band?: number }[];
     color: string;
     height?: number;
     target?: number;
@@ -759,8 +1036,12 @@ const AnalysisTab: React.FC = () => {
     }
 
     const values = data.map(d => d.value);
+    const upperValues = data.map(d => d.value + (d.band || 0));
+    const lowerValues = data.map(d => d.value - (d.band || 0));
     let min = Math.min(...values);
     let max = Math.max(...values);
+    min = Math.min(min, ...lowerValues);
+    max = Math.max(max, ...upperValues);
     if (target !== undefined) {
       min = Math.min(min, target);
       max = Math.max(max, target);
@@ -780,11 +1061,32 @@ const AnalysisTab: React.FC = () => {
       y: chartHeight - ((d.value - yMin) / yRange) * chartHeight,
     }));
 
+    const upperPoints = data.map((d, i) => ({
+      x: i * xStep,
+      y: chartHeight - (((d.value + (d.band || 0)) - yMin) / yRange) * chartHeight,
+    }));
+
+    const lowerPoints = data.map((d, i) => ({
+      x: i * xStep,
+      y: chartHeight - (((d.value - (d.band || 0)) - yMin) / yRange) * chartHeight,
+    }));
+
     const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const bandPathD =
+      upperPoints.length > 1
+        ? `${upperPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')} ` +
+          `${lowerPoints
+            .slice()
+            .reverse()
+            .map((p, i) => `${i === 0 ? 'L' : 'L'} ${p.x} ${p.y}`)
+            .join(' ')} Z`
+        : '';
 
     const latestValue = data[data.length - 1]?.value;
     const previousValue = data.length > 1 ? data[data.length - 2]?.value : latestValue;
     const change = latestValue - previousValue;
+
+    const xLabelStep = data.length > 72 ? 12 : 6;
 
     return (
       <div className="bg-white border border-gray-200 p-4 rounded-sm">
@@ -799,7 +1101,7 @@ const AnalysisTab: React.FC = () => {
             </div>
           </div>
         </div>
-        <svg viewBox={`-10 -10 ${width + 20} ${chartHeight + 20}`} className="w-full" style={{ height: `${chartHeight}px` }}>
+        <svg viewBox={`-10 -10 ${width + 20} ${chartHeight + 36}`} className="w-full" style={{ height: `${chartHeight + 24}px` }}>
           {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map(frac => {
             const y = frac * chartHeight;
@@ -835,24 +1137,48 @@ const AnalysisTab: React.FC = () => {
               </text>
             </>
           )}
+          {/* Uncertainty band (rolling 12-month 1σ) */}
+          {bandPathD && (
+            <path d={bandPathD} fill={color} fillOpacity={0.12} stroke="none" />
+          )}
           {/* Data line */}
           <path d={pathD} fill="none" stroke={color} strokeWidth={2.5} />
           {/* Data points */}
           {points.map((p, i) => (
             <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2} fill={color} />
           ))}
-          {/* X-axis labels (every 6th) */}
+          {/* X-axis baseline */}
+          <line x1={0} y1={chartHeight} x2={width} y2={chartHeight} stroke="#9ca3af" strokeWidth={1} />
+          {/* X-axis labels */}
           {data.map((d, i) => {
-            if (i % 6 === 0 || i === data.length - 1) {
+            if (i % xLabelStep === 0 || i === data.length - 1) {
               return (
-                <text key={i} x={i * xStep} y={chartHeight + 14} textAnchor="middle" fill="#9ca3af" fontSize={9}>
-                  {d.label}
-                </text>
+                <g key={i}>
+                  <line
+                    x1={i * xStep}
+                    y1={chartHeight}
+                    x2={i * xStep}
+                    y2={chartHeight + 5}
+                    stroke="#9ca3af"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={i * xStep}
+                    y={chartHeight + 18}
+                    textAnchor="middle"
+                    fill="#4b5563"
+                    fontSize={10}
+                    fontWeight={500}
+                  >
+                    {d.label}
+                  </text>
+                </g>
               );
             }
             return null;
           })}
         </svg>
+        <div className="text-xs text-gray-500 mt-1">Shaded band: rolling 12-month uncertainty (1σ)</div>
       </div>
     );
   };
@@ -930,7 +1256,7 @@ const AnalysisTab: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <MiniChart
             title="GDP Growth (Annual %)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.gdpGrowth }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.gdpGrowth })), 0.2)}
             color="#2563eb"
             target={1.5}
             targetLabel="Trend: 1.5%"
@@ -938,7 +1264,7 @@ const AnalysisTab: React.FC = () => {
           />
           <MiniChart
             title="CPI Inflation (%)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.inflation }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.inflation })), 0.15)}
             color="#dc2626"
             target={2.0}
             targetLabel="Target: 2.0%"
@@ -946,7 +1272,7 @@ const AnalysisTab: React.FC = () => {
           />
           <MiniChart
             title="Unemployment Rate (%)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.unemployment }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.unemployment })), 0.1)}
             color="#7c3aed"
             target={4.25}
             targetLabel="NAIRU: 4.25%"
@@ -954,10 +1280,10 @@ const AnalysisTab: React.FC = () => {
           />
           <MiniChart
             title="Wage Growth (Annual %)"
-            data={snapshots.map(s => ({
+            data={withBands(fullSnapshots.map(s => ({
               label: formatDate(s.date),
-              value: gameState.economic.wageGrowthAnnual, // Use current as proxy since snapshots don't store wage data
-            }))}
+              value: clamp(1.4 + (s.inflation * 0.65) - ((s.unemployment - 4.25) * 0.45), -1.5, 9.5),
+            })), 0.25)}
             color="#059669"
             formatValue={(v) => `${v.toFixed(1)}%`}
           />
@@ -968,7 +1294,7 @@ const AnalysisTab: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <MiniChart
             title="Budget Deficit (% of GDP)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.deficit }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.deficit })), 0.15)}
             color="#dc2626"
             target={fiscalRule.rules.deficitCeiling}
             targetLabel={fiscalRule.rules.deficitCeiling ? `Ceiling: ${fiscalRule.rules.deficitCeiling}%` : undefined}
@@ -976,7 +1302,7 @@ const AnalysisTab: React.FC = () => {
           />
           <MiniChart
             title="Public Debt (% of GDP)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.debt }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.debt })), 0.3)}
             color="#b45309"
             target={fiscalRule.rules.debtTarget}
             targetLabel={fiscalRule.rules.debtTarget ? `Target: ${fiscalRule.rules.debtTarget}%` : undefined}
@@ -1030,7 +1356,7 @@ const AnalysisTab: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <MiniChart
             title="Government Approval (%)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.approval }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.approval })), 1.0)}
             color="#2563eb"
             target={38}
             targetLabel="Danger: 38%"
@@ -1110,7 +1436,7 @@ const AnalysisTab: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <MiniChart
             title="10-Year Gilt Yield (%)"
-            data={snapshots.map(s => ({ label: formatDate(s.date), value: s.giltYield }))}
+            data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: s.giltYield })), 0.08)}
             color="#b45309"
             target={5.5}
             targetLabel="Danger: 5.5%"
@@ -1153,43 +1479,37 @@ const AnalysisTab: React.FC = () => {
       {/* Service Quality */}
       <div className="bg-white border border-gray-200 p-4 rounded-sm">
         <div className="text-sm font-semibold text-gray-700 mb-3">Public Services Quality Indices</div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">NHS Quality</span>
-              <span className="font-semibold">{Math.round(gameState.services.nhsQuality)}/100</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[
+            { label: 'NHS Quality', value: gameState.services.nhsQuality },
+            { label: 'Education Quality', value: gameState.services.educationQuality },
+            { label: 'Infrastructure Quality', value: gameState.services.infrastructureQuality },
+            { label: 'Mental Health Access', value: gameState.services.mentalHealthAccess },
+            { label: 'Primary Care Access', value: gameState.services.primaryCareAccess },
+            { label: 'Social Care Quality', value: gameState.services.socialCareQuality },
+            { label: 'Prison Safety', value: gameState.services.prisonSafety },
+            { label: 'Court Performance', value: gameState.services.courtBacklogPerformance },
+            { label: 'Legal Aid Access', value: gameState.services.legalAidAccess },
+            { label: 'Policing Effectiveness', value: gameState.services.policingEffectiveness },
+            { label: 'Border Performance', value: gameState.services.borderSecurityPerformance },
+            { label: 'Rail Reliability', value: gameState.services.railReliability },
+            { label: 'Affordable Housing Delivery', value: gameState.services.affordableHousingDelivery },
+            { label: 'Flood Resilience', value: gameState.services.floodResilience },
+            { label: 'Innovation Output', value: gameState.services.researchInnovationOutput },
+          ].map((metric) => (
+            <div key={metric.label}>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600">{metric.label}</span>
+                <span className="font-semibold">{Math.round(metric.value)}/100</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full ${metric.value > 60 ? 'bg-green-500' : metric.value > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                  style={{ width: `${metric.value}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full ${gameState.services.nhsQuality > 60 ? 'bg-green-500' : gameState.services.nhsQuality > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                style={{ width: `${gameState.services.nhsQuality}%` }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">Education Quality</span>
-              <span className="font-semibold">{Math.round(gameState.services.educationQuality)}/100</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full ${gameState.services.educationQuality > 60 ? 'bg-green-500' : gameState.services.educationQuality > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                style={{ width: `${gameState.services.educationQuality}%` }}
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-gray-600">Infrastructure Quality</span>
-              <span className="font-semibold">{Math.round(gameState.services.infrastructureQuality)}/100</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className={`h-3 rounded-full ${gameState.services.infrastructureQuality > 60 ? 'bg-green-500' : gameState.services.infrastructureQuality > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                style={{ width: `${gameState.services.infrastructureQuality}%` }}
-              />
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
@@ -1214,7 +1534,7 @@ const GameInner: React.FC = () => {
 
   // Game start screen
   if (!metadata.gameStarted) {
-    return <GameStartScreen onStart={(manifestoId, fiscalRuleId) => actions.startNewGame('', manifestoId, fiscalRuleId)} />;
+    return <GameStartScreen onStart={(manifestoId, fiscalRuleId, difficultyMode) => actions.startNewGame('', manifestoId, fiscalRuleId, difficultyMode)} />;
   }
 
   // Game over modal

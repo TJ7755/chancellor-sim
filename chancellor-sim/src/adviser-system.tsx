@@ -691,22 +691,46 @@ function getDeficitAssessmentDescription(type: AdviserType, deficit: number, tol
 function getDeficitWarningTitle(type: AdviserType): string {
   switch (type) {
     case 'treasury_mandarin':
-      return 'Urgent: Fiscal Consolidation Required';
+      return pickVariant([
+        'Urgent: Fiscal Consolidation Required',
+        'Treasury Alert: Deficit Path Deteriorating',
+        'Immediate Action Needed on Budget Gap',
+      ]);
     case 'fiscal_hawk':
-      return 'Debt Spiral Risk';
+      return pickVariant([
+        'Debt Spiral Risk',
+        'Deficit Dynamics Entering Danger Zone',
+        'Market Tolerance Is Not Unlimited',
+      ]);
     default:
-      return 'High Deficit Warning';
+      return pickVariant([
+        'High Deficit Warning',
+        'Deficit Risk Escalation',
+        'Borrowing Pressure Alert',
+      ]);
   }
 }
 
 function getDeficitWarningDescription(type: AdviserType, deficit: number): string {
   switch (type) {
     case 'treasury_mandarin':
-      return `Historical precedent shows that sustained deficits above 3% of GDP in peacetime lead to loss of market confidence. Current deficit: ${deficit.toFixed(1)}%.`;
+      return pickVariant([
+        `Historical precedent shows that sustained deficits above 3% of GDP in peacetime lead to loss of market confidence. Current deficit: ${deficit.toFixed(1)}%.`,
+        `At ${deficit.toFixed(1)}% of GDP, the deficit is now well above prudent peacetime norms and risks eroding confidence in the fiscal anchor.`,
+        `The present deficit reading of ${deficit.toFixed(1)}% sits in a range that historically invites scrutiny from markets and ratings agencies.`,
+      ]);
     case 'fiscal_hawk':
-      return `At ${deficit.toFixed(1)}% of GDP, we are borrowing to pay day-to-day spending. This is the path to a sovereign debt crisis.`;
+      return pickVariant([
+        `At ${deficit.toFixed(1)}% of GDP, we are borrowing to pay day-to-day spending. This is the path to a sovereign debt crisis.`,
+        `A deficit of ${deficit.toFixed(1)}% means debt is compounding too quickly for comfort; delay now increases future adjustment pain.`,
+        `Current borrowing at ${deficit.toFixed(1)}% of GDP is inconsistent with medium-term debt stabilisation and risks a sharp repricing.`,
+      ]);
     default:
-      return `Deficit of ${deficit.toFixed(1)}% requires attention.`;
+      return pickVariant([
+        `Deficit of ${deficit.toFixed(1)}% requires attention.`,
+        `Borrowing at ${deficit.toFixed(1)}% of GDP is becoming harder to defend.`,
+        `Fiscal pressures are rising with the deficit at ${deficit.toFixed(1)}%.`,
+      ]);
   }
 }
 
@@ -748,13 +772,29 @@ function getDebtAssessmentDescription(type: AdviserType, debt: number, tolerance
 function getDebtRecommendation(type: AdviserType): string {
   switch (type) {
     case 'fiscal_hawk':
-      return 'Implement multi-year debt reduction plan targeting 60% debt-to-GDP';
+      return pickVariant([
+        'Implement multi-year debt reduction plan targeting 60% debt-to-GDP',
+        'Commit to a front-loaded consolidation path to cap debt momentum',
+        'Publish a rules-based debt brake with enforceable annual milestones',
+      ]);
     case 'treasury_mandarin':
-      return 'Stabilise debt-to-GDP ratio over medium term';
+      return pickVariant([
+        'Stabilise debt-to-GDP ratio over medium term',
+        'Set a credible debt-stabilisation profile and maintain it consistently',
+        'Anchor policy to a transparent medium-term debt pathway',
+      ]);
     case 'technocratic_centrist':
-      return 'Establish credible path to debt sustainability';
+      return pickVariant([
+        'Establish credible path to debt sustainability',
+        'Adopt a phased plan that balances consolidation with growth support',
+        'Use independent monitoring to reinforce a realistic debt trajectory',
+      ]);
     default:
-      return 'Monitor debt trajectory';
+      return pickVariant([
+        'Monitor debt trajectory',
+        'Track debt dynamics closely and adjust course early',
+        'Preserve flexibility while improving debt trend consistency',
+      ]);
   }
 }
 
@@ -796,13 +836,29 @@ function getGrowthAssessmentDescription(type: AdviserType, growth: number): stri
 function getGrowthRecommendation(type: AdviserType): string {
   switch (type) {
     case 'heterodox_economist':
-      return 'Implement fiscal stimulus package focused on high-multiplier green investment';
+      return pickVariant([
+        'Implement fiscal stimulus package focused on high-multiplier green investment',
+        'Deploy targeted demand support in sectors with spare capacity and high multipliers',
+        'Bring forward public investment now to prevent low-growth hysteresis',
+      ]);
     case 'social_democrat':
-      return 'Increase capital spending on infrastructure, education, and health';
+      return pickVariant([
+        'Increase capital spending on infrastructure, education, and health',
+        'Prioritise frontline service and skills investment to raise long-run capacity',
+        'Protect social and human-capital budgets to support durable growth',
+      ]);
     case 'technocratic_centrist':
-      return 'Target supply-side reforms and productivity-enhancing investment';
+      return pickVariant([
+        'Target supply-side reforms and productivity-enhancing investment',
+        'Sequence planning, skills, and infrastructure reforms around delivery risk',
+        'Focus on measurable productivity interventions with strong evidence base',
+      ]);
     default:
-      return 'Support growth where possible';
+      return pickVariant([
+        'Support growth where possible',
+        'Tilt policy toward sustainable expansion',
+        'Prioritise measures with reliable growth payoffs',
+      ]);
   }
 }
 
@@ -831,9 +887,17 @@ function getServicesAssessmentDescription(type: AdviserType, nhsQuality: number)
 function getServicesWarningDescription(type: AdviserType, nhsQuality: number): string {
   switch (type) {
     case 'social_democrat':
-      return `NHS quality at ${nhsQuality.toFixed(0)} means cancelled operations, 12-hour A&E waits, and preventable deaths. We must invest immediately.`;
+      return pickVariant([
+        `NHS quality at ${nhsQuality.toFixed(0)} means cancelled operations, 12-hour A&E waits, and preventable deaths. We must invest immediately.`,
+        `With NHS quality at ${nhsQuality.toFixed(0)}, frontline capacity is under severe stress and delays are translating into avoidable harm.`,
+        `An NHS score of ${nhsQuality.toFixed(0)} points to sustained strain that will worsen outcomes without urgent funding and staffing action.`,
+      ]);
     default:
-      return `Service quality deterioration threatens public support.`;
+      return pickVariant([
+        `Service quality deterioration threatens public support.`,
+        `Visible pressure in frontline services is becoming politically and operationally risky.`,
+        `Public-service performance is weakening and requires corrective action.`,
+      ]);
   }
 }
 
@@ -851,11 +915,23 @@ function getPoliticalAssessmentDescription(type: AdviserType, approval: number, 
 function getPoliticalRecommendation(type: AdviserType): string {
   switch (type) {
     case 'political_operator':
-      return 'Immediate policy reset focused on cost of living and NHS - our weak points in marginals';
+      return pickVariant([
+        'Immediate policy reset focused on cost of living and NHS - our weak points in marginals',
+        'Shift narrative and policy toward household bills, waiting times, and visible delivery',
+        'Concentrate near-term announcements on marginal-seat pressure points',
+      ]);
     case 'treasury_mandarin':
-      return 'Rebuild political capital before attempting controversial reforms';
+      return pickVariant([
+        'Rebuild political capital before attempting controversial reforms',
+        'Sequence difficult fiscal measures after credibility and trust have stabilised',
+        'Prioritise implementable wins before high-friction policy changes',
+      ]);
     default:
-      return 'Strengthen political position';
+      return pickVariant([
+        'Strengthen political position',
+        'Reduce avoidable political exposure',
+        'Reinforce governing mandate through visible delivery',
+      ]);
   }
 }
 
@@ -875,26 +951,58 @@ function getMarketAssessmentDescription(type: AdviserType, giltYield: number, se
 function getMarketWarningDescription(type: AdviserType, giltYield: number): string {
   switch (type) {
     case 'fiscal_hawk':
-      return `Yields above ${giltYield.toFixed(2)}% suggest we are approaching a 'sudden stop'. Study Greece 2010 and UK 1976 for what happens next.`;
+      return pickVariant([
+        `Yields above ${giltYield.toFixed(2)}% suggest we are approaching a 'sudden stop'. Study Greece 2010 and UK 1976 for what happens next.`,
+        `At ${giltYield.toFixed(2)}%, gilt pricing is moving into territory where confidence shocks can become self-reinforcing.`,
+        `Current yield levels (${giltYield.toFixed(2)}%) imply markets are demanding compensation for policy uncertainty, not just inflation risk.`,
+      ]);
     case 'treasury_mandarin':
-      return `Market movements of this magnitude require urgent response. Each day's delay increases the ultimate fiscal cost.`;
+      return pickVariant([
+        `Market movements of this magnitude require urgent response. Each day's delay increases the ultimate fiscal cost.`,
+        `This degree of market volatility calls for immediate signalling and policy clarification to contain financing risk.`,
+        `Funding conditions are tightening quickly; decisive communication now can prevent more expensive adjustment later.`,
+      ]);
     default:
-      return `Market conditions are deteriorating rapidly.`;
+      return pickVariant([
+        `Market conditions are deteriorating rapidly.`,
+        `Market stress indicators are rising and require a measured response.`,
+        `Financing conditions have worsened materially in a short period.`,
+      ]);
   }
 }
 
 function getFiscalRulesWarningDescription(type: AdviserType): string {
   switch (type) {
     case 'treasury_mandarin':
-      return 'Breaching self-imposed fiscal rules destroys credibility with markets and Office for Budget Responsibility. This must be avoided except in genuine emergency.';
+      return pickVariant([
+        'Breaching self-imposed fiscal rules destroys credibility with markets and Office for Budget Responsibility. This must be avoided except in genuine emergency.',
+        'A fiscal-rule breach weakens institutional credibility and complicates future market communication.',
+        'Departing from the rules without a clear emergency rationale risks lasting damage to policy trust.',
+      ]);
     case 'fiscal_hawk':
-      return 'Fiscal rules are the cornerstone of market confidence. Breaking them will trigger rating downgrades and capital flight.';
+      return pickVariant([
+        'Fiscal rules are the cornerstone of market confidence. Breaking them will trigger rating downgrades and capital flight.',
+        'Abandoning the rules invites a risk premium shock and undermines every subsequent consolidation promise.',
+        'Markets will treat discretionary rule-breaking as evidence that the anchor is no longer binding.',
+      ]);
     case 'heterodox_economist':
-      return 'These fiscal rules are arbitrary constraints with no economic justification. They should be reformed, not treated as sacred.';
+      return pickVariant([
+        'These fiscal rules are arbitrary constraints with no economic justification. They should be reformed, not treated as sacred.',
+        'Current fiscal constraints are too mechanical and can force pro-cyclical policy in weak conditions.',
+        'Rules should support stabilisation and investment capacity, not operate as hard-coded austerity triggers.',
+      ]);
     case 'political_operator':
-      return 'We campaigned on these fiscal rules. Breaking them hands opposition a devastating attack line and enrages backbenchers.';
+      return pickVariant([
+        'We campaigned on these fiscal rules. Breaking them hands opposition a devastating attack line and enrages backbenchers.',
+        'A public rules breach gives opponents a simple trust narrative that is hard to rebut in marginals.',
+        'This would be framed as a broken promise and could trigger immediate backbench discipline problems.',
+      ]);
     default:
-      return 'Fiscal rules breach requires careful consideration.';
+      return pickVariant([
+        'Fiscal rules breach requires careful consideration.',
+        'Rule compliance risks are elevated and need active management.',
+        'Any rule departure should be tightly justified and time-bounded.',
+      ]);
   }
 }
 
@@ -912,13 +1020,29 @@ function getFiscalRulesConsequences(type: AdviserType): string {
 function getTaxRiseWarningDescription(type: AdviserType, amount: number): string {
   switch (type) {
     case 'political_operator':
-      return `£${amount.toFixed(0)}bn in tax rises will dominate headlines and attack ads. Opposition will call it the biggest tax burden since WWII.`;
+      return pickVariant([
+        `£${amount.toFixed(0)}bn in tax rises will dominate headlines and attack ads. Opposition will call it the biggest tax burden since WWII.`,
+        `A £${amount.toFixed(0)}bn tax package is politically combustible and likely to crowd out every other message.`,
+        `Tax rises of this scale (£${amount.toFixed(0)}bn) will become the defining campaign frame unless paired with visible gains.`,
+      ]);
     case 'fiscal_hawk':
-      return `Large tax increases risk damaging growth and investment. Consider whether spending restraint is more efficient.`;
+      return pickVariant([
+        `Large tax increases risk damaging growth and investment. Consider whether spending restraint is more efficient.`,
+        `The scale of proposed tax rises could weaken private investment incentives and medium-term supply growth.`,
+        `Before raising taxes further, test whether targeted spending restraint would deliver cleaner consolidation.`,
+      ]);
     case 'heterodox_economist':
-      return `Tax rises of £${amount.toFixed(0)}bn during weak growth could trigger recession through demand channels. Timing is wrong.`;
+      return pickVariant([
+        `Tax rises of £${amount.toFixed(0)}bn during weak growth could trigger recession through demand channels. Timing is wrong.`,
+        `A £${amount.toFixed(0)}bn demand withdrawal in current conditions risks amplifying cyclical weakness.`,
+        `Large near-term tax tightening may undercut activity and worsen the deficit via weaker revenues.`,
+      ]);
     default:
-      return `Significant tax rises proposed: £${amount.toFixed(0)}bn.`;
+      return pickVariant([
+        `Significant tax rises proposed: £${amount.toFixed(0)}bn.`,
+        `Planned tax measures total roughly £${amount.toFixed(0)}bn and carry material implementation risk.`,
+        `Tax package size (£${amount.toFixed(0)}bn) warrants careful sequencing and communication.`,
+      ]);
   }
 }
 
@@ -936,13 +1060,29 @@ function getTaxRiseConsequences(type: AdviserType): string {
 function getSpendingCutWarningDescription(type: AdviserType, amount: number): string {
   switch (type) {
     case 'social_democrat':
-      return `£${amount.toFixed(0)}bn in cuts will devastate already-struggling services. This is austerity 2.0 and will cause immense harm.`;
+      return pickVariant([
+        `£${amount.toFixed(0)}bn in cuts will devastate already-struggling services. This is austerity 2.0 and will cause immense harm.`,
+        `Cuts of £${amount.toFixed(0)}bn would hit frontline capacity hard and deepen existing social pressures.`,
+        `A reduction of this scale (£${amount.toFixed(0)}bn) risks long-lasting damage to service resilience and outcomes.`,
+      ]);
     case 'political_operator':
-      return `Cuts of £${amount.toFixed(0)}bn mean visible service degradation before the election. Voters will punish this severely.`;
+      return pickVariant([
+        `Cuts of £${amount.toFixed(0)}bn mean visible service degradation before the election. Voters will punish this severely.`,
+        `Service reductions of £${amount.toFixed(0)}bn would be electorally salient in marginal constituencies within months.`,
+        `A package this size (£${amount.toFixed(0)}bn) creates immediate delivery risk and a difficult campaign narrative.`,
+      ]);
     case 'heterodox_economist':
-      return `Spending cuts during weak growth are counterproductive. The fiscal multiplier means you'll lose revenue and worsen the deficit.`;
+      return pickVariant([
+        `Spending cuts during weak growth are counterproductive. The fiscal multiplier means you'll lose revenue and worsen the deficit.`,
+        `In current conditions, spending retrenchment of £${amount.toFixed(0)}bn is likely to weaken demand faster than it improves the headline balance.`,
+        `This scale of fiscal tightening risks becoming self-defeating through lower output and weaker tax receipts.`,
+      ]);
     default:
-      return `Proposed spending cuts: £${amount.toFixed(0)}bn.`;
+      return pickVariant([
+        `Proposed spending cuts: £${amount.toFixed(0)}bn.`,
+        `Current proposals imply around £${amount.toFixed(0)}bn of spending restraint.`,
+        `Spending reductions of this size (£${amount.toFixed(0)}bn) require careful delivery planning.`,
+      ]);
   }
 }
 
@@ -957,56 +1097,150 @@ function getSpendingCutConsequences(type: AdviserType): string {
   }
 }
 
-function generateHeadline(profile: AdviserProfile, severity: OpinionSeverity, deficit: number, growth: number, approval: number): string {
-  const style = profile.narrativeStyle;
+function pickVariant(options: string[]): string {
+  if (!options || options.length === 0) return '';
+  return options[Math.floor(Math.random() * options.length)];
+}
 
+function generateHeadline(profile: AdviserProfile, severity: OpinionSeverity, deficit: number, growth: number, approval: number): string {
   if (severity === 'critical') {
     switch (profile.type) {
       case 'treasury_mandarin':
-        return 'Chancellor, We Face a Fiscal Emergency';
+        return pickVariant([
+          'Chancellor, We Face a Fiscal Emergency',
+          'Immediate Treasury Stabilisation Is Required',
+          'Fiscal Risks Have Moved Into Red-Tier Territory',
+          'Policy Credibility Is Under Acute Strain',
+        ]);
       case 'fiscal_hawk':
-        return 'Urgent Action Required to Avert Crisis';
+        return pickVariant([
+          'Urgent Action Required to Avert Crisis',
+          'Debt Dynamics Now Signal Clear Danger',
+          'Market Discipline Window Is Narrowing Fast',
+          'Delay Now Raises the Cost of Correction',
+        ]);
       case 'political_operator':
-        return 'Political Catastrophe Looms Without Course Correction';
+        return pickVariant([
+          'Political Catastrophe Looms Without Course Correction',
+          'Marginals Are Flashing Red Across the Map',
+          'This Trajectory Risks a Full Electoral Collapse',
+          'Backbench and Voter Patience Is Running Out',
+        ]);
       case 'social_democrat':
-        return 'Public Services Collapsing - Immediate Investment Essential';
+        return pickVariant([
+          'Public Services Collapsing - Immediate Investment Essential',
+          'Service Pressure Is Now a National Emergency',
+          'The Social Settlement Is Starting to Fracture',
+          'Frontline Capacity Is Failing Under Current Funding',
+        ]);
       case 'heterodox_economist':
-        return 'Dangerous Austerity Mindset Risks Recession';
+        return pickVariant([
+          'Dangerous Austerity Mindset Risks Recession',
+          'Demand Conditions Now Require Active Fiscal Support',
+          'Contractionary Bias Is Becoming Self-Defeating',
+          'Macroeconomic Stance Is Too Tight for Current Conditions',
+        ]);
       default:
-        return 'Serious Concerns Across Multiple Areas';
+        return pickVariant([
+          'Serious Concerns Across Multiple Areas',
+          'High-Risk Signals Across Economy and Politics',
+          'Current Policy Mix Is Under Severe Pressure',
+        ]);
     }
   } else if (severity === 'warning') {
     switch (profile.type) {
       case 'treasury_mandarin':
-        return 'Fiscal Trajectory Requires Attention';
+        return pickVariant([
+          'Fiscal Trajectory Requires Attention',
+          'Treasury Guardrails Are Being Tested',
+          'Medium-Term Fiscal Path Needs Tightening',
+          'Credibility Risks Are Building at the Margin',
+        ]);
       case 'fiscal_hawk':
-        return 'Deficit Path Unsustainable - Act Now';
+        return pickVariant([
+          'Deficit Path Unsustainable - Act Now',
+          'Early Correction Would Avoid Harsher Adjustment Later',
+          'Debt Risk Premium Is Drifting Upward',
+          'Consolidation Timetable Needs Reinforcement',
+        ]);
       case 'political_operator':
-        return 'Electoral Vulnerabilities Emerging';
+        return pickVariant([
+          'Electoral Vulnerabilities Emerging',
+          'Opposition Attack Lines Are Getting Stronger',
+          'Backbench Nerves Are Rising in Key Cohorts',
+          'Marginal Seat Exposure Is Widening',
+        ]);
       case 'social_democrat':
-        return 'Underinvestment Harming Services';
+        return pickVariant([
+          'Underinvestment Harming Services',
+          'Frontline Delivery Is Slipping Month by Month',
+          'Service Quality Metrics Point to Avoidable Damage',
+          'Social Outcomes Are Deteriorating Under Constraint',
+        ]);
       case 'heterodox_economist':
-        return 'Growth Underperformance Demands Response';
+        return pickVariant([
+          'Growth Underperformance Demands Response',
+          'Current Stance Risks Locking In Low Productivity',
+          'Demand Weakness Is Becoming Structural',
+          'Countercyclical Action Would Improve Fiscal Outcomes',
+        ]);
       default:
-        return 'Several Areas Require Action';
+        return pickVariant([
+          'Several Areas Require Action',
+          'Policy Adjustments Recommended Across Key Metrics',
+          'Risks Manageable but Rising',
+        ]);
     }
   } else if (severity === 'supportive') {
     switch (profile.type) {
       case 'treasury_mandarin':
-        return 'Fiscally Prudent Approach, Subject to Monitoring';
+        return pickVariant([
+          'Fiscally Prudent Approach, Subject to Monitoring',
+          'Current Settings Broadly Consistent with Stability',
+          'Treasury Position Is Defensible at Present',
+          'Near-Term Fiscal Control Appears Intact',
+        ]);
       case 'fiscal_hawk':
-        return 'Responsible Fiscal Management';
+        return pickVariant([
+          'Responsible Fiscal Management',
+          'Debt and Deficit Signals Are Improving',
+          'Consolidation Discipline Is Holding',
+          'Markets Likely to View This as Constructive',
+        ]);
       case 'political_operator':
-        return 'Politically Defensible Position';
+        return pickVariant([
+          'Politically Defensible Position',
+          'This Is Saleable in Most Battleground Seats',
+          'Limited Political Exposure Under Current Conditions',
+          'Narrative Holds if Delivery Stays Consistent',
+        ]);
       case 'social_democrat':
-        return 'Progress on Service Investment';
+        return pickVariant([
+          'Progress on Service Investment',
+          'Frontline Indicators Show Tentative Improvement',
+          'Social Outcomes Are Stabilising',
+          'Service Funding Direction Is Credible for Now',
+        ]);
       case 'heterodox_economist':
-        return 'Sound Macroeconomic Framework';
+        return pickVariant([
+          'Sound Macroeconomic Framework',
+          'Policy Mix Is Better Aligned with Demand Conditions',
+          'Growth and Stability Objectives Are More Coherent',
+          'Current Stance Supports a Softer Landing',
+        ]);
       default:
-        return 'Broadly Sound Approach';
+        return pickVariant([
+          'Broadly Sound Approach',
+          'No Immediate Macro Alarms Identified',
+          'Position Appears Stable in the Near Term',
+        ]);
     }
   } else {
-    return 'Mixed Assessment with Concerns';
+    return pickVariant([
+      'Mixed Assessment with Concerns',
+      'Balanced Picture, but Material Risks Remain',
+      'Policy Mix Produces Both Gains and Exposures',
+    ]);
   }
 }
 
@@ -1014,17 +1248,41 @@ function generateSummary(profile: AdviserProfile, analyses: PolicyAnalysis[], wa
   if (analyses.length === 0 && warnings.length === 0) {
     switch (profile.type) {
       case 'treasury_mandarin':
-        return 'Current position is within acceptable parameters, though vigilance remains essential.';
+        return pickVariant([
+          'Current position is within acceptable parameters, though vigilance remains essential.',
+          'No immediate red flags, but we should preserve optionality and monitor incoming data closely.',
+          'The framework is holding for now; disciplined execution remains the priority.',
+        ]);
       case 'fiscal_hawk':
-        return 'Fiscal discipline is being maintained. Continue this prudent approach.';
+        return pickVariant([
+          'Fiscal discipline is being maintained. Continue this prudent approach.',
+          'Debt and deficit indicators are not deteriorating materially; keep tightening bias where possible.',
+          'Current settings are acceptable, provided we avoid policy drift.',
+        ]);
       case 'political_operator':
-        return 'No immediate political dangers, but remain alert to changing sentiment.';
+        return pickVariant([
+          'No immediate political dangers, but remain alert to changing sentiment.',
+          'The line is currently defensible, though voter tolerance can move quickly.',
+          'Backbench mood is manageable for now; avoid unforced messaging errors.',
+        ]);
       case 'social_democrat':
-        return 'Service investment appears adequate for now, but we must not become complacent.';
+        return pickVariant([
+          'Service investment appears adequate for now, but we must not become complacent.',
+          'There are early signs of stabilisation, though frontline resilience remains fragile.',
+          'Conditions are not yet critical, but sustained pressure could reverse progress quickly.',
+        ]);
       case 'heterodox_economist':
-        return 'Macroeconomic balances are reasonable. Consider opportunities for growth-enhancing investment.';
+        return pickVariant([
+          'Macroeconomic balances are reasonable. Consider opportunities for growth-enhancing investment.',
+          'Demand and inflation signals are currently compatible with a steady policy stance.',
+          'This is a workable macro position; selective investment could improve medium-term capacity.',
+        ]);
       default:
-        return 'Overall position is satisfactory.';
+        return pickVariant([
+          'Overall position is satisfactory.',
+          'No material deterioration detected at present.',
+          'The current strategy is broadly holding.',
+        ]);
     }
   }
 
@@ -1040,15 +1298,35 @@ function generateSummary(profile: AdviserProfile, analyses: PolicyAnalysis[], wa
 
   switch (profile.type) {
     case 'treasury_mandarin':
-      return `I must draw your attention to concerns regarding ${concerns}. These require prompt consideration to maintain fiscal credibility.`;
+      return pickVariant([
+        `I must draw your attention to concerns regarding ${concerns}. These require prompt consideration to maintain fiscal credibility.`,
+        `Our principal vulnerabilities currently sit in ${concerns}. Early action would reduce downstream policy cost.`,
+        `The data indicates pressure points in ${concerns}; these should be addressed before they harden into structural risks.`,
+      ]);
     case 'fiscal_hawk':
-      return `Serious problems with ${concerns}. Delayed action will only magnify the eventual cost of adjustment.`;
+      return pickVariant([
+        `Serious problems with ${concerns}. Delayed action will only magnify the eventual cost of adjustment.`,
+        `Current signals on ${concerns} are adverse. Acting now is cheaper than acting under market stress later.`,
+        `We are underestimating the compounding risk in ${concerns}; postponement would be an error.`,
+      ]);
     case 'political_operator':
-      return `Chancellor, we have political exposure on ${concerns}. This could lose us the election if not addressed.`;
+      return pickVariant([
+        `Chancellor, we have political exposure on ${concerns}. This could lose us the election if not addressed.`,
+        `Voters and backbenchers are converging on ${concerns} as a weakness. We need a clearer defensive line.`,
+        `Our electoral risk now concentrates around ${concerns}; this needs visible corrective action.`,
+      ]);
     case 'social_democrat':
-      return `The data on ${concerns} shows we are failing our obligations to the public. Investment is essential.`;
+      return pickVariant([
+        `The data on ${concerns} shows we are failing our obligations to the public. Investment is essential.`,
+        `Frontline evidence on ${concerns} is worsening. Without intervention, social costs will rise materially.`,
+        `Current outcomes in ${concerns} are not sustainable for households or services. Funding and reform are both required.`,
+      ]);
     case 'heterodox_economist':
-      return `Issues with ${concerns} suggest misguided priorities. Rethink the framework.`;
+      return pickVariant([
+        `Issues with ${concerns} suggest misguided priorities. Rethink the framework.`,
+        `The pattern in ${concerns} points to an excessively restrictive policy mix.`,
+        `Outcomes in ${concerns} indicate we are choosing low-growth settings unnecessarily.`,
+      ]);
     default:
       return `Key concerns: ${concerns}.`;
   }
@@ -1060,13 +1338,20 @@ function generatePrediction(
   proposedChanges?: any
 ): Prediction | undefined {
   const bias = profile.biasParameters;
+  const projectedDeficitPct = proposedChanges?.projectedDeficit && state.economy?.gdpNominal
+    ? (proposedChanges.projectedDeficit / state.economy.gdpNominal) * 100
+    : undefined;
 
   // Each adviser type makes predictions based on their worldview
   if (profile.type === 'fiscal_hawk' && state.fiscal.debtToGdpPercent > bias.debtTolerance + 10) {
     return {
       timeframe: '12 months',
       likelihood: 'likely',
-      outcome: 'Without fiscal consolidation, gilt yields will exceed 7% and we will face a market crisis requiring emergency measures.'
+      outcome: pickVariant([
+        'Without fiscal consolidation, gilt yields will exceed 7% and we will face a market crisis requiring emergency measures.',
+        'Debt dynamics imply a materially higher risk premium over the next year unless consolidation starts quickly.',
+        'Absent a credible adjustment path, markets are likely to reprice UK risk and tighten financing conditions further.',
+      ])
     };
   }
 
@@ -1074,7 +1359,11 @@ function generatePrediction(
     return {
       timeframe: '6 months',
       likelihood: 'almost_certain',
-      outcome: 'Polling will continue deteriorating. We will lose marginal seats in any election held this year.'
+      outcome: pickVariant([
+        'Polling will continue deteriorating. We will lose marginal seats in any election held this year.',
+        'Current trajectory implies concentrated losses in commuter and suburban marginals within two quarters.',
+        'Without a visible reset, approval erosion is likely to accelerate in key battleground constituencies.',
+      ])
     };
   }
 
@@ -1082,7 +1371,11 @@ function generatePrediction(
     return {
       timeframe: '9 months',
       likelihood: 'likely',
-      outcome: 'Continued weak growth will become structural without fiscal stimulus. Tax revenues will disappoint, worsening deficit paradoxically.'
+      outcome: pickVariant([
+        'Continued weak growth will become structural without fiscal stimulus. Tax revenues will disappoint, worsening deficit paradoxically.',
+        'Persistently weak demand risks entrenching low productivity and depressing the revenue base.',
+        'Without countercyclical support, sub-trend growth is likely to become self-reinforcing over the medium term.',
+      ])
     };
   }
 
@@ -1090,7 +1383,23 @@ function generatePrediction(
     return {
       timeframe: '12 months',
       likelihood: 'likely',
-      outcome: 'NHS will face winter crisis with record waiting lists. Public anger will force policy U-turn, but damage to health outcomes will be lasting.'
+      outcome: pickVariant([
+        'NHS will face winter crisis with record waiting lists. Public anger will force policy U-turn, but damage to health outcomes will be lasting.',
+        'Service pressure is likely to intensify into winter, with delayed care translating into measurable outcome deterioration.',
+        'Without intervention, NHS strain is likely to trigger emergency measures and politically costly reversals.',
+      ])
+    };
+  }
+
+  if (profile.type === 'treasury_mandarin' && projectedDeficitPct !== undefined && projectedDeficitPct > bias.deficitTolerance + 1) {
+    return {
+      timeframe: '6 months',
+      likelihood: 'possible',
+      outcome: pickVariant([
+        'If this package is implemented as drafted, fiscal headroom is likely to narrow materially by the next review window.',
+        'Current proposals imply reduced resilience to adverse shocks unless offsetting measures are identified.',
+        'Treasury flexibility is likely to tighten over the next two quarters under this projected deficit path.',
+      ])
     };
   }
 

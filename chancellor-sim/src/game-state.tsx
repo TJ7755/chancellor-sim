@@ -59,11 +59,14 @@ export interface GameMetadata {
   currentTurn: number; // 0 = July 2024, 59 = June 2029
   currentMonth: number; // 1-12
   currentYear: number; // 2024-2029
+  difficultyMode: DifficultyMode;
   gameStarted: boolean;
   gameOver: boolean;
   gameOverReason?: string;
   lastSaveTime?: number;
 }
+
+export type DifficultyMode = 'forgiving' | 'standard' | 'realistic';
 
 export interface EmergencyProgramme {
   id: string;
@@ -149,7 +152,12 @@ export interface GameState {
 }
 
 export interface GameActions {
-  startNewGame: (adviserChoice?: string, manifestoChoice?: string, fiscalRuleChoice?: FiscalRuleId) => void;
+  startNewGame: (
+    adviserChoice?: string,
+    manifestoChoice?: string,
+    fiscalRuleChoice?: FiscalRuleId,
+    difficultyMode?: DifficultyMode
+  ) => void;
   advanceTurn: () => void;
   saveGame: (slotName: string) => void;
   loadGame: (slotName: string) => boolean;
@@ -208,6 +216,10 @@ export interface BudgetChanges {
   policeSpendingChange?: number;
   justiceSpendingChange?: number;
   otherSpendingChange?: number;
+
+  // Granular line-item persistence from budget screen
+  detailedTaxRates?: Record<string, number>;
+  detailedSpendingBudgets?: Record<string, number>;
 }
 
 // ===========================
@@ -320,6 +332,10 @@ function normalizeLoadedState(state: GameState): GameState {
   const mpSystem = state.mpSystem ?? createInitialMPSystem();
   const emergencyProgrammes = state.emergencyProgrammes ?? { active: [] };
   const advisers = state.advisers ?? createInitialAdviserSystem();
+  const metadata = {
+    ...state.metadata,
+    difficultyMode: (state.metadata as any)?.difficultyMode || 'standard',
+  };
   const pmRelationship = state.pmRelationship ?? {
     patience: 70,
     warningsIssued: 0,
@@ -333,6 +349,10 @@ function normalizeLoadedState(state: GameState): GameState {
     supportWithdrawn: false,
     finalWarningGiven: false,
     activeDemands: [],
+  };
+  const services = {
+    ...createInitialServicesState(),
+    ...(state.services || {}),
   };
 
   // Migrate old save games to new capital/current spending structure
@@ -381,7 +401,9 @@ function normalizeLoadedState(state: GameState): GameState {
 
   return {
     ...state,
+    metadata,
     fiscal,
+    services,
     mpSystem: {
       ...mpSystem,
       allMPs: mpSystem.allMPs instanceof Map ? mpSystem.allMPs : new Map(),
@@ -454,6 +476,7 @@ function createInitialGameState(): GameState {
       currentTurn: 0,
       currentMonth: 7,
       currentYear: 2024,
+      difficultyMode: 'standard',
       gameStarted: false,
       gameOver: false,
     },
@@ -598,7 +621,12 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Start new game
   const startNewGame = useCallback(
-    (adviserChoice?: string, manifestoChoice?: string, fiscalRuleChoice?: FiscalRuleId) => {
+    (
+      adviserChoice?: string,
+      manifestoChoice?: string,
+      fiscalRuleChoice?: FiscalRuleId,
+      difficultyMode: DifficultyMode = 'standard'
+    ) => {
       const newState = createInitialGameState();
 
       // Apply manifesto choice if provided
@@ -629,6 +657,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           newState.political.governmentApproval + rule.politicalReaction.approvalChange));
       }
 
+      newState.metadata.difficultyMode = difficultyMode;
       newState.metadata.gameStarted = true;
       setGameState(newState);
     },
@@ -726,6 +755,20 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   //
   const applyBudgetChanges = useCallback((changes: BudgetChanges) => {
     setGameState((prevState) => {
+      const expectedInflationIncreaseFactor = prevState.economic.inflationCPI / 100;
+      const nhsNominalChange =
+        (changes.nhsCurrentChange || 0) +
+        (changes.nhsCapitalChange || 0) +
+        (changes.nhsSpendingChange || 0);
+      const educationNominalChange =
+        (changes.educationCurrentChange || 0) +
+        (changes.educationCapitalChange || 0) +
+        (changes.educationSpendingChange || 0);
+
+      const nhsRequiredNominalIncrease = prevState.fiscal.spending.nhs * expectedInflationIncreaseFactor;
+      const educationRequiredNominalIncrease =
+        prevState.fiscal.spending.education * expectedInflationIncreaseFactor;
+
       // Check for manifesto violations
       const violationCheck = checkPolicyForViolations(prevState.manifesto, {
         incomeTaxBasicChange: changes.incomeTaxBasicChange,
@@ -735,8 +778,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         niEmployerChange: changes.niEmployerChange,
         vatChange: changes.vatChange,
         corporationTaxChange: changes.corporationTaxChange,
-        nhsSpendingCutReal: (changes.nhsSpendingChange || 0) < 0,
-        educationSpendingCutReal: (changes.educationSpendingChange || 0) < 0,
+        nhsSpendingCutReal: nhsNominalChange < nhsRequiredNominalIncrease,
+        educationSpendingCutReal: educationNominalChange < educationRequiredNominalIncrease,
       });
 
       // Apply violations if any
@@ -750,7 +793,12 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Apply fiscal changes
-      const newFiscal = { ...prevState.fiscal, spending: { ...prevState.fiscal.spending } };
+      const newFiscal = {
+        ...prevState.fiscal,
+        spending: { ...prevState.fiscal.spending },
+        detailedTaxes: [...(prevState.fiscal.detailedTaxes || [])],
+        detailedSpending: [...(prevState.fiscal.detailedSpending || [])],
+      };
 
       // Update tax rates
       if (changes.incomeTaxBasicChange) {
@@ -773,6 +821,13 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       if (changes.corporationTaxChange) {
         newFiscal.corporationTaxRate += changes.corporationTaxChange;
+      }
+
+      if (changes.detailedTaxRates) {
+        newFiscal.detailedTaxes = newFiscal.detailedTaxes.map((tax) => {
+          const nextRate = changes.detailedTaxRates?.[tax.id];
+          return nextRate !== undefined ? { ...tax, currentRate: nextRate } : tax;
+        });
       }
 
       // Revenue adjustment from "other" taxes (replaces previous value)
@@ -874,6 +929,41 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         newFiscal.spending.police +
         newFiscal.spending.justice +
         newFiscal.spending.other;
+
+      if (changes.detailedSpendingBudgets) {
+        newFiscal.detailedSpending = newFiscal.detailedSpending.map((item) => {
+          const nextBudget = changes.detailedSpendingBudgets?.[item.id];
+          if (nextBudget === undefined) return item;
+
+          if (item.type === 'capital') {
+            return {
+              ...item,
+              currentBudget: nextBudget,
+              capitalAllocation: nextBudget,
+              currentAllocation: 0,
+            };
+          }
+
+          if (item.type === 'resource') {
+            return {
+              ...item,
+              currentBudget: nextBudget,
+              currentAllocation: nextBudget,
+              capitalAllocation: 0,
+            };
+          }
+
+          const total = (item.currentAllocation || 0) + (item.capitalAllocation || 0);
+          const currentShare = total > 0 ? (item.currentAllocation || 0) / total : 1;
+          const capitalShare = total > 0 ? (item.capitalAllocation || 0) / total : 0;
+          return {
+            ...item,
+            currentBudget: nextBudget,
+            currentAllocation: nextBudget * currentShare,
+            capitalAllocation: nextBudget * capitalShare,
+          };
+        });
+      }
 
       return {
         ...prevState,

@@ -1,5 +1,18 @@
 import { GameState, PMMessage, PMMessageType, PMRelationshipState } from './game-state';
 
+function calculateTotalCapitalSpending(gameState: GameState): number {
+  const spending = gameState.fiscal.spending;
+  return (
+    spending.nhsCapital +
+    spending.educationCapital +
+    spending.defenceCapital +
+    spending.infrastructureCapital +
+    spending.policeCapital +
+    spending.justiceCapital +
+    spending.otherCapital
+  );
+}
+
 // ============================================================================
 // PM MESSAGE GENERATION SYSTEM
 // ============================================================================
@@ -98,36 +111,37 @@ export function generatePMMessage(
       const monthName = getMonthName(metadata.currentMonth);
       if (political.pmTrust >= 60 && political.governmentApproval >= 40) {
         subject = `${monthName} Check-in: Keep Up the Good Work`;
-        content = `Chancellor,\n\nI wanted to touch base this month. The economic figures are holding steady, and I'm pleased with the direction we're heading.\n\nPM Trust: ${political.pmTrust}/100\nGovernment Approval: ${political.governmentApproval}%\nGDP Growth: ${economic.gdpGrowthAnnual.toFixed(1)}%\n\nKeep the backbenchers onside and continue delivering on our manifesto. We need steady hands ​​at the wheel.\n\nBest,\nThe Prime Minister`;
+        content = `Chancellor,\n\nI wanted to touch base this month. The economic figures are holding steady, and I'm pleased with the direction we're heading.\n\nPM Trust: ${Math.round(political.pmTrust)}/100\nGovernment Approval: ${Math.round(political.governmentApproval)}%\nGDP Growth: ${Math.round(economic.gdpGrowthAnnual)}%\n\nKeep the backbenchers onside and continue delivering on our manifesto. We need steady hands ​​at the wheel.\n\nBest,\nThe Prime Minister`;
         tone = 'supportive';
       } else if (political.pmTrust >= 40) {
         subject = `${monthName} Check-in: Room for Improvement`;
-        content = `Chancellor,\n\nWe need to talk about where we are. The numbers aren't terrible, but they're not where they need to be either.\n\nPM Trust: ${political.pmTrust}/100\nGovernment Approval: ${political.governmentApproval}%\nDeficit: £${fiscal.deficit_bn.toFixed(1)}bn\n\nI need to see more decisive action. The backbenchers are getting restless, and we can't afford too many more missteps.\n\nLet's discuss strategy soon.\n\nPrime Minister`;
+        content = `Chancellor,\n\nWe need to talk about where we are. The numbers aren't terrible, but they're not where they need to be either.\n\nPM Trust: ${Math.round(political.pmTrust)}/100\nGovernment Approval: ${Math.round(political.governmentApproval)}%\nDeficit: £${Math.round(fiscal.deficit_bn)}bn\n\nI need to see more decisive action. The backbenchers are getting restless, and we can't afford too many more missteps.\n\nLet's discuss strategy soon.\n\nPrime Minister`;
         tone = 'neutral';
       } else {
         subject = `${monthName} Check-in: We Have a Problem`;
-        content = `Chancellor,\n\nI'll be blunt: things are not going well. The numbers speak for themselves, and they're causing serious concern across the party.\n\nPM Trust: ${political.pmTrust}/100\nGovernment Approval: ${political.governmentApproval}%\nBackbench Satisfaction: ${political.backbenchSatisfaction}/100\n\nWe need to see significant improvement, and soon. My patience is not unlimited.\n\nRegards,\nPrime Minister`;
+        content = `Chancellor,\n\nI'll be blunt: things are not going well. The numbers speak for themselves, and they're causing serious concern across the party.\n\nPM Trust: ${Math.round(political.pmTrust)}/100\nGovernment Approval: ${Math.round(political.governmentApproval)}%\nBackbench Satisfaction: ${Math.round(political.backbenchSatisfaction)}/100\n\nWe need to see significant improvement, and soon. My patience is not unlimited.\n\nRegards,\nPrime Minister`;
         tone = 'stern';
       }
       break;
 
     case 'warning':
       // Calculate current budget balance (excl. investment spending)
+      const totalCapitalSpendingWarning = calculateTotalCapitalSpending(gameState);
       const currentBudgetWarning = fiscal.totalRevenue_bn -
-        (fiscal.totalSpending_bn - fiscal.spending.infrastructure) -
+        (fiscal.totalSpending_bn - totalCapitalSpendingWarning) -
         fiscal.debtInterest_bn;
 
       subject = 'Serious Concerns About Economic Performance';
-      content = `Chancellor,\n\nI need to raise serious concerns about your stewardship of the economy. Your approval among our MPs is worryingly low (PM Trust: ${political.pmTrust}/100), and this is becoming a problem for the government as a whole.\n\n`;
+      content = `Chancellor,\n\nI need to raise serious concerns about your stewardship of the economy. Your approval among our MPs is worryingly low (PM Trust: ${Math.round(political.pmTrust)}/100), and this is becoming a problem for the government as a whole.\n\n`;
 
       if (fiscal.deficit_bn > 60) {
-        content += `The overall deficit is £${fiscal.deficit_bn.toFixed(1)}bn. `;
+        content += `The overall deficit is £${Math.round(fiscal.deficit_bn)}bn. `;
         if (currentBudgetWarning < -10) {
-          content += `More concerning, the current budget (excluding investment) shows a £${Math.abs(currentBudgetWarning).toFixed(1)}bn deficit — this means day-to-day spending exceeds revenues. `;
+          content += `More concerning, the current budget (excluding investment) shows a £${Math.round(Math.abs(currentBudgetWarning))}bn deficit — this means day-to-day spending exceeds revenues. `;
         }
       }
       if (political.governmentApproval < 35) {
-        content += `Government approval has fallen to ${political.governmentApproval}%, which is unacceptable. `;
+        content += `Government approval has fallen to ${Math.round(political.governmentApproval)}%, which is unacceptable. `;
       }
       if (political.backbenchSatisfaction < 40) {
         content += `The backbenchers are openly expressing frustration. `;
@@ -140,7 +154,7 @@ export function generatePMMessage(
 
     case 'threat':
       subject = 'Final Warning: Immediate Improvement Required';
-      content = `Chancellor,\n\nI've tried to be patient, but the situation has not improved. In fact, it's gotten worse.\n\nCurrent state:\n- PM Trust: ${political.pmTrust}/100\n- Government Approval: ${political.governmentApproval}%\n- Backbench Satisfaction: ${political.backbenchSatisfaction}/100\n- Deficit: £${fiscal.deficit_bn.toFixed(1)}bn\n\nThe Cabinet is asking questions. The backbenchers are in open revolt. The media is sensing blood in the water.\n\nI will not let one minister drag down this entire government. Turn things around immediately, or I will have no choice but to consider a reshuffle.\n\nThis is not a drill.\n\nPrime Minister`;
+      content = `Chancellor,\n\nI've tried to be patient, but the situation has not improved. In fact, it's gotten worse.\n\nCurrent state:\n- PM Trust: ${Math.round(political.pmTrust)}/100\n- Government Approval: ${Math.round(political.governmentApproval)}%\n- Backbench Satisfaction: ${Math.round(political.backbenchSatisfaction)}/100\n- Deficit: £${Math.round(fiscal.deficit_bn)}bn\n\nThe Cabinet is asking questions. The backbenchers are in open revolt. The media is sensing blood in the water.\n\nI will not let one minister drag down this entire government. Turn things around immediately, or I will have no choice but to consider a reshuffle.\n\nThis is not a drill.\n\nPrime Minister`;
       tone = 'angry';
       consequenceWarning = 'You are at risk of being reshuffled out of the Treasury';
       break;
@@ -148,17 +162,18 @@ export function generatePMMessage(
     case 'demand':
       if (reason === 'high_deficit') {
         // Calculate current budget balance (excl. investment spending)
+        const totalCapitalSpendingDemand = calculateTotalCapitalSpending(gameState);
         const currentBudgetDemand = fiscal.totalRevenue_bn -
-          (fiscal.totalSpending_bn - fiscal.spending.infrastructure) -
+          (fiscal.totalSpending_bn - totalCapitalSpendingDemand) -
           fiscal.debtInterest_bn;
-        const investmentSpending = fiscal.spending.infrastructure;
+        const investmentSpending = totalCapitalSpendingDemand;
 
         subject = 'Immediate Action Required: Deficit Control';
 
         // Provide context about whether deficit is from investment or day-to-day spending
         const deficitContext = currentBudgetDemand >= 0
-          ? `The overall deficit of £${fiscal.deficit_bn.toFixed(1)}bn is primarily driven by investment spending (£${investmentSpending.toFixed(1)}bn). While investment is important, the scale is unsustainable at current debt levels.`
-          : `The overall deficit has reached £${fiscal.deficit_bn.toFixed(1)}bn. The current budget (excluding investment) shows a £${Math.abs(currentBudgetDemand).toFixed(1)}bn deficit, meaning day-to-day spending exceeds revenues — this is completely unsustainable.`;
+          ? `The overall deficit of £${Math.round(fiscal.deficit_bn)}bn is primarily driven by investment spending (£${Math.round(investmentSpending)}bn). While investment is important, the scale is unsustainable at current debt levels.`
+          : `The overall deficit has reached £${Math.round(fiscal.deficit_bn)}bn. The current budget (excluding investment) shows a £${Math.round(Math.abs(currentBudgetDemand))}bn deficit, meaning day-to-day spending exceeds revenues — this is completely unsustainable.`;
 
         content = `Chancellor,\n\n${deficitContext}\n\nThis is a direct threat to our fiscal credibility and our manifesto commitments.\n\nI am formally requesting that you bring forward an emergency budget to bring the deficit under control. Target: reduce the overall deficit to below £50bn within 3 months.\n\nThis is not optional. Our fiscal rules exist for a reason, and we cannot abandon them without destroying our economic credibility.\n\nYou have 3 months to deliver.\n\nPrime Minister`;
         demandCategory = 'deficit';
@@ -176,26 +191,26 @@ export function generatePMMessage(
     case 'support_change':
       if (reason === 'support_withdrawn') {
         subject = 'Withdrawal of Political Support';
-        content = `Chancellor,\n\nI regret to inform you that I am formally withdrawing my active political support for your chancellorship. You will continue in role, but you should not expect me to whip votes in your favor or provide cover for difficult decisions.\n\nThis is a direct consequence of:\n- Persistently low PM Trust (${political.pmTrust}/100)\n- Multiple warnings ignored\n- Failure to deliver promised improvements\n\nYou can earn back my support through concrete action and tangible results. Until then, you're on your own.\n\nPrime Minister`;
+        content = `Chancellor,\n\nI regret to inform you that I am formally withdrawing my active political support for your chancellorship. You will continue in role, but you should not expect me to whip votes in your favor or provide cover for difficult decisions.\n\nThis is a direct consequence of:\n- Persistently low PM Trust (${Math.round(political.pmTrust)}/100)\n- Multiple warnings ignored\n- Failure to deliver promised improvements\n\nYou can earn back my support through concrete action and tangible results. Until then, you're on your own.\n\nPrime Minister`;
         tone = 'angry';
         consequenceWarning = 'Budgets will be much harder to pass without PM support';
       } else {
         subject = 'Support Restored';
-        content = `Chancellor,\n\nI'm pleased to see the improvements you've made. Your recent performance has been significantly better, and I'm restoring my full political support.\n\nPM Trust: ${political.pmTrust}/100\nGovernment Approval: ${political.governmentApproval}%\n\nKeep up the good work, and let's continue moving forward together.\n\nPrime Minister`;
+        content = `Chancellor,\n\nI'm pleased to see the improvements you've made. Your recent performance has been significantly better, and I'm restoring my full political support.\n\nPM Trust: ${Math.round(political.pmTrust)}/100\nGovernment Approval: ${Math.round(political.governmentApproval)}%\n\nKeep up the good work, and let's continue moving forward together.\n\nPrime Minister`;
         tone = 'supportive';
       }
       break;
 
     case 'reshuffle_warning':
       subject = 'Final Notice: Reshuffle Imminent';
-      content = `Chancellor,\n\nThis is your final notice.\n\nYour position as Chancellor of the Exchequer is untenable. The Cabinet has lost confidence. The backbenchers are in open revolt. The party is demanding action.\n\nReshuffle Risk: ${pmRelationship.reshuffleRisk}/100\nPM Trust: ${political.pmTrust}/100\n\nYou have ONE opportunity to turn this around. Deliver a successful budget that passes Parliament with strong support and improves economic performance, OR I will have no choice but to replace you.\n\nThis is the last conversation we'll have on this matter before I make my decision.\n\nPrime Minister`;
+      content = `Chancellor,\n\nThis is your final notice.\n\nYour position as Chancellor of the Exchequer is untenable. The Cabinet has lost confidence. The backbenchers are in open revolt. The party is demanding action.\n\nReshuffle Risk: ${Math.round(pmRelationship.reshuffleRisk)}/100\nPM Trust: ${Math.round(political.pmTrust)}/100\n\nYou have ONE opportunity to turn this around. Deliver a successful budget that passes Parliament with strong support and improves economic performance, OR I will have no choice but to replace you.\n\nThis is the last conversation we'll have on this matter before I make my decision.\n\nPrime Minister`;
       tone = 'angry';
       consequenceWarning = 'You will be reshuffled if performance does not improve immediately (GAME OVER)';
       break;
 
     case 'praise':
       subject = 'Excellent Work This Quarter';
-      content = `Chancellor,\n\nI wanted to personally thank you for your outstanding work managing the economy. The numbers speak for themselves:\n\nPM Trust: ${political.pmTrust}/100\nGovernment Approval: ${political.governmentApproval}%\nGDP Growth: ${economic.gdpGrowthAnnual.toFixed(1)}%\nDeficit: £${fiscal.deficit_bn.toFixed(1)}bn\n\nThe party is happy, the markets are stable, and we're delivering for the British people. This is exactly the kind of steady, competent economic management we promised voters.\n\nKeep it up. You have my full confidence and support.\n\nBest regards,\nThe Prime Minister`;
+      content = `Chancellor,\n\nI wanted to personally thank you for your outstanding work managing the economy. The numbers speak for themselves:\n\nPM Trust: ${Math.round(political.pmTrust)}/100\nGovernment Approval: ${Math.round(political.governmentApproval)}%\nGDP Growth: ${Math.round(economic.gdpGrowthAnnual)}%\nDeficit: £${Math.round(fiscal.deficit_bn)}bn\n\nThe party is happy, the markets are stable, and we're delivering for the British people. This is exactly the kind of steady, competent economic management we promised voters.\n\nKeep it up. You have my full confidence and support.\n\nBest regards,\nThe Prime Minister`;
       tone = 'supportive';
       break;
 
@@ -204,13 +219,13 @@ export function generatePMMessage(
       content = `Chancellor,\n\nI wanted to flag some concerning trends I'm seeing in the numbers:\n\n`;
 
       if (political.governmentApproval < 30) {
-        content += `- Government approval has dropped to ${political.governmentApproval}%, which is dangerously low\n`;
+        content += `- Government approval has dropped to ${Math.round(political.governmentApproval)}%, which is dangerously low\n`;
       }
       if (economic.gdpGrowthAnnual < 0.5) {
-        content += `- GDP growth is anemic at ${economic.gdpGrowthAnnual.toFixed(1)}%\n`;
+        content += `- GDP growth is anemic at ${Math.round(economic.gdpGrowthAnnual)}%\n`;
       }
       if (fiscal.deficit_bn > 70) {
-        content += `- The deficit is rising toward unsustainable levels (£${fiscal.deficit_bn.toFixed(1)}bn)\n`;
+        content += `- The deficit is rising toward unsustainable levels (£${Math.round(fiscal.deficit_bn)}bn)\n`;
       }
 
       content += `\nThese aren't critical yet, but they're heading in the wrong direction. I'd like to see you address these issues proactively before they become real problems.\n\nLet's stay ahead of this.\n\nPrime Minister`;
@@ -243,29 +258,61 @@ export function updatePMRelationship(gameState: GameState): Partial<PMRelationsh
   // Update patience based on performance
   let patienceChange = 0;
 
+  // CRITICAL FIX: Add time-based patience decay (honeymoon fading)
+  // PM patience naturally decreases over time - must actively maintain it
+  // After first 12 months, patience decays by 0.5 per month unless performing well
+  if (metadata.currentTurn > 12 && political.pmTrust < 65) {
+    patienceChange -= 0.5; // Natural decay of goodwill
+  }
+
+  // CRITICAL FIX: Harsher penalties for mediocre performance
   // PM Trust impacts patience most
-  if (political.pmTrust < 30) {
-    patienceChange -= 5;
+  if (political.pmTrust < 20) {
+    patienceChange -= 8; // Crisis level
     updates.consecutivePoorPerformance = (pmRelationship.consecutivePoorPerformance || 0) + 1;
-  } else if (political.pmTrust > 70) {
-    patienceChange += 3;
+  } else if (political.pmTrust < 30) {
+    patienceChange -= 5; // Very poor
+    updates.consecutivePoorPerformance = (pmRelationship.consecutivePoorPerformance || 0) + 1;
+  } else if (political.pmTrust < 45) {
+    patienceChange -= 2; // Mediocre performance also drains patience
+    updates.consecutivePoorPerformance = (pmRelationship.consecutivePoorPerformance || 0) + 1;
+  } else if (political.pmTrust > 75) {
+    patienceChange += 4; // Excellent performance
+    updates.consecutivePoorPerformance = 0;
+  } else if (political.pmTrust > 60) {
+    patienceChange += 2; // Good performance
     updates.consecutivePoorPerformance = 0;
   } else {
     updates.consecutivePoorPerformance = 0;
   }
 
-  // Government approval matters
-  if (political.governmentApproval < 25) {
-    patienceChange -= 3;
+  // Government approval matters (electoral prospects)
+  if (political.governmentApproval < 20) {
+    patienceChange -= 5; // Electoral disaster
+  } else if (political.governmentApproval < 30) {
+    patienceChange -= 3; // Very concerning
+  } else if (political.governmentApproval < 38) {
+    patienceChange -= 1; // Below acceptable
   } else if (political.governmentApproval > 50) {
     patienceChange += 2;
   }
 
-  // Fiscal responsibility
-  if (fiscal.deficit_bn > 80) {
-    patienceChange -= 2;
+  // Fiscal responsibility (fiscal rules matter to PM credibility)
+  if (fiscal.deficit_bn > 100) {
+    patienceChange -= 4; // Completely out of control
+  } else if (fiscal.deficit_bn > 80) {
+    patienceChange -= 2; // Very concerning
   } else if (fiscal.deficit_bn < 30) {
     patienceChange += 1;
+  }
+
+  // CRITICAL FIX: Manifesto violations damage PM-Chancellor relationship
+  // PM is judged by manifesto adherence - violations hurt them too
+  const manifestoViolations = gameState.manifesto.totalViolations;
+  if (manifestoViolations >= 3) {
+    patienceChange -= 2; // Multiple broken promises
+  } else if (manifestoViolations >= 1) {
+    patienceChange -= 1; // Some broken promises
   }
 
   // Update patience (bounded 0-100)

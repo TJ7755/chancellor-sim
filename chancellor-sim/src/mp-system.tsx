@@ -330,16 +330,37 @@ export function calculateBudgetIdeology(budgetChanges: BudgetChanges): Ideologic
   let economicAxis = 0;
   let fiscalConservatism = 5;
 
+  const detailedTax = budgetChanges.detailedTaxRates || {};
+  const basicTaxDelta = budgetChanges.incomeTaxBasicChange ?? detailedTax.incomeTaxBasic ?? 0;
+  const higherTaxDelta = budgetChanges.incomeTaxHigherChange ?? detailedTax.incomeTaxHigher ?? 0;
+  const additionalTaxDelta = budgetChanges.incomeTaxAdditionalChange ?? detailedTax.incomeTaxAdditional ?? 0;
+  const corporationTaxDelta = budgetChanges.corporationTaxChange ?? detailedTax.corporationTax ?? 0;
+  const vatDelta = budgetChanges.vatChange ?? detailedTax.vat ?? 0;
+
   // Tax increases → left-wing
   const taxIncreases = [
-    budgetChanges.incomeTaxBasicChange,
-    budgetChanges.incomeTaxHigherChange,
-    budgetChanges.incomeTaxAdditionalChange,
-    budgetChanges.corporationTaxChange,
+    basicTaxDelta,
+    higherTaxDelta,
+    additionalTaxDelta,
+    corporationTaxDelta,
     budgetChanges.capitalGainsTaxChange,
   ].filter((change) => change && change > 0).length;
 
   economicAxis -= taxIncreases * 0.5; // Each tax increase shifts left
+
+  // Magnitude matters: +1pp and +80pp should not be treated similarly.
+  economicAxis -= Math.max(0, basicTaxDelta) * 0.08;
+  economicAxis -= Math.max(0, higherTaxDelta) * 0.05;
+  economicAxis -= Math.max(0, additionalTaxDelta) * 0.04;
+  economicAxis -= Math.max(0, corporationTaxDelta) * 0.03;
+  economicAxis -= Math.max(0, vatDelta) * 0.06;
+
+  // Aggressive tax cuts pull right.
+  economicAxis += Math.max(0, -basicTaxDelta) * 0.05;
+  economicAxis += Math.max(0, -higherTaxDelta) * 0.03;
+  economicAxis += Math.max(0, -additionalTaxDelta) * 0.02;
+  economicAxis += Math.max(0, -corporationTaxDelta) * 0.03;
+  economicAxis += Math.max(0, -vatDelta) * 0.04;
 
   // Spending increases → left-wing
   const spendingIncreases = [
@@ -371,6 +392,33 @@ export function calculateBudgetIdeology(budgetChanges: BudgetChanges): Ideologic
   };
 }
 
+function getBudgetPlausibilityPenalty(budgetChanges: BudgetChanges): number {
+  const detailedTax = budgetChanges.detailedTaxRates || {};
+  const basicTaxDelta = budgetChanges.incomeTaxBasicChange ?? detailedTax.incomeTaxBasic ?? 0;
+  const higherTaxDelta = budgetChanges.incomeTaxHigherChange ?? detailedTax.incomeTaxHigher ?? 0;
+  const additionalTaxDelta = budgetChanges.incomeTaxAdditionalChange ?? detailedTax.incomeTaxAdditional ?? 0;
+  const vatDelta = budgetChanges.vatChange ?? detailedTax.vat ?? 0;
+
+  let penalty = 0;
+
+  // Extreme headline rates are politically toxic regardless of loyalty.
+  if (basicTaxDelta >= 70) penalty += 90; // e.g. 20% -> 90%+
+  else if (basicTaxDelta >= 50) penalty += 70;
+  else if (basicTaxDelta >= 30) penalty += 45;
+  else if (basicTaxDelta >= 10) penalty += 20;
+
+  // Regressive and incoherent structures should trigger broad discomfort.
+  if (basicTaxDelta > 4 && higherTaxDelta < -15) penalty += 35;
+  if (basicTaxDelta > 2 && additionalTaxDelta < -15) penalty += 30;
+  if (higherTaxDelta < -25 || additionalTaxDelta < -25) penalty += 12;
+
+  // Very large VAT rises are similarly difficult to sustain politically.
+  if (vatDelta >= 10) penalty += 35;
+  else if (vatDelta >= 5) penalty += 16;
+
+  return Math.min(100, penalty);
+}
+
 /**
  * Calculate ideological distance between MP and budget
  */
@@ -394,12 +442,16 @@ export function calculateConstituencyImpact(
   budgetChanges: BudgetChanges
 ): number {
   let impact = 0;
+  const granularSpending = budgetChanges.detailedSpendingBudgets || {};
+  const granularTax = budgetChanges.detailedTaxRates || {};
 
   // Lower income areas care more about welfare and NHS
   if (constituency.demographics.medianIncome < 30000) {
     if (budgetChanges.nhsSpendingChange && budgetChanges.nhsSpendingChange > 0) impact += 2;
     if (budgetChanges.welfareSpendingChange && budgetChanges.welfareSpendingChange > 0) impact += 2;
     if (budgetChanges.welfareSpendingChange && budgetChanges.welfareSpendingChange < 0) impact -= 3;
+    if ((granularTax.vatDomesticEnergy || 0) > 0) impact -= 2;
+    if ((budgetChanges.vatChange || 0) > 0) impact -= 2;
   }
 
   // High public sector dependency areas care about public spending
@@ -409,12 +461,26 @@ export function calculateConstituencyImpact(
                                 (budgetChanges.policeSpendingChange || 0);
     if (totalSpendingChange > 0) impact += 1;
     if (totalSpendingChange < 0) impact -= 2;
+
+    if ((granularSpending.nhsMentalHealth || 0) < 0) impact -= 1.5;
+    if ((granularSpending.prisonsAndProbation || 0) < 0) impact -= 1.2;
+    if ((granularSpending.policing || 0) < 0) impact -= 1.0;
   }
 
   // Elderly constituencies care about NHS and welfare
   if (constituency.demographics.ageProfile === 'elderly') {
     if (budgetChanges.nhsSpendingChange && budgetChanges.nhsSpendingChange > 0) impact += 1;
     if (budgetChanges.welfareSpendingChange && budgetChanges.welfareSpendingChange < 0) impact -= 1;
+    if ((granularSpending.socialCare || 0) < 0) impact -= 1.5;
+    if ((granularTax.insurancePremiumTax || 0) > 0) impact -= 0.8;
+  }
+
+  if ((granularSpending.courts || 0) < 0 || (granularSpending.legalAid || 0) < 0) {
+    impact -= 0.9;
+  }
+
+  if ((granularSpending.nhsMentalHealth || 0) > 0 && constituency.demographics.unemploymentRate > 5.2) {
+    impact += 1.1;
   }
 
   return impact; // -5 to +5 range
@@ -430,6 +496,7 @@ export function calculateMPStance(
   promises: Map<string, MPPromise>
 ): 'support' | 'oppose' | 'undecided' {
   let supportScore = 50; // Start neutral
+  const plausibilityPenalty = getBudgetPlausibilityPenalty(budgetChanges);
 
   // 1. Ideological alignment
   const budgetIdeology = calculateBudgetIdeology(budgetChanges);
@@ -459,8 +526,19 @@ export function calculateMPStance(
 
   // 6. Trait modifiers
   if (mp.traits.rebelliousness > 7) supportScore -= 15;
-  if (mp.isMinister) supportScore += 40; // Payroll vote
+  if (mp.isMinister) supportScore += 18; // Payroll vote, but not absolute under implausible proposals
   if (mp.traits.principled > 7 && ideologicalAlignment < 3) supportScore -= 10;
+
+  // 6.5. Budget plausibility guardrail (caps support for absurd packages)
+  if (plausibilityPenalty > 0) {
+    const principledWeight = 0.7 + (mp.traits.principled / 20);
+    supportScore -= plausibilityPenalty * principledWeight;
+
+    if (mp.constituency.marginality > 70) {
+      // Marginal-seat MPs are especially sensitive to electorally toxic tax mixes.
+      supportScore -= plausibilityPenalty * 0.18;
+    }
+  }
 
   // 7. Marginal seat pressure (defensive voting)
   if (mp.constituency.marginality > 70) {
@@ -469,8 +547,8 @@ export function calculateMPStance(
   }
 
   // Determine final stance
-  if (supportScore > 65) return 'support';
-  if (supportScore < 35) return 'oppose';
+  if (supportScore > 62) return 'support';
+  if (supportScore < 42) return 'oppose';
   return 'undecided';
 }
 
@@ -1890,12 +1968,21 @@ export function simulateEnhancedParliamentaryVote(
     } else {
       // Labour MPs: use stance calculation
       if (stance === 'support') {
-        voteChoices.set(mpId, 'aye');
-        ayesCount++;
+        // Supporters almost always vote with the whip, with occasional tactical abstentions.
+        const ayeChance = mp.isMinister ? 0.995 : (0.9 - mp.traits.rebelliousness * 0.01);
+        if (Math.random() < ayeChance) {
+          voteChoices.set(mpId, 'aye');
+          ayesCount++;
+        } else {
+          voteChoices.set(mpId, 'abstain');
+          abstentionsCount++;
+        }
       } else if (stance === 'oppose') {
-        // Opposing MPs: some rebel, some abstain
-        const rebellionChance = 0.3 + mp.traits.rebelliousness / 20;
-        if (Math.random() < rebellionChance) {
+        // Opposing MPs usually vote against; abstention is the minority behaviour.
+        const noVoteChance = mp.isMinister
+          ? 0.55 + mp.traits.principled * 0.02
+          : 0.72 + mp.traits.principled * 0.02 + mp.traits.rebelliousness * 0.01;
+        if (Math.random() < Math.min(0.97, noVoteChance)) {
           voteChoices.set(mpId, 'noe');
           noesCount++;
           keyRebels.push(mp.name);
@@ -1904,13 +1991,21 @@ export function simulateEnhancedParliamentaryVote(
           abstentionsCount++;
         }
       } else {
-        // Undecided: 70% vote with whip, 30% abstain
-        if (Math.random() < 0.7) {
+        // Undecided MPs split between loyalty, caution, and occasional rebellion.
+        const roll = Math.random();
+        const ayeThreshold = 0.55 - mp.traits.rebelliousness * 0.015 + (mp.isMinister ? 0.25 : 0);
+        const abstainThreshold = ayeThreshold + 0.3;
+
+        if (roll < Math.max(0.2, Math.min(0.92, ayeThreshold))) {
           voteChoices.set(mpId, 'aye');
           ayesCount++;
-        } else {
+        } else if (roll < Math.max(0.45, Math.min(0.97, abstainThreshold))) {
           voteChoices.set(mpId, 'abstain');
           abstentionsCount++;
+        } else {
+          voteChoices.set(mpId, 'noe');
+          noesCount++;
+          keyRebels.push(mp.name);
         }
       }
     }
@@ -1931,17 +2026,65 @@ export function simulateEnhancedParliamentaryVote(
   // Generate narrative summary
   let narrativeSummary: string;
   const labourNoes = Math.max(0, noesCount - oppositionVoteCount); // Labour rebels who voted against
+  const profileIndex = (Math.abs(governmentMajority) + labourNoes + abstentionsCount + manifestoViolations.length) % 3;
+
+  const taxPressureSignals = [
+    budgetChanges.niEmployerChange ?? 0,
+    budgetChanges.vatChange ?? 0,
+    budgetChanges.detailedTaxRates?.vatDomesticEnergy ?? 0,
+  ].filter((value) => value > 0).length;
+
+  const spendingCutSignals = Object.values(budgetChanges.detailedSpendingBudgets || {})
+    .filter((value) => typeof value === 'number' && value < -0.25).length;
+
+  const pressurePoints: string[] = [];
+  if (manifestoViolations.length > 0) {
+    pressurePoints.push(`${manifestoViolations.length} manifesto breach${manifestoViolations.length === 1 ? '' : 'es'}`);
+  }
+  if (taxPressureSignals >= 2) {
+    pressurePoints.push('tax package backlash');
+  }
+  if (spendingCutSignals >= 2) {
+    pressurePoints.push('departmental cuts resistance');
+  }
+  if (abstentionsCount >= 20) {
+    pressurePoints.push('soft dissent via abstentions');
+  }
+
+  const pressureSummary = pressurePoints.length > 0
+    ? ` Pressure points: ${pressurePoints.join(', ')}.`
+    : '';
 
   if (!passed) {
-    narrativeSummary = `The Budget has been DEFEATED by ${Math.abs(governmentMajority)} votes. ${labourNoes} Labour MPs voted against the government — the largest rebellion since the Iraq war. The Chancellor must resign or present a revised Budget within 48 hours.`;
+    const defeatLeads = [
+      `The Budget is defeated by ${Math.abs(governmentMajority)} votes after support collapsed across Labour backbenches.`,
+      `The Commons rejects the Budget by ${Math.abs(governmentMajority)} votes, exposing a failed whipping operation.`,
+      `The government loses the division by ${Math.abs(governmentMajority)} votes in a major parliamentary reverse.`
+    ];
+    narrativeSummary = `${defeatLeads[profileIndex]} ${labourNoes} Labour MP${labourNoes === 1 ? '' : 's'} voted against${abstentionsCount > 0 ? ` and ${abstentionsCount} abstained` : ''}.${pressureSummary} No.10 now expects an immediate revised package.`;
   } else if (governmentMajority < 20) {
-    narrativeSummary = `The Budget scrapes through by just ${governmentMajority} votes — a dangerously narrow margin that underlines the depth of backbench opposition. ${labourNoes} Labour MPs voted against and ${abstentionsCount} abstained.`;
+    const narrowWinLeads = [
+      `The Budget scrapes through by ${governmentMajority} votes.`,
+      `The government survives by only ${governmentMajority} votes.`,
+      `The Budget passes on a thin margin of ${governmentMajority}.`
+    ];
+    narrativeSummary = `${narrowWinLeads[profileIndex]} ${labourNoes} Labour MP${labourNoes === 1 ? '' : 's'} voted against${abstentionsCount > 0 ? ` with ${abstentionsCount} abstentions` : ''}.${pressureSummary}`;
   } else if (labourNoes > 20) {
-    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}, but ${labourNoes} Labour MPs voted against the government — a significant rebellion that will dominate tomorrow's headlines.`;
-  } else if (labourNoes > 5) {
-    narrativeSummary = `The Budget passes with a comfortable majority of ${governmentMajority}. However, ${labourNoes} Labour MPs rebelled, providing ammunition for the opposition and media.`;
+    const largeDissentLeads = [
+      `The Budget passes with a majority of ${governmentMajority}, but a major backbench split (${labourNoes} Labour MPs) dominates the aftermath.`,
+      `The division is won by ${governmentMajority}, yet ${labourNoes} Labour MPs break the whip in a major display of dissent.`,
+      `The government carries the vote by ${governmentMajority}, but ${labourNoes} Labour noes point to a deep internal fracture.`
+    ];
+    narrativeSummary = `${largeDissentLeads[profileIndex]}${pressureSummary}`;
+  } else if (labourNoes > 5 || abstentionsCount > 12) {
+    narrativeSummary = `The Budget passes with a comfortable majority of ${governmentMajority}. Dissent is noticeable (${labourNoes} Labour noes${abstentionsCount > 0 ? `, ${abstentionsCount} abstentions` : ''}) and will require political follow-up.${pressureSummary}`;
   } else {
-    narrativeSummary = `The Budget passes with a commanding majority of ${governmentMajority}. Party discipline holds firm with only ${labourNoes} rebel${labourNoes !== 1 ? 's' : ''}.`;
+    const unityLeads = [
+      `The Budget passes with a commanding majority of ${governmentMajority} and strong party discipline.`,
+      `A majority of ${governmentMajority} delivers the Budget with only limited Labour defections.`,
+      `The government secures a clear majority of ${governmentMajority}; the whips contain resistance effectively.`
+    ];
+    narrativeSummary = `${unityLeads[profileIndex]}${pressureSummary}`;
   }
 
   // Key rebels narrative
@@ -1951,6 +2094,15 @@ export function simulateEnhancedParliamentaryVote(
   }
   if (labourNoes > 15 && budgetChanges.niEmployerChange && budgetChanges.niEmployerChange > 0) {
     keyRebelsNarrative.push('Several MPs in marginal seats rebelled over tax increases affecting their constituents');
+  }
+  if (labourNoes > 8 && (budgetChanges.detailedSpendingBudgets?.nhsMentalHealth || 0) < -0.3) {
+    keyRebelsNarrative.push('MPs from areas with high mental health caseloads rebelled over cuts to mental health budgets');
+  }
+  if (labourNoes > 8 && (budgetChanges.detailedSpendingBudgets?.prisonsAndProbation || 0) < -0.2) {
+    keyRebelsNarrative.push('Justice-focused MPs warned that reducing prisons funding would worsen overcrowding and voted against');
+  }
+  if (labourNoes > 10 && ((budgetChanges.detailedTaxRates?.vatDomesticEnergy || 0) > 0 || (budgetChanges.vatChange || 0) > 0)) {
+    keyRebelsNarrative.push('Cost-of-living MPs cited higher VAT burdens on household essentials and opposed the Budget');
   }
   if (abstentionsCount > 10) {
     keyRebelsNarrative.push('A significant number of MPs abstained, signalling deep unease within the parliamentary party');
@@ -1962,15 +2114,15 @@ export function simulateEnhancedParliamentaryVote(
   // Whip assessment
   let whipAssessment: string;
   if (labourNoes === 0 && abstentionsCount <= 3) {
-    whipAssessment = 'The Chief Whip reports complete party discipline. An excellent result.';
-  } else if (labourNoes <= 5) {
-    whipAssessment = 'A small number of predictable rebels. Nothing to worry about, Chancellor.';
-  } else if (labourNoes <= 20) {
-    whipAssessment = 'A notable rebellion. The whips are concerned about party management going forward.';
-  } else if (labourNoes <= 40) {
-    whipAssessment = 'A serious rebellion. The whips report significant discontent on the backbenches. The PM will want answers.';
+    whipAssessment = 'Chief Whip: clean operation. Discipline held and caucus management is currently stable.';
+  } else if (labourNoes <= 8) {
+    whipAssessment = 'Chief Whip: low-level dissent only. Manageable, but we should pre-negotiate with soft critics before the next vote.';
+  } else if (labourNoes <= 25) {
+    whipAssessment = 'Chief Whip: meaningful dissent. A concessions package is advisable to prevent further drift.';
+  } else if (labourNoes <= 50) {
+    whipAssessment = 'Chief Whip: serious discipline failure. Backbench blocs are coordinating and need direct political engagement.';
   } else {
-    whipAssessment = 'A catastrophic rebellion. The party is in open revolt. Your position may be untenable.';
+    whipAssessment = 'Chief Whip: open revolt conditions. Without a strategic reset, future fiscal votes are unlikely to be secure.';
   }
 
   return {

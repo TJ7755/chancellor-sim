@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   AdviserSystemState,
   generateAdviserOpinions,
@@ -165,55 +165,89 @@ function simulateParliamentaryVote(
     keyRebels.push('Fiscal hawks within the party voted against after the OBR confirmed the budget breaches fiscal rules');
   }
 
-  // Whip assessment
-  let whipAssessment: string;
-  if (backbenchNoes === 0 && backbenchAbstentions <= 3) {
-    whipAssessment = 'The Chief Whip reports complete party discipline. An excellent result.';
-  } else if (backbenchNoes <= 5) {
-    whipAssessment = 'A small number of predictable rebels. Nothing to worry about, Chancellor.';
-  } else if (backbenchNoes <= 20) {
-    whipAssessment = 'A notable rebellion. The whips are concerned about party management going forward.';
-  } else if (backbenchNoes <= 40) {
-    whipAssessment = 'A serious rebellion. The whips report significant discontent on the backbenches. The PM will want answers.';
-  } else {
-    whipAssessment = 'A catastrophic rebellion. The party is in open revolt. Your position may be untenable.';
+  const voteProfileIndex = (Math.abs(governmentMajority) + backbenchNoes + backbenchAbstentions + manifestoViolations) % 3;
+
+  const pressurePoints: string[] = [];
+  if (manifestoViolations > 0) {
+    pressurePoints.push(`${manifestoViolations} manifesto pledge${manifestoViolations === 1 ? '' : 's'} broken`);
+  }
+  if (!fiscalRulesMet) {
+    pressurePoints.push('fiscal framework credibility concerns');
+  }
+  if (taxIncreaseCount >= 2) {
+    pressurePoints.push('broad-based tax rises');
+  }
+  if (spendingCutCount >= 2) {
+    pressurePoints.push('visible spending restraint');
+  }
+  if (pmTrust < 35) {
+    pressurePoints.push('weak PM authority in the PLP');
   }
 
-  // Narrative summary - much more dynamic based on actual vote outcomes
+  const pressureSummary = pressurePoints.length > 0
+    ? ` Key flashpoints: ${pressurePoints.join(', ')}.`
+    : '';
+
+  const abstentionSummary = backbenchAbstentions > 0
+    ? ` ${backbenchAbstentions} Labour MP${backbenchAbstentions === 1 ? '' : 's'} abstained.`
+    : '';
+
+  const dissentWordSet = ['dissent', 'breakaway vote', 'internal split'];
+  const dissentWord = dissentWordSet[voteProfileIndex];
+
+  // Narrative summary - dynamic based on vote pattern and policy context
   let narrativeSummary: string;
   if (!passed) {
-    narrativeSummary = `The Budget has been DEFEATED by ${Math.abs(governmentMajority)} votes. ${backbenchNoes} Labour MPs voted against the government — the largest rebellion since the Iraq war. The Chancellor must resign or present a revised Budget within 48 hours.`;
-  } else if (governmentMajority < 20) {
-    narrativeSummary = `The Budget scrapes through by just ${governmentMajority} votes — a dangerously narrow margin that underlines the depth of backbench opposition. ${backbenchNoes} Labour MPs voted against and ${backbenchAbstentions} abstained.`;
-  } else if (backbenchNoes > 50) {
-    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}, but ${backbenchNoes} Labour MPs voted against the government — a major rebellion that will dominate tomorrow's headlines and raise serious questions about the Chancellor's authority.`;
-  } else if (backbenchNoes > 35) {
-    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}, but ${backbenchNoes} Labour MPs voted against — a significant rebellion that indicates substantial backbench discontent.`;
-  } else if (backbenchNoes > 25) {
-    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}. However, ${backbenchNoes} Labour MPs defied the whip — a notable rebellion that will generate critical headlines.`;
-  } else if (backbenchNoes > 15) {
-    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}. ${backbenchNoes} Labour MPs rebelled, which represents a moderate level of dissent, though the government's position remains secure.`;
-  } else if (backbenchNoes > 8) {
-    narrativeSummary = `The Budget passes comfortably with a majority of ${governmentMajority}. ${backbenchNoes} MPs voted against — a manageable rebellion within normal parameters.`;
-  } else if (backbenchNoes > 4) {
-    narrativeSummary = `The Budget passes with a commanding majority of ${governmentMajority}. Party discipline was largely maintained, with only ${backbenchNoes} backbenchers breaking ranks — the usual suspects.`;
-  } else if (backbenchNoes > 2) {
-    narrativeSummary = `The Budget passes with a strong majority of ${governmentMajority}. A handful of MPs (${backbenchNoes}) voted against, but this represents solid party support.`;
-  } else if (backbenchNoes === 2) {
-    narrativeSummary = `The Budget passes with a commanding majority of ${governmentMajority}. Two backbenchers voted against, but this represents near-unanimous party support. An excellent result.`;
-  } else if (backbenchNoes === 1) {
-    narrativeSummary = `The Budget passes with a commanding majority of ${governmentMajority}. A single backbencher broke ranks — effectively complete party unity. The whips will be delighted.`;
-  } else {
-    // backbenchNoes === 0
-    const positiveOutcomes = [
-      `The Budget passes with a commanding majority of ${governmentMajority}. Complete party discipline — every Labour MP voted with the government. A historic show of unity that will strengthen the Chancellor's hand.`,
-      `The Budget passes with a resounding majority of ${governmentMajority}. Not a single Labour MP broke ranks — a remarkable demonstration of party cohesion that sends a powerful signal to the markets.`,
-      `The Budget passes triumphantly with a majority of ${governmentMajority}. Total unity amongst Labour MPs. The Chief Whip deserves congratulations for this immaculate result.`,
-      `The Budget passes with a crushing majority of ${governmentMajority}. Zero dissent, zero rebels, zero abstentions. The sort of result that defines a strong government.`
+    const defeatLeads = [
+      `The Budget falls by ${Math.abs(governmentMajority)} votes after a coordinated backbench revolt.`,
+      `The government loses the division by ${Math.abs(governmentMajority)} votes, with the Treasury operation breaking down on the day.`,
+      `The Commons rejects the Budget by ${Math.abs(governmentMajority)} votes, handing the Chancellor a major political setback.`
     ];
-    // Pick one randomly for variety
-    const chosenIndex = Math.floor(Math.random() * positiveOutcomes.length);
-    narrativeSummary = positiveOutcomes[chosenIndex];
+    const defeatLead = defeatLeads[voteProfileIndex];
+    narrativeSummary = `${defeatLead} ${backbenchNoes} Labour MP${backbenchNoes === 1 ? '' : 's'} voted against the government.${abstentionSummary}${pressureSummary} The Chancellor must now either revise the package immediately or seek direct intervention from No.10.`;
+  } else if (governmentMajority < 20) {
+    const narrowWinLeads = [
+      `The Budget scrapes through by ${governmentMajority} votes.`,
+      `The government survives by just ${governmentMajority} votes in a knife-edge division.`,
+      `The Budget passes by a wafer-thin margin of ${governmentMajority}.`
+    ];
+    narrativeSummary = `${narrowWinLeads[voteProfileIndex]} ${backbenchNoes} Labour MP${backbenchNoes === 1 ? '' : 's'} voted against.${abstentionSummary}${pressureSummary}`;
+  } else if (backbenchNoes > 40) {
+    const dissentLeads = [
+      `The Budget passes, but ${backbenchNoes} Labour MPs vote against the whip in a major show of defiance.`,
+      `The government wins the vote, yet the scale of Labour dissent (${backbenchNoes} MPs) dominates the political story.`,
+      `The division is won, but ${backbenchNoes} Labour MPs break ranks, signalling a deep fracture.`
+    ];
+    narrativeSummary = `${dissentLeads[voteProfileIndex]} Majority: ${governmentMajority}.${abstentionSummary}${pressureSummary}`;
+  } else if (backbenchNoes > 15) {
+    narrativeSummary = `The Budget passes with a majority of ${governmentMajority}, but dissent is clear: ${backbenchNoes} Labour MPs voted against.${abstentionSummary}${pressureSummary}`;
+  } else if (backbenchNoes > 0 || backbenchAbstentions > 0) {
+    narrativeSummary = `The Budget passes with a solid majority of ${governmentMajority}. ${dissentWord.charAt(0).toUpperCase() + dissentWord.slice(1)} is contained (${backbenchNoes} noes${backbenchAbstentions > 0 ? `, ${backbenchAbstentions} abstentions` : ''}), though warning signs remain on party management.${pressureSummary}`;
+  } else {
+    const unityLeads = [
+      `The Budget passes with a commanding majority of ${governmentMajority} and full Labour unity.`,
+      `The Commons approves the Budget by ${governmentMajority} votes with no Labour dissent.`,
+      `A disciplined parliamentary operation delivers a majority of ${governmentMajority} with zero Labour defections.`
+    ];
+    narrativeSummary = `${unityLeads[voteProfileIndex]}${pressureSummary}`;
+  }
+
+  // Whip assessment
+  let whipAssessment: string;
+  if (backbenchNoes === 0 && backbenchAbstentions <= 2) {
+    whipAssessment = pmTrust >= 55
+      ? 'Chief Whip: operation executed cleanly. PM authority is holding and discipline remains high.'
+      : 'Chief Whip: despite wider tensions, the vote was held together effectively this time.';
+  } else if (backbenchNoes <= 8) {
+    whipAssessment = 'Chief Whip: low-level dissent, manageable with targeted engagement before the next fiscal vote.';
+  } else if (backbenchNoes <= 25) {
+    whipAssessment = 'Chief Whip: medium-scale backbench resistance. Several caucuses now expect policy concessions to stay on side.';
+  } else if (backbenchNoes <= 50) {
+    whipAssessment = pmTrust < 35
+      ? 'Chief Whip: serious revolt with clear leadership fragility. Whips cannot guarantee future votes without a reset.'
+      : 'Chief Whip: serious revolt. Parliamentary discipline is weakening and requires immediate political repair.';
+  } else {
+    whipAssessment = 'Chief Whip: full-spectrum breakdown in party discipline. The party machine is no longer containing dissent and your position is at acute risk.';
   }
 
   return {
@@ -280,7 +314,7 @@ const ParliamentaryVoteModal: React.FC<{
               <div className="text-sm text-red-800 font-semibold uppercase mb-1">Noes Lobby</div>
               <div className="text-5xl font-bold text-red-900">{voteResult.noes}</div>
               <div className="text-xs text-red-700 mt-2">
-                Opposition + {voteResult.rebellCount - voteResult.abstentions} government rebel{voteResult.rebellCount - voteResult.abstentions !== 1 ? 's' : ''}
+                Opposition + {voteResult.rebellCount - voteResult.abstentions} government dissenting vote{voteResult.rebellCount - voteResult.abstentions !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -296,14 +330,14 @@ const ParliamentaryVoteModal: React.FC<{
             <p className="text-amber-900 text-sm">{voteResult.whipAssessment}</p>
           </div>
 
-          {/* Rebellion details */}
+          {/* Vote dynamics details */}
           {voteResult.keyRebels.length > 0 && (
             <div className="mb-4">
               <button
                 onClick={() => setShowDetails(!showDetails)}
                 className="text-sm text-blue-700 hover:text-blue-900 font-semibold"
               >
-                {showDetails ? 'Hide rebellion details' : 'Show rebellion details'}
+                {showDetails ? 'Hide vote dynamics' : 'Show vote dynamics'}
               </button>
               {showDetails && (
                 <div className="mt-2 space-y-2">
@@ -929,6 +963,38 @@ const INITIAL_TAXES = {
  * departmental spending has changed in the game state.
  */
 function reconstructSpendingFromGameState(gameState: any): Map<string, SpendingChange> {
+  const detailedSpending = gameState?.fiscal?.detailedSpending;
+  if (Array.isArray(detailedSpending) && detailedSpending.length > 0) {
+    const spendingMap = new Map<string, SpendingChange>();
+
+    Object.entries(INITIAL_SPENDING).forEach(([key, item]) => {
+      spendingMap.set(key, { ...item });
+    });
+
+    detailedSpending.forEach((item: any) => {
+      const existing = spendingMap.get(item.id);
+      const inferredType: 'resource' | 'capital' =
+        item.type === 'capital'
+          ? 'capital'
+          : item.type === 'resource'
+            ? 'resource'
+            : (item.capitalAllocation || 0) > 0 && (item.currentAllocation || 0) === 0
+              ? 'capital'
+              : 'resource';
+
+      spendingMap.set(item.id, {
+        id: item.id,
+        department: item.department || existing?.department || 'Other',
+        programme: item.programme || existing?.programme,
+        currentBudget: typeof item.currentBudget === 'number' ? item.currentBudget : (existing?.currentBudget || 0),
+        proposedBudget: typeof item.currentBudget === 'number' ? item.currentBudget : (existing?.currentBudget || 0),
+        type: inferredType,
+      });
+    });
+
+    return spendingMap;
+  }
+
   // Get current game state spending (aggregates)
   const currentNHS = gameState.fiscal.spending.nhs;
   const currentEducation = gameState.fiscal.spending.education;
@@ -990,6 +1056,97 @@ function reconstructSpendingFromGameState(gameState: any): Map<string, SpendingC
   });
 
   return spendingMap;
+}
+
+function reconstructTaxesFromGameState(gameState: any): Map<string, TaxChange> {
+  const taxesMap = new Map<string, TaxChange>();
+
+  Object.entries(INITIAL_TAXES).forEach(([key, tax]) => {
+    taxesMap.set(key, { ...tax });
+  });
+
+  const fiscal = gameState?.fiscal;
+  if (!fiscal) return taxesMap;
+
+  const mainTaxMapping: Record<string, number | undefined> = {
+    incomeTaxBasic: fiscal.incomeTaxBasicRate,
+    incomeTaxHigher: fiscal.incomeTaxHigherRate,
+    incomeTaxAdditional: fiscal.incomeTaxAdditionalRate,
+    employeeNI: fiscal.nationalInsuranceRate,
+    employerNI: fiscal.employerNIRate,
+    vat: fiscal.vatRate,
+    corporationTax: fiscal.corporationTaxRate,
+  };
+
+  Object.entries(mainTaxMapping).forEach(([id, rate]) => {
+    const existing = taxesMap.get(id);
+    if (existing && typeof rate === 'number') {
+      taxesMap.set(id, {
+        ...existing,
+        currentRate: rate,
+        proposedRate: rate,
+      });
+    }
+  });
+
+  if (Array.isArray(fiscal.detailedTaxes)) {
+    fiscal.detailedTaxes.forEach((taxItem: any) => {
+      const existing = taxesMap.get(taxItem.id);
+      if (existing && typeof taxItem.currentRate === 'number') {
+        taxesMap.set(taxItem.id, {
+          ...existing,
+          currentRate: taxItem.currentRate,
+          proposedRate: taxItem.currentRate,
+        });
+      }
+    });
+  }
+
+  return taxesMap;
+}
+
+const BUDGET_DRAFT_STORAGE_KEY = 'chancellor-budget-draft-v2';
+
+function loadBudgetDraft(turn: number): { taxes: Map<string, TaxChange>; spending: Map<string, SpendingChange> } | null {
+  try {
+    const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.turn !== turn || !Array.isArray(parsed.taxes) || !Array.isArray(parsed.spending)) {
+      return null;
+    }
+
+    return {
+      taxes: new Map(parsed.taxes),
+      spending: new Map(parsed.spending),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveBudgetDraft(turn: number, taxes: Map<string, TaxChange>, spending: Map<string, SpendingChange>): void {
+  try {
+    localStorage.setItem(
+      BUDGET_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        turn,
+        taxes: Array.from(taxes.entries()),
+        spending: Array.from(spending.entries()),
+      })
+    );
+  } catch {
+    // ignore localStorage failures
+  }
+}
+
+function clearBudgetDraft(): void {
+  try {
+    localStorage.removeItem(BUDGET_DRAFT_STORAGE_KEY);
+  } catch {
+    // ignore localStorage failures
+  }
 }
 
 const INITIAL_SPENDING = {
@@ -1444,6 +1601,31 @@ const THRESHOLD_TAX_IDS = new Set([
   'badrLifetimeLimit',
 ]);
 
+function getTaxRateLimits(tax: TaxChange): { min: number; max: number } {
+  if (tax.unit === '%' || tax.unit === 'Index' || tax.unit === 'p/£') {
+    return { min: 0, max: 100 };
+  }
+
+  if (tax.unit === 'p/litre') {
+    return { min: 0, max: 200 };
+  }
+
+  if (tax.unit === '£') {
+    return { min: 0, max: Math.max(1000, tax.currentRate * 2) };
+  }
+
+  if (tax.unit === 'System') {
+    return { min: 0, max: 100 };
+  }
+
+  return { min: 0, max: 1000000 };
+}
+
+function clampTaxRate(tax: TaxChange, newRate: number): number {
+  const { min, max } = getTaxRateLimits(tax);
+  return Math.min(max, Math.max(min, newRate));
+}
+
 const NHS_SPENDING_ITEM_IDS = [
   'nhsEngland',
   'nhsPrimaryCare',
@@ -1461,9 +1643,28 @@ const DEFENCE_SPENDING_ITEM_IDS = [
   'defenceEquipment',
 ];
 
+const EDUCATION_SPENDING_ITEM_IDS = [
+  'schools',
+  'pupilPremium',
+  'furtherEducation',
+  'higherEducation',
+  'earlyYears',
+  'send',
+  'schoolsCapital',
+];
+
+const WELFARE_SPENDING_ITEM_IDS = [
+  'statePension',
+  'universalCredit',
+  'pip',
+  'housingBenefit',
+  'childBenefit',
+];
+
 // Budget-screen welfare lines are reconstructed proportionally from the welfare aggregate.
 // Use a fixed baseline share to derive an annual state pension target from fiscal-year welfare baseline.
-const STATE_PENSION_SHARE_OF_WELFARE = 130.0 / 220.6;
+// Welfare baseline in the current fiscal model is £290bn, with state pension at £130bn.
+const STATE_PENSION_SHARE_OF_WELFARE = 130.0 / 290.0;
 const TRIPLE_LOCK_UPLIFT_RATE = 1.085;
 const GAME_START_FISCAL_YEAR = 2024;
 const INITIAL_STATE_PENSION_BUDGET = 290 * STATE_PENSION_SHARE_OF_WELFARE;
@@ -1477,6 +1678,15 @@ function sumSpendingItems(
     const item = spendingMap.get(id);
     return sum + (item ? item[field] : 0);
   }, 0);
+}
+
+function calculateDepartmentDelta(
+  spendingMap: Map<string, SpendingChange>,
+  ids: string[]
+): number {
+  const currentTotal = sumSpendingItems(spendingMap, ids, 'currentBudget');
+  const proposedTotal = sumSpendingItems(spendingMap, ids, 'proposedBudget');
+  return proposedTotal - currentTotal;
 }
 
 // ============================================================================
@@ -1617,12 +1827,13 @@ interface BudgetSystemProps {
 export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => {
   const gameActions = useGameActions();
   const gameState = useGameState();
-  const [taxes, setTaxes] = useState<Map<string, TaxChange>>(
-    new Map(Object.entries(INITIAL_TAXES))
-  );
+  const [taxes, setTaxes] = useState<Map<string, TaxChange>>(() => {
+    const draft = loadBudgetDraft(gameState.metadata.currentTurn);
+    return draft ? draft.taxes : reconstructTaxesFromGameState(gameState);
+  });
   const [spending, setSpending] = useState<Map<string, SpendingChange>>(() => {
-    // Initialize from current game state, not baseline
-    return reconstructSpendingFromGameState(gameState);
+    const draft = loadBudgetDraft(gameState.metadata.currentTurn);
+    return draft ? draft.spending : reconstructSpendingFromGameState(gameState);
   });
   const [budgetType, setBudgetType] = useState<'spring' | 'autumn' | 'emergency'>('spring');
   const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints'>('taxes');
@@ -1634,11 +1845,29 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [fiscalRuleMessage, setFiscalRuleMessage] = useState<string | null>(null);
   const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{count: number, mpCount: number} | null>(null);
   const [pmInterventionSuccess, setPMInterventionSuccess] = useState(false);
+  const lastTurnRef = useRef<number | null>(null);
 
-  // Sync spending state when game state changes (after turn processing or budget submission)
+  // Keep unsent draft persistent across navigation
   useEffect(() => {
+    saveBudgetDraft(gameState.metadata.currentTurn, taxes, spending);
+  }, [gameState.metadata.currentTurn, taxes, spending]);
+
+  // When the turn changes, clear old draft and initialise from the latest game state
+  useEffect(() => {
+    if (lastTurnRef.current === null) {
+      lastTurnRef.current = gameState.metadata.currentTurn;
+      return;
+    }
+
+    if (lastTurnRef.current === gameState.metadata.currentTurn) {
+      return;
+    }
+
+    lastTurnRef.current = gameState.metadata.currentTurn;
+    clearBudgetDraft();
+    setTaxes(reconstructTaxesFromGameState(gameState));
     setSpending(reconstructSpendingFromGameState(gameState));
-  }, [gameState.fiscal.spending]);
+  }, [gameState]);
 
   // Force save after PM intervention to ensure changes persist
   // BUGFIX: Use setTimeout to ensure all async state updates complete before saving
@@ -1679,13 +1908,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const nhsFiscalYearBaselineTotal =
     gameState.fiscal.fiscalYearStartSpending?.nhs ?? gameState.fiscal.spending.nhs;
   const nhsAnnualTargetTotal = nhsFiscalYearBaselineTotal * 1.02;
-  // Triple lock should compound annually from the initial baseline: base * (1.085 ^ years).
-  const tripleLockYearsElapsed = Math.max(
-    1,
-    gameState.fiscal.currentFiscalYear - GAME_START_FISCAL_YEAR + 1
-  );
-  const statePensionAnnualTarget =
-    INITIAL_STATE_PENSION_BUDGET * Math.pow(TRIPLE_LOCK_UPLIFT_RATE, tripleLockYearsElapsed);
+  // Triple lock should be annual (fixed to fiscal-year baseline), not compounding monthly.
+  // Use fiscal year start spending as baseline and apply triple lock uplift, just like NHS.
+  const statePensionFiscalYearBaseline =
+    gameState.fiscal.fiscalYearStartSpending?.welfare
+      ? (gameState.fiscal.fiscalYearStartSpending.welfare * STATE_PENSION_SHARE_OF_WELFARE)
+      : (gameState.fiscal.spending.welfare * STATE_PENSION_SHARE_OF_WELFARE);
+  const statePensionAnnualTarget = statePensionFiscalYearBaseline * TRIPLE_LOCK_UPLIFT_RATE;
   const currentNHSTotal = useMemo(
     () => sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget'),
     [spending]
@@ -2107,10 +2336,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const niEmployee = taxes.get('employeeNI');
     const niEmployer = taxes.get('employerNI');
     const vat = taxes.get('vat');
-    const nhsSpending = spending.get('nhs');
-    const educationSpending = spending.get('education');
-    const defenceSpending = spending.get('defence');
-    const welfareSpending = spending.get('welfare');
+
+    const nhsSpendingChange = calculateDepartmentDelta(spending, NHS_SPENDING_ITEM_IDS);
+    const educationSpendingChange = calculateDepartmentDelta(spending, EDUCATION_SPENDING_ITEM_IDS);
+    const defenceSpendingChange = calculateDepartmentDelta(spending, DEFENCE_SPENDING_ITEM_IDS);
+    const welfareSpendingChange = calculateDepartmentDelta(spending, WELFARE_SPENDING_ITEM_IDS);
 
     const budgetChanges = {
       incomeTaxBasicChange: incomeTaxBasic ? incomeTaxBasic.proposedRate - incomeTaxBasic.currentRate : 0,
@@ -2119,10 +2349,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       niEmployeeChange: niEmployee ? niEmployee.proposedRate - niEmployee.currentRate : 0,
       niEmployerChange: niEmployer ? niEmployer.proposedRate - niEmployer.currentRate : 0,
       vatChange: vat ? vat.proposedRate - vat.currentRate : 0,
-      nhsSpendingChange: nhsSpending ? nhsSpending.proposedBudget - nhsSpending.currentBudget : 0,
-      educationSpendingChange: educationSpending ? educationSpending.proposedBudget - educationSpending.currentBudget : 0,
-      defenceSpendingChange: defenceSpending ? defenceSpending.proposedBudget - defenceSpending.currentBudget : 0,
-      welfareSpendingChange: welfareSpending ? welfareSpending.proposedBudget - welfareSpending.currentBudget : 0,
+      nhsSpendingChange,
+      educationSpendingChange,
+      defenceSpendingChange,
+      welfareSpendingChange,
+      detailedTaxRates: Object.fromEntries(
+        Array.from(taxes.values()).map((tax) => [tax.id, tax.proposedRate - tax.currentRate])
+      ),
+      detailedSpendingBudgets: Object.fromEntries(
+        Array.from(spending.values()).map((item) => [item.id, item.proposedBudget - item.currentBudget])
+      ),
     };
 
     // Get manifesto violations
@@ -2141,7 +2377,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       const newTaxes = new Map(prev);
       const tax = newTaxes.get(taxId);
       if (tax) {
-        newTaxes.set(taxId, { ...tax, proposedRate: newRate });
+        newTaxes.set(taxId, { ...tax, proposedRate: clampTaxRate(tax, newRate) });
       }
       return newTaxes;
     });
@@ -2263,7 +2499,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
       default:
         // For fiscal rules, show a message that adjustments are complex
-        setFiscalRuleMessage(`Fiscal rule commitments require complex adjustments to both taxes and spending. Use the sliders to manually adjust your budget to meet the ${constraintId.replace(/_/g, ' ')} requirement.`);
+        setFiscalRuleMessage(`Fiscal rule commitments require complex adjustments to both taxes and spending. Use the input fields to manually adjust your budget to meet the ${constraintId.replace(/_/g, ' ')} requirement.`);
         break;
     }
   }, [spending, handleSpendingChange, nhsAnnualTargetTotal, statePensionAnnualTarget]);
@@ -2281,9 +2517,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, []);
 
   const resetBudget = useCallback(() => {
-    setTaxes(new Map(Object.entries(INITIAL_TAXES)));
-    setSpending(new Map(Object.entries(INITIAL_SPENDING)));
-  }, []);
+    setTaxes(reconstructTaxesFromGameState(gameState));
+    setSpending(reconstructSpendingFromGameState(gameState));
+    clearBudgetDraft();
+  }, [gameState]);
 
   const submitBudget = useCallback(() => {
     // Count tax increases and spending cuts for vote simulation
@@ -2313,12 +2550,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const incomeTaxHigher = taxes.get('incomeTaxHigher');
     const incomeTaxAdditional = taxes.get('incomeTaxAdditional');
     const niEmployee = taxes.get('employeeNI');
-    const niEmployer = taxes.get('employer NI');
+    const niEmployer = taxes.get('employerNI');
     const vat = taxes.get('vat');
-    const nhsSpending = spending.get('nhs');
-    const educationSpending = spending.get('education');
-    const defenceSpending = spending.get('defence');
-    const welfareSpending = spending.get('welfare');
+
+    const nhsSpendingChange = calculateDepartmentDelta(spending, NHS_SPENDING_ITEM_IDS);
+    const educationSpendingChange = calculateDepartmentDelta(spending, EDUCATION_SPENDING_ITEM_IDS);
+    const defenceSpendingChange = calculateDepartmentDelta(spending, DEFENCE_SPENDING_ITEM_IDS);
+    const welfareSpendingChange = calculateDepartmentDelta(spending, WELFARE_SPENDING_ITEM_IDS);
 
     const budgetChanges = {
       incomeTaxBasicChange: incomeTaxBasic ? incomeTaxBasic.proposedRate - incomeTaxBasic.currentRate : 0,
@@ -2327,10 +2565,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       niEmployeeChange: niEmployee ? niEmployee.proposedRate - niEmployee.currentRate : 0,
       niEmployerChange: niEmployer ? niEmployer.proposedRate - niEmployer.currentRate : 0,
       vatChange: vat ? vat.proposedRate - vat.currentRate : 0,
-      nhsSpendingChange: nhsSpending ? nhsSpending.proposedBudget - nhsSpending.currentBudget : 0,
-      educationSpendingChange: educationSpending ? educationSpending.proposedBudget - educationSpending.currentBudget : 0,
-      defenceSpendingChange: defenceSpending ? defenceSpending.proposedBudget - defenceSpending.currentBudget : 0,
-      welfareSpendingChange: welfareSpending ? welfareSpending.proposedBudget - welfareSpending.currentBudget : 0,
+      nhsSpendingChange,
+      educationSpendingChange,
+      defenceSpendingChange,
+      welfareSpendingChange,
+      detailedTaxRates: Object.fromEntries(
+        Array.from(taxes.values()).map((tax) => [tax.id, tax.proposedRate - tax.currentRate])
+      ),
+      detailedSpendingBudgets: Object.fromEntries(
+        Array.from(spending.values()).map((item) => [item.id, item.proposedBudget - item.currentBudget])
+      ),
     };
 
     // Simulate parliamentary vote with enhanced MP system
@@ -2355,12 +2599,46 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // Record vote results to IndexedDB
     if (result.individualVotes && gameState.mpSystem.allMPs.size > 0) {
+      const granularTaxDelta = Object.fromEntries(
+        Array.from(taxes.values()).map((tax) => [tax.id, tax.proposedRate - tax.currentRate])
+      ) as Record<string, number>;
+      const granularSpendingDelta = Object.fromEntries(
+        Array.from(spending.values()).map((item) => [item.id, item.proposedBudget - item.currentBudget])
+      ) as Record<string, number>;
+
+      const buildVoteReasoning = (mpId: string, choice: 'aye' | 'noe' | 'abstain'): string => {
+        const mp = gameState.mpSystem.allMPs.get(mpId);
+        if (!mp) return `Voted ${choice} on ${budgetType} budget`;
+
+        if (choice === 'noe') {
+          if ((granularSpendingDelta.nhsMentalHealth || 0) < -0.3 && mp.constituency.demographics.unemploymentRate > 5.2) {
+            return 'Opposed due to cuts to mental health provision in a high-need constituency.';
+          }
+          if ((granularSpendingDelta.prisonsAndProbation || 0) < -0.2) {
+            return 'Opposed over prisons funding, citing overcrowding and public safety risks.';
+          }
+          if ((granularTaxDelta.vatDomesticEnergy || 0) > 0 || (granularTaxDelta.vat || 0) > 0) {
+            return 'Opposed due to higher VAT pressures worsening local cost-of-living concerns.';
+          }
+          return 'Opposed on constituency impact and policy alignment grounds.';
+        }
+
+        if (choice === 'abstain') {
+          if ((granularSpendingDelta.courts || 0) < -0.1 || (granularSpendingDelta.legalAid || 0) < -0.1) {
+            return 'Abstained over concern about court delays and legal aid pressures.';
+          }
+          return 'Abstained, citing unresolved constituency concerns about the package.';
+        }
+
+        return 'Supported after balancing constituency impacts against party and fiscal priorities.';
+      };
+
       const voteRecords = Array.from(result.individualVotes.entries()).map(([mpId, choice]) => ({
         mpId,
         budgetId: `budget_${gameState.metadata.currentTurn}`,
         month: gameState.metadata.currentTurn,
         choice,
-        reasoning: `Voted ${choice} on ${budgetType} budget`,
+        reasoning: buildVoteReasoning(mpId, choice),
       }));
       batchRecordBudgetVotes(voteRecords as any).catch(err =>
         console.error('Failed to record votes:', err)
@@ -2518,6 +2796,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       }
     }
 
+    const detailedTaxRates: Record<string, number> = {};
+    taxes.forEach((tax) => {
+      detailedTaxRates[tax.id] = tax.proposedRate;
+    });
+    changes.detailedTaxRates = detailedTaxRates;
+
+    const detailedSpendingBudgets: Record<string, number> = {};
+    spending.forEach((item) => {
+      detailedSpendingBudgets[item.id] = item.proposedBudget;
+    });
+    changes.detailedSpendingBudgets = detailedSpendingBudgets;
+
     // Apply to game state
     gameActions.applyBudgetChanges(changes);
 
@@ -2533,6 +2823,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       updatedSpending.set(key, { ...item, currentBudget: item.proposedBudget });
     });
     setSpending(updatedSpending);
+    clearBudgetDraft();
   }, [taxes, spending, gameActions, voteResult]);
 
   const handleVoteContinue = useCallback(() => {
@@ -2569,8 +2860,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const renderTaxControl = (tax: TaxChange) => {
     const change = tax.proposedRate - tax.currentRate;
     const changeColour = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-grey-600';
+    const { min: minRate, max: maxRate } = getTaxRateLimits(tax);
 
-    // Determine slider step based on tax type and magnitude
+    // Determine input step based on tax type and magnitude
     const isThreshold = THRESHOLD_TAX_IDS.has(tax.id);
     let step: number;
     if (tax.unit === 'p/litre') {
@@ -2631,19 +2923,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <input
-            type="range"
-            min={tax.currentRate * 0.5}
-            max={tax.currentRate * 1.5}
-            step={step}
-            value={tax.proposedRate}
-            onChange={(e) => handleTaxChange(tax.id, parseFloat(e.target.value))}
-            className="w-full h-2 bg-grey-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="flex justify-between text-xs text-grey-500">
-            <span>{formatValue(tax.currentRate * 0.5)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
-            <span className="font-semibold text-grey-700">Current: {formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
-            <span>{formatValue(tax.currentRate * 1.5)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
+          <label className="text-xs text-grey-600 uppercase tracking-wide">Proposed value</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              step={step}
+              min={minRate}
+              max={maxRate}
+              value={Number.isFinite(tax.proposedRate) ? tax.proposedRate : ''}
+              onChange={(e) => {
+                const parsed = parseFloat(e.target.value);
+                handleTaxChange(tax.id, Number.isFinite(parsed) ? parsed : tax.currentRate);
+              }}
+              className="w-full border border-grey-300 rounded px-3 py-2 text-grey-900"
+            />
+            <span className="text-sm text-grey-600 min-w-[4rem]">{tax.unit}</span>
+          </div>
+          <div className="text-xs text-grey-500">
+            Current: <span className="font-semibold text-grey-700">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
           </div>
         </div>
 
@@ -2681,7 +2978,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     let targetBudget: number | null = null;
     let targetLabel = '';
 
-    if (NHS_SPENDING_ITEM_IDS.includes(item.id) && currentNHSTotal > 0) {
+    if (
+      NHS_SPENDING_ITEM_IDS.includes(item.id) &&
+      currentNHSTotal > 0 &&
+      currentNHSTotal < nhsAnnualTargetTotal - 0.01
+    ) {
       // NHS annual pledge target is measured from fiscal-year start, then apportioned across NHS lines.
       const nhsShare = item.currentBudget / currentNHSTotal;
       targetBudget = nhsAnnualTargetTotal * nhsShare;
@@ -2695,20 +2996,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         targetBudget = item.currentBudget * scalingFactor;
         targetLabel = 'Defence pledge target';
       }
-    } else if (item.id === 'statePension') {
+    } else if (item.id === 'statePension' && item.currentBudget < statePensionAnnualTarget - 0.01) {
       // Triple lock target is annual from fiscal-year baseline.
       targetBudget = statePensionAnnualTarget;
       targetLabel = 'Triple lock annual target';
-    }
-
-    const minBudget = item.currentBudget * 0.5;
-    const maxBudget = item.currentBudget * 1.5;
-
-    // Calculate target position for visual marker
-    let targetPosition: number | null = null;
-    if (targetBudget) {
-      targetPosition = ((targetBudget - minBudget) / (maxBudget - minBudget)) * 100;
-      targetPosition = Math.max(0, Math.min(100, targetPosition));
     }
 
     return (
@@ -2743,37 +3034,29 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <div className="relative">
+          <label className="text-xs text-grey-600 uppercase tracking-wide">Proposed budget</label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-grey-600">£</span>
             <input
-              type="range"
-              min={minBudget}
-              max={maxBudget}
+              type="number"
+              min={0}
               step={0.1}
-              value={item.proposedBudget}
-              onChange={(e) => handleSpendingChange(item.id, parseFloat(e.target.value))}
-              className="w-full h-2 bg-grey-200 rounded-lg appearance-none cursor-pointer relative z-10"
-              style={{ background: `linear-gradient(to right, #e5e7eb ${targetPosition || 0}%, #e5e7eb ${targetPosition || 0}%)` }}
+              value={Number.isFinite(item.proposedBudget) ? item.proposedBudget : ''}
+              onChange={(e) => {
+                const parsed = parseFloat(e.target.value);
+                const nextValue = Number.isFinite(parsed) ? Math.max(0, parsed) : item.currentBudget;
+                handleSpendingChange(item.id, nextValue);
+              }}
+              className="w-full border border-grey-300 rounded px-3 py-2 text-grey-900"
             />
-            {/* Target marker */}
-            {targetPosition !== null && (
-              <div
-                className="absolute top-0 h-6 w-0.5 bg-amber-500 pointer-events-none"
-                style={{ left: `${targetPosition}%`, transform: 'translateX(-50%)', zIndex: 5 }}
-                title={`Target: £${targetBudget?.toFixed(1)}bn`}
-              >
-                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 text-xs text-amber-700 font-bold whitespace-nowrap">
-                  ▼
-                </div>
-              </div>
-            )}
+            <span className="text-sm text-grey-600">bn</span>
           </div>
           <div className="flex justify-between text-xs text-grey-500">
-            <span>£{minBudget.toFixed(1)}bn</span>
             <span className="font-semibold text-grey-700">Current: £{item.currentBudget.toFixed(1)}bn</span>
             {targetBudget && (
               <span className="font-semibold text-amber-700">Target: £{targetBudget.toFixed(1)}bn</span>
             )}
-            <span>£{maxBudget.toFixed(1)}bn</span>
+            <span>Minimum: £0.0bn</span>
           </div>
         </div>
 
@@ -2890,7 +3173,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <button
                 onClick={() => applyManifestoCommitment(constraint.id)}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colours"
-                title="Automatically adjust sliders to minimum values required to satisfy this commitment"
+                title="Automatically adjust values to the minimum required to satisfy this commitment"
               >
                 Apply
               </button>

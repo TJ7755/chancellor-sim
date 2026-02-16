@@ -84,6 +84,18 @@ interface ServicesState {
   infrastructureQuality: number;
   nhsWaitingList: number;
   nhsRealFundingGrowth: number;
+  mentalHealthAccess?: number;
+  primaryCareAccess?: number;
+  socialCareQuality?: number;
+  prisonSafety?: number;
+  courtBacklogPerformance?: number;
+  legalAidAccess?: number;
+  policingEffectiveness?: number;
+  borderSecurityPerformance?: number;
+  railReliability?: number;
+  affordableHousingDelivery?: number;
+  floodResilience?: number;
+  researchInnovationOutput?: number;
 }
 
 interface MarketState {
@@ -608,6 +620,20 @@ const PoliticalPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
  */
 const ServicesPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
   const { services } = state;
+  const expandedMetrics = [
+    { label: 'Mental Health Access', value: services.mentalHealthAccess ?? 55 },
+    { label: 'Primary Care Access', value: services.primaryCareAccess ?? 58 },
+    { label: 'Social Care Quality', value: services.socialCareQuality ?? 52 },
+    { label: 'Prison Safety', value: services.prisonSafety ?? 48 },
+    { label: 'Court Performance', value: services.courtBacklogPerformance ?? 50 },
+    { label: 'Legal Aid Access', value: services.legalAidAccess ?? 51 },
+    { label: 'Policing Effectiveness', value: services.policingEffectiveness ?? 57 },
+    { label: 'Border Security', value: services.borderSecurityPerformance ?? 55 },
+    { label: 'Rail Reliability', value: services.railReliability ?? 54 },
+    { label: 'Affordable Housing Delivery', value: services.affordableHousingDelivery ?? 48 },
+    { label: 'Flood Resilience', value: services.floodResilience ?? 53 },
+    { label: 'Innovation Output', value: services.researchInnovationOutput ?? 63 },
+  ];
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -633,6 +659,14 @@ const ServicesPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
           value={`${formatNumber(services.infrastructureQuality, 0)}/100`}
           status={services.infrastructureQuality > 65 ? 'good' : services.infrastructureQuality > 50 ? 'neutral' : 'bad'}
         />
+        {expandedMetrics.map((metric) => (
+          <MetricCard
+            key={metric.label}
+            label={metric.label}
+            value={`${formatNumber(metric.value, 0)}/100`}
+            status={metric.value > 65 ? 'good' : metric.value > 50 ? 'neutral' : 'bad'}
+          />
+        ))}
       </div>
     </div>
   );
