@@ -7,6 +7,7 @@
 
 import React from 'react';
 import type { EmergencyProgramme } from './game-state';
+import { NEWSPAPER_HEADLINES, HeadlineCondition, HeadlineEntry } from './data/newspaper-headlines';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -502,7 +503,7 @@ const EVENT_TEMPLATES: EventTemplate[] = [
   {
     type: 'scandal',
     severity: 'major',
-    probability: 0.01,
+    probability: 0.005, // ~6% per year
     generate: (state) => ({
       type: 'scandal',
       severity: 'major',
@@ -648,368 +649,81 @@ export function generateEvents(state: any): RandomEvent[] {
 // NEWSPAPER HEADLINE GENERATION
 // ============================================================================
 
-interface HeadlineTemplate {
-  conditions: (state: any) => boolean;
-  priority: number;  // Higher priority headlines shown first
-  biasedVersions: Record<NewspaperBias, {
-    headline: string;
-    subheading: string;
-  }>;
+// Helper to check if a headline's conditions are met
+function checkHeadlineConditions(conditions: HeadlineCondition, state: any): boolean {
+  const { economy, political, fiscal } = state;
+
+  if (conditions.minGdpGrowth !== undefined && (economy?.gdpGrowthAnnual ?? 0) < conditions.minGdpGrowth) return false;
+  if (conditions.maxGdpGrowth !== undefined && (economy?.gdpGrowthAnnual ?? 0) > conditions.maxGdpGrowth) return false;
+
+  if (conditions.minInflation !== undefined && (economy?.inflationCPI ?? 0) < conditions.minInflation) return false;
+  if (conditions.maxInflation !== undefined && (economy?.inflationCPI ?? 0) > conditions.maxInflation) return false;
+
+  if (conditions.minUnemployment !== undefined && (economy?.unemploymentRate ?? 0) < conditions.minUnemployment) return false;
+  if (conditions.maxUnemployment !== undefined && (economy?.unemploymentRate ?? 0) > conditions.maxUnemployment) return false;
+
+  if (conditions.minApproval !== undefined && (political?.publicApproval ?? 50) < conditions.minApproval) return false;
+  if (conditions.maxApproval !== undefined && (political?.publicApproval ?? 50) > conditions.maxApproval) return false;
+
+  if (conditions.minDeficit !== undefined && (fiscal?.deficit_bn ?? 0) < conditions.minDeficit) return false;
+  if (conditions.maxDeficit !== undefined && (fiscal?.deficit_bn ?? 0) > conditions.maxDeficit) return false;
+
+  if (conditions.minDebt !== undefined && (fiscal?.debtToGdpPercent ?? 0) < conditions.minDebt) return false;
+  if (conditions.maxDebt !== undefined && (fiscal?.debtToGdpPercent ?? 0) > conditions.maxDebt) return false;
+
+  // Party check (simple string match for now)
+  if (conditions.partyInPower && state.political?.party !== conditions.partyInPower) return false;
+
+  return true;
 }
 
-const HEADLINE_TEMPLATES: HeadlineTemplate[] = [
-  // === RECESSION ===
-  {
-    conditions: (state) => (state.economy?.gdpGrowthAnnual ?? 0) < -0.5,
-    priority: 100,
-    biasedVersions: {
-      'left': {
-        headline: 'Austerity Bites: Britain Slides Into Recession',
-        subheading: 'Devastating cuts to public services blamed as economy shrinks for second consecutive quarter'
-      },
-      'centre-left': {
-        headline: 'UK Economy Contracts as Growth Falters',
-        subheading: 'Technical recession confirmed as GDP falls amid weak consumer spending and business investment'
-      },
-      'centre-right': {
-        headline: 'Recession Fears Deepen as Output Falls',
-        subheading: 'Treasury faces questions over economic strategy as contraction exceeds forecasts'
-      },
-      'right': {
-        headline: 'Tax Burden Crushing Growth, Economists Warn',
-        subheading: 'Britain enters recession as highest tax take since war stifles enterprise and investment'
-      },
-      'populist-right': {
-        headline: 'OUR JOBS AT RISK: Economy in Freefall',
-        subheading: 'Hard-working families fear redundancies as Britain crashes into recession under tax-and-spend Chancellor'
-      },
-      'financial': {
-        headline: 'UK Enters Technical Recession',
-        subheading: 'GDP contracts 0.2% as weak productivity and tight fiscal policy dampen demand'
-      }
-    }
-  },
+// Generate a headline based on state
+export function generateHeadline(state: any, newspaper: NewspaperSource): { headline: string; subheading: string } {
+  // 1. Filter valid headlines
+  const validHeadlines = NEWSPAPER_HEADLINES.filter((entry: HeadlineEntry) => checkHeadlineConditions(entry.conditions, state));
 
-  // === BOOM ===
-  {
-    conditions: (state) => (state.economy?.gdpGrowthAnnual ?? 0) > 2.5,
-    priority: 95,
-    biasedVersions: {
-      'left': {
-        headline: 'Economic Growth Returns Despite Cuts',
-        subheading: 'Recovery driven by resilient consumers, but campaigners warn prosperity not reaching poorest'
-      },
-      'centre-left': {
-        headline: 'UK Economy Rebounds With Strong Growth',
-        subheading: 'Business investment and exports drive best quarterly performance in two years'
-      },
-      'centre-right': {
-        headline: 'Chancellor Hails Return to Growth',
-        subheading: 'Treasury claims vindication as economy expands at fastest rate since pandemic'
-      },
-      'right': {
-        headline: 'Free Enterprise Delivers: Growth Surges',
-        subheading: 'Pro-business policies bear fruit as Britain outpaces European rivals in economic race'
-      },
-      'populist-right': {
-        headline: 'BOOM TIME: Jobs and Wages Soar',
-        subheading: 'British workers celebrate as economy roars back to life with biggest expansion in years'
-      },
-      'financial': {
-        headline: 'UK Growth Beats Forecasts',
-        subheading: 'Stronger-than-expected expansion raises questions about inflation risks and BoE response'
-      }
-    }
-  },
-
-  // === INFLATION CRISIS ===
-  {
-    conditions: (state) => (state.economy?.inflationCPI ?? 0) > 7,
-    priority: 90,
-    biasedVersions: {
-      'left': {
-        headline: 'Cost of Living Catastrophe Deepens',
-        subheading: 'Inflation soars past 7% as millions struggle to afford food and heating amid real wage collapse'
-      },
-      'centre-left': {
-        headline: 'Inflation Surges Despite BoE Action',
-        subheading: 'Price pressures show little sign of abating as consumers face worst squeeze in generation'
-      },
-      'centre-right': {
-        headline: 'Inflation Battle Far From Won',
-        subheading: 'Persistent price rises test Chancellor resolve on public sector pay and fiscal restraint'
-      },
-      'right': {
-        headline: 'Government Spending Fuelling Inflation',
-        subheading: 'Economists link price spiral to lack of fiscal discipline as debt burden grows'
-      },
-      'populist-right': {
-        headline: 'FAMILIES CRUSHED BY PRICE NIGHTMARE',
-        subheading: 'Everything costs more while Chancellor tinkers: Average household now £2,000 worse off'
-      },
-      'financial': {
-        headline: 'Inflation Exceeds 7% as Core Pressures Build',
-        subheading: 'Services inflation remains elevated, complicating Bank of England task and pressuring gilt markets'
-      }
-    }
-  },
-
-  // === UNEMPLOYMENT RISING ===
-  {
-    conditions: (state) => (state.economy?.unemploymentRate ?? 0) > 6,
-    priority: 85,
-    biasedVersions: {
-      'left': {
-        headline: 'Jobs Bloodbath as Unemployment Soars',
-        subheading: 'Treasury austerity policies destroying livelihoods as redundancies reach crisis levels'
-      },
-      'centre-left': {
-        headline: 'Unemployment Climbs Above 6%',
-        subheading: 'Labour market weakening rapidly as businesses cut costs amid economic uncertainty'
-      },
-      'centre-right': {
-        headline: 'Jobs Market Cools as Economy Slows',
-        subheading: 'Rising unemployment tests Chancellor commitment to getting Britain back to work'
-      },
-      'right': {
-        headline: 'Regulatory Burden Costing Jobs',
-        subheading: 'Business groups blame excessive employment rules and taxes for rising unemployment'
-      },
-      'populist-right': {
-        headline: 'JOBS AXED: Thousands Face Dole Queue',
-        subheading: 'Hard-working Brits losing jobs while benefits bill balloons. Where is the plan?'
-      },
-      'financial': {
-        headline: 'UK Unemployment Rate Rises to 6%',
-        subheading: 'Labour market slack emerging as cyclical downturn offsets structural tightness'
-      }
-    }
-  },
-
-  // === DEBT CRISIS ===
-  {
-    conditions: (state) => (state.fiscal?.debtToGdpPercent ?? 0) > 105,
-    priority: 80,
-    biasedVersions: {
-      'left': {
-        headline: 'Debt Fears Used to Justify More Cuts',
-        subheading: 'Treasury warned against repeating austerity mistakes as economists dispute crisis narrative'
-      },
-      'centre-left': {
-        headline: 'National Debt Burden Causes Concern',
-        subheading: 'Debt now exceeds 105% of GDP as Chancellor faces difficult choices on fiscal path'
-      },
-      'centre-right': {
-        headline: 'Public Finances on Unsustainable Path',
-        subheading: 'Debt spiral threatens UK credibility as interest payments consume record share of tax revenue'
-      },
-      'right': {
-        headline: 'Debt Time Bomb Threatens Next Generation',
-        subheading: 'Profligate spending mortgaging our children future as national debt explodes past 105% of GDP'
-      },
-      'populist-right': {
-        headline: 'MAXED OUT: Britain Credit Card Bill Hits Record',
-        subheading: 'Every family now owes £80,000 share of national debt mountain. Time to tighten belt.'
-      },
-      'financial': {
-        headline: 'UK Debt-to-GDP Breaches 105%',
-        subheading: 'Fiscal sustainability concerns mount as ageing costs and weak growth outlook pressure public finances'
-      }
-    }
-  },
-
-  // === DEFICIT CRISIS ===
-  {
-    conditions: (state) => (state.fiscal?.deficitPctGDP ?? 0) > 6,
-    priority: 75,
-    biasedVersions: {
-      'left': {
-        headline: 'Deficit Obsession Risks Economic Recovery',
-        subheading: 'Progressives urge Chancellor to invest through downturn rather than repeat austerity errors'
-      },
-      'centre-left': {
-        headline: 'Budget Deficit Swells Beyond Forecasts',
-        subheading: 'Borrowing exceeds 6% of GDP as tax revenues disappoint and spending pressures mount'
-      },
-      'centre-right': {
-        headline: 'Fiscal Rules Under Threat',
-        subheading: 'Chancellor faces impossible choices as deficit balloons to levels not seen since financial crisis'
-      },
-      'right': {
-        headline: 'Out of Control: Deficit Explodes',
-        subheading: 'Government borrowing £1 in every £16 spent as fiscal discipline collapses'
-      },
-      'populist-right': {
-        headline: 'SPENDING SPREE Must Stop Now',
-        subheading: 'Chancellor throwing away your money: Britain borrowing £10 billion a month'
-      },
-      'financial': {
-        headline: 'UK Budget Deficit Widens to 6% of GDP',
-        subheading: 'Market concerns grow as fiscal metrics deteriorate, potentially triggering credit rating review'
-      }
-    }
-  },
-
-  // === NHS CRISIS ===
-  {
-    conditions: (state) => (state.services?.nhsQuality ?? 100) < 55,
-    priority: 70,
-    biasedVersions: {
-      'left': {
-        headline: 'NHS on Knees as Funding Crisis Deepens',
-        subheading: 'Health service quality collapses to record low as Chancellor fails to reverse years of underfunding'
-      },
-      'centre-left': {
-        headline: 'NHS Performance Hits New Low',
-        subheading: 'Patients facing longest waits on record as winter pressures overwhelm chronically underfunded system'
-      },
-      'centre-right': {
-        headline: 'NHS Reform Urgently Needed',
-        subheading: 'Money alone will not fix health service, warn ministers, as quality metrics plummet'
-      },
-      'right': {
-        headline: 'NHS Money Pit Demands Radical Overhaul',
-        subheading: 'Despite record funding, health service failing patients. Time to embrace insurance model?'
-      },
-      'populist-right': {
-        headline: 'OUR NHS: Broken Promise',
-        subheading: 'Millions waiting months for operations while managers cream off your taxes. Sort it out!'
-      },
-      'financial': {
-        headline: 'NHS Productivity Crisis Deepens',
-        subheading: 'Health service output falls despite 40% real-terms spending increase since 2010'
-      }
-    }
-  },
-
-  // === GILT MARKET STRESS ===
-  {
-    conditions: (state) => (state.markets?.giltYield10yr ?? 0) > 5.5,
-    priority: 85,
-    biasedVersions: {
-      'left': {
-        headline: 'Market Hysteria Threatens Public Services',
-        subheading: 'Bond traders spooked by government policies as borrowing costs soar'
-      },
-      'centre-left': {
-        headline: 'Borrowing Costs Surge on Fiscal Fears',
-        subheading: '10-year gilt yields breach 5.5% as investors demand higher returns to hold UK debt'
-      },
-      'centre-right': {
-        headline: 'Market Confidence Ebbing',
-        subheading: 'Gilt market turmoil forces Chancellor to confront uncomfortable fiscal reality'
-      },
-      'right': {
-        headline: 'Bond Market Revolt Over Spending',
-        subheading: 'Investors losing faith in UK as profligate Treasury policies send borrowing costs soaring'
-      },
-      'populist-right': {
-        headline: 'HOMEOWNERS TO PAY: Mortgage Misery Looms',
-        subheading: 'City fat cats punish families as gilt crash threatens to send mortgage rates through roof'
-      },
-      'financial': {
-        headline: 'Gilt Yields Spike Above 5.5%',
-        subheading: 'UK sovereign risk premium widens sharply as fiscal credibility concerns trigger broad-based selling'
-      }
-    }
-  },
-
-  // === STRONG PUBLIC APPROVAL ===
-  {
-    conditions: (state) => (state.political?.publicApproval ?? 50) > 55,
-    priority: 50,
-    biasedVersions: {
-      'left': {
-        headline: 'Honeymoon Period Continues Despite Concerns',
-        subheading: 'Chancellor popularity high but critics warn policies will hurt vulnerable in time'
-      },
-      'centre-left': {
-        headline: 'Public Backs Chancellor Economic Plan',
-        subheading: 'Approval ratings remain solid as voters give Treasury time to deliver on growth promises'
-      },
-      'centre-right': {
-        headline: 'Chancellor Riding High in Polls',
-        subheading: 'Steady hand on economy earns public trust as approval exceeds 55%'
-      },
-      'right': {
-        headline: 'Low-Tax Agenda Wins Public Support',
-        subheading: 'Chancellor pro-growth policies resonating with voters tired of big government'
-      },
-      'populist-right': {
-        headline: 'PEOPLE SAY: Chancellor Doing Brilliant',
-        subheading: 'Hard-working families finally have someone on their side who gets it'
-      },
-      'financial': {
-        headline: 'Chancellor Approval Rating Holds Above 55%',
-        subheading: 'Political capital cushion provides window for potentially unpopular but necessary reforms'
-      }
-    }
-  },
-
-  // === WEAK PUBLIC APPROVAL ===
-  {
-    conditions: (state) => (state.political?.publicApproval ?? 50) < 35,
-    priority: 65,
-    biasedVersions: {
-      'left': {
-        headline: 'Public Turns on Chancellor Over Failing Policies',
-        subheading: 'Approval collapses as reality of cuts and tax rises hits household budgets'
-      },
-      'centre-left': {
-        headline: 'Chancellor Approval Falls Below 35%',
-        subheading: 'Voters losing confidence in Treasury stewardship as economic pain mounts'
-      },
-      'centre-right': {
-        headline: 'Chancellor Faces Credibility Crisis',
-        subheading: 'Plummeting approval leaves little political capital for difficult but necessary reforms'
-      },
-      'right': {
-        headline: 'Tax-and-Spend Chancellor Loses Public',
-        subheading: 'Broken promises on taxes see approval crater as voters demand change'
-      },
-      'populist-right': {
-        headline: 'OUT OF TOUCH: Nation Turns on Chancellor',
-        subheading: 'Ordinary people have had enough. Approval rating in freefall. Time for new face?'
-      },
-      'financial': {
-        headline: 'Chancellor Approval Slumps Below 35%',
-        subheading: 'Political weakness may constrain fiscal options and embolden backbench critics'
-      }
-    }
-  },
-
-  // === DEFAULT ROUTINE COVERAGE ===
-  {
-    conditions: (state) => true,  // Always matches
-    priority: 1,
-    biasedVersions: {
-      'left': {
-        headline: 'Wealth Gap Continues to Widen',
-        subheading: 'Latest figures show richest pulling away from rest as inequality remains entrenched'
-      },
-      'centre-left': {
-        headline: 'Mixed Economic Picture Emerges',
-        subheading: 'Some indicators improving while others flash warning signs as Treasury navigates choppy waters'
-      },
-      'centre-right': {
-        headline: 'Chancellor Stays Course on Fiscal Plan',
-        subheading: 'Treasury insists long-term strategy on track despite short-term headwinds'
-      },
-      'right': {
-        headline: 'Tax Burden Still Too High',
-        subheading: 'Business leaders continue to press Chancellor for growth-boosting tax cuts'
-      },
-      'populist-right': {
-        headline: 'ARE YOU Better Off? We Ask Families',
-        subheading: 'Real people tell us whether Chancellor policies helping or hurting their finances'
-      },
-      'financial': {
-        headline: 'Markets Digest Latest UK Data',
-        subheading: 'Investors weigh economic indicators and fiscal trajectory in cautious trading'
-      }
-    }
+  if (validHeadlines.length === 0) {
+    // Fallback if no specific conditions met
+    return {
+      headline: 'Politics as Usual in Westminster',
+      subheading: 'Government continues to press ahead with agenda amidst quiet week.'
+    };
   }
-];
+
+  // 2. Sort by priority
+  validHeadlines.sort((a: HeadlineEntry, b: HeadlineEntry) => b.priority - a.priority);
+
+  // 3. Pick from top candidates (weighted random) - top 5 to ensure variety
+  const topCandidates = validHeadlines.slice(0, 5);
+  // Weight by priority (higher priority = more likely)
+  const weightedPool: typeof validHeadlines = [];
+  topCandidates.forEach((candidate: HeadlineEntry, index: number) => {
+    // First item gets 5 tickets, 5th gets 1 ticket
+    const count = 5 - index;
+    for (let i = 0; i < count; i++) weightedPool.push(candidate);
+  });
+
+  const selectedEntry = weightedPool[Math.floor(Math.random() * weightedPool.length)];
+
+  // 4. Get biased version
+  // Try specific bias, then closest neighbour, then financial (neutral)
+  let version = selectedEntry.versions[newspaper.bias];
+
+  if (!version) {
+    // Fallback logic
+    if (newspaper.bias === 'centre-left') version = selectedEntry.versions['left'];
+    else if (newspaper.bias === 'centre-right') version = selectedEntry.versions['right'];
+    else if (newspaper.bias === 'populist-right') version = selectedEntry.versions['right'];
+    else version = selectedEntry.versions['financial'];
+  }
+
+  // Final fallback
+  if (!version) {
+    version = Object.values(selectedEntry.versions)[0];
+  }
+
+  return version;
+}
 
 const GENERIC_HEADLINE_POOL: Array<{ headline: string; subheading: string }> = [
   { headline: 'Treasury Faces Tough Autumn Trade-Offs', subheading: 'Ministers weigh tax, spending, and borrowing choices as economic indicators send mixed signals.' },
@@ -1584,15 +1298,15 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
 
     const spreadOptions = riskSpread > 1.2
       ? [
-          `Traders pointed to a widening gap over Bank Rate, suggesting investors are demanding a higher fiscal risk premium.`,
-          `The widening spread against policy rates was read as a credibility signal rather than a pure monetary-policy effect.`,
-          `Dealers said the move looked increasingly risk-premium driven, with concern centred on fiscal trajectory rather than inflation alone.`,
-        ]
+        `Traders pointed to a widening gap over Bank Rate, suggesting investors are demanding a higher fiscal risk premium.`,
+        `The widening spread against policy rates was read as a credibility signal rather than a pure monetary-policy effect.`,
+        `Dealers said the move looked increasingly risk-premium driven, with concern centred on fiscal trajectory rather than inflation alone.`,
+      ]
       : [
-          `Much of the move was attributed to the expected path of policy rates rather than disorderly fiscal repricing.`,
-          `Strategists said the gilt move remained broadly aligned with monetary-policy expectations and global rate moves.`,
-          `Market participants described the repricing as primarily rate-led, with limited evidence of acute fiscal stress.`,
-        ];
+        `Much of the move was attributed to the expected path of policy rates rather than disorderly fiscal repricing.`,
+        `Strategists said the gilt move remained broadly aligned with monetary-policy expectations and global rate moves.`,
+        `Market participants described the repricing as primarily rate-led, with limited evidence of acute fiscal stress.`,
+      ];
 
     const tail = newspaper.name === 'Financial Times'
       ? pickLeastRepeated(ftOptions, recentCorpus)
@@ -1692,34 +1406,10 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
       subheading = event.description;
     }
   } else {
-    // Find matching templates, then pick with diversity rather than always taking the top one.
-    const sorted = [...HEADLINE_TEMPLATES]
-      .filter(t => t.conditions(state))
-      .sort((a, b) => b.priority - a.priority);
-
-    const topTemplates = sorted.slice(0, Math.min(4, sorted.length));
-    const weightedPool = topTemplates.flatMap((template, idx) => {
-      const weight = Math.max(1, 5 - idx);
-      return Array.from({ length: weight }, () => template);
-    });
-    const template = (weightedPool.length > 0
-      ? weightedPool[Math.floor(Math.random() * weightedPool.length)]
-      : HEADLINE_TEMPLATES[HEADLINE_TEMPLATES.length - 1]);
-    const biasedVersion = template.biasedVersions[selectedNewspaper.bias];
-
-    const useGenericPool = Math.random() < 0.45;
-    if (useGenericPool) {
-      const genericHeadline = pickLeastRepeated(
-        GENERIC_HEADLINE_POOL.map((entry) => entry.headline),
-        recentCorpus
-      );
-      const chosenGeneric = GENERIC_HEADLINE_POOL.find((entry) => entry.headline === genericHeadline) || GENERIC_HEADLINE_POOL[0];
-      headline = chosenGeneric.headline;
-      subheading = chosenGeneric.subheading;
-    } else {
-      headline = biasedVersion.headline;
-      subheading = biasedVersion.subheading;
-    }
+    // Use the new granular headline generation system
+    const generated = generateHeadline(state, selectedNewspaper);
+    headline = generated.headline;
+    subheading = generated.subheading;
   }
 
   // Generate article paragraphs (passes event for lead story if available)
@@ -2087,10 +1777,9 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({ events }) => {
             padding: '12px',
             marginBottom: '8px',
             backgroundColor: entry.resolved ? '#f8fafc' : '#fef3c7',
-            borderLeft: `3px solid ${
-              entry.event.severity === 'crisis' ? '#dc2626' :
+            borderLeft: `3px solid ${entry.event.severity === 'crisis' ? '#dc2626' :
               entry.event.severity === 'major' ? '#ea580c' : '#94a3b8'
-            }`,
+              }`,
             borderRadius: '4px'
           }}
         >

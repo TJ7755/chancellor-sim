@@ -94,8 +94,8 @@ function simulateParliamentaryVote(
 
   // Radical budgets (large deficit changes) increase rebellion
   const radicalismPenalty = Math.abs(deficitChange) > 20 ? 0.15 :
-                           Math.abs(deficitChange) > 10 ? 0.08 :
-                           Math.abs(deficitChange) > 5 ? 0.04 : 0;
+    Math.abs(deficitChange) > 10 ? 0.08 :
+      Math.abs(deficitChange) > 5 ? 0.04 : 0;
 
   // Fiscal rules breach is toxic
   const fiscalRulesPenalty = fiscalRulesMet ? 0 : 0.12;
@@ -1043,7 +1043,12 @@ function reconstructSpendingFromGameState(gameState: any): Map<string, SpendingC
     else if (!dept.includes('debt interest')) scaleFactor = otherScale;
     else scaleFactor = 1.0; // Debt interest handled separately by turn processor
 
-    const scaledBudget = item.currentBudget * scaleFactor;
+    let scaledBudget = item.currentBudget * scaleFactor;
+
+    // Use actual debt interest from game state instead of baseline
+    if (item.id === 'debtInterest' && gameState.fiscal.debtInterest_bn !== undefined) {
+      scaledBudget = gameState.fiscal.debtInterest_bn;
+    }
 
     spendingMap.set(key, {
       id: item.id,
@@ -1843,7 +1848,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [showPMInterventionModal, setShowPMInterventionModal] = useState(false);
   const [pmInterventionTriggered, setPMInterventionTriggered] = useState(false);
   const [fiscalRuleMessage, setFiscalRuleMessage] = useState<string | null>(null);
-  const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{count: number, mpCount: number} | null>(null);
+  const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{ count: number, mpCount: number } | null>(null);
   const [pmInterventionSuccess, setPMInterventionSuccess] = useState(false);
   const lastTurnRef = useRef<number | null>(null);
 
@@ -2328,7 +2333,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   // Update MP stances whenever budget changes
   useEffect(() => {
     if (gameState.mpSystem.allMPs.size === 0) return;
-    
+
     // Build budget changes object
     const incomeTaxBasic = taxes.get('incomeTaxBasic');
     const incomeTaxHigher = taxes.get('incomeTaxHigher');
@@ -2384,6 +2389,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, []);
 
   const handleSpendingChange = useCallback((spendingId: string, newBudget: number) => {
+    if (spendingId === 'debtInterest') return; // Debt interest cannot be manually changed
+
     setSpending(prev => {
       const newSpending = new Map(prev);
       const item = newSpending.get(spendingId);
@@ -2529,8 +2536,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     taxes.forEach((tax) => {
       if (tax.proposedRate > tax.currentRate &&
-          ['incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional',
-           'employeeNI', 'employerNI', 'vat', 'corporationTax'].includes(tax.id)) {
+        ['incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional',
+          'employeeNI', 'employerNI', 'vat', 'corporationTax'].includes(tax.id)) {
         taxIncreaseCount++;
       }
     });
@@ -2578,22 +2585,22 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     };
 
     // Simulate parliamentary vote with enhanced MP system
-    const result = ( gameState.mpSystem.allMPs.size > 0)
+    const result = (gameState.mpSystem.allMPs.size > 0)
       ? simulateEnhancedParliamentaryVote(
-          gameState.mpSystem,
-          budgetChanges,
-          violationDescriptions,
-          gameState.metadata.currentTurn
-        )
+        gameState.mpSystem,
+        budgetChanges,
+        violationDescriptions,
+        gameState.metadata.currentTurn
+      )
       : simulateParliamentaryVote(
-          gameState.political.backbenchSatisfaction,
-          manifestoViolationCount,
-          fiscalImpact.deficitChange,
-          fiscalImpact.fiscalRulesMet,
-          taxIncreaseCount,
-          spendingCutCount,
-          gameState.political.pmTrust,
-        );
+        gameState.political.backbenchSatisfaction,
+        manifestoViolationCount,
+        fiscalImpact.deficitChange,
+        fiscalImpact.fiscalRulesMet,
+        taxIncreaseCount,
+        spendingCutCount,
+        gameState.political.pmTrust,
+      );
 
     setVoteResult(result);
 
@@ -2672,7 +2679,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         });
 
         // Show warning to user
-        setBrokenPromisesAlert({count: brokenPromiseIds.length, mpCount: affectedMPCount});
+        setBrokenPromisesAlert({ count: brokenPromiseIds.length, mpCount: affectedMPCount });
       }
     }
 
@@ -2970,8 +2977,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   };
 
   const renderSpendingControl = (item: SpendingChange) => {
+    const isDebtInterest = item.id === 'debtInterest';
     const change = item.proposedBudget - item.currentBudget;
-    const changePct = (change / item.currentBudget) * 100;
+    const changePct = item.currentBudget > 0 ? (change / item.currentBudget) * 100 : 0;
     const changeColour = change > 0 ? 'text-blue-600' : change < 0 ? 'text-red-600' : 'text-grey-600';
 
     // Calculate target value for manifesto commitments
@@ -3003,20 +3011,25 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     return (
-      <div key={item.id} className="bg-white border border-grey-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div key={item.id} className={`bg-white border rounded-lg p-4 transition-shadow ${isDebtInterest ? 'border-grey-300 bg-grey-50/50 opacity-90' : 'border-grey-200 hover:shadow-md'
+        }`}>
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <h4 className="font-semibold text-grey-900">{item.programme || item.department}</h4>
-            <div className="flex gap-2 items-center mt-1">
+            <div className="flex flex-wrap gap-2 items-center mt-1">
               <span className="text-xs text-grey-600">{item.department}</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                item.type === 'capital' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-              }`}>
+              <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'capital' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                }`}>
                 {item.type === 'capital' ? 'Capital' : 'Resource'}
               </span>
               {targetBudget && (
                 <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">
                   {targetLabel}
+                </span>
+              )}
+              {isDebtInterest && (
+                <span className="text-xs px-2 py-0.5 rounded bg-grey-200 text-grey-700 font-medium">
+                  Non-Discretionary
                 </span>
               )}
             </div>
@@ -3034,7 +3047,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-grey-600 uppercase tracking-wide">Proposed budget</label>
+          <label className="text-xs text-grey-600 uppercase tracking-wide">
+            {isDebtInterest ? 'Current interest commitment' : 'Proposed budget'}
+          </label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-grey-600">£</span>
             <input
@@ -3042,12 +3057,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               min={0}
               step={0.1}
               value={Number.isFinite(item.proposedBudget) ? item.proposedBudget : ''}
+              disabled={isDebtInterest}
               onChange={(e) => {
+                if (isDebtInterest) return;
                 const parsed = parseFloat(e.target.value);
                 const nextValue = Number.isFinite(parsed) ? Math.max(0, parsed) : item.currentBudget;
                 handleSpendingChange(item.id, nextValue);
               }}
-              className="w-full border border-grey-300 rounded px-3 py-2 text-grey-900"
+              className={`w-full border rounded px-3 py-2 text-grey-900 ${isDebtInterest
+                  ? 'bg-grey-100 border-grey-200 text-grey-500 cursor-not-allowed font-medium'
+                  : 'bg-white border-grey-300'
+                }`}
             />
             <span className="text-sm text-grey-600">bn</span>
           </div>
@@ -3056,8 +3076,22 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {targetBudget && (
               <span className="font-semibold text-amber-700">Target: £{targetBudget.toFixed(1)}bn</span>
             )}
-            <span>Minimum: £0.0bn</span>
+            {!isDebtInterest && <span>Minimum: £0.0bn</span>}
           </div>
+
+          {isDebtInterest && (
+            <div className="mt-2 p-3 bg-blue-50/50 border border-blue-100 rounded text-xs text-blue-800 leading-relaxed">
+              <div className="flex gap-2">
+                <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  Interest payments are non-discretionary. They are automatically calculated based on the UK's total debt stock and current market gilt yields.
+                  <strong> To reduce interest costs, you must reduce the deficit and/or lower the total debt stock.</strong>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Set to target button */}
@@ -3065,7 +3099,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           <div className="mt-3 pt-3 border-t border-grey-100">
             <button
               onClick={() => handleSpendingChange(item.id, targetBudget!)}
-              className="w-full px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 text-sm font-semibold rounded transition-colours"
+              className="w-full px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 text-sm font-semibold rounded transition-colors"
             >
               Set to target (£{targetBudget.toFixed(1)}bn)
             </button>
@@ -3077,14 +3111,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
   const renderWarning = (warning: AdviserWarning) => {
     const bgColour = warning.severity === 'critical' ? 'bg-red-50 border-red-200' :
-                     warning.severity === 'warning' ? 'bg-amber-50 border-amber-200' :
-                     'bg-blue-50 border-blue-200';
+      warning.severity === 'warning' ? 'bg-amber-50 border-amber-200' :
+        'bg-blue-50 border-blue-200';
     const titleColour = warning.severity === 'critical' ? 'text-red-900' :
-                       warning.severity === 'warning' ? 'text-amber-900' :
-                       'text-blue-900';
+      warning.severity === 'warning' ? 'text-amber-900' :
+        'text-blue-900';
     const messageColour = warning.severity === 'critical' ? 'text-red-700' :
-                         warning.severity === 'warning' ? 'text-amber-700' :
-                         'text-blue-700';
+      warning.severity === 'warning' ? 'text-amber-700' :
+        'text-blue-700';
 
     return (
       <div key={warning.id} className={`border rounded-lg p-4 ${bgColour}`}>
@@ -3152,18 +3186,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <h4 className="font-semibold text-grey-900">{constraint.description}</h4>
             </div>
             <div className="mt-1 flex gap-2">
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                constraint.type === 'fiscal_rule' ? 'bg-purple-100 text-purple-700' :
+              <span className={`text-xs px-2 py-0.5 rounded ${constraint.type === 'fiscal_rule' ? 'bg-purple-100 text-purple-700' :
                 constraint.type === 'spending_pledge' ? 'bg-blue-100 text-blue-700' :
-                'bg-red-100 text-red-700'
-              }`}>
+                  'bg-red-100 text-red-700'
+                }`}>
                 {constraint.type.replace('_', ' ')}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded ${
-                constraint.severity === 'critical' ? 'bg-red-100 text-red-700' :
+              <span className={`text-xs px-2 py-0.5 rounded ${constraint.severity === 'critical' ? 'bg-red-100 text-red-700' :
                 constraint.severity === 'major' ? 'bg-amber-100 text-amber-700' :
-                'bg-grey-100 text-grey-700'
-              }`}>
+                  'bg-grey-100 text-grey-700'
+                }`}>
                 {constraint.severity}
               </span>
             </div>
@@ -3228,13 +3260,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <button
                         onClick={() => isSpring && setBudgetType('spring')}
                         disabled={!isSpring}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${
-                          budgetType === 'spring'
-                            ? 'bg-white text-red-700 ring-2 ring-white'
-                            : isSpring
+                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'spring'
+                          ? 'bg-white text-red-700 ring-2 ring-white'
+                          : isSpring
                             ? 'bg-red-700/30 text-white hover:bg-red-700/50 cursor-pointer'
                             : 'bg-red-900/20 text-red-200/40 cursor-not-allowed'
-                        }`}
+                          }`}
                         title={isSpring
                           ? "Spring Budget: Major tax and spending announcements for the fiscal year ahead."
                           : "Spring Budget only available March-May"}
@@ -3247,13 +3278,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <button
                         onClick={() => isAutumn && setBudgetType('autumn')}
                         disabled={!isAutumn}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${
-                          budgetType === 'autumn'
-                            ? 'bg-white text-red-700 ring-2 ring-white'
-                            : isAutumn
+                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'autumn'
+                          ? 'bg-white text-red-700 ring-2 ring-white'
+                          : isAutumn
                             ? 'bg-red-700/30 text-white hover:bg-red-700/50 cursor-pointer'
                             : 'bg-red-900/20 text-red-200/40 cursor-not-allowed'
-                        }`}
+                          }`}
                         title={isAutumn
                           ? "Autumn Statement: Economic updates and policy adjustments for mid-year."
                           : "Autumn Statement only available September-November"}
@@ -3265,11 +3295,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       {/* Emergency Budget - Any Time */}
                       <button
                         onClick={() => setBudgetType('emergency')}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${
-                          budgetType === 'emergency'
-                            ? 'bg-white text-red-700 ring-2 ring-white'
-                            : 'bg-red-700/30 text-white hover:bg-red-700/50'
-                        }`}
+                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'emergency'
+                          ? 'bg-white text-red-700 ring-2 ring-white'
+                          : 'bg-red-700/30 text-white hover:bg-red-700/50'
+                          }`}
                         title="Emergency Budget: Urgent fiscal measures signaling crisis or major policy shift. Available any time."
                       >
                         <div className="text-sm font-bold">Emergency Budget</div>
@@ -3283,7 +3312,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               {(() => {
                 const month = gameState.metadata.currentMonth; // 1-12
                 const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                                   'July', 'August', 'September', 'October', 'November', 'December'];
+                  'July', 'August', 'September', 'October', 'November', 'December'];
                 const isSpring = month >= 3 && month <= 5;
                 const isAutumn = month >= 9 && month <= 11;
 
@@ -3313,11 +3342,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           <div className="grid grid-cols-5 gap-6">
             <div>
               <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Deficit Change</div>
-              <div className={`text-2xl font-bold ${
-                fiscalImpact.deficitChange > 0 ? 'text-red-600' :
+              <div className={`text-2xl font-bold ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
                 fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                'text-grey-900'
-              }`}>
+                  'text-grey-900'
+                }`}>
                 {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn
               </div>
             </div>
@@ -3341,11 +3369,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             </div>
             <div>
               <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Warnings</div>
-              <div className={`text-2xl font-bold ${
-                warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-red-600' :
+              <div className={`text-2xl font-bold ${warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-red-600' :
                 warnings.length > 0 ? 'text-amber-600' :
-                'text-green-600'
-              }`}>
+                  'text-green-600'
+                }`}>
                 {warnings.length}
               </div>
             </div>
@@ -3357,362 +3384,358 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         <div className="flex gap-6">
           {/* Main Content */}
           <div className="flex-1">
-        {/* View Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border border-grey-200 mb-6">
-          <div className="flex border-b border-grey-200">
-            {(['taxes', 'spending', 'impact', 'constraints'] as const).map((view) => (
-              <button
-                key={view}
-                onClick={() => setActiveView(view)}
-                className={`flex-1 px-6 py-4 font-semibold transition-colours ${
-                  activeView === view
-                    ? 'bg-red-50 text-red-900 border-b-2 border-red-600'
-                    : 'text-grey-600 hover:text-grey-900 hover:bg-grey-50'
-                }`}
-              >
-                {view === 'taxes' && 'Taxation'}
-                {view === 'spending' && 'Public Spending'}
-                {view === 'impact' && 'Fiscal Impact'}
-                {view === 'constraints' && 'Manifesto Commitments'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Taxes View */}
-        {activeView === 'taxes' && (
-          <div className="space-y-6">
-            {/* Income Tax Rates */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Rates</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £269bn · Affects 34 million taxpayers
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('incomeTaxBasic')!)}
-                {renderTaxControl(taxes.get('incomeTaxHigher')!)}
-                {renderTaxControl(taxes.get('incomeTaxAdditional')!)}
-              </div>
-            </div>
-
-            {/* Income Tax Thresholds & Allowances */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Thresholds and Allowances</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous revenue impact.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('personalAllowance')!)}
-                {renderTaxControl(taxes.get('higherRateThreshold')!)}
-                {renderTaxControl(taxes.get('additionalRateThreshold')!)}
-                {renderTaxControl(taxes.get('marriageAllowance')!)}
-              </div>
-            </div>
-
-            {/* National Insurance */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">National Insurance</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £164bn · Employee rate (Class 1) and employer contributions. Thresholds determine who pays.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('employeeNI')!)}
-                {renderTaxControl(taxes.get('employerNI')!)}
-                {renderTaxControl(taxes.get('niPrimaryThreshold')!)}
-                {renderTaxControl(taxes.get('niUpperEarningsLimit')!)}
-                {renderTaxControl(taxes.get('niSecondaryThreshold')!)}
-                {renderTaxControl(taxes.get('employmentAllowance')!)}
-              </div>
-            </div>
-
-            {/* VAT */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">VAT and Indirect Consumption Taxes</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are politically charged.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('vat')!)}
-                {renderTaxControl(taxes.get('vatDomesticEnergy')!)}
-                {renderTaxControl(taxes.get('vatPrivateSchools')!)}
-                {renderTaxControl(taxes.get('vatRegistrationThreshold')!)}
-                {renderTaxControl(taxes.get('insurancePremiumTax')!)}
-              </div>
-            </div>
-
-            {/* Corporation Tax & Business */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Corporation Tax and Business Taxes</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect business decisions.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('corporationTax')!)}
-                {renderTaxControl(taxes.get('corporationTaxSmall')!)}
-                {renderTaxControl(taxes.get('businessRates')!)}
-                {renderTaxControl(taxes.get('annualInvestmentAllowance')!)}
-                {renderTaxControl(taxes.get('rdTaxCredit')!)}
-                {renderTaxControl(taxes.get('patentBoxRate')!)}
-                {renderTaxControl(taxes.get('bankSurcharge')!)}
-                {renderTaxControl(taxes.get('energyProfitsLevy')!)}
-              </div>
-            </div>
-
-            {/* Capital Gains Tax */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Capital Gains Tax</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a surcharge.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('capitalGainsBasic')!)}
-                {renderTaxControl(taxes.get('capitalGainsHigher')!)}
-                {renderTaxControl(taxes.get('cgtAnnualExempt')!)}
-                {renderTaxControl(taxes.get('cgtResidentialSurcharge')!)}
-                {renderTaxControl(taxes.get('badrRate')!)}
-                {renderTaxControl(taxes.get('badrLifetimeLimit')!)}
-              </div>
-            </div>
-
-            {/* Inheritance Tax */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Inheritance Tax</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £7.5bn · Rate, nil-rate band, and residence nil-rate band. Only ~4% of estates pay IHT.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('inheritanceTax')!)}
-                {renderTaxControl(taxes.get('inheritanceTaxThreshold')!)}
-                {renderTaxControl(taxes.get('ihtResidenceNilRate')!)}
-              </div>
-            </div>
-
-            {/* Property Taxes */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Property Transaction Taxes</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £14bn · Stamp duty rates, first-time buyer relief, and second-home surcharge.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('stampDuty')!)}
-                {renderTaxControl(taxes.get('sdltAdditionalSurcharge')!)}
-                {renderTaxControl(taxes.get('sdltFirstTimeBuyerThreshold')!)}
-                {renderTaxControl(taxes.get('councilTax')!)}
-              </div>
-            </div>
-
-            {/* Savings and Investment Reliefs */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Savings and Investment Reliefs</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings incentives.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('pensionAnnualAllowance')!)}
-                {renderTaxControl(taxes.get('isaAllowance')!)}
-                {renderTaxControl(taxes.get('dividendAllowance')!)}
-              </div>
-            </div>
-
-            {/* Excise Duties */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Excise Duties</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle duties.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderTaxControl(taxes.get('fuelDuty')!)}
-                {renderTaxControl(taxes.get('alcoholDuty')!)}
-                {renderTaxControl(taxes.get('tobaccoDuty')!)}
-                {renderTaxControl(taxes.get('airPassengerDuty')!)}
-                {renderTaxControl(taxes.get('vehicleExciseDuty')!)}
-                {renderTaxControl(taxes.get('softDrinksLevy')!)}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Spending View */}
-        {activeView === 'spending' && (
-          <div className="space-y-4">
-            {Array.from(spendingByDepartment.entries()).map(([department, items]) => {
-              const isExpanded = expandedDepartments.has(department);
-              const totalCurrent = items.reduce((sum, item) => sum + item.currentBudget, 0);
-              const totalProposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
-              const change = totalProposed - totalCurrent;
-
-              return (
-                <div key={department} className="bg-white rounded-lg shadow-sm border border-grey-200">
+            {/* View Tabs */}
+            <div className="bg-white rounded-lg shadow-sm border border-grey-200 mb-6">
+              <div className="flex border-b border-grey-200">
+                {(['taxes', 'spending', 'impact', 'constraints'] as const).map((view) => (
                   <button
-                    onClick={() => toggleDepartment(department)}
-                    className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colours"
+                    key={view}
+                    onClick={() => setActiveView(view)}
+                    className={`flex-1 px-6 py-4 font-semibold transition-colours ${activeView === view
+                      ? 'bg-red-50 text-red-900 border-b-2 border-red-600'
+                      : 'text-grey-600 hover:text-grey-900 hover:bg-grey-50'
+                      }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <svg
-                        className={`w-5 h-5 text-grey-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                    {view === 'taxes' && 'Taxation'}
+                    {view === 'spending' && 'Public Spending'}
+                    {view === 'impact' && 'Fiscal Impact'}
+                    {view === 'constraints' && 'Manifesto Commitments'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Taxes View */}
+            {activeView === 'taxes' && (
+              <div className="space-y-6">
+                {/* Income Tax Rates */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Rates</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £269bn · Affects 34 million taxpayers
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('incomeTaxBasic')!)}
+                    {renderTaxControl(taxes.get('incomeTaxHigher')!)}
+                    {renderTaxControl(taxes.get('incomeTaxAdditional')!)}
+                  </div>
+                </div>
+
+                {/* Income Tax Thresholds & Allowances */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Thresholds and Allowances</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous revenue impact.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('personalAllowance')!)}
+                    {renderTaxControl(taxes.get('higherRateThreshold')!)}
+                    {renderTaxControl(taxes.get('additionalRateThreshold')!)}
+                    {renderTaxControl(taxes.get('marriageAllowance')!)}
+                  </div>
+                </div>
+
+                {/* National Insurance */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">National Insurance</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £164bn · Employee rate (Class 1) and employer contributions. Thresholds determine who pays.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('employeeNI')!)}
+                    {renderTaxControl(taxes.get('employerNI')!)}
+                    {renderTaxControl(taxes.get('niPrimaryThreshold')!)}
+                    {renderTaxControl(taxes.get('niUpperEarningsLimit')!)}
+                    {renderTaxControl(taxes.get('niSecondaryThreshold')!)}
+                    {renderTaxControl(taxes.get('employmentAllowance')!)}
+                  </div>
+                </div>
+
+                {/* VAT */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">VAT and Indirect Consumption Taxes</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are politically charged.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('vat')!)}
+                    {renderTaxControl(taxes.get('vatDomesticEnergy')!)}
+                    {renderTaxControl(taxes.get('vatPrivateSchools')!)}
+                    {renderTaxControl(taxes.get('vatRegistrationThreshold')!)}
+                    {renderTaxControl(taxes.get('insurancePremiumTax')!)}
+                  </div>
+                </div>
+
+                {/* Corporation Tax & Business */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Corporation Tax and Business Taxes</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect business decisions.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('corporationTax')!)}
+                    {renderTaxControl(taxes.get('corporationTaxSmall')!)}
+                    {renderTaxControl(taxes.get('businessRates')!)}
+                    {renderTaxControl(taxes.get('annualInvestmentAllowance')!)}
+                    {renderTaxControl(taxes.get('rdTaxCredit')!)}
+                    {renderTaxControl(taxes.get('patentBoxRate')!)}
+                    {renderTaxControl(taxes.get('bankSurcharge')!)}
+                    {renderTaxControl(taxes.get('energyProfitsLevy')!)}
+                  </div>
+                </div>
+
+                {/* Capital Gains Tax */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Capital Gains Tax</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a surcharge.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('capitalGainsBasic')!)}
+                    {renderTaxControl(taxes.get('capitalGainsHigher')!)}
+                    {renderTaxControl(taxes.get('cgtAnnualExempt')!)}
+                    {renderTaxControl(taxes.get('cgtResidentialSurcharge')!)}
+                    {renderTaxControl(taxes.get('badrRate')!)}
+                    {renderTaxControl(taxes.get('badrLifetimeLimit')!)}
+                  </div>
+                </div>
+
+                {/* Inheritance Tax */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Inheritance Tax</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £7.5bn · Rate, nil-rate band, and residence nil-rate band. Only ~4% of estates pay IHT.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('inheritanceTax')!)}
+                    {renderTaxControl(taxes.get('inheritanceTaxThreshold')!)}
+                    {renderTaxControl(taxes.get('ihtResidenceNilRate')!)}
+                  </div>
+                </div>
+
+                {/* Property Taxes */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Property Transaction Taxes</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £14bn · Stamp duty rates, first-time buyer relief, and second-home surcharge.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('stampDuty')!)}
+                    {renderTaxControl(taxes.get('sdltAdditionalSurcharge')!)}
+                    {renderTaxControl(taxes.get('sdltFirstTimeBuyerThreshold')!)}
+                    {renderTaxControl(taxes.get('councilTax')!)}
+                  </div>
+                </div>
+
+                {/* Savings and Investment Reliefs */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Savings and Investment Reliefs</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings incentives.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('pensionAnnualAllowance')!)}
+                    {renderTaxControl(taxes.get('isaAllowance')!)}
+                    {renderTaxControl(taxes.get('dividendAllowance')!)}
+                  </div>
+                </div>
+
+                {/* Excise Duties */}
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Excise Duties</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle duties.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderTaxControl(taxes.get('fuelDuty')!)}
+                    {renderTaxControl(taxes.get('alcoholDuty')!)}
+                    {renderTaxControl(taxes.get('tobaccoDuty')!)}
+                    {renderTaxControl(taxes.get('airPassengerDuty')!)}
+                    {renderTaxControl(taxes.get('vehicleExciseDuty')!)}
+                    {renderTaxControl(taxes.get('softDrinksLevy')!)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Spending View */}
+            {activeView === 'spending' && (
+              <div className="space-y-4">
+                {Array.from(spendingByDepartment.entries()).map(([department, items]) => {
+                  const isExpanded = expandedDepartments.has(department);
+                  const totalCurrent = items.reduce((sum, item) => sum + item.currentBudget, 0);
+                  const totalProposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
+                  const change = totalProposed - totalCurrent;
+
+                  return (
+                    <div key={department} className="bg-white rounded-lg shadow-sm border border-grey-200">
+                      <button
+                        onClick={() => toggleDepartment(department)}
+                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colours"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                      <div className="text-left">
-                        <h3 className="text-lg font-bold text-grey-900">{department}</h3>
-                        <p className="text-sm text-grey-600">{items.length} programme{items.length !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-grey-900">
-                        £{totalProposed.toFixed(1)}bn
-                      </div>
-                      {change !== 0 && (
-                        <div className={`text-sm font-semibold ${
-                          change > 0 ? 'text-blue-600' : 'text-red-600'
-                        }`}>
-                          {change > 0 ? '+' : ''}£{change.toFixed(1)}bn
+                        <div className="flex items-center gap-3">
+                          <svg
+                            className={`w-5 h-5 text-grey-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <div className="text-left">
+                            <h3 className="text-lg font-bold text-grey-900">{department}</h3>
+                            <p className="text-sm text-grey-600">{items.length} programme{items.length !== 1 ? 's' : ''}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-grey-900">
+                            £{totalProposed.toFixed(1)}bn
+                          </div>
+                          {change !== 0 && (
+                            <div className={`text-sm font-semibold ${change > 0 ? 'text-blue-600' : 'text-red-600'
+                              }`}>
+                              {change > 0 ? '+' : ''}£{change.toFixed(1)}bn
+                            </div>
+                          )}
+                        </div>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-6 pb-6 pt-2 border-t border-grey-100">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {items.map(item => renderSpendingControl(item))}
+                          </div>
                         </div>
                       )}
                     </div>
-                  </button>
+                  );
+                })}
+              </div>
+            )}
 
-                  {isExpanded && (
-                    <div className="px-6 pb-6 pt-2 border-t border-grey-100">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {items.map(item => renderSpendingControl(item))}
+            {/* Impact View */}
+            {activeView === 'impact' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-4">Fiscal Position</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="border border-grey-200 rounded-lg p-4">
+                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Current Deficit</div>
+                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.currentDeficit.toFixed(1)}bn</div>
+                      <div className="text-sm text-grey-600 mt-1">OBR March 2024 forecast</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-lg p-4">
+                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Projected Deficit</div>
+                      <div className={`text-3xl font-bold ${fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit ? 'text-red-600' :
+                        fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit ? 'text-green-600' :
+                          'text-grey-900'
+                        }`}>
+                        £{fiscalImpact.projectedDeficit.toFixed(1)}bn
+                      </div>
+                      <div className={`text-sm font-semibold mt-1 ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
+                        fiscalImpact.deficitChange < 0 ? 'text-green-600' :
+                          'text-grey-600'
+                        }`}>
+                        {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn change
                       </div>
                     </div>
-                  )}
+                    <div className="border border-grey-200 rounded-lg p-4">
+                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Public Sector Net Debt</div>
+                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
+                      <div className="text-sm text-grey-600 mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-lg p-4">
+                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
+                      <div className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
+                        {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
+                      </div>
+                      <div className="text-sm text-grey-600 mt-1">
+                        Headroom: £{fiscalImpact.headroom.toFixed(1)}bn
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
 
-        {/* Impact View */}
-        {activeView === 'impact' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-4">Fiscal Position</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="border border-grey-200 rounded-lg p-4">
-                  <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Current Deficit</div>
-                  <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.currentDeficit.toFixed(1)}bn</div>
-                  <div className="text-sm text-grey-600 mt-1">OBR March 2024 forecast</div>
-                </div>
-                <div className="border border-grey-200 rounded-lg p-4">
-                  <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Projected Deficit</div>
-                  <div className={`text-3xl font-bold ${
-                    fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit ? 'text-red-600' :
-                    fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit ? 'text-green-600' :
-                    'text-grey-900'
-                  }`}>
-                    £{fiscalImpact.projectedDeficit.toFixed(1)}bn
+                {warnings.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                    <h2 className="text-xl font-bold text-grey-900 mb-4">Adviser Warnings</h2>
+                    <div className="space-y-3">
+                      {warnings.map(warning => renderWarning(warning))}
+                    </div>
                   </div>
-                  <div className={`text-sm font-semibold mt-1 ${
-                    fiscalImpact.deficitChange > 0 ? 'text-red-600' :
-                    fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                    'text-grey-600'
-                  }`}>
-                    {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn change
+                )}
+
+                {warnings.length === 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <div className="flex items-center gap-3 text-green-900">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <h3 className="font-bold">No Warnings</h3>
+                        <p className="text-sm text-green-700">Your budget proposals do not trigger any adviser warnings.</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="border border-grey-200 rounded-lg p-4">
-                  <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Public Sector Net Debt</div>
-                  <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
-                  <div className="text-sm text-grey-600 mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
-                </div>
-                <div className="border border-grey-200 rounded-lg p-4">
-                  <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
-                  <div className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
-                    {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
-                  </div>
-                  <div className="text-sm text-grey-600 mt-1">
-                    Headroom: £{fiscalImpact.headroom.toFixed(1)}bn
-                  </div>
-                </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {warnings.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                <h2 className="text-xl font-bold text-grey-900 mb-4">Adviser Warnings</h2>
-                <div className="space-y-3">
-                  {warnings.map(warning => renderWarning(warning))}
+            {/* Constraints View */}
+            {activeView === 'constraints' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Manifesto Commitments</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Your manifesto commitments and fiscal rules. Breaking these will have serious political consequences.
+                  </p>
+                  <div className="space-y-3">
+                    {constraints.map(constraint => renderConstraint(constraint))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h3 className="font-bold text-blue-900 mb-1">About Fiscal Rules</h3>
+                      <p className="text-sm text-blue-700 mb-2">
+                        The Stability Rule requires the current budget (day-to-day spending) to be in balance by the fifth year of the forecast.
+                        The Investment Rule requires public sector net financial liabilities to be falling as a share of GDP by the fifth year.
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        These targets are verified by the Office for Budget Responsibility (OBR) and are legally binding under the Charter for Budget Responsibility.
+                        Breaching fiscal rules will trigger severe market reaction and political crisis.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {warnings.length === 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <div className="flex items-center gap-3 text-green-900">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <h3 className="font-bold">No Warnings</h3>
-                    <p className="text-sm text-green-700">Your budget proposals do not trigger any adviser warnings.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Constraints View */}
-        {activeView === 'constraints' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-              <h2 className="text-xl font-bold text-grey-900 mb-2">Manifesto Commitments</h2>
-              <p className="text-sm text-grey-600 mb-4">
-                Your manifesto commitments and fiscal rules. Breaking these will have serious political consequences.
-              </p>
-              <div className="space-y-3">
-                {constraints.map(constraint => renderConstraint(constraint))}
-              </div>
+            {/* Action Buttons */}
+            <div className="mt-8 flex gap-4 justify-end">
+              <button
+                onClick={resetBudget}
+                className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold rounded-lg hover:bg-grey-50 transition-colours"
+              >
+                Reset to Baseline
+              </button>
+              <button
+                onClick={() => setShowPMInterventionModal(true)}
+                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colours shadow-lg"
+              >
+                Force PM Intervention
+              </button>
+              <button
+                onClick={submitBudget}
+                className="px-6 py-3 bg-gradient-to-r from-red-900 to-red-800 text-white font-semibold rounded-lg hover:from-red-800 hover:to-red-700 transition-colours shadow-lg"
+              >
+                Submit Budget for Parliamentary Approval
+              </button>
             </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-              <div className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <h3 className="font-bold text-blue-900 mb-1">About Fiscal Rules</h3>
-                  <p className="text-sm text-blue-700 mb-2">
-                    The Stability Rule requires the current budget (day-to-day spending) to be in balance by the fifth year of the forecast.
-                    The Investment Rule requires public sector net financial liabilities to be falling as a share of GDP by the fifth year.
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    These targets are verified by the Office for Budget Responsibility (OBR) and are legally binding under the Charter for Budget Responsibility.
-                    Breaching fiscal rules will trigger severe market reaction and political crisis.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="mt-8 flex gap-4 justify-end">
-          <button
-            onClick={resetBudget}
-            className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold rounded-lg hover:bg-grey-50 transition-colours"
-          >
-            Reset to Baseline
-          </button>
-          <button
-            onClick={() => setShowPMInterventionModal(true)}
-            className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colours shadow-lg"
-          >
-            Force PM Intervention
-          </button>
-          <button
-            onClick={submitBudget}
-            className="px-6 py-3 bg-gradient-to-r from-red-900 to-red-800 text-white font-semibold rounded-lg hover:from-red-800 hover:to-red-700 transition-colours shadow-lg"
-          >
-            Submit Budget for Parliamentary Approval
-          </button>
-        </div>
           </div>
 
           {/* Adviser Sidebar */}

@@ -398,35 +398,57 @@ function calculateGDPGrowth(state: GameState): GameState {
     laggedInfrastructureSpending = fiscal.spending.infrastructure * 0.7 + (100 * 0.3);
   }
 
-  // Fiscal multiplier effect (spending change from baseline with lags)
-  const departmentalSpending = getDepartmentalSpendingTotal(fiscal.spending);
-  // Adjust for lag: infrastructure has 70% weight (30% lag effect)
-  const infrastructureLagAdjustment = (fiscal.spending.infrastructure - laggedInfrastructureSpending) * 0.3;
-  const effectiveSpending = departmentalSpending - infrastructureLagAdjustment;
-  const spendingChange = effectiveSpending - BASELINE_DEPARTMENTAL_SPENDING;
+  // Fiscal multiplier effect (granular)
+  // Split spending into Capital (Investment), Current (Consumption), and Welfare (Transfers)
+  // Capital: Lower immediate impact (0.6), high long-term supply side
+  // Current: High immediate impact (0.9), low long-term supply side
+  // Welfare: High immediate impact if MPC is high (recession), lower otherwise
 
-  // CRITICAL FIX: Variable fiscal multiplier based on economic slack
-  // Base multiplier: 0.0022 per £bn (calibrated to UK)
-  // Multiplier HIGHER in recessions (slack economy, unemployed resources)
-  // Multiplier LOWER in booms (supply constraints, crowding out)
-  let spendingMultiplier = 0.0022;
+  const currentSpending =
+    fiscal.spending.nhsCurrent + fiscal.spending.educationCurrent + fiscal.spending.defenceCurrent +
+    fiscal.spending.policeCurrent + fiscal.spending.justiceCurrent + fiscal.spending.otherCurrent;
 
-  // Unemployment effect: +50% multiplier for each pp above NAIRU
-  // At 6% unemployment (1.75pp above 4.25% NAIRU): multiplier = 0.0022 * 1.875
-  // At 3% unemployment (1.25pp below NAIRU): multiplier = 0.0022 * 0.375
+  const capitalSpending =
+    fiscal.spending.nhsCapital + fiscal.spending.educationCapital + fiscal.spending.defenceCapital +
+    fiscal.spending.infrastructureCapital + fiscal.spending.policeCapital + fiscal.spending.justiceCapital +
+    fiscal.spending.otherCapital;
+
+  const welfareSpending = fiscal.spending.welfareCurrent;
+
+  const baselineCurrent = 647.6; // Baseline current spending (excl welfare)
+  const baselineCapital = 141.4; // Baseline capital spending
+  const baselineWelfare = 290.0; // Baseline welfare spending
+
+  const currentChange = currentSpending - baselineCurrent;
+  const capitalChange = capitalSpending - baselineCapital;
+  const welfareChange = welfareSpending - baselineWelfare;
+
+  // Multipliers based on economic slack
   const unemploymentGap = economic.unemploymentRate - 4.25;
-  const unemploymentMultiplierEffect = 1 + (unemploymentGap * 0.5);
-  spendingMultiplier *= Math.max(0.3, Math.min(2.0, unemploymentMultiplierEffect));
+  const slackMultiplier = Math.max(0.8, Math.min(1.5, 1 + (unemploymentGap * 0.15)));
 
-  // Inflation effect: High inflation reduces multiplier (supply constraints)
-  // Above 3% inflation: reduces multiplier by 10% per pp
-  // At 5% inflation: multiplier reduced by 20%
+  // 1. Current Spending Multiplier: 0.9 base (imports leakage)
+  let currentMultiplier = 0.9 * slackMultiplier;
+
+  // 2. Capital Spending Multiplier: 0.6 base (slow deploy, high import content)
+  let capitalMultiplier = 0.6 * slackMultiplier;
+
+  // 3. Welfare Multiplier: 0.7 base, rises to 1.1 in recession (high marginal propensity to consume)
+  const mpcBonus = unemploymentGap > 0 ? unemploymentGap * 0.1 : 0;
+  let welfareMultiplier = (0.7 + mpcBonus) * slackMultiplier;
+
+  // Inflation dampener: High inflation reduces real multipliers (supply constraints)
   if (economic.inflationCPI > 3) {
-    const inflationPenalty = (economic.inflationCPI - 3) * 0.1;
-    spendingMultiplier *= Math.max(0.5, 1 - inflationPenalty);
+    const inflationPenalty = (economic.inflationCPI - 3) * 0.08;
+    const dampener = Math.max(0.6, 1 - inflationPenalty);
+    currentMultiplier *= dampener;
+    capitalMultiplier *= dampener;
+    welfareMultiplier *= dampener;
   }
 
-  const fiscalImpact = spendingChange * spendingMultiplier;
+  const fiscalImpact = (currentChange * currentMultiplier +
+    capitalChange * capitalMultiplier +
+    welfareChange * welfareMultiplier) * 0.0022; // Scaling factor to monthly GDP %
 
   // CRITICAL FIX: Supply-side tax effects
   // Corporation tax above 30% reduces investment and growth
@@ -439,7 +461,7 @@ function calculateGDPGrowth(state: GameState): GameState {
     ? (fiscal.corporationTaxRate - 35) * -0.012 // Additional -0.15% annual per pp above 35%
     : 0;
 
-  // Top income tax rate above 50% reduces labor supply and entrepreneurship
+  // Top income tax rate above 50% reduces labour supply and entrepreneurship
   const topRatePenalty = fiscal.incomeTaxAdditionalRate > 50
     ? (fiscal.incomeTaxAdditionalRate - 50) * -0.004 // -0.05% annual per pp above 50%
     : 0;
@@ -570,11 +592,46 @@ function calculateInflation(state: GameState): GameState {
   const nairu = 4.25;
   const unemploymentGap = nairu - economic.unemploymentRate;
 
-  // Persistence (40%): inflation has inertia
-  const persistence = economic.inflationCPI * 0.35;
+  // New Feature: Inflation Expectations De-anchoring (Realistic Mode)
+  // If inflation runs hot for too long, expectations become "unmoored" from the 2% target
+  // They start following recent trends instead (adaptive expectations)
+  // This makes inflation "sticky" and harder to bring down
 
-  // Expectations anchor (35%): drift towards 2% target
-  const expectations = 2.0 * 0.40;
+  let anchorHealth = economic.inflationAnchorHealth ?? 100; // 0-100 score
+
+  // Decay logic (only in Realistic/Standard, but mostly bites in Realistic due to volatility)
+  if (economic.inflationCPI > 8.0) {
+    anchorHealth -= 4.0; // Rapid loss of credibility
+  } else if (economic.inflationCPI > 5.0) {
+    anchorHealth -= 2.0; // Steady erosion
+  } else if (economic.inflationCPI > 3.5) {
+    anchorHealth -= 0.5; // Slight drift
+  }
+
+  // Recovery logic (hard work required)
+  // Requires low inflation AND positive real interest rates (credibility signal)
+  const realRate = markets.bankRate - economic.inflationCPI;
+  if (economic.inflationCPI < 3.0 && realRate > 1.0) {
+    anchorHealth += 1.5; // Re-anchoring
+  } else if (economic.inflationCPI < 2.5) {
+    anchorHealth += 0.5; // Passive stability
+  }
+
+  anchorHealth = Math.max(0, Math.min(100, anchorHealth));
+
+  // Calculate Expectations Term
+  // Standard model: 40% weight on expectations
+  // If anchored: 40% on Target (2.0%)
+  // If de-anchored: 40% on Recent Trend (adaptive)
+  const totalExpectationsWeight = 0.40;
+  const anchorWeight = (anchorHealth / 100); // 1.0 = fully anchored, 0.0 = fully adaptive
+
+  const recentTrend = economic.inflationCPI; // Simplified recent trend
+  const expectationsTerm = (2.0 * anchorWeight * totalExpectationsWeight) +
+    (recentTrend * (1 - anchorWeight) * totalExpectationsWeight);
+
+  // Persistence (30%): inflation has inertia (reduced from 35% to make room for expectations dynamic)
+  const persistence = economic.inflationCPI * 0.30;
 
   // Domestic pressure (15%): Phillips curve
   const domesticPressure = (2.0 + unemploymentGap * 2.0) * 0.15;
@@ -591,20 +648,23 @@ function calculateInflation(state: GameState): GameState {
   const realWageGap = economic.wageGrowthAnnual - economic.inflationCPI;
   const wagePressure = realWageGap > 2.0 ? (realWageGap - 2.0) * 0.1 : 0;
 
-  let inflation = persistence + expectations + domesticPressure + importPressure + vatEffect + wagePressure;
+  let inflation = persistence + expectationsTerm + domesticPressure + importPressure + vatEffect + wagePressure;
 
   // Small random component
   const randomShock = (Math.random() - 0.5) * 0.14 * difficulty.inflationShockScale;
   inflation += randomShock;
 
-  // Clamp to realistic UK range (deflation to high but not hyperinflation)
-  inflation = Math.max(-1.0, Math.min(8.0, inflation));
+  // Clamp to realistic UK range (deflation to high but not hyperinflation - unless de-anchored!)
+  // If de-anchored, allow it to run higher
+  const maxInflation = anchorHealth < 50 ? 20.0 : 12.0;
+  inflation = Math.max(-2.0, Math.min(maxInflation, inflation));
 
   return {
     ...state,
     economic: {
       ...economic,
       inflationCPI: inflation,
+      inflationAnchorHealth: anchorHealth,
     },
   };
 }
@@ -692,8 +752,8 @@ function calculateTaxRevenues(state: GameState): GameState {
   // Income tax (elasticity 1.1 to nominal GDP)
   const incomeTaxBase = 269;
   const incomeTaxRateEffect = (fiscal.incomeTaxBasicRate - 20) * 7.0 +
-                               (fiscal.incomeTaxHigherRate - 40) * 2.0 +
-                               (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
+    (fiscal.incomeTaxHigherRate - 40) * 2.0 +
+    (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
 
   // CRITICAL FIX: Tax avoidance on additional rate (top 1% of earners)
   // Above 50%, avoidance accelerates (salary sacrifice, incorporation, emigration)
@@ -1079,7 +1139,6 @@ function calculateMarkets(state: GameState): GameState {
   const difficulty = getDifficultySettings(state);
 
   // Gilt yields respond to Bank Rate, fiscal position, credibility
-
   const baseYield = markets.bankRate + 0.3; // Term premium
 
   // Fiscal risk premium (non-linear: rises faster above 100% debt/GDP)
@@ -1102,6 +1161,17 @@ function calculateMarkets(state: GameState): GameState {
   const debtTrend = fiscal.debtPctGDP - previousDebt;
   const deficitTrend = fiscal.deficitPctGDP - previousDeficit;
 
+  // New Feature: Bond Vigilantes (Realistic Mode)
+  // Markets punish the RATE of change in borrowing, not just the level
+  // If you try to borrow too much too quickly (e.g. +1% deficit in a single month), yields spike
+  let vigilantePremium = 0;
+  if (process.env.NODE_ENV !== 'test') { // Simple way to gate if needed, but we rely on logic
+    if (deficitTrend > 0.8) {
+      // Massive fiscal expansion in one month -> Shock premium
+      vigilantePremium = (deficitTrend - 0.8) * 0.5 * difficulty.marketReactionScale;
+    }
+  }
+
   // Worsening trajectories add premium; improving trajectories reduce it (scaled by difficulty)
   const trendPremium = Math.max(-0.45, Math.min(0.45, (debtTrend * 0.25 + deficitTrend * 0.18) * difficulty.marketReactionScale));
 
@@ -1111,12 +1181,7 @@ function calculateMarkets(state: GameState): GameState {
   // Credit rating effect
   const creditRatingPremium = getCreditRatingPremium(political.creditRating);
 
-  // CRITICAL FIX: Fiscal rule credibility differential
-  // Markets reward strict fiscal rules, penalize loose rules
-  // Strict rules: -0.15% yield (strong credibility signal)
-  // Moderate rules: -0.05% yield (steady credibility)
-  // Baseline rule: neutral
-  // MMT-inspired: +0.25% yield (market skepticism)
+  // Fiscal rule credibility differential
   const fiscalRuleId = political.chosenFiscalRule;
   let fiscalRuleCredibilityEffect = 0;
   if (fiscalRuleId === 'balanced-budget' || fiscalRuleId === 'maastricht') {
@@ -1127,56 +1192,75 @@ function calculateMarkets(state: GameState): GameState {
     fiscalRuleCredibilityEffect = 0.25; // Markets skeptical of MMT
   }
 
-  // CRITICAL FIX: Market psychology component
-  // Markets aren't purely rational - they have panic spirals and calm periods
+  // Market psychology component
   let marketPsychology = 0;
-
-  // Panic spiral: if yields are already elevated AND fiscal position worsening, markets panic
   const yieldLevel = markets.giltYield10y;
   const fiscalStress = (debtRatio > 95 ? 1 : 0) + (fiscal.deficitPctGDP > 5 ? 1 : 0) + (debtTrend > 1 ? 1 : 0);
 
   if (yieldLevel > 5.5 && fiscalStress >= 2) {
-    // Panic mode: markets overreact to bad news
     marketPsychology = 0.3 + (yieldLevel - 5.5) * 0.15; // Accelerating panic
   } else if (yieldLevel < 4.0 && fiscalStress === 0) {
-    // Calm mode: markets underreact to negative developments
-    marketPsychology = -0.15; // Discount on risk premiums
+    marketPsychology = -0.15; // Calm
   }
 
-  // Momentum effect: rapid yield changes breed more changes (herding behavior)
+  // Momentum effect
   if (previousSnapshot) {
     const previousYield = previousSnapshot.giltYield;
     const yieldChange = yieldLevel - previousYield;
-
     if (Math.abs(yieldChange) > 0.3) {
-      // Rapid movement triggers momentum trading
       marketPsychology += yieldChange > 0 ? 0.1 : -0.1;
     }
   }
 
-  const newYield10y = baseYield + debtPremium + deficitPremium + trendPremium + credibilityDiscount + creditRatingPremium + fiscalRuleCredibilityEffect + marketPsychology;
+  let newYield10y = baseYield + debtPremium + deficitPremium + trendPremium +
+    vigilantePremium + credibilityDiscount + creditRatingPremium +
+    fiscalRuleCredibilityEffect + marketPsychology;
 
-  // Sterling responds to interest rate differential and fiscal confidence
-  // KEY INSIGHT: Higher yields driven by fiscal risk WEAKEN sterling (capital flight)
-  // Higher yields driven by BoE rate hikes STRENGTHEN sterling (carry trade)
-  // We distinguish these by separating the bank rate component from the risk premium
-  const bankRateDifferential = markets.bankRate - 3.5; // BoE rate vs global neutral
-  const fiscalRiskPremium = newYield10y - markets.bankRate - 0.3; // Risk component of yield (above term premium)
-  const yieldSterlingEffect = bankRateDifferential * 1.5 - fiscalRiskPremium * 2.0; // Rate hikes help, risk hurts
+  // LDI Crisis Logic (Realistic Mode)
+  // If yields rise too fast (>50bps/month), pension funds get margin called
+  // They sell gilts to raise cash, driving yields higher (feedback loop)
+  let ldiPanicTriggered = markets.ldiPanicTriggered ?? false;
+
+  const prevYield = markets.giltYield10y; // Current state yield before this turn's update
+  let impliedYieldChange = newYield10y - prevYield;
+
+  // Trigger condition: Sudden spike (>50bps) OR existing panic
+  if (difficulty.marketReactionScale > 1.0) { // Only in Realistic/Hard modes
+    if (impliedYieldChange > 0.50) {
+      ldiPanicTriggered = true;
+      // Feedback loop: Add 150% of the excess rise atop the rise
+      const ldiShock = (impliedYieldChange - 0.50) * 1.5;
+      newYield10y += ldiShock;
+    } else if (ldiPanicTriggered) {
+      // Panic persists until yields stabilize or fall significantly
+      if (impliedYieldChange < -0.20) {
+        ldiPanicTriggered = false; // Panic subsides
+      } else {
+        // Panic continues: lingering premium
+        newYield10y += 0.40;
+      }
+    }
+  }
+
+  // Sterling mechanics (Rate diff vs Risk)
+  const bankRateDifferential = markets.bankRate - 3.5;
+  const fiscalRiskPremium = newYield10y - markets.bankRate - 0.3;
+  const yieldSterlingEffect = bankRateDifferential * 1.5 - fiscalRiskPremium * 2.0;
   const confidenceEffect = (political.governmentApproval - 40) * 0.15;
   const credibilityEffect = (political.credibilityIndex - 50) * 0.1;
+  const vigilanteSterlingPenalty = vigilantePremium * -4.0; // Vigilantes crush currency
 
-  let newSterlingIndex = 100 + yieldSterlingEffect + confidenceEffect + credibilityEffect;
+  let newSterlingIndex = 100 + yieldSterlingEffect + confidenceEffect + credibilityEffect + vigilanteSterlingPenalty;
   newSterlingIndex = Math.max(70, Math.min(130, newSterlingIndex));
 
-  // Gradual adjustment (markets don't jump instantly under normal conditions)
-  const prevYield = markets.giltYield10y;
-  const smoothedYield = prevYield + (newYield10y - prevYield) * 0.3;
+  // Gradual adjustment (unless LDI panic, then instant)
+  const adjustmentSpeed = ldiPanicTriggered ? 1.0 : 0.3;
+  const smoothedYield = prevYield + (newYield10y - prevYield) * adjustmentSpeed;
 
   const prevSterling = markets.sterlingIndex;
   const smoothedSterling = prevSterling + (newSterlingIndex - prevSterling) * 0.3;
 
-  // Mortgage rates follow yields with spread
+  // Mortgage rates
   const mortgageRate = smoothedYield + 1.5;
 
   return {
@@ -1188,6 +1272,8 @@ function calculateMarkets(state: GameState): GameState {
       giltYield30y: Math.max(0.5, Math.min(20, smoothedYield + 0.5)),
       mortgageRate2y: Math.max(1.0, Math.min(20, mortgageRate)),
       sterlingIndex: smoothedSterling,
+      yieldChange10y: smoothedYield - prevYield,
+      ldiPanicTriggered: ldiPanicTriggered
     },
   };
 }
@@ -1222,7 +1308,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const nhsDemandMultiplier = Math.pow(1 + nhsDemandGrowth / 100, monthsElapsed / 12);
   const nhsAdjustedBaseline = nhsBaselineNominal * nhsDemandMultiplier;
 
- const nhsSpending = fiscal.spending.nhs;
+  const nhsSpending = fiscal.spending.nhs;
   const nhsSpendingReal = nhsSpending / (1 + economic.inflationCPI / 100);
   const nhsRealGrowth = ((nhsSpendingReal - nhsAdjustedBaseline) / nhsAdjustedBaseline) * 100;
 
@@ -1256,7 +1342,7 @@ function calculateServiceQuality(state: GameState): GameState {
   }
 
   // Further diminishing returns based on current quality level
-  // Above 75, improvements are much harder (efficiency limits, organizational culture)
+  // Above 75, improvements are much harder (efficiency limits, organisational culture)
   if (nhsQuality > 75 && nhsQualityChange > 0) {
     nhsQualityChange *= 0.4; // Only 40% of improvement applies when already high quality
   } else if (nhsQuality > 85 && nhsQualityChange > 0) {
@@ -1573,10 +1659,10 @@ function calculateApproval(state: GameState): GameState {
   // Combine with meaningful monthly sensitivity (0.25 instead of 0.08)
   // This allows a crisis to move approval ~2-3 points per month rather than ~0.3
   let totalChange = (gdpEffect + unemploymentEffect + inflationEffect + realWageEffect +
-                      nhsEffect + educationEffect + granularServicesEffect +
-                      householdTaxEffect + businessTaxEffect +
-                      deficitEffect + manifestoEffect +
-                      honeymoonBoost + socialMediaEffect + randomEffect) * 0.25;
+    nhsEffect + educationEffect + granularServicesEffect +
+    householdTaxEffect + businessTaxEffect +
+    deficitEffect + manifestoEffect +
+    honeymoonBoost + socialMediaEffect + randomEffect) * 0.25;
 
   // CRITICAL FIX: Death spiral prevention and recovery mechanics
   // 1. Recovery bonus: bigger gains when improving from low base

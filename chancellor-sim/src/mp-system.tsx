@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { BudgetChanges } from './game-state';
+import { getInteractionResponse } from './data/mp-interactions';
 
 // ===========================
 // Type Definitions
@@ -373,11 +374,11 @@ export function calculateBudgetIdeology(budgetChanges: BudgetChanges): Ideologic
 
   // Deficit increase → less fiscally conservative
   const totalTaxChange = (budgetChanges.incomeTaxBasicChange || 0) * 7 +
-                         (budgetChanges.incomeTaxHigherChange || 0) * 3.5 +
-                         (budgetChanges.vatChange || 0) * 5;
+    (budgetChanges.incomeTaxHigherChange || 0) * 3.5 +
+    (budgetChanges.vatChange || 0) * 5;
   const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
-                              (budgetChanges.educationSpendingChange || 0) +
-                              (budgetChanges.welfareSpendingChange || 0);
+    (budgetChanges.educationSpendingChange || 0) +
+    (budgetChanges.welfareSpendingChange || 0);
   const deficitChange = totalSpendingChange - totalTaxChange;
 
   if (deficitChange > 10) fiscalConservatism -= 2;
@@ -457,8 +458,8 @@ export function calculateConstituencyImpact(
   // High public sector dependency areas care about public spending
   if (constituency.demographics.publicSectorDependency > 30) {
     const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
-                                (budgetChanges.educationSpendingChange || 0) +
-                                (budgetChanges.policeSpendingChange || 0);
+      (budgetChanges.educationSpendingChange || 0) +
+      (budgetChanges.policeSpendingChange || 0);
     if (totalSpendingChange > 0) impact += 1;
     if (totalSpendingChange < 0) impact -= 2;
 
@@ -645,9 +646,9 @@ export function checkPromiseFulfillment(
     case 'fiscal_discipline':
       // Check if deficit is reduced
       const totalTaxChange = (budgetChanges.incomeTaxBasicChange || 0) * 7 +
-                             (budgetChanges.vatChange || 0) * 5;
+        (budgetChanges.vatChange || 0) * 5;
       const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
-                                  (budgetChanges.educationSpendingChange || 0);
+        (budgetChanges.educationSpendingChange || 0);
       const deficitChange = totalSpendingChange - totalTaxChange;
       return deficitChange < 0; // Deficit reduced
 
@@ -760,27 +761,9 @@ export function attemptLobbying(
     backfired = Math.random() < backfireChance;
   }
 
-  // Generate message
-  let message = '';
-  if (success) {
-    switch (approach) {
-      case 'promise':
-        message = `${mp.name} has accepted your promise and agrees to support the budget.`;
-        break;
-      case 'persuade':
-        message = `${mp.name} has been persuaded by your arguments and will support the budget.`;
-        break;
-      case 'threaten':
-        message = `${mp.name} has reluctantly agreed to support the budget after pressure from the whips.`;
-        break;
-    }
-  } else {
-    if (backfired) {
-      message = `${mp.name} has rejected your approach and is now MORE opposed to the budget. The whips report this has angered other MPs as well.`;
-    } else {
-      message = `${mp.name} has declined to support the budget. They remain opposed.`;
-    }
-  }
+  // Generate message using data-driven system
+  const outcome = success ? 'success' : (backfired ? 'backfire' : 'failure');
+  const message = getInteractionResponse(mp, approach, outcome);
 
   return { success, message, backfired };
 }
@@ -1322,11 +1305,10 @@ export const LobbyingModal: React.FC<{
               {/* Promise Approach */}
               <button
                 onClick={() => setSelectedApproach('promise')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
-                  selectedApproach === 'promise'
+                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'promise'
                     ? 'border-blue-600 bg-blue-50'
                     : 'border-gray-300 hover:border-gray-400'
-                }`}
+                  }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -1377,11 +1359,10 @@ export const LobbyingModal: React.FC<{
               {/* Persuade Approach */}
               <button
                 onClick={() => setSelectedApproach('persuade')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
-                  selectedApproach === 'persuade'
+                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'persuade'
                     ? 'border-green-600 bg-green-50'
                     : 'border-gray-300 hover:border-gray-400'
-                }`}
+                  }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -1402,11 +1383,10 @@ export const LobbyingModal: React.FC<{
               {/* Threaten Approach */}
               <button
                 onClick={() => setSelectedApproach('threaten')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
-                  selectedApproach === 'threaten'
+                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'threaten'
                     ? 'border-orange-600 bg-orange-50'
                     : 'border-gray-300 hover:border-gray-400'
-                }`}
+                  }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -1445,9 +1425,8 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={handleLobby}
               disabled={isLobbying}
-              className={`flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-sm transition-all ${
-                isLobbying ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className={`flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-sm transition-all ${isLobbying ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
               {isLobbying ? 'Lobbying...' : `Lobby MP (${getSuccessRate()}% chance)`}
             </button>
@@ -1560,11 +1539,10 @@ export const MPDetailModal: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 px-4 py-3 font-semibold transition-colors ${
-                activeTab === tab.id
+              className={`flex-1 px-4 py-3 font-semibold transition-colors ${activeTab === tab.id
                   ? 'bg-white text-blue-600 border-b-2 border-blue-600'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -1703,8 +1681,8 @@ export const MPDetailModal: React.FC<{
                 </div>
                 <div className="mt-2 text-sm text-gray-600">
                   {mp.ideology.fiscalConservatism > 7 ? 'Fiscal Hawk (Austerity advocate)' :
-                   mp.ideology.fiscalConservatism > 4 ? 'Moderate (Cautious about deficit)' :
-                   'Fiscal Dove (Supports borrowing for investment)'}
+                    mp.ideology.fiscalConservatism > 4 ? 'Moderate (Cautious about deficit)' :
+                      'Fiscal Dove (Supports borrowing for investment)'}
                 </div>
               </div>
             </div>
@@ -1733,11 +1711,10 @@ export const MPDetailModal: React.FC<{
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                                vote.choice === 'aye' ? 'bg-green-100 text-green-800' :
-                                vote.choice === 'noe' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${vote.choice === 'aye' ? 'bg-green-100 text-green-800' :
+                                  vote.choice === 'noe' ? 'bg-red-100 text-red-800' :
+                                    'bg-yellow-100 text-yellow-800'
+                                }`}>
                                 {vote.choice.toUpperCase()}
                               </span>
                               {vote.coerced && (
@@ -1850,21 +1827,19 @@ export const MPDetailModal: React.FC<{
                     <div className="text-sm text-gray-600">Region</div>
                     <div className="text-lg font-bold text-gray-900 capitalize">{mp.constituency.region}</div>
                   </div>
-                  <div className={`rounded p-3 ${
-                    mp.constituency.marginality > 70 ? 'bg-red-50' :
-                    mp.constituency.marginality > 50 ? 'bg-amber-50' :
-                    'bg-green-50'
-                  }`}>
-                    <div className="text-sm text-gray-600">Marginality</div>
-                    <div className={`text-lg font-bold ${
-                      mp.constituency.marginality > 70 ? 'text-red-900' :
-                      mp.constituency.marginality > 50 ? 'text-amber-900' :
-                      'text-green-900'
+                  <div className={`rounded p-3 ${mp.constituency.marginality > 70 ? 'bg-red-50' :
+                      mp.constituency.marginality > 50 ? 'bg-amber-50' :
+                        'bg-green-50'
                     }`}>
+                    <div className="text-sm text-gray-600">Marginality</div>
+                    <div className={`text-lg font-bold ${mp.constituency.marginality > 70 ? 'text-red-900' :
+                        mp.constituency.marginality > 50 ? 'text-amber-900' :
+                          'text-green-900'
+                      }`}>
                       {mp.constituency.marginality.toFixed(0)}%
                       {mp.constituency.marginality > 70 ? ' (Highly Marginal)' :
-                       mp.constituency.marginality > 50 ? ' (Marginal)' :
-                       ' (Safe)'}
+                        mp.constituency.marginality > 50 ? ' (Marginal)' :
+                          ' (Safe)'}
                     </div>
                   </div>
                 </div>

@@ -207,6 +207,7 @@ export interface EconomicState {
   inflationCPI: number;
   unemploymentRate: number;
   wageGrowthAnnual: number;
+  inflationAnchorHealth: number; // 0-100, where 100 is fully anchored at 2%
 }
 
 export function createInitialEconomicState(): EconomicState {
@@ -217,6 +218,7 @@ export function createInitialEconomicState(): EconomicState {
     inflationCPI: 2.0,
     unemploymentRate: 4.2,
     wageGrowthAnnual: 5.7,
+    inflationAnchorHealth: 100,
   };
 }
 
@@ -506,6 +508,8 @@ export interface MarketState {
   giltYield30y: number;
   mortgageRate2y: number;
   sterlingIndex: number;
+  yieldChange10y: number; // Month-on-month change in bps
+  ldiPanicTriggered: boolean; // Whether LDI feedback loop is active
 }
 
 export function createInitialMarketState(): MarketState {
@@ -516,6 +520,8 @@ export function createInitialMarketState(): MarketState {
     giltYield30y: 4.55,
     mortgageRate2y: 5.50,
     sterlingIndex: 100,
+    yieldChange10y: 0,
+    ldiPanicTriggered: false,
   };
 }
 

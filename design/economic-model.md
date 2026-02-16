@@ -1222,14 +1222,14 @@ If the model replicates these (±10% tolerance), calibration is successful.
 
 This economic model is **fully implementable**. Every formula includes actual coefficients, lags, and thresholds derived from real UK data. The model captures:
 
-1. ✅ Tax-revenue relationships with behavioural responses
-2. ✅ Spending-growth relationships with state-dependent multipliers
-3. ✅ Debt dynamics with market reactions and credibility effects
-4. ✅ Inflation-monetary policy-consumption feedback loops
-5. ✅ Service quality degradation with compounding political costs
-6. ✅ Realistic lag structures (6-12 months for most effects)
-7. ✅ Non-linear crisis triggers (Truss-style scenarios)
-8. ✅ Political approval mechanics with loss aversion
+1. [DONE] Tax-revenue relationships with behavioural responses
+2. [DONE] Spending-growth relationships with state-dependent multipliers
+3. [DONE] Debt dynamics with market reactions and credibility effects
+4. [DONE] Inflation-monetary policy-consumption feedback loops
+5. [DONE] Service quality degradation with compounding political costs
+6. [DONE] Realistic lag structures (6-12 months for most effects)
+7. [DONE] Non-linear crisis triggers (Truss-style scenarios)
+8. [DONE] Political approval mechanics with loss aversion
 
 The simulation advances **month-by-month**, with quarterly data releases and annual fiscal events. The player faces authentic trade-offs: **you cannot simultaneously keep tax pledges, fund services adequately, and meet fiscal rules**. Something must give.
 

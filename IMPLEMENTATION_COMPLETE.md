@@ -158,7 +158,7 @@ All 40 pledges updated across 5 templates:
 
 ## Build Status
 
-✅ **Build Successful**
+[DONE] **Build Successful**
 - No TypeScript errors
 - Only minor linting warnings (unused variables)
 - Production build ready
@@ -166,7 +166,7 @@ All 40 pledges updated across 5 templates:
 
 ## British English Compliance
 
-✅ **All text uses British English**:
+[DONE] **All text uses British English**:
 - "Fulfil" not "Fulfill"
 - "Favour" not "Favor"
 - "Honour" not "Honor"
@@ -175,31 +175,31 @@ All 40 pledges updated across 5 templates:
 
 ## Key Features Confirmed Working
 
-### ✅ Tax Lock One-Click
+### [DONE] Tax Lock One-Click
 - Reverts income tax rates to starting levels
 - Reverts National Insurance rates
 - Reverts VAT and corporation tax
 - Zero fiscal cost (though may reduce revenue)
 
-### ✅ Spending One-Click
+### [DONE] Spending One-Click
 - Allocates specified amount to department
 - Updates total spending
 - Recalculates deficit
 - Shows cost in button
 
-### ✅ Progress Bars
+### [DONE] Progress Bars
 - Green for compliance
 - Amber for partial achievement
 - Red for violations
 - Percentage display
 - Status text
 
-### ✅ Fiscal Rules Correctly Have NO One-Click
+### [DONE] Fiscal Rules Correctly Have NO One-Click
 - Shows appropriate message
 - Explains why not available
 - No misleading buttons
 
-### ✅ Real-time Updates
+### [DONE] Real-time Updates
 - Progress bars update as policies change
 - Colour coding reflects current status
 - Violation tracking works
@@ -275,10 +275,10 @@ const report = generateManifestoPerformanceReport(
 ## Testing Checklist
 
 ### Manual Testing Completed
-- ✅ Project builds without errors
-- ✅ TypeScript types all valid
-- ✅ All imports resolved correctly
-- ✅ No runtime errors on initial load
+- [DONE] Project builds without errors
+- [DONE] TypeScript types all valid
+- [DONE] All imports resolved correctly
+- [DONE] No runtime errors on initial load
 
 ### Recommended User Testing
 1. Start new game
@@ -324,12 +324,12 @@ const report = generateManifestoPerformanceReport(
 ## Conclusion
 
 The manifesto pledge system is now fully functional with:
-- ✅ One-click solutions for 87.5% of pledges
-- ✅ Progress bars with three tracking types
-- ✅ Real-time visual feedback
-- ✅ No false promises (fiscal rules correctly excluded)
-- ✅ British English throughout
-- ✅ Zero build errors
-- ✅ Ready for production use
+- [DONE] One-click solutions for 87.5% of pledges
+- [DONE] Progress bars with three tracking types
+- [DONE] Real-time visual feedback
+- [DONE] No false promises (fiscal rules correctly excluded)
+- [DONE] British English throughout
+- [DONE] Zero build errors
+- [DONE] Ready for production use
 
 The system respects the impossibility of instantly fulfilling outcome-based pledges like fiscal rules whilst providing helpful automation for straightforward commitments like tax locks and spending allocations.

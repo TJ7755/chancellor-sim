@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { SOCIAL_MEDIA_POSTS, SocialPostTemplate, SocialPersona } from './data/social-media-posts';
 
 // Minimum state interface required for social media simulation
 // Works with both GameState and SimulationState (dashboard)
@@ -18,6 +19,7 @@ export interface MinimalStateForSocialMedia {
     publicApproval?: number;
     backbenchSatisfaction?: number;
     governmentApproval?: number;
+    party?: string;
   };
   economy?: {
     growthRate?: number;
@@ -27,6 +29,7 @@ export interface MinimalStateForSocialMedia {
     gdpGrowthAnnual?: number;
     unemploymentRate?: number;
     inflationCPI?: number;
+    wageGrowthReal?: number;
   };
   services?: {
     nhsQuality?: number;
@@ -41,6 +44,8 @@ export interface MinimalStateForSocialMedia {
     vatRate?: number;
     corporationTaxRate?: number;
     detailedTaxes?: Array<{ id: string; currentRate: number }>;
+    deficit_bn?: number;
+    debtToGdpPercent?: number;
   };
   turn?: number;
 }
@@ -49,7 +54,7 @@ export interface MinimalStateForSocialMedia {
 export interface SocialMediaPost {
   id: string;
   author: string;
-  authorType: 'citizen' | 'journalist' | 'economist' | 'politician' | 'activist' | 'business';
+  authorType: 'citizen' | 'journalist' | 'economist' | 'politician' | 'activist' | 'business' | 'union';
   handle: string;
   content: string;
   sentiment: 'positive' | 'negative' | 'neutral';
@@ -104,17 +109,25 @@ const INFLUENCERS = {
     { name: 'Rishi Sunak', handle: '@RishiSunak', party: 'Conservative' },
     { name: 'Jeremy Hunt', handle: '@Jeremy_Hunt', party: 'Conservative' },
     { name: 'Ed Davey', handle: '@daisy_davey', party: 'Lib Dem' },
+    { name: 'Nigel Farage', handle: '@Nigel_Farage', party: 'Reform' },
+    { name: 'Stephen Flynn', handle: '@StephenFlynnSNP', party: 'SNP' },
   ],
   activists: [
     { name: 'Owen Jones', handle: '@OwenJones84', leaning: 'left' },
     { name: 'Aaron Bastani', handle: '@AaronBastani', leaning: 'left' },
     { name: 'Nigel Farage', handle: '@Nigel_Farage', leaning: 'right' },
+    { name: 'Ash Sarkar', handle: '@AyoCaesar', leaning: 'left' },
   ],
   business: [
     { name: 'Alison Rose', handle: '@AlisonRoseUK', organisation: 'UK Finance' },
     { name: 'Miles Celic', handle: '@Miles_Celic', organisation: 'TheCityUK' },
     { name: 'Emma Bridgewater', handle: '@BritishMakerCEO', organisation: 'SME Federation' },
   ],
+  unions: [
+    { name: 'Mick Lynch', handle: '@RMTunion', organisation: 'RMT' },
+    { name: 'Sharon Graham', handle: '@UniteSharon', organisation: 'Unite' },
+    { name: 'Paul Nowak', handle: '@nowak_paul', organisation: 'TUC' },
+  ]
 };
 
 function getDetailedTaxRate(state: MinimalStateForSocialMedia, id: string, fallback: number): number {
@@ -122,6 +135,54 @@ function getDetailedTaxRate(state: MinimalStateForSocialMedia, id: string, fallb
   if (!Array.isArray(taxes)) return fallback;
   const found = taxes.find((tax) => tax.id === id);
   return found?.currentRate ?? fallback;
+}
+
+// Check if conditions for a post are met
+function checkSocialPostConditions(conditions: SocialPostTemplate['conditions'], state: MinimalStateForSocialMedia): boolean {
+  if (!conditions) return true;
+
+  const gdpGrowth = state.economy?.gdpGrowthAnnual ?? state.economy?.growthRate ?? 0;
+  const inflation = state.economy?.inflationCPI ?? state.economy?.inflation ?? 2;
+  const unemployment = state.economy?.unemploymentRate ?? state.economy?.unemployment ?? 4;
+  const approval = state.political?.publicApproval ?? state.political?.governmentApproval ?? 50;
+  const deficit = state.fiscal?.deficit_bn ?? 50;
+
+  if (conditions.minGdpGrowth !== undefined && gdpGrowth < conditions.minGdpGrowth) return false;
+  if (conditions.maxGdpGrowth !== undefined && gdpGrowth > conditions.maxGdpGrowth) return false;
+
+  if (conditions.minInflation !== undefined && inflation < conditions.minInflation) return false;
+
+  if (conditions.minUnemployment !== undefined && unemployment < conditions.minUnemployment) return false;
+
+  if (conditions.minApproval !== undefined && approval < conditions.minApproval) return false;
+  if (conditions.maxApproval !== undefined && approval > conditions.maxApproval) return false;
+
+  if (conditions.minDeficit !== undefined && deficit < conditions.minDeficit) return false;
+  if (conditions.maxDeficit !== undefined && deficit > conditions.maxDeficit) return false;
+
+  // Helper to check specific tax existence
+  const hasWealthTax = getDetailedTaxRate(state, 'wealthTax', 0) > 0;
+
+  if (conditions.wealthTax && !hasWealthTax) return false;
+
+  // Heuristic for spending cuts: Low deficit + Poor services
+  // If deficit is low (< 20bn) AND NHS quality is poor (< 50), assume cuts are happening
+  const isAusterity = (deficit < 30) && ((state.services?.nhsQuality ?? 60) < 55);
+  if (conditions.spendingCuts && !isAusterity) return false;
+
+  // Heuristic for pension cuts: very low approval among elderly? (Approximated by general low approval + low deficit)
+  // or just random chance if approval is tanking
+  if (conditions.pensionCuts) {
+    if (approval > 30) return false; // Only trigger pension anger if things are already bad
+  }
+
+  // Tax rises heuristic
+  const taxRate = state.economy?.taxRate ?? 20;
+  // Assume tax rises if main rate > 22 OR VAT > 20
+  const isHighTax = taxRate > 22 || (state.fiscal?.vatRate ?? 20) > 20;
+  if (conditions.taxRises && !isHighTax) return false;
+
+  return true;
 }
 
 // Generate sentiment based on game state
@@ -295,246 +356,95 @@ export function generateTrendingHashtags(state: MinimalStateForSocialMedia, rece
   return hashtags.slice(0, 5); // Return top 5
 }
 
+function resolveAuthor(persona: SocialPersona): { name: string; handle: string; type: SocialMediaPost['authorType']; verified: boolean } {
+  const names = ['James', 'Sarah', 'Mohammed', 'Emma', 'David', 'Priya', 'Tom', 'Olivia', 'Jack', 'Zara', 'Fatima', 'Harry', 'Sophie'];
+  const cities = ['London', 'Manchester', 'Birmingham', 'Leeds', 'Liverpool', 'Glasgow', 'Cardiff', 'Bristol', 'Newcastle'];
+
+  switch (persona) {
+    case 'journalist_serious':
+    case 'journalist_tabloid': {
+      const journalist = INFLUENCERS.journalists[Math.floor(Math.random() * INFLUENCERS.journalists.length)];
+      return { name: journalist.name, handle: journalist.handle, type: 'journalist', verified: true };
+    }
+    case 'economist_academic':
+    case 'economist_city': {
+      const economist = INFLUENCERS.economists[Math.floor(Math.random() * INFLUENCERS.economists.length)];
+      return { name: economist.name, handle: economist.handle, type: 'economist', verified: true };
+    }
+    case 'mp_loyal':
+    case 'mp_rebel':
+    case 'mp_opposition': {
+      const politician = INFLUENCERS.politicians[Math.floor(Math.random() * INFLUENCERS.politicians.length)];
+      return { name: politician.name, handle: politician.handle, type: 'politician', verified: true };
+    }
+    case 'business_leader': {
+      const business = INFLUENCERS.business[Math.floor(Math.random() * INFLUENCERS.business.length)];
+      return { name: business.name, handle: business.handle, type: 'business', verified: true };
+    }
+    case 'union_leader': {
+      const union = INFLUENCERS.unions[Math.floor(Math.random() * INFLUENCERS.unions.length)];
+      return { name: union.name, handle: union.handle, type: 'union', verified: true };
+    }
+    case 'activist_left':
+    case 'activist_right': {
+      const activist = INFLUENCERS.activists[Math.floor(Math.random() * INFLUENCERS.activists.length)];
+      return { name: activist.name, handle: activist.handle, type: 'activist', verified: true };
+    }
+    case 'public_angry':
+    case 'public_happy':
+    case 'public_neutral':
+    default: {
+      const name = names[Math.floor(Math.random() * names.length)];
+      return {
+        name: `${name} from ${cities[Math.floor(Math.random() * cities.length)]}`,
+        handle: `@${name.toLowerCase()}${Math.floor(Math.random() * 9999)}`,
+        type: 'citizen',
+        verified: false
+      };
+    }
+  }
+}
+
 // Generate social media posts based on game state
 export function generateSocialMediaPosts(
   state: MinimalStateForSocialMedia,
   sentiment: SocialMediaSentiment,
   hashtags: TrendingHashtag[]
 ): SocialMediaPost[] {
+  // 1. Filter valid posts from data
+  const validTemplates = SOCIAL_MEDIA_POSTS.filter(t => checkSocialPostConditions(t.conditions, state));
+
+  if (validTemplates.length === 0) return []; // Should not happen given generic options
+
   const posts: SocialMediaPost[] = [];
-  const approval = state.political?.publicApproval ?? state.political?.governmentApproval ?? 50;
-  const growth = state.economy?.growthRate ?? state.economy?.gdpGrowthAnnual ?? 2;
-  const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? 50;
-  const vatRate = state.fiscal?.vatRate ?? 20;
-  const vatDomesticEnergy = getDetailedTaxRate(state, 'vatDomesticEnergy', 5);
-  const corporationTaxRate = state.fiscal?.corporationTaxRate ?? 25;
-  const energyProfitsLevy = getDetailedTaxRate(state, 'energyProfitsLevy', 35);
-  const mentalHealthAccess = state.services?.mentalHealthAccess ?? 55;
-  const prisonSafety = state.services?.prisonSafety ?? 50;
+  const count = 5 + Math.floor(Math.random() * 3); // 5-7 posts
 
-  // Function to pick random influencer
-  const pickInfluencer = <T extends keyof typeof INFLUENCERS>(type: T): typeof INFLUENCERS[T][number] => {
-    const influencers = INFLUENCERS[type];
-    return influencers[Math.floor(Math.random() * influencers.length)];
-  };
+  // 2. Select templates (weighted by relevance? random for now)
+  for (let i = 0; i < count; i++) {
+    const template = validTemplates[Math.floor(Math.random() * validTemplates.length)];
+    const authorInfo = resolveAuthor(template.persona);
+    const contentTemplate = template.templates[Math.floor(Math.random() * template.templates.length)];
 
-  // Generate journalist posts
-  if (approval < 40) {
-    const journalist = pickInfluencer('journalists');
+    // Replace placeholders if any (none currently used in strict templates, but good practice)
+    const content = contentTemplate
+      .replace('{growth}', ((state.economy?.gdpGrowthAnnual ?? 0)).toFixed(1))
+      .replace('{inflation}', ((state.economy?.inflationCPI ?? 0)).toFixed(1));
+
     posts.push({
-      id: `post-${Date.now()}-1`,
-      author: journalist.name,
-      authorType: 'journalist',
-      handle: journalist.handle,
-      content: `BREAKING: Latest polling shows Chancellor's approval at ${Math.round(approval)}% - lowest since appointment. ${hashtags[0]?.tag || '#Budget2024'}`,
-      sentiment: 'negative',
-      likes: Math.floor(2000 + Math.random() * 5000),
-      retweets: Math.floor(500 + Math.random() * 2000),
-      timestamp: new Date(),
-      verified: true,
+      id: `post-${Date.now()}-${i}`,
+      author: authorInfo.name,
+      authorType: authorInfo.type,
+      handle: authorInfo.handle,
+      content: content,
+      sentiment: template.sentiment,
+      likes: Math.floor(Math.random() * 5000) + 10,
+      retweets: Math.floor(Math.random() * 1000) + 1,
+      timestamp: new Date(Date.now() - (i * 300000)), // Staggered
+      verified: authorInfo.verified
     });
   }
-
-  if (backbenchSatisfaction < 40) {
-    const journalist = pickInfluencer('journalists');
-    posts.push({
-      id: `post-${Date.now()}-2`,
-      author: journalist.name,
-      authorType: 'journalist',
-      handle: journalist.handle,
-      content: `Sources in PLP say growing unease about Chancellor's direction. One senior backbencher: "This isn't what we campaigned on." ${hashtags.find(h => h.sentiment === 'negative')?.tag || '#Budget2024'}`,
-      sentiment: 'negative',
-      likes: Math.floor(1500 + Math.random() * 3000),
-      retweets: Math.floor(400 + Math.random() * 1500),
-      timestamp: new Date(Date.now() - 120000), // 2 minutes ago
-      verified: true,
-    });
-  }
-
-  // Generate economist posts
-  const economist = pickInfluencer('economists');
-  if (growth < 1) {
-    posts.push({
-      id: `post-${Date.now()}-3`,
-      author: economist.name,
-      authorType: 'economist',
-      handle: economist.handle,
-      content: `Growth forecast: ${growth.toFixed(1)}%. At this rate, we're looking at stagnation, possibly recession. The Chancellor's fiscal stance appears contractionary at precisely the wrong moment.`,
-      sentiment: 'negative',
-      likes: Math.floor(1000 + Math.random() * 2000),
-      retweets: Math.floor(300 + Math.random() * 1000),
-      timestamp: new Date(Date.now() - 300000), // 5 minutes ago
-      verified: true,
-    });
-  } else if (growth > 2.5) {
-    posts.push({
-      id: `post-${Date.now()}-3`,
-      author: economist.name,
-      authorType: 'economist',
-      handle: economist.handle,
-      content: `Interesting Budget. Growth at ${growth.toFixed(1)}% suggests the fiscal multipliers are working. Still early days, but cautiously optimistic about trajectory. ${hashtags.find(h => h.sentiment === 'positive')?.tag || ''}`,
-      sentiment: 'positive',
-      likes: Math.floor(800 + Math.random() * 1500),
-      retweets: Math.floor(200 + Math.random() * 800),
-      timestamp: new Date(Date.now() - 300000),
-      verified: true,
-    });
-  }
-
-  // Generate opposition politician posts
-  const oppositionMP = pickInfluencer('politicians');
-  posts.push({
-    id: `post-${Date.now()}-4`,
-    author: oppositionMP.name,
-    authorType: 'politician',
-    handle: oppositionMP.handle,
-    content: approval < 40
-      ? `This Budget is an insult to working families. Labour promised change, but it's more of the same - higher taxes, broken promises. The British people deserve better.`
-      : `The Chancellor seems to think throwing money at problems will solve everything. Where's the fiscal responsibility? Where's the plan for growth?`,
-    sentiment: 'negative',
-    likes: Math.floor(1200 + Math.random() * 3000),
-    retweets: Math.floor(400 + Math.random() * 1200),
-    timestamp: new Date(Date.now() - 600000), // 10 minutes ago
-    verified: true,
-  });
-
-  if (vatRate > 20 || vatDomesticEnergy > 5) {
-    posts.push({
-      id: `post-${Date.now()}-vat-citizen`,
-      author: 'Amira from Bristol',
-      authorType: 'citizen',
-      handle: '@cakecounter_uk',
-      content: `My weekly shop costs more again. Even basics and bakery items feel pricier after these VAT changes. How are families meant to cope? #VATRise`,
-      sentiment: 'negative',
-      likes: Math.floor(900 + Math.random() * 2200),
-      retweets: Math.floor(250 + Math.random() * 900),
-      timestamp: new Date(Date.now() - 420000),
-      verified: false,
-    });
-  }
-
-  if (corporationTaxRate > 25 || energyProfitsLevy > 35) {
-    const businessVoice = pickInfluencer('business');
-    posts.push({
-      id: `post-${Date.now()}-business`,
-      author: businessVoice.name,
-      authorType: 'business',
-      handle: businessVoice.handle,
-      content: `The Treasury's granular tax changes are increasing planning uncertainty for firms. Business needs stability, not constant parameter shifts.`,
-      sentiment: 'negative',
-      likes: Math.floor(700 + Math.random() * 1800),
-      retweets: Math.floor(180 + Math.random() * 650),
-      timestamp: new Date(Date.now() - 240000),
-      verified: true,
-    });
-  }
-
-  if (mentalHealthAccess < 50 || prisonSafety < 45) {
-    posts.push({
-      id: `post-${Date.now()}-services-watch`,
-      author: 'Policy Watch UK',
-      authorType: 'activist',
-      handle: '@PolicyWatchUK',
-      content: `Local services are under real strain: mental health access and prison safety indicators are both deteriorating. Constituencies will feel this quickly.`,
-      sentiment: 'negative',
-      likes: Math.floor(1200 + Math.random() * 2600),
-      retweets: Math.floor(350 + Math.random() * 1000),
-      timestamp: new Date(Date.now() - 300000),
-      verified: true,
-    });
-  }
-
-  // Generate activist posts
-  const activist = pickInfluencer('activists');
-  if (approval < 35 && activist.leaning === 'left') {
-    posts.push({
-      id: `post-${Date.now()}-5`,
-      author: activist.name,
-      authorType: 'activist',
-      handle: activist.handle,
-      content: `Starmer and Reeves betraying the 2024 manifesto. This is Tory-lite. Where's the wealth tax? Where's the Green New Deal? We didn't campaign for THIS. ${hashtags.find(h => h.tag.includes('Tories'))?.tag || ''}`,
-      sentiment: 'negative',
-      likes: Math.floor(3000 + Math.random() * 8000),
-      retweets: Math.floor(1000 + Math.random() * 3000),
-      timestamp: new Date(Date.now() - 900000), // 15 minutes ago
-      verified: true,
-    });
-  }
-
-  // Generate citizen posts
-  const citizenPosts = generateCitizenPosts(state, sentiment, hashtags, 3);
-  posts.push(...citizenPosts);
 
   return posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-}
-
-// Generate citizen posts (regular people)
-function generateCitizenPosts(
-  state: MinimalStateForSocialMedia,
-  sentiment: SocialMediaSentiment,
-  hashtags: TrendingHashtag[],
-  count: number
-): SocialMediaPost[] {
-  const posts: SocialMediaPost[] = [];
-  const inflation = state.economy?.inflation ?? state.economy?.inflationCPI ?? 2;
-
-  const negativeTemplates = [
-    `Can't believe Labour are doing this. This is exactly what the Tories would do. Disgusted. ${hashtags[0]?.tag || ''}`,
-    `My taxes went UP and public services are still rubbish. What was the point of voting Labour? ${hashtags[0]?.tag || ''}`,
-    `Yet another Budget that hammers working people. When will they learn? ${hashtags[0]?.tag || ''}`,
-    `Inflation at ${inflation.toFixed(1)}%, wages stagnant, and they want MORE tax? Absolute joke.`,
-    `Remember when Labour promised hope and change? Yeah, me neither anymore. ${hashtags[1]?.tag || ''}`,
-  ];
-
-  const positiveTemplates = [
-    `Finally, a Budget that invests in our future. This is what we voted for. ${hashtags[0]?.tag || ''}`,
-    `Say what you like about Labour, but this Budget is actually pretty sensible. Fair taxation, proper investment.`,
-    `Really impressed with the Chancellor's approach. Tough choices, but necessary. ${hashtags.find(h => h.sentiment === 'positive')?.tag || ''}`,
-    `This is what competent government looks like. Such a relief after 14 years of chaos.`,
-  ];
-
-  const neutralTemplates = [
-    `Not sure how I feel about this Budget. Some good bits, some worrying bits. Time will tell. ${hashtags[0]?.tag || ''}`,
-    `Interesting Budget. Not what I expected. Let's see how it plays out over the next year.`,
-    `Mixed feelings about today. Some bold decisions, some missed opportunities.`,
-  ];
-
-  // Generate posts based on sentiment distribution
-  for (let i = 0; i < count; i++) {
-    const roll = Math.random() * 100;
-    let postSentiment: 'positive' | 'negative' | 'neutral';
-    let template: string;
-
-    if (roll < sentiment.negative) {
-      postSentiment = 'negative';
-      template = negativeTemplates[Math.floor(Math.random() * negativeTemplates.length)];
-    } else if (roll < sentiment.negative + sentiment.positive) {
-      postSentiment = 'positive';
-      template = positiveTemplates[Math.floor(Math.random() * positiveTemplates.length)];
-    } else {
-      postSentiment = 'neutral';
-      template = neutralTemplates[Math.floor(Math.random() * neutralTemplates.length)];
-    }
-
-    const names = ['James', 'Sarah', 'Mohammed', 'Emma', 'David', 'Priya', 'Tom', 'Olivia', 'Jack', 'Zara'];
-    const name = names[Math.floor(Math.random() * names.length)];
-    const randomNum = Math.floor(Math.random() * 9999);
-
-    posts.push({
-      id: `post-${Date.now()}-citizen-${i}`,
-      author: `${name} from ${['London', 'Manchester', 'Birmingham', 'Leeds', 'Liverpool'][Math.floor(Math.random() * 5)]}`,
-      authorType: 'citizen',
-      handle: `@${name.toLowerCase()}${randomNum}`,
-      content: template,
-      sentiment: postSentiment,
-      likes: Math.floor(5 + Math.random() * 200),
-      retweets: Math.floor(1 + Math.random() * 50),
-      timestamp: new Date(Date.now() - (i * 180000)), // Stagger by 3 minutes
-      verified: false,
-    });
-  }
-
-  return posts;
 }
 
 // CRITICAL FIX: Social media impact amplified to be meaningful
@@ -637,14 +547,13 @@ export const SocialMediaSidebar: React.FC<{
           <span className="text-red-700">− {socialMedia.sentiment.negative}%</span>
         </div>
         <div className="mt-2 text-xs text-center">
-          <span className={`font-semibold ${
-            socialMedia.sentiment.trending === 'improving' ? 'text-green-700' :
+          <span className={`font-semibold ${socialMedia.sentiment.trending === 'improving' ? 'text-green-700' :
             socialMedia.sentiment.trending === 'worsening' ? 'text-red-700' :
-            'text-gray-600'
-          }`}>
+              'text-gray-600'
+            }`}>
             {socialMedia.sentiment.trending === 'improving' ? '↑ Improving' :
-             socialMedia.sentiment.trending === 'worsening' ? '↓ Worsening' :
-             '→ Stable'}
+              socialMedia.sentiment.trending === 'worsening' ? '↓ Worsening' :
+                '→ Stable'}
           </span>
         </div>
       </div>

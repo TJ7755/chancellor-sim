@@ -19,13 +19,13 @@ This economic engine simulates:
 
 ## Key Features
 
-✅ **Realistic lag structures**: Corporation tax responds to GDP from 6 months ago, income tax from 2 months ago, etc.
+[DONE] **Realistic lag structures**: Corporation tax responds to GDP from 6 months ago, income tax from 2 months ago, etc.
 
-✅ **Feedback loops**: Higher spending → GDP boost → higher tax revenues (but also higher deficits → higher yields)
+[DONE] **Feedback loops**: Higher spending → GDP boost → higher tax revenues (but also higher deficits → higher yields)
 
-✅ **Non-linear effects**: Debt/GDP above 100% causes accelerating market concern
+[DONE] **Non-linear effects**: Debt/GDP above 100% causes accelerating market concern
 
-✅ **Service degradation**: NHS quality falls -0.4 to -1.5 per month if underfunded
+[DONE] **Service degradation**: NHS quality falls -0.4 to -1.5 per month if underfunded
 
 ## How to Run
 
@@ -162,14 +162,14 @@ degradation = -0.40 to -1.50 per month (if real growth < 2.5%)
 
 This is JUST the economic engine. Not included:
 
-- ❌ Political approval system
-- ❌ Events (strikes, market crises, backbench revolts)
-- ❌ Full Budget UI (only 3 controls for testing)
-- ❌ News generation
-- ❌ Advisors
-- ❌ Win/lose conditions
-- ❌ OBR forecasts
-- ❌ IFS verdicts
+- [TODO] Political approval system
+- [TODO] Events (strikes, market crises, backbench revolts)
+- [TODO] Full Budget UI (only 3 controls for testing)
+- [TODO] News generation
+- [TODO] Advisors
+- [TODO] Win/lose conditions
+- [TODO] OBR forecasts
+- [TODO] IFS verdicts
 
 These will be added in later phases once the core economic model is validated.
 
@@ -177,11 +177,11 @@ These will be added in later phases once the core economic model is validated.
 
 The model should replicate realistic UK fiscal outcomes:
 
-- **Starting position** (July 2024): 0.6% growth, 2% inflation, 4.2% unemployment, 4.1% deficit, 98% debt/GDP ✅
-- **Trend growth**: ~1.5% annually if no major policy changes ✅
-- **NHS degradation**: Quality falls if real growth < 2.5% ✅
-- **Debt dynamics**: Rising debt → rising yields ✅
-- **Tax elasticities**: Income tax most GDP-sensitive, VAT most consumption-sensitive ✅
+- **Starting position** (July 2024): 0.6% growth, 2% inflation, 4.2% unemployment, 4.1% deficit, 98% debt/GDP [DONE]
+- **Trend growth**: ~1.5% annually if no major policy changes [DONE]
+- **NHS degradation**: Quality falls if real growth < 2.5% [DONE]
+- **Debt dynamics**: Rising debt → rising yields [DONE]
+- **Tax elasticities**: Income tax most GDP-sensitive, VAT most consumption-sensitive [DONE]
 
 ## File Structure
 
@@ -202,13 +202,13 @@ chancellor-sim/
 
 Once the economic engine is validated:
 
-1. ✅ Add full Budget UI (all 12+ taxes, all departments)
-2. ✅ Add political approval calculations
-3. ✅ Add event system (market crises, strikes, etc.)
-4. ✅ Add OBR forecast generation
-5. ✅ Add news headlines
-6. ✅ Add save/load system
-7. ✅ Add charts (proper time series with Recharts)
+1. [DONE] Add full Budget UI (all 12+ taxes, all departments)
+2. [DONE] Add political approval calculations
+3. [DONE] Add event system (market crises, strikes, etc.)
+4. [DONE] Add OBR forecast generation
+5. [DONE] Add news headlines
+6. [DONE] Add save/load system
+7. [DONE] Add charts (proper time series with Recharts)
 
 ## Architecture Notes
 
