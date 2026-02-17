@@ -13,6 +13,30 @@ import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
 import { getFiscalRuleById } from './game-integration';
 
 // ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Debounce utility for delaying function execution until after a delay
+ */
+function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => {
+      func(...args);
+      timeoutId = null;
+    }, delay);
+  };
+}
+
+// ============================================================================
 // TYPES AND INTERFACES
 // ============================================================================
 
@@ -2330,7 +2354,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     );
   }, [taxes, spending, fiscalImpact, constraints, adviserSystem]);
 
-  // Update MP stances whenever budget changes
+  // Debounced MP stance updater (300ms delay to prevent performance issues)
+  const debouncedUpdateMPStances = useRef(
+    debounce((budgetChanges: any, violations: string[]) => {
+      gameActions.updateMPStances(budgetChanges, violations);
+    }, 300)
+  ).current;
+
+  // Update MP stances whenever budget changes (with debouncing)
   useEffect(() => {
     if (gameState.mpSystem.allMPs.size === 0) return;
 
@@ -2347,6 +2378,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const defenceSpendingChange = calculateDepartmentDelta(spending, DEFENCE_SPENDING_ITEM_IDS);
     const welfareSpendingChange = calculateDepartmentDelta(spending, WELFARE_SPENDING_ITEM_IDS);
 
+    // Convert detailed rates/budgets to Maps (required by granular calculation)
+    const detailedTaxRatesMap = new Map(
+      Array.from(taxes.values()).map((tax) => [tax.id, tax.proposedRate - tax.currentRate])
+    );
+    const detailedSpendingBudgetsMap = new Map(
+      Array.from(spending.values()).map((item) => [item.id, item.proposedBudget - item.currentBudget])
+    );
+
     const budgetChanges = {
       incomeTaxBasicChange: incomeTaxBasic ? incomeTaxBasic.proposedRate - incomeTaxBasic.currentRate : 0,
       incomeTaxHigherChange: incomeTaxHigher ? incomeTaxHigher.proposedRate - incomeTaxHigher.currentRate : 0,
@@ -2358,20 +2397,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       educationSpendingChange,
       defenceSpendingChange,
       welfareSpendingChange,
-      detailedTaxRates: Object.fromEntries(
-        Array.from(taxes.values()).map((tax) => [tax.id, tax.proposedRate - tax.currentRate])
-      ),
-      detailedSpendingBudgets: Object.fromEntries(
-        Array.from(spending.values()).map((item) => [item.id, item.proposedBudget - item.currentBudget])
-      ),
+      detailedTaxRates: detailedTaxRatesMap,
+      detailedSpendingBudgets: detailedSpendingBudgetsMap,
     };
 
     // Get manifesto violations
     const violationDescriptions = constraints.filter(c => c.violated).map(c => c.description);
 
-    // Update MP stances
-    gameActions.updateMPStances(budgetChanges, violationDescriptions);
-  }, [taxes, spending, constraints, gameState.mpSystem.allMPs.size, gameActions]);
+    // Update MP stances (debounced to prevent performance issues with 650 MPs)
+    debouncedUpdateMPStances(budgetChanges, violationDescriptions);
+  }, [taxes, spending, constraints, gameState.mpSystem.allMPs.size, debouncedUpdateMPStances]);
 
   // ============================================================================
   // HANDLERS
@@ -2650,6 +2685,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       batchRecordBudgetVotes(voteRecords as any).catch(err =>
         console.error('Failed to record votes:', err)
       );
+      gameActions.recordBudgetVotes(voteRecords as any);
     }
 
     // Detect broken promises
@@ -2668,6 +2704,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             console.error(`Failed to mark promise ${promiseId} as broken:`, err);
           }
         });
+
+        // Update state to sync UI
+        gameActions.updatePromises(brokenPromiseIds);
 
         // Count affected MPs
         let affectedMPCount = 0;
@@ -3065,8 +3104,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 handleSpendingChange(item.id, nextValue);
               }}
               className={`w-full border rounded px-3 py-2 text-grey-900 ${isDebtInterest
-                  ? 'bg-grey-100 border-grey-200 text-grey-500 cursor-not-allowed font-medium'
-                  : 'bg-white border-grey-300'
+                ? 'bg-grey-100 border-grey-200 text-grey-500 cursor-not-allowed font-medium'
+                : 'bg-white border-grey-300'
                 }`}
             />
             <span className="text-sm text-grey-600">bn</span>

@@ -53,13 +53,20 @@ function getAdviserBonuses(state: GameState): AdviserBonuses {
     credibilityBonus: 0,
   };
 
-  const hiredAdvisers = state.advisers?.hiredAdvisers;
+  const hiredAdvisers = state.advisers?.hiredAdvisers as any;
   if (!hiredAdvisers) return bonuses;
 
-  // Handle both Map and plain object (after JSON deserialization)
-  const advisersMap = hiredAdvisers instanceof Map
-    ? hiredAdvisers
-    : new Map(Object.entries(hiredAdvisers || {}));
+  // Handle Map, array of pairs, or plain object
+  const advisersMap = new Map<string, any>();
+  if (hiredAdvisers instanceof Map || (hiredAdvisers && typeof hiredAdvisers.entries === 'function')) {
+    hiredAdvisers.forEach((v: any, k: string) => advisersMap.set(k, v));
+  } else if (Array.isArray(hiredAdvisers)) {
+    hiredAdvisers.forEach((entry: any) => {
+      if (Array.isArray(entry) && entry.length === 2) advisersMap.set(entry[0], entry[1]);
+    });
+  } else if (typeof hiredAdvisers === 'object') {
+    Object.entries(hiredAdvisers).forEach(([k, v]) => advisersMap.set(k, v));
+  }
 
   // Treasury Mandarin: Expert tax collection and fiscal management
   if (advisersMap.has('treasury_mandarin')) {
@@ -1823,7 +1830,8 @@ function updateMPStances(state: GameState): GameState {
   const newStances = calculateAllMPStances(
     state.mpSystem,
     budgetChanges,
-    manifestoViolations
+    manifestoViolations,
+    state.metadata.currentTurn
   );
 
   return {

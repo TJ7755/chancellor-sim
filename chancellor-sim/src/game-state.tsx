@@ -41,14 +41,21 @@ import {
   LobbyingApproach,
   attemptLobbying,
   calculateAllMPStances,
+  calculateMPStance,
+  generateMPConcernProfile,
+  DetailedMPStance,
+  MPStanceLabel,
 } from './mp-system';
 import { generateAllMPs } from './mp-data';
+import { identifyMPGroups, shouldRecalculateGroups } from './mp-groups';
 import {
   loadMPs,
   saveMPs,
   loadVotingRecords,
   loadPromises,
   savePromises,
+  batchRecordBudgetVotes,
+  markPromiseBroken,
 } from './mp-storage';
 
 // ===========================
@@ -170,6 +177,8 @@ export interface GameActions {
   forcePMIntervention: () => void;
   updateMPStances: (budgetChanges: BudgetChanges, manifestoViolations: string[]) => void;
   executeManifestoOneClick: (pledgeId: string) => void;
+  recordBudgetVotes: (votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => void;
+  updatePromises: (brokenPromiseIds: string[]) => void;
 }
 
 export interface BudgetChanges {
@@ -267,57 +276,106 @@ function calculateTurnMetadata(turn: number): {
   };
 }
 
-type MPStance = 'support' | 'oppose' | 'undecided';
+type MPStance = DetailedMPStance | MPStanceLabel;
+
+function isMap(val: any): val is Map<any, any> {
+  return val instanceof Map;
+}
+
+function robustNormalizeMap<K, V>(raw: any): Map<K, V> {
+  if (raw instanceof Map) return raw;
+  const map = new Map<K, V>();
+  if (!raw) return map;
+
+  if (Array.isArray(raw)) {
+    raw.forEach((entry) => {
+      if (Array.isArray(entry) && entry.length === 2) {
+        map.set(entry[0], entry[1]);
+      }
+    });
+  } else if (typeof raw === 'object') {
+    Object.entries(raw).forEach(([k, v]) => {
+      map.set(k as unknown as K, v as unknown as V);
+    });
+  }
+  return map;
+}
 
 function normalizeCurrentBudgetSupport(
   raw: unknown
-): Map<string, MPStance> {
-  if (raw instanceof Map) {
-    return raw as Map<string, MPStance>;
+): Map<string, DetailedMPStance> {
+  const finalMap = new Map<string, DetailedMPStance>();
+
+  if (!raw) return finalMap;
+
+  let sourceEntries: Array<[string, MPStance]> = [];
+
+  if (isMap(raw)) {
+    sourceEntries = Array.from(raw.entries());
+  } else if (Array.isArray(raw)) {
+    sourceEntries = raw as Array<[string, MPStance]>;
+  } else if (typeof raw === 'object') {
+    sourceEntries = Object.entries(raw as Record<string, MPStance>) as Array<[string, MPStance]>;
   }
 
-  if (Array.isArray(raw)) {
-    return new Map(raw as Array<[string, MPStance]>);
-  }
+  sourceEntries.forEach(([key, value]) => {
+    if (typeof key !== 'string') return;
 
-  if (raw && typeof raw === 'object') {
-    return new Map(Object.entries(raw as Record<string, MPStance>));
-  }
+    if (typeof value === 'string') {
+      finalMap.set(key, {
+        stance: value as MPStanceLabel,
+        score: value === 'support' ? 70 : (value === 'oppose' ? 30 : 50),
+        reason: 'Legacy stance data.',
+        concerns: [],
+        ideologicalAlignment: 0,
+        constituencyImpact: 0,
+        granularImpact: 0,
+        brokenPromisesCount: 0,
+      });
+    } else if (value && typeof value === 'object' && 'stance' in value) {
+      finalMap.set(key, value as DetailedMPStance);
+    }
+  });
 
-  return new Map();
+  return finalMap;
 }
 
 function normalizeAdviserSystem(system: AdviserSystem): AdviserSystem {
-  const hiredAdvisers = system.hiredAdvisers;
-  const availableAdvisers = system.availableAdvisers;
-  const currentOpinions = system.currentOpinions;
+  if (!system) return { advisers: [], maxAdvisers: 3, hiredAdvisers: new Map(), availableAdvisers: new Set(), currentOpinions: new Map() };
 
-  let normalizedHired: Map<string, any>;
-  if (hiredAdvisers instanceof Map) {
-    normalizedHired = hiredAdvisers;
-  } else if (Array.isArray(hiredAdvisers)) {
-    normalizedHired = new Map(hiredAdvisers as any);
-  } else {
-    normalizedHired = new Map(Object.entries((hiredAdvisers as unknown as Record<string, any>) || {}));
+  const hiredAdvisersInner = system.hiredAdvisers as any;
+  const availableAdvisersInner = system.availableAdvisers as any;
+  const currentOpinionsInner = system.currentOpinions as any;
+
+  let normalizedHired = new Map<string, any>();
+  if (isMap(hiredAdvisersInner)) {
+    (hiredAdvisersInner as Map<string, any>).forEach((v, k) => normalizedHired.set(k, v));
+  } else if (Array.isArray(hiredAdvisersInner)) {
+    (hiredAdvisersInner as any[]).forEach((entry: any) => {
+      if (Array.isArray(entry) && entry.length === 2) normalizedHired.set(entry[0], entry[1]);
+    });
+  } else if (hiredAdvisersInner && typeof hiredAdvisersInner === 'object') {
+    Object.entries(hiredAdvisersInner).forEach(([k, v]) => normalizedHired.set(k, v));
   }
 
-  let normalizedAvailable: Set<string>;
-  if (availableAdvisers instanceof Set) {
-    normalizedAvailable = availableAdvisers;
-  } else if (Array.isArray(availableAdvisers)) {
-    normalizedAvailable = new Set(availableAdvisers);
+  let normalizedAvailable = new Set<string>();
+  if (availableAdvisersInner instanceof Set || (availableAdvisersInner && typeof (availableAdvisersInner as any).has === 'function')) {
+    (availableAdvisersInner as Set<string>).forEach((item: string) => normalizedAvailable.add(item));
+  } else if (Array.isArray(availableAdvisersInner)) {
+    (availableAdvisersInner as any[]).forEach((item: any) => normalizedAvailable.add(String(item)));
   } else {
-    // Fallback to all profiles if empty/corrupted
     normalizedAvailable = new Set(['treasury', 'political', 'heterodox', 'fhawk', 'socdem', 'technocrat']);
   }
 
-  let normalizedOpinions: Map<string, any>;
-  if (currentOpinions instanceof Map) {
-    normalizedOpinions = currentOpinions;
-  } else if (Array.isArray(currentOpinions)) {
-    normalizedOpinions = new Map(currentOpinions as any);
-  } else {
-    normalizedOpinions = new Map(Object.entries((currentOpinions as unknown as Record<string, any>) || {}));
+  let normalizedOpinions = new Map<string, any>();
+  if (isMap(currentOpinionsInner)) {
+    (currentOpinionsInner as Map<string, any>).forEach((v, k) => normalizedOpinions.set(k, v));
+  } else if (Array.isArray(currentOpinionsInner)) {
+    (currentOpinionsInner as any[]).forEach((entry: any) => {
+      if (Array.isArray(entry) && entry.length === 2) normalizedOpinions.set(entry[0], entry[1]);
+    });
+  } else if (currentOpinionsInner && typeof currentOpinionsInner === 'object') {
+    Object.entries(currentOpinionsInner).forEach(([k, v]) => normalizedOpinions.set(k, v));
   }
 
   return {
@@ -406,11 +464,12 @@ function normalizeLoadedState(state: GameState): GameState {
     services,
     mpSystem: {
       ...mpSystem,
-      allMPs: mpSystem.allMPs instanceof Map ? mpSystem.allMPs : new Map(),
-      votingRecords: mpSystem.votingRecords instanceof Map ? mpSystem.votingRecords : new Map(),
-      promises: mpSystem.promises instanceof Map ? mpSystem.promises : new Map(),
+      allMPs: robustNormalizeMap(mpSystem.allMPs),
+      votingRecords: robustNormalizeMap(mpSystem.votingRecords),
+      promises: robustNormalizeMap(mpSystem.promises),
+      concernProfiles: robustNormalizeMap(mpSystem.concernProfiles),
       currentBudgetSupport: normalizeCurrentBudgetSupport(
-        mpSystem.currentBudgetSupport
+        mpSystem.currentBudgetSupport as any
       ),
     },
     advisers: normalizeAdviserSystem(advisers),
@@ -436,6 +495,9 @@ export function serializeGameState(state: GameState): any {
       allMPs: [], // Don't save 650 MPs to localStorage - they live in IndexedDB
       votingRecords: [],
       promises: [],
+      concernProfiles: state.mpSystem.concernProfiles instanceof Map
+        ? Array.from(state.mpSystem.concernProfiles.entries())
+        : state.mpSystem.concernProfiles,
       currentBudgetSupport: state.mpSystem.currentBudgetSupport instanceof Map
         ? Array.from(state.mpSystem.currentBudgetSupport.entries())
         : state.mpSystem.currentBudgetSupport,
@@ -536,7 +598,19 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         const savedState = JSON.parse(autosave);
         // Basic validation
         if (savedState.metadata && savedState.economic) {
-          setGameState(normalizeLoadedState(savedState));
+          setGameState((prevState) => {
+            const normalized = normalizeLoadedState(savedState);
+            // Preserve MP data if already loaded from IndexedDB, as it's not in localStorage
+            return {
+              ...normalized,
+              mpSystem: {
+                ...normalized.mpSystem,
+                allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalized.mpSystem.allMPs,
+                votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalized.mpSystem.votingRecords,
+                promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalized.mpSystem.promises,
+              }
+            };
+          });
         }
       } catch (error) {
         console.error('Failed to load autosave:', error);
@@ -548,34 +622,62 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     async function loadMPData() {
       try {
+        console.log('[MP System] Starting MP data load...');
         // Try to load existing MP data
         let mps = await loadMPs();
         const votingRecords = await loadVotingRecords();
         const promises = await loadPromises();
 
+        console.log('[MP System] Loaded from IndexedDB:', {
+          mpsLoaded: mps?.size || 0,
+          votingRecordsCount: votingRecords.size,
+          promisesCount: promises.size
+        });
+
         // If no MPs found, generate initial set
         if (!mps || mps.size === 0) {
-          console.log('Generating 650 MPs...');
+          console.log('[MP System] No MPs found in storage, generating 650 MPs...');
           mps = generateAllMPs();
+
+          // Verify generation succeeded
+          if (!mps || mps.size === 0) {
+            throw new Error('generateAllMPs() returned empty Map');
+          }
+
+          console.log('[MP System] Generated MPs:', mps.size);
           await saveMPs(mps);
-          console.log('MPs generated and saved to IndexedDB');
+          console.log('[MP System] MPs saved to IndexedDB');
         }
 
-        // Update game state with loaded MP data
-        setGameState((prev) => ({
-          ...prev,
-          mpSystem: {
-            ...prev.mpSystem,
-            allMPs: mps!,
-            votingRecords,
-            promises,
-          },
-        }));
+        // Verify we have MPs before setting state
+        if (mps.size > 0) {
+          console.log('[MP System] Setting game state with', mps.size, 'MPs');
+          // Update game state with loaded MP data
+          setGameState((prev) => ({
+            ...prev,
+            mpSystem: {
+              ...prev.mpSystem,
+              allMPs: mps!,
+              votingRecords,
+              promises,
+            },
+          }));
+          console.log('[MP System] Game state updated successfully');
+        } else {
+          throw new Error('MPs Map is empty after load/generation');
+        }
       } catch (error) {
-        console.error('Failed to load MP data:', error);
+        console.error('[MP System] Failed to load MP data:', error);
         // Fallback: generate fresh MPs
         try {
+          console.log('[MP System] Attempting emergency MP generation...');
           const freshMPs = generateAllMPs();
+
+          if (!freshMPs || freshMPs.size === 0) {
+            throw new Error('Emergency generation failed - received empty Map');
+          }
+
+          console.log('[MP System] Emergency generation successful:', freshMPs.size, 'MPs');
           setGameState((prev) => ({
             ...prev,
             mpSystem: {
@@ -583,8 +685,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
               allMPs: freshMPs,
             },
           }));
+          console.log('[MP System] Emergency MPs loaded into game state');
         } catch (genError) {
-          console.error('Failed to generate MPs:', genError);
+          console.error('[MP System] CRITICAL: Failed to generate MPs:', genError);
+          console.error('[MP System] MP system will not function. Check console for errors.');
         }
       }
     }
@@ -592,21 +696,30 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     loadMPData();
   }, []);
 
-  // Calculate initial MP stances when game starts or MPs are loaded
+  // Calculate initial MP stances when MPs are loaded
   useEffect(() => {
-    if (gameState.mpSystem.allMPs.size > 0 && 
-        gameState.metadata.gameStarted && 
-        gameState.mpSystem.currentBudgetSupport.size === 0) {
+    // Calculate stances as soon as MPs are loaded, even before game starts
+    if (gameState.mpSystem.allMPs.size > 0 &&
+      gameState.mpSystem.currentBudgetSupport.size === 0) {
+      console.log('[MP System] Calculating initial stances for', gameState.mpSystem.allMPs.size, 'MPs...');
       // Calculate stances for current baseline policy (no changes)
       const emptyBudgetChanges: BudgetChanges = {};
       const noViolations: string[] = [];
-      
+
       const initialStances = calculateAllMPStances(
         gameState.mpSystem,
         emptyBudgetChanges,
-        noViolations
+        noViolations,
+        gameState.metadata.currentTurn
       );
-      
+
+      console.log('[MP System] Initial stances calculated:', {
+        total: initialStances.size,
+        support: Array.from(initialStances.values()).filter(s => s.stance === 'support').length,
+        oppose: Array.from(initialStances.values()).filter(s => s.stance === 'oppose').length,
+        undecided: Array.from(initialStances.values()).filter(s => s.stance === 'undecided').length
+      });
+
       setGameState((prev) => ({
         ...prev,
         mpSystem: {
@@ -614,52 +727,49 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           currentBudgetSupport: initialStances,
         },
       }));
-      
-      console.log('Initial MP stances calculated:', initialStances.size, 'MPs');
     }
-  }, [gameState.mpSystem.allMPs.size, gameState.metadata.gameStarted, gameState.mpSystem.currentBudgetSupport.size]);
+  }, [gameState.mpSystem.allMPs.size, gameState.mpSystem.currentBudgetSupport.size]);
 
   // Start new game
   const startNewGame = useCallback(
     (
-      adviserChoice?: string,
-      manifestoChoice?: string,
-      fiscalRuleChoice?: FiscalRuleId,
+      saveName?: string,
+      manifestoId: string = 'standard_labour',
+      fiscalRuleId: FiscalRuleId = 'starmer-reeves',
       difficultyMode: DifficultyMode = 'standard'
     ) => {
-      const newState = createInitialGameState();
+      setGameState((prevState) => {
+        const newState = createInitialGameState();
 
-      // Apply manifesto choice if provided
-      if (manifestoChoice) {
-        newState.manifesto = initializeManifestoState(manifestoChoice);
-      }
+        // Preserve MPs if they already exist in the state
+        let workingMPs = prevState.mpSystem.allMPs;
+        if (workingMPs.size === 0) {
+          console.log('[MP System] No MPs in state during startNewGame, generating...');
+          workingMPs = generateAllMPs();
+          saveMPs(workingMPs); // Save in background
+        }
 
-      // Apply fiscal rule choice and immediate market/political reactions
-      if (fiscalRuleChoice) {
-        const rule = getFiscalRuleById(fiscalRuleChoice);
-        newState.political.chosenFiscalRule = fiscalRuleChoice;
-
-        // Apply market reactions
-        newState.markets.giltYield10y += rule.marketReaction.giltYieldBps / 100;
-        newState.markets.giltYield2y += rule.marketReaction.giltYieldBps / 100;
-        newState.markets.giltYield30y += rule.marketReaction.giltYieldBps / 100;
-        newState.markets.sterlingIndex *= (1 + rule.marketReaction.sterlingPercent / 100);
-        newState.markets.mortgageRate2y = newState.markets.giltYield10y + 1.5;
-
-        // Apply political reactions
-        newState.political.credibilityIndex = Math.max(0, Math.min(100,
-          newState.political.credibilityIndex + rule.marketReaction.credibilityChange));
-        newState.political.pmTrust = Math.max(0, Math.min(100,
-          newState.political.pmTrust + rule.politicalReaction.pmTrustChange));
-        newState.political.backbenchSatisfaction = Math.max(0, Math.min(100,
-          newState.political.backbenchSatisfaction + rule.politicalReaction.backbenchChange));
-        newState.political.governmentApproval = Math.max(15, Math.min(70,
-          newState.political.governmentApproval + rule.politicalReaction.approvalChange));
-      }
-
-      newState.metadata.difficultyMode = difficultyMode;
-      newState.metadata.gameStarted = true;
-      setGameState(newState);
+        return {
+          ...newState,
+          metadata: {
+            ...newState.metadata,
+            currentYear: 2024,
+            currentTurn: 0,
+            playerName: saveName || 'Chancellor',
+            gameStarted: true,
+            difficultyMode,
+          },
+          mpSystem: {
+            ...newState.mpSystem,
+            allMPs: workingMPs,
+          },
+          manifesto: initializeManifestoState(manifestoId),
+          fiscal: {
+            ...newState.fiscal,
+            activeRuleId: fiscalRuleId,
+          },
+        };
+      });
     },
     []
   );
@@ -730,7 +840,19 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       const loadedState = JSON.parse(saveData);
       // Basic validation
       if (loadedState.metadata && loadedState.economic) {
-        setGameState(normalizeLoadedState(loadedState));
+        setGameState((prevState) => {
+          const normalized = normalizeLoadedState(loadedState);
+          // Preserve MP data if already loaded from IndexedDB, as it's not in localStorage
+          return {
+            ...normalized,
+            mpSystem: {
+              ...normalized.mpSystem,
+              allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalized.mpSystem.allMPs,
+              votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalized.mpSystem.votingRecords,
+              promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalized.mpSystem.promises,
+            }
+          };
+        });
         return true;
       }
       return false;
@@ -1216,7 +1338,20 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
             // Update MP stance to support
             const updatedStances = new Map(prevState.mpSystem.currentBudgetSupport);
-            updatedStances.set(mpId, 'support');
+            const currentStance = prevState.mpSystem.currentBudgetSupport.get(mpId);
+            const detailedStance: DetailedMPStance = {
+              stance: 'support',
+              score: 80, // High support after successful lobbying
+              reason: `Convinced by Chancellor via ${approach} approach.`,
+              concerns: currentStance?.concerns || [],
+              ideologicalAlignment: currentStance?.ideologicalAlignment || 0,
+              constituencyImpact: currentStance?.constituencyImpact || 0,
+              granularImpact: currentStance?.granularImpact || 0,
+              brokenPromisesCount: brokenPromisesCount,
+              isManualOverride: true,
+              overrideTurn: prevState.metadata.currentTurn,
+            };
+            updatedStances.set(mpId, detailedStance);
             newState.mpSystem = {
               ...newState.mpSystem,
               currentBudgetSupport: updatedStances,
@@ -1285,14 +1420,44 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         const newStances = calculateAllMPStances(
           prevState.mpSystem,
           budgetChanges,
-          manifestoViolations
+          manifestoViolations,
+          prevState.metadata.currentTurn
         );
+
+        // Generate concern profiles for all Labour MPs if not already generated
+        const updatedConcernProfiles = new Map(prevState.mpSystem.concernProfiles);
+        prevState.mpSystem.allMPs.forEach((mp, mpId) => {
+          if (mp.party === 'labour' && !updatedConcernProfiles.has(mpId)) {
+            updatedConcernProfiles.set(mpId, generateMPConcernProfile(mp));
+          }
+        });
+
+        // Check if groups should be recalculated
+        const shouldUpdateGroups = shouldRecalculateGroups(
+          prevState.mpSystem.currentBudgetSupport,
+          newStances,
+          prevState.mpSystem.allMPs
+        );
+
+        let updatedGroups = prevState.mpSystem.activeGroups;
+        if (shouldUpdateGroups || prevState.mpSystem.activeGroups.length === 0) {
+          console.log('[MP System] Recalculating MP groups due to significant stance shifts');
+          updatedGroups = identifyMPGroups(
+            prevState.mpSystem.allMPs,
+            newStances,
+            updatedConcernProfiles,
+            budgetChanges,
+            prevState.metadata.currentMonth
+          );
+        }
 
         return {
           ...prevState,
           mpSystem: {
             ...prevState.mpSystem,
             currentBudgetSupport: newStances,
+            concernProfiles: updatedConcernProfiles,
+            activeGroups: updatedGroups,
           },
         };
       });
@@ -1427,6 +1592,88 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  // Record high-volume budget votes in state and storage
+  const recordBudgetVotes = useCallback((votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => {
+    setGameState((prevState) => {
+      const updatedVotingRecords = new Map(prevState.mpSystem.votingRecords);
+      const budgetId = `budget_${prevState.metadata.currentTurn}`;
+      const month = prevState.metadata.currentTurn;
+
+      votes.forEach(vote => {
+        let record = updatedVotingRecords.get(vote.mpId);
+        if (!record) {
+          record = {
+            mpId: vote.mpId,
+            budgetVotes: [],
+            rebellionCount: 0,
+            loyaltyScore: 100,
+          };
+        }
+
+        const updatedBudgetVotes = [...record.budgetVotes, {
+          budgetId,
+          month,
+          choice: vote.choice,
+          reasoning: vote.reasoning,
+          coerced: vote.coerced,
+        }];
+
+        // Keep last 20 votes
+        const slicedVotes = updatedBudgetVotes.slice(-20);
+
+        updatedVotingRecords.set(vote.mpId, {
+          ...record,
+          budgetVotes: slicedVotes,
+        });
+      });
+
+      return {
+        ...prevState,
+        mpSystem: {
+          ...prevState.mpSystem,
+          votingRecords: updatedVotingRecords,
+          // When a budget is submitted, we clear manual overrides for the NEXT budget
+          currentBudgetSupport: new Map(
+            Array.from(prevState.mpSystem.currentBudgetSupport.entries()).map(([id, stance]) => [
+              id,
+              { ...stance, isManualOverride: false }
+            ])
+          )
+        }
+      };
+    });
+  }, []);
+
+  // Update promises status in state
+  const updatePromises = useCallback((brokenPromiseIds: string[]) => {
+    setGameState((prevState) => {
+      const updatedPromises = new Map(prevState.mpSystem.promises);
+      let changed = false;
+
+      brokenPromiseIds.forEach(id => {
+        const promise = updatedPromises.get(id);
+        if (promise && !promise.broken) {
+          updatedPromises.set(id, {
+            ...promise,
+            broken: true,
+            brokenInMonth: prevState.metadata.currentTurn
+          });
+          changed = true;
+        }
+      });
+
+      if (!changed) return prevState;
+
+      return {
+        ...prevState,
+        mpSystem: {
+          ...prevState.mpSystem,
+          promises: updatedPromises
+        }
+      };
+    });
+  }, []);
+
   const actions: GameActions = {
     startNewGame,
     advanceTurn,
@@ -1441,6 +1688,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     forcePMIntervention,
     updateMPStances,
     executeManifestoOneClick,
+    recordBudgetVotes,
+    updatePromises,
   };
 
   return (

@@ -191,8 +191,267 @@ const INTERACTION_TEMPLATES: InteractionTemplate[] = [
         outcomes: ['backfire'],
         isMinister: true,
         text: '{name} stands up. "You can have my resignation on your desk in the morning. I won\'t be spoken to like that."'
+    },
+    {
+        id: 'promise_success_ambitious_peer',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        minAmbition: 8,
+        text: '{name} leans in. "A junior role in the Treasury would be a fair trade, wouldn\'t you say? You have my support."'
+    },
+    {
+        id: 'persuade_success_expert',
+        approaches: ['persuade'],
+        outcomes: ['success'],
+        faction: 'technocrat', // Hypothetical
+        text: '{name} nods. "The data you\'ve presented is compelling. It\'s a risky budget, but logically sound. I\'m in."'
+    },
+    {
+        id: 'threaten_success_scared',
+        approaches: ['threaten'],
+        outcomes: ['success'],
+        maxRebelliousness: 2,
+        text: '{name} looks visibly shaken. "I... I didn\'t realize it was so serious. I\'ll vote as instructed."'
+    },
+    {
+        id: 'promise_failure_unreliable',
+        approaches: ['promise'],
+        outcomes: ['failure'],
+        minRebelliousness: 8,
+        text: '{name} scoffs. "I\'ve heard it all before, Chancellor. Promises made, promises broken. My vote isn\'t for sale."'
+    },
+    {
+        id: 'persuade_failure_partisan',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        party: 'labour',
+        text: '{name} laughs. "You expect me to support a Conservative budget? You\'re more optimistic than you look."'
+    },
+    {
+        id: 'backfire_principled_vet',
+        approaches: ['threaten'],
+        outcomes: ['backfire'],
+        minRebelliousness: 7,
+        maxAmbition: 3,
+        text: '{name} rises to their full height. "Threatening a Member of Parliament? I shall be raising this with the Speaker immediately."'
+    },
+    {
+        id: 'promise_success_local_hero',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        faction: 'regional',
+        text: '"If that bypass actually gets built, Chancellor, you\'ll be a hero in my constituency. Deal."'
+    },
+    {
+        id: 'persuade_success_economic_rationalist',
+        approaches: ['persuade'],
+        outcomes: ['success'],
+        faction: 'city',
+        text: '{name} checks their phone. "The markets seem to be pricing this in well. It\'s a solid piece of work. Count me in."'
+    },
+    {
+        id: 'threaten_failure_doner_link',
+        approaches: ['threaten'],
+        outcomes: ['failure'],
+        minAmbition: 6,
+        text: '{name} smiles thinly. "My donors wouldn\'t like that, Chancellor. And you wouldn\'t like my donors getting unhappy."'
+    },
+    {
+        id: 'promise_success_social_justice',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        faction: 'soft_left',
+        text: '"The extra funding for social care is what I needed to hear. You have my support for the second reading."'
+    },
+    {
+        id: 'persuade_failure_dogmatic',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        faction: 'hard_right',
+        text: '"Any tax rise is a failure of Conservatism," says {name}. "No amount of logic will change my mind."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - NHS & HEALTH
+    // ===========================================================================
+    {
+        id: 'concern_nhs_mental_health_cut',
+        approaches: ['persuade', 'promise'],
+        outcomes: ['failure'],
+        text: '{name} shakes their head firmly. "Mental health services are already at breaking point in {constituency}. Cutting further would be catastrophic. I cannot support this."'
+    },
+    {
+        id: 'concern_nhs_primary_care_inadequate',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} responds: "My constituents wait weeks for GP appointments. This funding increase simply isn\'t enough. We need at least £5 billion more for primary care."'
+    },
+    {
+        id: 'concern_social_care_crisis',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        text: '{name} says firmly: "The social care system is in crisis. Care homes in {constituency} are going bankrupt. Without substantial investment, I cannot support this budget."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - TAX
+    // ===========================================================================
+    {
+        id: 'concern_corporation_tax_cut_left',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        text: '{name} bristles. "Cutting corporation tax whilst cutting public services? This is exactly what we campaigned against. I\'m afraid this is a red line for me."'
+    },
+    {
+        id: 'concern_energy_profits_levy_insufficient',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        faction: 'left',
+        text: '{name} responds: "Energy companies made £30 billion in windfall profits. This levy is woefully inadequate. It needs to be at least 75% to be credible to our voters."'
+    },
+    {
+        id: 'concern_capital_gains_tax_low',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} argues: "Capital gains are taxed far less than income from work. This is fundamentally unfair. We should be equalising the rates, not maintaining this disparity."'
+    },
+    {
+        id: 'concern_bank_surcharge_removed',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        faction: 'left',
+        text: '{name} looks angry. "Removing the bank surcharge after what they did in 2008? The banks should be paying more, not less. I cannot defend this to my constituents."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - WELFARE
+    // ===========================================================================
+    {
+        id: 'concern_universal_credit_cut',
+        approaches: ['persuade', 'threaten'],
+        outcomes: ['backfire'],
+        text: '{name} looks furious. "Universal Credit keeps families afloat in {constituency}. Cut it and you\'ll face a revolt. Count me out."'
+    },
+    {
+        id: 'concern_child_benefit_freeze',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} replies: "Child poverty is already shameful. Freezing child benefit when inflation is running hot is a real-terms cut. Families in {constituency} deserve better."'
+    },
+    {
+        id: 'concern_housing_benefit_inadequate',
+        approaches: ['promise'],
+        outcomes: ['failure'],
+        text: '{name} responds: "Housing benefit hasn\'t kept pace with rents in {constituency}. Families are being made homeless through no fault of their own. This increase doesn\'t touch the sides."'
+    },
+    {
+        id: 'concern_pension_triple_lock',
+        approaches: ['persuade', 'promise'],
+        outcomes: ['failure'],
+        text: '{name} says firmly: "Pensioners in {constituency} voted for us on the promise of the triple lock. Break this and we\'ll lose their trust forever. I cannot support this."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - EDUCATION
+    // ===========================================================================
+    {
+        id: 'concern_schools_funding_crisis',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} responds: "Schools in {constituency} are cutting teaching assistants and reducing hours. This funding simply maintains the crisis, it doesn\'t solve it."'
+    },
+    {
+        id: 'concern_send_funding_inadequate',
+        approaches: ['persuade', 'promise'],
+        outcomes: ['failure'],
+        text: '{name} says: "Special educational needs funding is in crisis. Local schools are going bankrupt trying to meet statutory duties. This increase doesn\'t address the problem."'
+    },
+    {
+        id: 'concern_further_education_cuts',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} argues: "Further education colleges provide vital skills training. Cutting their funding undermines our economic growth ambitions. This makes no sense."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - REGIONAL/CONSTITUENCY
+    // ===========================================================================
+    {
+        id: 'concern_red_wall_levelling_up',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        text: '{name} responds: "We won {constituency} on a promise of levelling up. Where\'s the investment in our infrastructure? My voters won\'t forgive us if we renege on that."'
+    },
+    {
+        id: 'concern_local_government_cuts',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} says: "Local councils in {constituency} are cutting essential services. Libraries, youth clubs, bin collections - all at risk. This budget makes it worse."'
+    },
+    {
+        id: 'concern_transport_infrastructure',
+        approaches: ['promise'],
+        outcomes: ['failure'],
+        text: '{name} responds: "The North has been starved of transport investment for decades. London gets Crossrail, we get potholes. This budget perpetuates the imbalance."'
+    },
+    {
+        id: 'concern_rural_fuel_duty',
+        approaches: ['persuade'],
+        outcomes: ['failure'],
+        text: '{name} argues: "In rural {constituency}, there\'s no alternative to driving. Increasing fuel duty hits my constituents hardest. They have no public transport option."'
+    },
+    {
+        id: 'concern_farm_subsidies_cut',
+        approaches: ['promise', 'persuade'],
+        outcomes: ['failure'],
+        text: '{name} responds firmly: "Agriculture is the economic backbone of {constituency}. Cutting farm subsidies threatens livelihoods and food security. I cannot support this."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - GROUP SPOKESPERSON
+    // ===========================================================================
+    {
+        id: 'group_spokesperson_demands_nhs',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        text: '{name}, speaking for the group, says: "We represent considerable voting power. Commit to £10 billion for the NHS and we can deliver the votes. But this is non-negotiable."'
+    },
+    {
+        id: 'group_spokesperson_rejection_insufficient',
+        approaches: ['promise'],
+        outcomes: ['failure'],
+        text: '{name} responds on behalf of the group: "I\'ve consulted with our members. Your offer falls well short of what\'s needed. We\'re united in opposing this budget unless you meet our demands."'
+    },
+    {
+        id: 'group_spokesperson_counter_offer',
+        approaches: ['promise'],
+        outcomes: ['failure'],
+        text: '{name} says: "We appreciate the gesture, Chancellor, but our group needs at least £8 billion to address our constituents\' concerns. That\'s our bottom line."'
+    },
+
+    // ===========================================================================
+    // GRANULAR BUDGET CONCERN TEMPLATES - SUCCESS WITH WARNINGS
+    // ===========================================================================
+    {
+        id: 'promise_success_with_scepticism',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        text: '{name} nods cautiously. "You\'ve broken promises before. But I\'ll give you one more chance. If you break this one, I\'m done."'
+    },
+    {
+        id: 'promise_success_marginal_seat',
+        approaches: ['promise'],
+        outcomes: ['success'],
+        text: '{name} says: "My seat is on a knife-edge. This investment shows you take my constituency seriously. You have my support, but deliver on this or I\'ll pay the price."'
+    },
+    {
+        id: 'persuade_success_reluctant',
+        approaches: ['persuade'],
+        outcomes: ['success'],
+        text: '{name} sighs. "I\'m not happy about this, but I recognise the constraints. You have my vote, but don\'t make a habit of asking for favours like this."'
     }
 ];
+
 
 export function getInteractionResponse(
     mp: MPProfile,

@@ -266,5 +266,216 @@ export const ADVISER_OPINIONS: AdviserOpinionTemplate[] = [
         description: '',
         recommendationAction: 'Digital transformation of public services',
         recommendationRationale: 'We can save billions by modernising legacy IT systems rather than just cutting headcount.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL TREASURY MANDARIN (Sir Humphrey)
+    // ===========================================================================
+    {
+        id: 'mandarin_growth_caution',
+        adviserType: 'treasury_mandarin',
+        trigger: { metric: 'growth', operator: '>', value: 4.0 },
+        category: 'growth',
+        itemType: 'analysis',
+        severity: 'caution',
+        title: 'Overheating Concerns',
+        description: 'While current growth is impressive, we must be wary of "overheating". Rapid expansion often precedes a structural correction.'
+    },
+    {
+        id: 'mandarin_pension_liability',
+        adviserType: 'treasury_mandarin',
+        trigger: { metric: 'debt', operator: '>', value: 90 },
+        category: 'debt',
+        itemType: 'warning',
+        severity: 'warning',
+        title: 'Unfunded Liabilities Assessment',
+        description: 'Our long-term fiscal gap is widening. The triple lock and demographic shifts are creating an unsustainable pension liability profile.'
+    },
+    {
+        id: 'mandarin_gilt_saturation',
+        adviserType: 'treasury_mandarin',
+        trigger: { metric: 'deficit', operator: '>', value: 5.0 },
+        category: 'deficit',
+        itemType: 'warning',
+        severity: 'critical',
+        title: 'Gilt Market Saturation',
+        description: 'The market is struggling to absorb the current volume of Gilt issuance. Reconciling the borrowing requirement is becoming operationally difficult.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL FISCAL HAWK (Lord Braithwaite)
+    // ===========================================================================
+    {
+        id: 'hawk_welfare_dependency',
+        adviserType: 'fiscal_hawk',
+        trigger: { metric: 'unemployment', operator: '>', value: 6.0 },
+        category: 'services',
+        itemType: 'recommendation',
+        priority: 'important',
+        title: 'Benefit Reform Urgency',
+        description: 'The rising cost of workless households is a fiscal timebomb. We need stricter conditionality to boost labour participation.',
+        recommendationAction: 'Implement stricter job-seeking requirements and cap total household benefits.'
+    },
+    {
+        id: 'hawk_market_discipline',
+        adviserType: 'fiscal_hawk',
+        trigger: { metric: 'giltYield', operator: '>', value: 4.5 },
+        category: 'deficit',
+        itemType: 'warning',
+        severity: 'critical',
+        title: 'Market Discipline Imposed',
+        description: 'The "bond vigilantes" are not just a theory; they are here. The market is effectively demanding a fiscal U-turn.',
+        consequences: 'Failure to signal a return to sound money will lead to a full-blown currency crisis.'
+    },
+    {
+        id: 'hawk_corporate_tax_cap',
+        adviserType: 'fiscal_hawk',
+        trigger: { metric: 'taxChange', operator: '>', value: 1.0 },
+        category: 'taxation',
+        itemType: 'warning',
+        severity: 'warning',
+        title: 'Capital Flight Risk',
+        description: 'Raising corporate levies in a globalised economy is self-defeating. We are already seeing investment diverted to more competitive jurisdictions.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL POLITICAL OPERATOR (Sarah Chen)
+    // ===========================================================================
+    {
+        id: 'pol_pensioner_anger',
+        adviserType: 'political_operator',
+        trigger: { metric: 'spendingChange', operator: '<', value: -2 },
+        category: 'political',
+        itemType: 'warning',
+        severity: 'warning',
+        title: 'Grey Vote Volatility',
+        description: 'Our internal polling suggests massive pushback among over-65s. They feel they are being asked to pay for everyone else\'s failures.'
+    },
+    {
+        id: 'pol_manifesto_risk',
+        adviserType: 'political_operator',
+        trigger: { metric: 'taxChange', operator: '>', value: 3 },
+        category: 'political',
+        itemType: 'analysis',
+        severity: 'critical',
+        title: 'Trust Deficit Widening',
+        description: 'Voters don\'t care about the OBR; they care about their pay checks. We are breaking the "tax lock" and they won\'t forget it.'
+    },
+    {
+        id: 'pol_opposition_momentum',
+        adviserType: 'political_operator',
+        trigger: { metric: 'approval', operator: '<', value: 30 },
+        category: 'political',
+        itemType: 'warning',
+        severity: 'critical',
+        title: 'Opposition Surge',
+        description: 'The opposition is now leading by 20 points in the polls. Every move you make is being successfully framed as either incompetent or cruel.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL SOCIAL DEMOCRAT (Rebecca Thornton)
+    // ===========================================================================
+    {
+        id: 'soc_child_poverty',
+        adviserType: 'social_democrat',
+        trigger: { metric: 'inflation', operator: '>', value: 6.0 },
+        category: 'services',
+        itemType: 'warning',
+        severity: 'warning',
+        title: 'Child Poverty Crisis',
+        description: 'Food bank use among families with children has doubled. We cannot call ourselves a civilised nation if we allow this to continue.'
+    },
+    {
+        id: 'soc_local_gov_collapse',
+        adviserType: 'social_democrat',
+        trigger: { metric: 'spendingChange', operator: '<', value: -4 },
+        category: 'services',
+        itemType: 'analysis',
+        severity: 'critical',
+        title: 'Local Government Bankruptcy',
+        description: 'Section 114 notices are becoming common. Councils are cutting basic services like libraries and youth centers just to stay afloat.'
+    },
+    {
+        id: 'soc_wealth_tax_recommendation',
+        adviserType: 'social_democrat',
+        trigger: { metric: 'deficit', operator: '>', value: 4.0 },
+        category: 'taxation',
+        itemType: 'recommendation',
+        priority: 'consider',
+        title: 'Equitable Revenue Generation',
+        description: 'Targeted levies on unearned wealth and property could plug the fiscal hole without hurting the most vulnerable.',
+        recommendationAction: 'Introduce a temporary wealth tax on assets over £10m.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL HETERODOX ECONOMIST (Dr Okonkwo)
+    // ===========================================================================
+    {
+        id: 'hetero_trade_assessment',
+        adviserType: 'heterodox_economist',
+        trigger: { metric: 'growth', operator: '<', value: 1.0 },
+        category: 'growth',
+        itemType: 'analysis',
+        severity: 'neutral',
+        title: 'The Real Deficit is Trade',
+        description: 'Focusing on the fiscal deficit is a distraction. Our structural current account deficit is the real threat to long-term prosperity.'
+    },
+    {
+        id: 'hetero_inflation_diagnosis',
+        adviserType: 'heterodox_economist',
+        trigger: { metric: 'inflation', operator: '>', value: 8.0 },
+        category: 'growth',
+        itemType: 'analysis',
+        severity: 'caution',
+        title: 'Supply-Side Inflation',
+        description: 'This is not an "overheating" problem. It\'s a supply chain and energy price problem. Raising rates or cutting spend won\'t fix it.'
+    },
+    {
+        id: 'hetero_job_guarantee',
+        adviserType: 'heterodox_economist',
+        trigger: { metric: 'unemployment', operator: '>', value: 7.0 },
+        category: 'services',
+        itemType: 'recommendation',
+        priority: 'important',
+        title: 'Universal Job Guarantee',
+        description: 'Unemployment is a policy choice. We should provide a public option for employment to anchor the labor market.',
+        recommendationAction: 'Fund a national Green Jobs Corps.'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL TECHNOCRATIC CENTRIST (James Ashworth)
+    // ===========================================================================
+    {
+        id: 'centrist_regulatory_reform',
+        adviserType: 'technocratic_centrist',
+        trigger: { metric: 'growth', operator: '<', value: 2.0 },
+        category: 'growth',
+        itemType: 'recommendation',
+        priority: 'important',
+        title: 'Regulatory Clearing House',
+        description: 'Regulatory overlap is costing businesses 2% of turnover. We need a systematic review of post-Brexit compliance costs.',
+        recommendationAction: 'Establish an independent Regulatory Oversight Body.'
+    },
+    {
+        id: 'centrist_pension_pulp',
+        adviserType: 'technocratic_centrist',
+        trigger: { metric: 'debt', operator: '>', value: 100 },
+        category: 'debt',
+        itemType: 'analysis',
+        severity: 'warning',
+        title: 'Long-term Demographic Headwinds',
+        description: 'The dependency ratio is shifting rapidly. Without significant productivity gains from AI, the current welfare state is mathematically impossible.'
+    },
+    {
+        id: 'centrist_rd_credits',
+        adviserType: 'technocratic_centrist',
+        trigger: { metric: 'growth', operator: '>', value: 0 },
+        category: 'growth',
+        itemType: 'recommendation',
+        priority: 'consider',
+        title: 'R&D Tax Credit Reform',
+        description: 'Current credits are too easy to game. We should pivot towards direct grants for deep-tech innovation.',
+        recommendationAction: 'Modernise the R&D tax credit eligibility criteria.'
     }
 ];
+

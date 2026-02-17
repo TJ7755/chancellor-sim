@@ -16,6 +16,9 @@ export interface PMMessageTemplate {
         maxDeficit?: number;
         minGrowth?: number;
         maxGrowth?: number;
+        minInflation?: number; // %
+        maxInflation?: number;
+        minUnemployment?: number; // %
         reshuffleRisk?: number; // Min risk
 
         // Specific flags (logic must provide these)
@@ -203,5 +206,84 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         subject: 'Support Restored',
         content: `Chancellor,\n\nI'm pleased to see the improvements you've made. Your recent performance has been significantly better, and I'm restoring my full political support.\n\nPM Trust: {trust}/100\nGovernment Approval: {approval}%\n\nKeep up the good work, and let's continue moving forward together.\n\nPrime Minister`,
         tone: 'supportive'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL CONCERNS
+    // ===========================================================================
+    {
+        id: 'pm_concern_unemployment',
+        type: 'concern',
+        conditions: { minUnemployment: 6.0 },
+        subject: 'Labour Market Softness',
+        content: `Chancellor,\n\nThe latest unemployment figures are worrying. At {unemployment}%, we are starting to see real distress in the regions. This isn't just an economic metric; it's a political time bomb.\n\nI need to see a plan for job creation, particularly in our heartland seats. We cannot afford to be seen as the party of the dole queue.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_concern_growth_stall',
+        type: 'concern',
+        conditions: { maxGrowth: 0.5, minGrowth: 0.0, minTrust: 40 },
+        subject: 'Economic Stagnation',
+        content: `Chancellor,\n\nGrowth has effectively flatlined. I know the global context is difficult, but 'technical stability' won't win us an election. We need momentum.\n\nAre there any supply-side levers we haven't pulled yet? Let's be bolder in the next quarter.\n\nPM`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_concern_stagflation',
+        type: 'concern',
+        conditions: { minInflation: 7.0, maxGrowth: 0.5 },
+        subject: 'The Stagflation Trap',
+        content: `Chancellor,\n\nWe are looking at the worst of all worlds: high prices and zero growth. This is the 1970s all over again, and it destroyed the leadership of that era.\n\nI need a strategy that addresses both. If we just fight inflation by killing growth further, we are finished. Be creative.\n\nPrime Minister`,
+        tone: 'angry'
+    },
+    {
+        id: 'pm_concern_market_volatility',
+        type: 'concern',
+        conditions: { minDeficit: 80, maxApproval: 35 },
+        subject: 'Market Sentiment',
+        content: `Chancellor,\n\nThe City is nervous. I'm hearing reports of major funds reducing their exposure to UK Gilts. This 'risk premium' is going to eat our fiscal headroom if we don't calm the waters.\n\nNo more surprises for a while. Let's signal stability.\n\nPM`,
+        tone: 'stern'
+    },
+
+    // ===========================================================================
+    // ADDITIONAL PRAISE
+    // ===========================================================================
+    {
+        id: 'pm_praise_inflation_beat',
+        type: 'praise',
+        conditions: { maxInflation: 2.1, minTrust: 50 },
+        subject: 'Inflation Success',
+        content: `Chancellor,\n\nCredit where it's due: you've broken the back of inflation. This is a huge win for the government and for every household in the country.\n\nLet's make sure we capitalised on this 'stability dividend' in the polls.\n\nExcellent work.\n\nPrime Minister`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_praise_business_backing',
+        type: 'praise',
+        conditions: { minGrowth: 2.0, taxRises: false },
+        subject: 'Business Confidence',
+        content: `Chancellor,\n\nThe CBI and the Fed of Small Businesses are both singing your praises this morning. Keeping the tax burden steady while driving growth is a difficult needle to thread, but you're doing it.\n\nKeep this relationship strong. We need the private sector in our corner.\n\nBest,\nPM`,
+        tone: 'supportive'
+    },
+
+    // ===========================================================================
+    // MISC / FLAVOUR
+    // ===========================================================================
+    {
+        id: 'pm_checkin_reshuffle_rumours',
+        type: 'regular_checkin',
+        conditions: { maxTrust: 45, reshuffleRisk: 40 },
+        subject: 'Ignoring the Noise',
+        content: `Chancellor,\n\nYou may have seen the papers speculating about a reshuffle. I want to be clear: I value your contribution, but these rumours exist because the current numbers aren't providing us with enough cover.\n\nSilence the critics with a strong performance this month. I'd rather keep the team together if I can.\n\nPrime Minister`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_demand_spending_discipline',
+        type: 'demand',
+        conditions: { minDeficit: 90, spendingCuts: false },
+        subject: 'Urgent: Departmental Spending Control',
+        content: `Chancellor,\n\nDepartments are overspending and the Treasury seems to be saying 'yes' too often. I am demanding a temporary freeze on all non-essential capital projects until the deficit is back below £70bn.\n\nI will support you when the Ministers complain, but you MUST be the one to deliver the 'no'.\n\nPM`,
+        tone: 'stern',
+        demandCategory: 'spending',
+        demandDetails: 'Freeze non-essential capital spend'
     }
 ];
+
