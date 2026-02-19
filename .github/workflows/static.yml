@@ -1,5 +1,5 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+# Workflow for building and deploying React app to GitHub Pages
+name: Deploy React app to Pages
 
 on:
   # Runs on pushes targeting the default branch
@@ -22,8 +22,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
+  # Build and deploy job
+  build-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -31,13 +31,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: chancellor-sim/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./chancellor-sim
+        run: npm ci
+
+      - name: Build React app
+        working-directory: ./chancellor-sim
+        run: CI=false npm run build
+        env:
+          CI: false
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # Upload the build directory
+          path: './chancellor-sim/build'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
