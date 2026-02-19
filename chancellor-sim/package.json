@@ -2,6 +2,7 @@
   "name": "chancellor-sim",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://tj7755.github.io/chancellor-sim",
   "dependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
