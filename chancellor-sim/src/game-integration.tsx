@@ -208,17 +208,21 @@ export interface EconomicState {
   unemploymentRate: number;
   wageGrowthAnnual: number;
   inflationAnchorHealth: number; // 0-100, where 100 is fully anchored at 2%
+  productivityGrowthAnnual: number; // % annual labour productivity growth
+  productivityLevel: number; // Index: 100 = baseline (July 2024)
 }
 
 export function createInitialEconomicState(): EconomicState {
   return {
-    gdpNominal_bn: 2730,
-    gdpGrowthMonthly: 0.05,
-    gdpGrowthAnnual: 0.6,
-    inflationCPI: 2.0,
+    gdpNominal_bn: 2750,
+    gdpGrowthMonthly: 0.083,
+    gdpGrowthAnnual: 1.0,
+    inflationCPI: 2.2,
     unemploymentRate: 4.2,
-    wageGrowthAnnual: 5.7,
-    inflationAnchorHealth: 100,
+    wageGrowthAnnual: 5.4,
+    inflationAnchorHealth: 72,
+    productivityGrowthAnnual: 0.1,
+    productivityLevel: 100, // Baseline index
   };
 }
 
@@ -345,8 +349,8 @@ export function createInitialFiscalState(): FiscalState {
 
     revenueAdjustment_bn: 0,
 
-    totalRevenue_bn: 1078,
-    totalSpending_bn: 1100,
+    totalRevenue_bn: 1090,
+    totalSpending_bn: 1175,
     spending: {
       // Current (resource) spending
       nhsCurrent: 168.4,
@@ -459,11 +463,11 @@ export function createInitialFiscalState(): FiscalState {
       { id: 'ihtResidenceNilRate', name: 'IHT Residence Nil Rate Band', currentRate: 175000, unit: '£' },
     ],
 
-    deficit_bn: 111,
-    deficitPctGDP: 4.1,
-    debtNominal_bn: 2744,
-    debtPctGDP: 100.5,
-    debtInterest_bn: 89,
+    deficit_bn: 87,
+    deficitPctGDP: 3.2,
+    debtNominal_bn: 2734,
+    debtPctGDP: 99.4,
+    debtInterest_bn: 95,
     fiscalHeadroom_bn: 8.9,
 
     // Fiscal year tracking
@@ -516,9 +520,9 @@ export function createInitialMarketState(): MarketState {
   return {
     bankRate: 5.25,
     giltYield2y: 4.15,
-    giltYield10y: 4.15,
-    giltYield30y: 4.55,
-    mortgageRate2y: 5.50,
+    giltYield10y: 4.10,
+    giltYield30y: 4.45,
+    mortgageRate2y: 5.10,
     sterlingIndex: 100,
     yieldChange10y: 0,
     ldiPanicTriggered: false,
@@ -549,21 +553,21 @@ export interface ServicesState {
 
 export function createInitialServicesState(): ServicesState {
   return {
-    nhsQuality: 62,
-    educationQuality: 68,
-    infrastructureQuality: 58,
-    mentalHealthAccess: 56,
-    primaryCareAccess: 59,
-    socialCareQuality: 52,
-    prisonSafety: 47,
-    courtBacklogPerformance: 50,
-    legalAidAccess: 51,
-    policingEffectiveness: 57,
-    borderSecurityPerformance: 55,
-    railReliability: 54,
-    affordableHousingDelivery: 48,
+    nhsQuality: 45,
+    educationQuality: 58,
+    infrastructureQuality: 48,
+    mentalHealthAccess: 42,
+    primaryCareAccess: 48,
+    socialCareQuality: 38,
+    prisonSafety: 40,
+    courtBacklogPerformance: 32,
+    legalAidAccess: 40,
+    policingEffectiveness: 50,
+    borderSecurityPerformance: 46,
+    railReliability: 42,
+    affordableHousingDelivery: 30,
     floodResilience: 53,
-    researchInnovationOutput: 63,
+    researchInnovationOutput: 58,
   };
 }
 
@@ -741,6 +745,7 @@ export interface HistoricalSnapshot {
   debt: number;
   approval: number;
   giltYield: number;
+  productivity: number; // Annual productivity growth %
 }
 
 export interface SimulationState {

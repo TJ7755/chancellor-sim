@@ -546,9 +546,9 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'economic_data',
     severity: 'minor',
     probability: 0.4,  // Common
-    conditions: (state) => Math.abs(state.economy?.gdpGrowthAnnual ?? 0) > 1.0,
+    conditions: (state) => Math.abs(state.economy?.gdpGrowthQuarterly ?? 0) > 0.4,
     generate: (state) => {
-      const growth = state.economy?.gdpGrowthAnnual ?? 0;
+      const growth = state.economy?.gdpGrowthQuarterly ?? 0;
       const positive = growth > 0;
       return {
         type: 'economic_data',
@@ -1214,7 +1214,11 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
   }
 
   // Fallback to original economic-focused paragraphs if no event
-  const gdpGrowth = state.economy?.gdpGrowthAnnual ?? 0;
+  const gdpGrowth = typeof state.economy?.gdpGrowthQuarterly === 'number'
+    ? state.economy.gdpGrowthQuarterly
+    : typeof state.economy?.gdpGrowthMonthly === 'number'
+      ? (Math.pow(1 + state.economy.gdpGrowthMonthly / 100, 3) - 1) * 100
+      : (Math.pow(1 + (state.economy?.gdpGrowthAnnual ?? 0) / 100, 1 / 4) - 1) * 100;
   const inflation = state.economy?.inflationCPI ?? 2;
   const unemployment = state.economy?.unemploymentRate ?? 4;
   const deficit = state.fiscal?.deficitPctGDP ?? 3;

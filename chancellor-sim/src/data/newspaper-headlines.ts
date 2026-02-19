@@ -38,7 +38,7 @@ export const NEWSPAPER_HEADLINES: HeadlineEntry[] = [
     // ===========================================================================
     {
         id: 'eco_growth_high',
-        conditions: { minGdpGrowth: 3.0 },
+        conditions: { minGdpGrowth: 4.0 },
         priority: 90,
         category: 'economy',
         versions: {
@@ -70,7 +70,7 @@ export const NEWSPAPER_HEADLINES: HeadlineEntry[] = [
     },
     {
         id: 'eco_growth_moderate',
-        conditions: { minGdpGrowth: 1.5, maxGdpGrowth: 2.9 },
+        conditions: { minGdpGrowth: 2.0, maxGdpGrowth: 3.9 },
         priority: 60,
         category: 'economy',
         versions: {

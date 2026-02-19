@@ -15,6 +15,7 @@ import { TutorialModal, HelpButton } from './tutorial-system';
 import BudgetSystem from './budget-system';
 import {
   AdviserManagementScreen,
+  AdviserType,
 } from './adviser-system';
 import { MPManagementScreen, LobbyingModal } from './mp-system';
 import { PMMessagesScreen } from './pm-messages-screen';
@@ -23,6 +24,7 @@ import { Newspaper, EventModal, EventLogPanel } from './events-media';
 import { SocialMediaSidebar } from './social-media-system';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
+import { generateProjections, summariseProjections } from './projections-engine';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -953,6 +955,219 @@ const SimpleDashboard: React.FC = () => {
   );
 };
 
+interface ProjectionsViewProps {
+  gameState: any;
+  formatDate: (dateStr: string) => string;
+  MiniChart: any;
+  withBands: (rawData: { label: string; value: number }[], floor: number) => { label: string; value: number; band?: number }[];
+}
+
+const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate, MiniChart, withBands }) => {
+  const [projectionMonths, setProjectionMonths] = useState(24);
+  const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'markets' | 'services'>('economic');
+
+  const projections = useMemo(() => generateProjections(gameState, projectionMonths, true), [gameState, projectionMonths]);
+  const baseline = projections.baseline;
+  const pending = projections.withPendingChanges;
+  const baselineSummary = useMemo(() => summariseProjections(baseline), [baseline]);
+  const pendingSummary = useMemo(() => (pending ? summariseProjections(pending) : null), [pending]);
+  const baselineFinal = baseline[baseline.length - 1];
+  const pendingFinal = pending?.[pending.length - 1];
+
+  const adviserLens: Record<AdviserType, string> = {
+    treasury_mandarin: 'Fiscal discipline lens',
+    political_operator: 'Household pressure lens',
+    heterodox_economist: 'Growth lens',
+    fiscal_hawk: 'Debt sustainability lens',
+    social_democrat: 'Service outcomes lens',
+    technocratic_centrist: 'Productivity lens',
+  };
+
+  const hiredAdvisers = useMemo(() => {
+    const raw = gameState?.advisers?.hiredAdvisers;
+    const valid = new Set<AdviserType>(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']);
+    if (!raw) return [] as AdviserType[];
+    if (raw instanceof Map) return Array.from(raw.keys()).filter((v): v is AdviserType => valid.has(v));
+    if (Array.isArray(raw)) return raw.map((entry: any) => Array.isArray(entry) ? entry[0] : entry?.profile?.type).filter((v: any): v is AdviserType => valid.has(v));
+    return Object.values(raw as Record<string, any>).map((entry: any) => entry?.profile?.type).filter((v: any): v is AdviserType => valid.has(v));
+  }, [gameState]);
+
+  const serviceMetrics = [
+    { key: 'nhsQuality', label: 'NHS Quality' },
+    { key: 'educationQuality', label: 'Education Quality' },
+    { key: 'infrastructureQuality', label: 'Infrastructure Quality' },
+    { key: 'mentalHealthAccess', label: 'Mental Health Access' },
+    { key: 'primaryCareAccess', label: 'Primary Care Access' },
+    { key: 'socialCareQuality', label: 'Social Care Quality' },
+    { key: 'prisonSafety', label: 'Prison Safety' },
+    { key: 'courtBacklogPerformance', label: 'Court Performance' },
+    { key: 'legalAidAccess', label: 'Legal Aid Access' },
+    { key: 'policingEffectiveness', label: 'Policing Effectiveness' },
+    { key: 'borderSecurityPerformance', label: 'Border Performance' },
+    { key: 'railReliability', label: 'Rail Reliability' },
+    { key: 'affordableHousingDelivery', label: 'Affordable Housing Delivery' },
+    { key: 'floodResilience', label: 'Flood Resilience' },
+    { key: 'researchInnovationOutput', label: 'Innovation Output' },
+  ] as const;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white border border-gray-200 p-5 rounded-sm">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">Projections</h3>
+            <p className="text-sm text-gray-600 mt-1">Forward simulation of all non-political indicators, including public service quality.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-gray-700">Forecast period:</label>
+            <select value={projectionMonths} onChange={(e) => setProjectionMonths(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-sm text-sm">
+              <option value={12}>12 months</option>
+              <option value={24}>24 months</option>
+              <option value={36}>36 months</option>
+              <option value={48}>48 months</option>
+            </select>
+          </div>
+        </div>
+        {projections.metadata.hasPendingChanges && (
+          <div className="mt-3 text-xs bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-sm p-3">
+            Pending budget changes are included as an alternative projection path.
+          </div>
+        )}
+      </div>
+
+      <div className={`grid gap-4 ${pendingSummary ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <div className="bg-white border border-gray-200 p-4 rounded-sm text-sm">
+          <div className="font-semibold text-gray-700 mb-2">Baseline forecast</div>
+          <div className="flex justify-between"><span className="text-gray-600">Avg GDP growth</span><span className="font-semibold">{baselineSummary.averageGDPGrowth.toFixed(1)}%</span></div>
+          <div className="flex justify-between"><span className="text-gray-600">Avg inflation</span><span className="font-semibold">{baselineSummary.averageInflation.toFixed(1)}%</span></div>
+          <div className="flex justify-between"><span className="text-gray-600">Avg unemployment</span><span className="font-semibold">{baselineSummary.averageUnemployment.toFixed(1)}%</span></div>
+          <div className="flex justify-between"><span className="text-gray-600">Avg service quality</span><span className="font-semibold">{baselineSummary.averageServiceQuality.toFixed(1)}/100</span></div>
+        </div>
+        {pendingSummary && (
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-sm text-sm">
+            <div className="font-semibold text-blue-900 mb-2">With pending budget changes</div>
+            <div className="flex justify-between"><span className="text-gray-700">Avg GDP growth</span><span className="font-semibold">{pendingSummary.averageGDPGrowth.toFixed(1)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Avg inflation</span><span className="font-semibold">{pendingSummary.averageInflation.toFixed(1)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Avg unemployment</span><span className="font-semibold">{pendingSummary.averageUnemployment.toFixed(1)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-700">Avg service quality</span><span className="font-semibold">{pendingSummary.averageServiceQuality.toFixed(1)}/100</span></div>
+          </div>
+        )}
+      </div>
+
+      {hiredAdvisers.length > 0 && (
+        <div className="bg-white border border-gray-200 p-4 rounded-sm">
+          <div className="text-sm font-semibold text-gray-700 mb-3">Adviser-specific view</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
+            {hiredAdvisers.map((adviser) => (
+              <div key={adviser} className="border border-gray-200 rounded-sm p-2">
+                <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">{adviser.replaceAll('_', ' ')}</div>
+                <div className="text-gray-800">{adviserLens[adviser]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        {[
+          { id: 'economic' as const, label: 'Economic' },
+          { id: 'fiscal' as const, label: 'Fiscal' },
+          { id: 'markets' as const, label: 'Markets' },
+          { id: 'services' as const, label: 'Services' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveChart(tab.id)}
+            className={`px-5 py-2 font-semibold rounded-sm transition-all ${activeChart === tab.id ? 'bg-red-700 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeChart === 'economic' && (
+        <div className="grid grid-cols-2 gap-4">
+          <MiniChart title="GDP Growth Projection (Annual %)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.gdpGrowth })), 0.2)} color="#2563eb" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <MiniChart title="CPI Inflation Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.inflation })), 0.15)} color="#dc2626" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <MiniChart title="Unemployment Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.unemployment })), 0.1)} color="#7c3aed" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <MiniChart title="Productivity Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.productivity })), 0.1)} color="#f59e0b" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <MiniChart title="Wage Growth Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.wageGrowth })), 0.2)} color="#059669" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+        </div>
+      )}
+
+      {activeChart === 'fiscal' && (
+        <div className="grid grid-cols-2 gap-4">
+          <MiniChart title="Budget Deficit Projection (% of GDP)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.deficit })), 0.15)} color="#dc2626" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <MiniChart title="Public Debt Projection (% of GDP)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.debt })), 0.2)} color="#b45309" formatValue={(v: number) => `${v.toFixed(1)}%`} />
+          <div className="bg-white border border-gray-200 p-4 rounded-sm text-sm">
+            <div className="font-semibold text-gray-700 mb-3">Revenue and spending at horizon (£bn)</div>
+            <div className="space-y-2">
+              <div className="flex justify-between"><span className="text-gray-600">Revenue</span><span className="font-semibold">£{(baselineFinal?.totalRevenue || 0).toFixed(1)}bn</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Spending</span><span className="font-semibold">£{(baselineFinal?.totalSpending || 0).toFixed(1)}bn</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Debt interest</span><span className="font-semibold">£{(baselineFinal?.debtInterest || 0).toFixed(1)}bn</span></div>
+              <div className="flex justify-between"><span className="text-gray-600">Fiscal headroom</span><span className="font-semibold">£{(baselineFinal?.fiscalHeadroom || 0).toFixed(1)}bn</span></div>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-4 rounded-sm text-sm">
+            <div className="font-semibold text-gray-700 mb-3">Projected spending breakdown (£bn)</div>
+            <div className="space-y-1">
+              {['nhs', 'education', 'defence', 'welfare', 'infrastructure', 'police', 'justice', 'other'].map((dept) => (
+                <div key={dept} className="flex justify-between">
+                  <span className="text-gray-600 capitalize">{dept}</span>
+                  <span className="font-semibold">£{(((baselineFinal?.spendingBreakdown as any)?.[dept]) || 0).toFixed(1)}bn</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeChart === 'markets' && (
+        <div className="grid grid-cols-2 gap-4">
+          <MiniChart title="10-Year Gilt Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.giltYield10y })), 0.08)} color="#b45309" formatValue={(v: number) => `${v.toFixed(2)}%`} />
+          <MiniChart title="Bank Rate Projection (%)" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.bankRate })), 0.05)} color="#7c3aed" formatValue={(v: number) => `${v.toFixed(2)}%`} />
+          <MiniChart title="Sterling Index Projection" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.sterlingIndex })), 0.4)} color="#2563eb" formatValue={(v: number) => v.toFixed(1)} />
+          <div className="bg-white border border-gray-200 p-4 rounded-sm text-sm space-y-2">
+            <div className="font-semibold text-gray-700 mb-3">Market indicators at horizon</div>
+            <div className="flex justify-between"><span className="text-gray-600">Bank Rate</span><span className="font-semibold">{(baselineFinal?.bankRate || 0).toFixed(2)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">2Y Gilt Yield</span><span className="font-semibold">{(baselineFinal?.giltYield2y || 0).toFixed(2)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">10Y Gilt Yield</span><span className="font-semibold">{(baselineFinal?.giltYield10y || 0).toFixed(2)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">30Y Gilt Yield</span><span className="font-semibold">{(baselineFinal?.giltYield30y || 0).toFixed(2)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">2Y Mortgage Rate</span><span className="font-semibold">{(baselineFinal?.mortgageRate2y || 0).toFixed(2)}%</span></div>
+            <div className="flex justify-between"><span className="text-gray-600">Sterling Index</span><span className="font-semibold">{(baselineFinal?.sterlingIndex || 0).toFixed(1)}</span></div>
+          </div>
+        </div>
+      )}
+
+      {activeChart === 'services' && (
+        <div className="space-y-4">
+          <MiniChart title="Average Service Quality Projection" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.averageServiceQuality })), 0.5)} color="#059669" formatValue={(v: number) => `${v.toFixed(1)}/100`} />
+          <div className="bg-white border border-gray-200 p-4 rounded-sm">
+            <div className="text-sm font-semibold text-gray-700 mb-3">Projected public service quality indices</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {serviceMetrics.map((metric) => {
+                const baseValue = (baselineFinal?.services as any)?.[metric.key] || 0;
+                const pendingValue = (pendingFinal?.services as any)?.[metric.key];
+                return (
+                  <div key={metric.key}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{metric.label}</span>
+                      <span className="font-semibold">{Math.round(baseValue)}/100 {pendingValue !== undefined && <span className="text-xs text-blue-700">→ {Math.round(pendingValue)}</span>}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div className={`h-3 rounded-full ${baseValue > 60 ? 'bg-green-500' : baseValue > 40 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${Math.max(0, Math.min(100, baseValue))}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ===========================
 // Analysis Tab - Charts and Trends
 // ===========================
@@ -960,6 +1175,7 @@ const SimpleDashboard: React.FC = () => {
 const AnalysisTab: React.FC = () => {
   const gameState = useGameState();
   const snapshots = gameState.simulation.monthlySnapshots;
+  const [activeView, setActiveView] = useState<'data' | 'projections'>('data');
   const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'political' | 'markets'>('economic');
 
   const fullSnapshots = useMemo(() => {
@@ -1185,6 +1401,31 @@ const AnalysisTab: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="flex gap-3">
+        <button
+          onClick={() => setActiveView('data')}
+          className={`px-6 py-3 font-bold rounded-sm transition-all ${
+            activeView === 'data'
+              ? 'bg-red-700 text-white shadow-md'
+              : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Data
+        </button>
+        <button
+          onClick={() => setActiveView('projections')}
+          className={`px-6 py-3 font-bold rounded-sm transition-all ${
+            activeView === 'projections'
+              ? 'bg-red-700 text-white shadow-md'
+              : 'bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50'
+          }`}
+        >
+          Projections
+        </button>
+      </div>
+
+      {activeView === 'data' && (
+        <>
       {/* Fiscal Rules Status */}
       <div className="bg-white border border-gray-200 p-5 rounded-sm">
         <div className="flex items-center justify-between mb-3">
@@ -1512,6 +1753,17 @@ const AnalysisTab: React.FC = () => {
           ))}
         </div>
       </div>
+        </>
+      )}
+
+      {activeView === 'projections' && (
+        <ProjectionsView
+          gameState={gameState}
+          formatDate={formatDate}
+          MiniChart={MiniChart}
+          withBands={withBands}
+        />
+      )}
     </div>
   );
 };

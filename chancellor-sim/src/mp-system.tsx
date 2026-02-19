@@ -1065,7 +1065,9 @@ export function calculateAllMPStances(
 ): Map<string, DetailedMPStance> {
   const stances = new Map<string, DetailedMPStance>();
 
-  mpSystem.allMPs.forEach((mp, mpId) => {
+  const allMPsRaw: any = (mpSystem as any)?.allMPs;
+
+  const applyForMP = (mp: MPProfile, mpId: string) => {
     // Sinn Fein never take their seats - always undecided/abstain
     if (mp.party === 'sinn_fein') {
       stances.set(mpId, {
@@ -1104,7 +1106,24 @@ export function calculateAllMPStances(
         stances.set(mpId, stance);
       }
     }
-  });
+  };
+
+  // Runtime robustness: projections/serialization can temporarily turn Maps into objects/arrays.
+  // We accept Map, array-of-[id, mp] entries, or a plain object record.
+  if (allMPsRaw instanceof Map) {
+    allMPsRaw.forEach((mp: MPProfile, mpId: string) => applyForMP(mp, mpId));
+  } else if (Array.isArray(allMPsRaw)) {
+    allMPsRaw.forEach((entry: any) => {
+      if (Array.isArray(entry) && entry.length === 2) {
+        const [mpId, mp] = entry as [string, MPProfile];
+        if (typeof mpId === 'string' && mp) applyForMP(mp, mpId);
+      }
+    });
+  } else if (allMPsRaw && typeof allMPsRaw === 'object') {
+    Object.entries(allMPsRaw).forEach(([mpId, mp]) => {
+      if (typeof mpId === 'string' && mp) applyForMP(mp as MPProfile, mpId);
+    });
+  }
 
   return stances;
 }

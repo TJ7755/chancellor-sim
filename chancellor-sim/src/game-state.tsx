@@ -408,14 +408,34 @@ function normalizeLoadedState(state: GameState): GameState {
     finalWarningGiven: false,
     activeDemands: [],
   };
+  // Merge all state objects with defaults to handle missing properties from old saves
+  const economic = {
+    ...createInitialEconomicState(),
+    ...(state.economic || {}),
+  };
+  const fiscal = state.fiscal ? {
+    ...createInitialFiscalState(),
+    ...state.fiscal,
+  } : createInitialFiscalState();
+  const markets = {
+    ...createInitialMarketState(),
+    ...(state.markets || {}),
+  };
+  const political = {
+    ...createInitialPoliticalState(),
+    ...(state.political || {}),
+  };
   const services = {
     ...createInitialServicesState(),
     ...(state.services || {}),
   };
+  const events = {
+    ...createInitialEventState(),
+    ...(state.events || {}),
+  };
 
   // Migrate old save games to new capital/current spending structure
-  const fiscal = state.fiscal;
-  if (fiscal && !fiscal.spending.nhsCurrent) {
+  if (fiscal && fiscal.spending && !fiscal.spending.nhsCurrent) {
     // Old save - split aggregated spending using baseline ratios
     // Ratios from July 2024 baseline
     const capitalRatios = {
@@ -460,8 +480,12 @@ function normalizeLoadedState(state: GameState): GameState {
   return {
     ...state,
     metadata,
+    economic,
     fiscal,
+    markets,
+    political,
     services,
+    events,
     mpSystem: {
       ...mpSystem,
       allMPs: robustNormalizeMap(mpSystem.allMPs),
