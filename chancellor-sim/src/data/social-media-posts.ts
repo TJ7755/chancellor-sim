@@ -56,7 +56,12 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "Sources in No10 tell me the mood is 'apocalyptic'. Chancellor's position looking increasingly shaky.",
             "New polling is devastating. Only 24% trust the government on the economy. Hard to see a way back.",
             "Backbenchers openly discussing letters of no confidence. The Chancellor has lost the dressing room.",
-            "Cabinet Ministers privately admitting the economic strategy has failed. Expect resignations."
+            "Cabinet Ministers privately admitting the economic strategy has failed. Expect resignations.",
+            "Senior Labour figures now fear the Chancellor has become an electoral liability in marginal seats.",
+            "Party insiders describe a 'quiet panic' as approval ratings slide again.",
+            "Whips say constituency mail is overwhelmingly negative on the economy.",
+            "Treasury allies are struggling to defend the numbers in broadcast rounds.",
+            "No10 is reportedly testing replacement options if the trajectory does not improve quickly."
         ]
     },
     {
@@ -96,7 +101,11 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "PRICES OUT OF CONTROL: Families forced to choose between heating and eating.",
             "RIP-OFF BRITAIN: Your weekly shop is up £20. Absolute disgrace.",
             "COST OF LIVING NIGHTMARE: Chancellor asleep at the wheel while bills soar.",
-            "WHITEHALL WASTER: Ministers dine on fine wine while you pay the price."
+            "WHITEHALL WASTER: Ministers dine on fine wine while you pay the price.",
+            "BILL SHOCK BRITAIN: Pensioners and parents hit hardest as essentials rocket.",
+            "PANIC AT THE PAYPACKET: Wages lag prices again this month.",
+            "HIGH STREET HURT: Cafés and corner shops warn of closure wave.",
+            "HOUSEHOLD CRUNCH: Families cutting meals to keep the lights on."
         ]
     },
     {
@@ -133,9 +142,12 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
         sentiment: 'neutral',
         templates: [
             "Magic Money Tree found in Downing Street garden. #Budget",
-            "Chancellor paying the national debt with IOUs written on napkins. [chart declining]",
-            "Live scenes from the Treasury: [everything is on fire]",
-            "Me looking at the national debt like... [nervous laughter]"
+            "Chancellor paying the national debt with IOUs written on napkins. 📉",
+            "Live scenes from the Treasury: 🔥",
+            "Me looking at the national debt like... 😅",
+            "Thread: How many gilts can fit under one very expensive carpet?",
+            "Economy update: vibes up, spreadsheets down.",
+            "Breaking: Treasury calculator now powered by crossed fingers."
         ]
     },
     {
@@ -146,8 +158,11 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
         templates: [
             "Freddo prices up again. The economy is officially broken.",
             "Just took out a mortgage to buy a pint of milk. #CostOfLiving",
-            "My bank account seeing the energy bill: [screaming internally]",
-            "Chancellor to solving inflation: 'Have you tried skipping meals?'"
+            "My bank account seeing the energy bill: 😱",
+            "Chancellor to solving inflation: 'Have you tried skipping meals?'",
+            "Inflation chart looks like a ski slope in reverse.",
+            "At this rate, beans on toast is becoming a luxury good.",
+            "Weekly shop now requires a strategic financing plan."
         ]
     },
 
@@ -163,7 +178,11 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "Impressive GDP print. UK outperforming G7 peers. Markets liking the stability.",
             "Growth figures surprise to the upside. Recession risk receding. Sterling rallies.",
             "Credit where it's due: the supply-side reforms are biting. Global capital returning to London.",
-            "Goldman Sachs upgrades UK outlook. 'The risk premium has evaporated.'"
+            "Goldman Sachs upgrades UK outlook. 'The risk premium has evaporated.'",
+            "FTSE domestics bid higher as growth expectations are revised up.",
+            "Employment resilience plus productivity gains now supporting stronger earnings forecasts.",
+            "Real income recovery is feeding through to services demand.",
+            "The UK macro setup now looks materially better than consensus expected."
         ]
     },
     {
@@ -175,7 +194,11 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "Bond vigilantes are waking up. 10y yields spiking. This is unsustainable.",
             "The risk premium on UK debt is widening. International investors are voting with their feet.",
             "This isn't just a deficit; it's a structural chasm. Sterling vulnerability increasing.",
-            "Markets are pricing in a high probability of a credit rating downgrade."
+            "Markets are pricing in a high probability of a credit rating downgrade.",
+            "Auction demand weakened again; term premium continues to reprice higher.",
+            "Desk chatter: fiscal credibility now the dominant UK macro theme.",
+            "Borrowing trajectory is increasingly inconsistent with medium-term debt stabilisation.",
+            "Cross-asset signals point to persistent concern over policy coherence."
         ]
     },
 
@@ -231,7 +254,12 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "Waited 14 hours in A&E with my mum. Promoting tax cuts while the NHS collapses is criminal.",
             "Cannot get a GP appointment for 3 weeks. What am I paying taxes for?",
             "The NHS is broken. My surgery doesn't even answer the phone anymore.",
-            "Ambulance took 4 hours. This government has blood on its hands."
+            "Ambulance took 4 hours. This government has blood on its hands.",
+            "My neighbour's cancer referral delayed again. Families are at breaking point.",
+            "Staff are brilliant but exhausted. This is policy failure, not frontline failure.",
+            "Eight-hour waits in A&E are becoming normal in my area.",
+            "Mental health support line told us to try again next month. That's not care.",
+            "People are giving up on appointments because they cannot get through."
         ]
     },
     {
@@ -417,7 +445,11 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
             "Everything is more expensive and the bank says interest rates are going up again. Help.",
             "Counting the pennies at the supermarket today. Never thought it would come to this.",
             "The news says the economy is 'resilient' but my bank account says otherwise.",
-            "Is anyone in government actually living in the same country as me?"
+            "Is anyone in government actually living in the same country as me?",
+            "Tracker mortgage just jumped again. We are cutting essentials now.",
+            "Landlord passed on higher finance costs and rent has gone through the roof.",
+            "My fixed deal ends next month and I cannot sleep thinking about it.",
+            "Half my pay packet disappears on housing before food and transport."
         ]
     },
     {

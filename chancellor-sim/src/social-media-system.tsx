@@ -15,6 +15,9 @@ import { SOCIAL_MEDIA_POSTS, SocialPostTemplate, SocialPersona } from './data/so
 // Minimum state interface required for social media simulation
 // Works with both GameState and SimulationState (dashboard)
 export interface MinimalStateForSocialMedia {
+  metadata?: {
+    currentTurn?: number;
+  };
   political?: {
     publicApproval?: number;
     backbenchSatisfaction?: number;
@@ -46,6 +49,9 @@ export interface MinimalStateForSocialMedia {
     detailedTaxes?: Array<{ id: string; currentRate: number }>;
     deficit_bn?: number;
     debtToGdpPercent?: number;
+  };
+  socialMedia?: {
+    recentlyUsedPostIds?: string[];
   };
   turn?: number;
 }
@@ -357,7 +363,12 @@ export function generateTrendingHashtags(state: MinimalStateForSocialMedia, rece
 }
 
 function resolveAuthor(persona: SocialPersona): { name: string; handle: string; type: SocialMediaPost['authorType']; verified: boolean } {
-  const names = ['James', 'Sarah', 'Mohammed', 'Emma', 'David', 'Priya', 'Tom', 'Olivia', 'Jack', 'Zara', 'Fatima', 'Harry', 'Sophie'];
+  const names = [
+    'James', 'Sarah', 'Mohammed', 'Emma', 'David', 'Priya', 'Tom', 'Olivia', 'Jack', 'Zara', 'Fatima', 'Harry', 'Sophie',
+    'Imran', 'Amelia', 'Callum', 'Megan', 'Aisha', 'Daniel', 'Rebecca', 'Ben', 'Leah', 'Connor', 'Nadia', 'Ryan', 'Holly',
+    'Aman', 'Charlotte', 'Luke', 'Niamh', 'Owen', 'Jasmin', 'Ethan', 'Lucy', 'Haroon', 'Sian', 'Matthew', 'Georgia',
+    'Yusuf', 'Beth', 'Cameron', 'Molly', 'Ravi', 'Kirsty', 'Sam', 'Ellie', 'Noah', 'Freya', 'Arjun', 'Aoife', 'Ibrahim',
+  ];
   const cities = ['London', 'Manchester', 'Birmingham', 'Leeds', 'Liverpool', 'Glasgow', 'Cardiff', 'Bristol', 'Newcastle'];
 
   switch (persona) {
@@ -410,20 +421,37 @@ export function generateSocialMediaPosts(
   state: MinimalStateForSocialMedia,
   sentiment: SocialMediaSentiment,
   hashtags: TrendingHashtag[]
-): SocialMediaPost[] {
+): { posts: SocialMediaPost[]; usedTemplateIds: string[] } {
+  const currentTurn = (state.metadata?.currentTurn ?? state.turn ?? 0);
+  const recent = state.socialMedia?.recentlyUsedPostIds || [];
+  const blockedWithinWindow = new Set(
+    recent
+      .map((entry) => {
+        const [turnRaw, templateId] = String(entry).split(':');
+        const turn = Number(turnRaw);
+        return Number.isFinite(turn) && currentTurn - turn <= 2 ? templateId : null;
+      })
+      .filter((value): value is string => !!value)
+  );
+
   // 1. Filter valid posts from data
   const validTemplates = SOCIAL_MEDIA_POSTS.filter(t => checkSocialPostConditions(t.conditions, state));
 
-  if (validTemplates.length === 0) return []; // Should not happen given generic options
+  if (validTemplates.length === 0) return { posts: [], usedTemplateIds: [] }; // Should not happen given generic options
+
+  const eligibleTemplates = validTemplates.filter((template) => !blockedWithinWindow.has(template.id));
+  const selectionPool = eligibleTemplates.length > 0 ? eligibleTemplates : validTemplates;
 
   const posts: SocialMediaPost[] = [];
+  const usedTemplateIds: string[] = [];
   const count = 5 + Math.floor(Math.random() * 3); // 5-7 posts
 
   // 2. Select templates (weighted by relevance? random for now)
   for (let i = 0; i < count; i++) {
-    const template = validTemplates[Math.floor(Math.random() * validTemplates.length)];
+    const template = selectionPool[Math.floor(Math.random() * selectionPool.length)];
     const authorInfo = resolveAuthor(template.persona);
     const contentTemplate = template.templates[Math.floor(Math.random() * template.templates.length)];
+    usedTemplateIds.push(template.id);
 
     // Replace placeholders if any (none currently used in strict templates, but good practice)
     const content = contentTemplate
@@ -444,7 +472,10 @@ export function generateSocialMediaPosts(
     });
   }
 
-  return posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  return {
+    posts: posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+    usedTemplateIds: Array.from(new Set(usedTemplateIds)),
+  };
 }
 
 // CRITICAL FIX: Social media impact amplified to be meaningful
@@ -465,24 +496,30 @@ export function calculateSocialMediaImpact(sentiment: SocialMediaSentiment): num
 export const SocialMediaSidebar: React.FC<{
   state: MinimalStateForSocialMedia;
   onRefresh?: () => void;
-}> = ({ state, onRefresh }) => {
+  onRecordTemplates?: (templateIds: string[], turn: number) => void;
+}> = ({ state, onRefresh, onRecordTemplates }) => {
   const [socialMedia, setSocialMedia] = useState<SocialMediaState | null>(null);
 
   // Generate initial social media state
   const refreshSocialMedia = React.useCallback(() => {
     const sentiment = calculateSocialMediaSentiment(state);
     const hashtags = generateTrendingHashtags(state);
-    const posts = generateSocialMediaPosts(state, sentiment, hashtags);
+    const generated = generateSocialMediaPosts(state, sentiment, hashtags);
+    const currentTurn = state.metadata?.currentTurn ?? state.turn ?? 0;
+
+    if (generated.usedTemplateIds.length > 0 && onRecordTemplates) {
+      onRecordTemplates(generated.usedTemplateIds, currentTurn);
+    }
 
     setSocialMedia({
-      posts,
+      posts: generated.posts,
       hashtags,
       sentiment,
       lastUpdate: new Date(),
     });
 
     onRefresh?.();
-  }, [state, onRefresh]);
+  }, [state, onRefresh, onRecordTemplates]);
 
   useEffect(() => {
     refreshSocialMedia();

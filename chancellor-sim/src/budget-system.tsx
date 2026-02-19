@@ -10,7 +10,8 @@ import {
 import { useGameActions, useGameState, serializeGameState } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
-import { getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
+import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
+import { calculateLafferPoint, getLafferTaxTypeForControlId } from './laffer-analysis';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -106,7 +107,6 @@ function simulateParliamentaryVote(
   // Labour majority: 411 seats, Opposition: 232 voting seats (excl. 7 Sinn Fein who abstain + 1 Speaker)
   // Government needs 326 to pass (simple majority of 650)
   // So can afford 85 rebels before losing vote (411 - 326 = 85)
-  const totalGovernmentMPs = 411;
   const totalOppositionMPs = 232;
 
   // Calculate rebellion probability for each MP
@@ -412,7 +412,6 @@ const PMInterventionModal: React.FC<{
         {/* Header */}
         <div className="bg-amber-600 text-white p-6">
           <div className="text-center">
-            <div className="text-4xl mb-2">⚡</div>
             <h2 className="text-3xl font-bold">Force PM Intervention</h2>
             <div className="text-sm mt-2 opacity-90">Nuclear Option</div>
           </div>
@@ -500,13 +499,6 @@ const PMInterventionModal: React.FC<{
     </div>
   );
 };
-
-interface BudgetState {
-  taxes: Map<string, TaxChange>;
-  spending: Map<string, SpendingChange>;
-  fiscalYear: string;
-  budgetType: 'spring' | 'autumn' | 'emergency';
-}
 
 interface FiscalImpact {
   currentDeficit: number;
@@ -1695,8 +1687,6 @@ const WELFARE_SPENDING_ITEM_IDS = [
 // Welfare baseline in the current fiscal model is £290bn, with state pension at £130bn.
 const STATE_PENSION_SHARE_OF_WELFARE = 130.0 / 290.0;
 const TRIPLE_LOCK_UPLIFT_RATE = 1.085;
-const GAME_START_FISCAL_YEAR = 2024;
-const INITIAL_STATE_PENSION_BUDGET = 290 * STATE_PENSION_SHARE_OF_WELFARE;
 
 function sumSpendingItems(
   spendingMap: Map<string, SpendingChange>,
@@ -1870,6 +1860,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [showAdviserDetail, setShowAdviserDetail] = useState<AdviserType | null>(null);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
   const [showPMInterventionModal, setShowPMInterventionModal] = useState(false);
+  const [showFiscalRuleChangeModal, setShowFiscalRuleChangeModal] = useState(false);
+  const [proposedFiscalRule, setProposedFiscalRule] = useState<FiscalRuleId>(gameState.political.chosenFiscalRule);
   const [pmInterventionTriggered, setPMInterventionTriggered] = useState(false);
   const [fiscalRuleMessage, setFiscalRuleMessage] = useState<string | null>(null);
   const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{ count: number, mpCount: number } | null>(null);
@@ -1897,6 +1889,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     setTaxes(reconstructTaxesFromGameState(gameState));
     setSpending(reconstructSpendingFromGameState(gameState));
   }, [gameState]);
+
+  useEffect(() => {
+    setProposedFiscalRule(gameState.political.chosenFiscalRule);
+  }, [gameState.political.chosenFiscalRule]);
 
   // Force save after PM intervention to ensure changes persist
   // BUGFIX: Use setTimeout to ensure all async state updates complete before saving
@@ -2749,7 +2745,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // If the vote passes, apply the budget changes (handled by onVoteContinue)
     // If it fails, allow withdrawal (handled by onVoteWithdraw)
-  }, [budgetType, fiscalImpact, warnings, taxes, spending, constraints, gameState.political, gameState.mpSystem, gameState.metadata]);
+  }, [budgetType, fiscalImpact, taxes, spending, constraints, gameState.political, gameState.mpSystem, gameState.metadata, gameActions]);
 
   const applyBudgetToGameState = useCallback(() => {
     // Build BudgetChanges from the tax and spending deltas
@@ -2895,7 +2891,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     });
     setSpending(updatedSpending);
     clearBudgetDraft();
-  }, [taxes, spending, gameActions, voteResult]);
+  }, [taxes, spending, gameActions]);
 
   const handleVoteContinue = useCallback(() => {
     applyBudgetToGameState();
@@ -2923,6 +2919,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     // Show a success message
     setPMInterventionSuccess(true);
   }, [gameActions, applyBudgetToGameState]);
+
+  const handleConfirmFiscalRuleChange = useCallback(() => {
+    if (proposedFiscalRule === gameState.political.chosenFiscalRule) {
+      setShowFiscalRuleChangeModal(false);
+      return;
+    }
+
+    gameActions.changeFiscalFramework(proposedFiscalRule);
+    setFiscalRuleMessage(`Fiscal framework changed to ${getFiscalRuleById(proposedFiscalRule).name}. Market and political consequences will apply next turn.`);
+    setShowFiscalRuleChangeModal(false);
+  }, [gameActions, proposedFiscalRule, gameState.political.chosenFiscalRule]);
 
   // ============================================================================
   // RENDER UTILITIES
@@ -2964,6 +2971,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       : isThreshold
         ? 'Threshold/Allowance'
         : '';
+    const lafferTaxType = getLafferTaxTypeForControlId(tax.id);
+    const lafferPeak = lafferTaxType ? calculateLafferPoint(lafferTaxType, gameState as any) : null;
 
     return (
       <div key={tax.id} className="bg-white border border-grey-200 rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -3022,6 +3031,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 {calculateRevenueImpact(tax) >= 0 ? '+' : ''}£{calculateRevenueImpact(tax).toFixed(2)}bn
               </span>
             </div>
+          </div>
+        )}
+
+        {lafferPeak !== null && (
+          <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-sm p-2">
+            Est. revenue peak: {lafferPeak.toFixed(1)}% · model-estimated, not OBR-certified.
           </div>
         )}
       </div>
@@ -3783,6 +3798,31 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   <div className="space-y-3">
                     {constraints.map(constraint => renderConstraint(constraint))}
                   </div>
+
+                  <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
+                    <h3 className="text-lg font-bold text-gray-900">Change fiscal framework</h3>
+                    <p className="text-sm text-gray-600">
+                      Changing the fiscal framework mid-term is a high-risk decision and will carry immediate credibility and political costs on the next turn.
+                    </p>
+                    <div className="flex gap-3 items-center">
+                      <select
+                        value={proposedFiscalRule}
+                        onChange={(e) => setProposedFiscalRule(e.target.value as FiscalRuleId)}
+                        className="px-3 py-2 border border-gray-300 rounded-sm text-sm"
+                      >
+                        {FISCAL_RULES.map((rule) => (
+                          <option key={rule.id} value={rule.id}>{rule.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setShowFiscalRuleChangeModal(true)}
+                        className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-sm"
+                        disabled={proposedFiscalRule === gameState.political.chosenFiscalRule}
+                      >
+                        Change fiscal framework
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
@@ -3895,6 +3935,39 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           onConfirm={handlePMIntervention}
           onCancel={() => setShowPMInterventionModal(false)}
         />
+      )}
+
+      {showFiscalRuleChangeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+          <div className="bg-white max-w-xl w-full rounded-lg shadow-2xl">
+            <div className="bg-red-700 text-white p-5">
+              <h2 className="text-2xl font-bold">Confirm fiscal framework change</h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-gray-700">
+                You are changing from <span className="font-semibold">{getFiscalRuleById(gameState.political.chosenFiscalRule).name}</span> to{' '}
+                <span className="font-semibold">{getFiscalRuleById(proposedFiscalRule).name}</span>.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-sm p-3 text-sm text-amber-900">
+                Consequences on next turn: credibility shock, one-off gilt yield shock with six-month decay, PM trust fall, and backbench dissatisfaction.
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowFiscalRuleChangeModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmFiscalRuleChange}
+                  className="flex-1 px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-bold rounded-sm"
+                >
+                  Confirm change
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Fiscal Rule Message Modal */}

@@ -171,10 +171,10 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         type: 'demand',
         conditions: { minDeficit: 80 },
         subject: 'Immediate Action Required: Deficit Control',
-        content: `Chancellor,\n\nThe overall deficit of £{deficit}bn is unsustainable. This is a direct threat to our fiscal credibility.\n\nI am formally requesting that you bring forward an emergency budget to bring the deficit under control. Target: reduce the overall deficit to below £50bn within 3 months.\n\nThis is not optional. You have 3 months to deliver.\n\nPrime Minister`,
+        content: `Chancellor,\n\nThe overall deficit of £{deficit}bn is unsustainable. This is a direct threat to our fiscal credibility.\n\nI am formally requesting that you bring forward an emergency budget to bring the deficit under control. Target: reduce the overall deficit to below £{targetDeficit}bn within {deadlineMonths} months.\n\nThis is not optional. You have until turn {deadlineTurn} to deliver.\n\nPrime Minister`,
         tone: 'stern',
         demandCategory: 'deficit',
-        demandDetails: 'Reduce deficit below £50bn within 3 months'
+        demandDetails: 'Reduce deficit below £{targetDeficit}bn within {deadlineMonths} months (deadline turn {deadlineTurn})'
     },
     {
         id: 'pm_demand_manifesto',

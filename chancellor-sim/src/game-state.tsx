@@ -12,7 +12,6 @@ import {
   EventState,
   SimulationState,
   FiscalRuleId,
-  getFiscalRuleById,
   createInitialEconomicState,
   createInitialFiscalState,
   createInitialMarketState,
@@ -20,6 +19,7 @@ import {
   createInitialPoliticalState,
   createInitialAdviserSystem,
   createInitialEventState,
+  calculateInitialFiscalRuleMetrics,
 } from './game-integration';
 import {
   hireAdviser as hireAdviserHelper,
@@ -41,7 +41,6 @@ import {
   LobbyingApproach,
   attemptLobbying,
   calculateAllMPStances,
-  calculateMPStance,
   generateMPConcernProfile,
   DetailedMPStance,
   MPStanceLabel,
@@ -54,8 +53,6 @@ import {
   loadVotingRecords,
   loadPromises,
   savePromises,
-  batchRecordBudgetVotes,
-  markPromiseBroken,
 } from './mp-storage';
 
 // ===========================
@@ -113,6 +110,9 @@ export interface PMMessage {
   demandCategory?: 'tax' | 'spending' | 'deficit' | 'approval';
   demandDetails?: string;
   consequenceWarning?: string;
+  threatTargetDeficit_bn?: number;
+  threatDeadlineTurn?: number;
+  threatBaselineDeficit_bn?: number;
 }
 
 export interface PMRelationshipState {
@@ -140,6 +140,21 @@ export interface PMRelationshipState {
     deadline: number;           // Turn number
     met: boolean;
   }[];
+  activeThreats: {
+    id: string;
+    category: 'deficit';
+    createdTurn: number;
+    deadlineTurn: number;
+    baselineDeficit_bn: number;
+    targetDeficit_bn: number;
+    breached: boolean;
+    resolved: boolean;
+    followUpSent: boolean;
+  }[];
+}
+
+export interface SocialMediaGameState {
+  recentlyUsedPostIds: string[];
 }
 
 export interface GameState {
@@ -156,6 +171,7 @@ export interface GameState {
   mpSystem: MPSystemState;
   emergencyProgrammes: EmergencyProgrammesState;
   pmRelationship: PMRelationshipState;
+  socialMedia: SocialMediaGameState;
 }
 
 export interface GameActions {
@@ -179,6 +195,8 @@ export interface GameActions {
   executeManifestoOneClick: (pledgeId: string) => void;
   recordBudgetVotes: (votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => void;
   updatePromises: (brokenPromiseIds: string[]) => void;
+  changeFiscalFramework: (nextRule: FiscalRuleId) => void;
+  recordSocialMediaTemplates: (templateIds: string[], turn: number) => void;
 }
 
 export interface BudgetChanges {
@@ -392,7 +410,7 @@ function normalizeLoadedState(state: GameState): GameState {
   const advisers = state.advisers ?? createInitialAdviserSystem();
   const metadata = {
     ...state.metadata,
-    difficultyMode: (state.metadata as any)?.difficultyMode || 'standard',
+    difficultyMode: (state.metadata as any)?.difficultyMode || 'realistic',
   };
   const pmRelationship = state.pmRelationship ?? {
     patience: 70,
@@ -407,6 +425,10 @@ function normalizeLoadedState(state: GameState): GameState {
     supportWithdrawn: false,
     finalWarningGiven: false,
     activeDemands: [],
+    activeThreats: [],
+  };
+  const socialMedia = state.socialMedia ?? {
+    recentlyUsedPostIds: [],
   };
   // Merge all state objects with defaults to handle missing properties from old saves
   const economic = {
@@ -501,7 +523,13 @@ function normalizeLoadedState(state: GameState): GameState {
       ...emergencyProgrammes,
       active: Array.isArray(emergencyProgrammes.active) ? emergencyProgrammes.active : [],
     },
-    pmRelationship,
+    pmRelationship: {
+      ...pmRelationship,
+      activeThreats: Array.isArray((pmRelationship as any).activeThreats)
+        ? (pmRelationship as any).activeThreats
+        : [],
+    },
+    socialMedia,
   };
 }
 
@@ -556,21 +584,32 @@ function createInitialGameState(): GameState {
   const events = createInitialEventState();
   const manifesto = initializeManifestoState(); // Random manifesto
   const mpSystem = createInitialMPSystem(); // Initialize MP system
+  const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
+    fiscal,
+    economic,
+    political.chosenFiscalRule,
+  );
 
   return {
     metadata: {
       currentTurn: 0,
       currentMonth: 7,
       currentYear: 2024,
-      difficultyMode: 'standard',
+      difficultyMode: 'realistic',
       gameStarted: false,
       gameOver: false,
     },
     economic,
-    fiscal,
+    fiscal: {
+      ...fiscal,
+      fiscalHeadroom_bn: initialRuleMetrics.fiscalHeadroom_bn,
+    },
     markets,
     services,
-    political,
+    political: {
+      ...political,
+      fiscalRuleCompliance: initialRuleMetrics.fiscalRuleCompliance,
+    },
     advisers,
     events,
     manifesto,
@@ -594,6 +633,10 @@ function createInitialGameState(): GameState {
       supportWithdrawn: false,
       finalWarningGiven: false,
       activeDemands: [],
+      activeThreats: [],
+    },
+    socialMedia: {
+      recentlyUsedPostIds: [],
     },
   };
 }
@@ -752,7 +795,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       }));
     }
-  }, [gameState.mpSystem.allMPs.size, gameState.mpSystem.currentBudgetSupport.size]);
+  }, [gameState.mpSystem.allMPs.size, gameState.mpSystem.currentBudgetSupport.size, gameState.metadata.currentTurn, gameState.mpSystem]);
 
   // Start new game
   const startNewGame = useCallback(
@@ -760,10 +803,15 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       saveName?: string,
       manifestoId: string = 'standard_labour',
       fiscalRuleId: FiscalRuleId = 'starmer-reeves',
-      difficultyMode: DifficultyMode = 'standard'
+      difficultyMode: DifficultyMode = 'realistic'
     ) => {
       setGameState((prevState) => {
         const newState = createInitialGameState();
+        const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
+          newState.fiscal,
+          newState.economic,
+          fiscalRuleId,
+        );
 
         // Preserve MPs if they already exist in the state
         let workingMPs = prevState.mpSystem.allMPs;
@@ -783,15 +831,20 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
             gameStarted: true,
             difficultyMode,
           },
+          fiscal: {
+            ...newState.fiscal,
+            fiscalHeadroom_bn: initialRuleMetrics.fiscalHeadroom_bn,
+          },
+          political: {
+            ...newState.political,
+            chosenFiscalRule: fiscalRuleId,
+            fiscalRuleCompliance: initialRuleMetrics.fiscalRuleCompliance,
+          },
           mpSystem: {
             ...newState.mpSystem,
             allMPs: workingMPs,
           },
           manifesto: initializeManifestoState(manifestoId),
-          fiscal: {
-            ...newState.fiscal,
-            activeRuleId: fiscalRuleId,
-          },
         };
       });
     },
@@ -804,7 +857,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       if (prevState.metadata.gameOver) return prevState;
 
       const newTurn = prevState.metadata.currentTurn + 1;
-      const { month, year, monthName } = calculateTurnMetadata(newTurn);
+      const { month, year } = calculateTurnMetadata(newTurn);
 
       // Check for game end (60 months or sacking)
       if (newTurn >= 60) {
@@ -1698,6 +1751,59 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  const changeFiscalFramework = useCallback((nextRule: FiscalRuleId) => {
+    setGameState((prevState) => {
+      if (prevState.political.chosenFiscalRule === nextRule) {
+        return prevState;
+      }
+
+      const recomputed = calculateInitialFiscalRuleMetrics(
+        prevState.fiscal,
+        prevState.economic,
+        nextRule,
+      );
+
+      return {
+        ...prevState,
+        fiscal: {
+          ...prevState.fiscal,
+          fiscalHeadroom_bn: recomputed.fiscalHeadroom_bn,
+        },
+        political: {
+          ...prevState.political,
+          chosenFiscalRule: nextRule,
+          fiscalRuleChangedLastTurn: true,
+          fiscalRuleChangeCount: (prevState.political.fiscalRuleChangeCount || 0) + 1,
+          fiscalRuleCompliance: recomputed.fiscalRuleCompliance,
+        },
+      };
+    });
+  }, []);
+
+  const recordSocialMediaTemplates = useCallback((templateIds: string[], turn: number) => {
+    setGameState((prevState) => {
+      if (!templateIds || templateIds.length === 0) return prevState;
+      const encoded = templateIds.map((id) => `${turn}:${id}`);
+      const merged = [...(prevState.socialMedia?.recentlyUsedPostIds || []), ...encoded];
+      const deduped = Array.from(new Set(merged));
+      const trimmed = deduped.slice(-15);
+
+      if (
+        trimmed.length === (prevState.socialMedia?.recentlyUsedPostIds || []).length &&
+        trimmed.every((value, index) => value === (prevState.socialMedia?.recentlyUsedPostIds || [])[index])
+      ) {
+        return prevState;
+      }
+
+      return {
+        ...prevState,
+        socialMedia: {
+          recentlyUsedPostIds: trimmed,
+        },
+      };
+    });
+  }, []);
+
   const actions: GameActions = {
     startNewGame,
     advanceTurn,
@@ -1714,6 +1820,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     executeManifestoOneClick,
     recordBudgetVotes,
     updatePromises,
+    changeFiscalFramework,
+    recordSocialMediaTemplates,
   };
 
   return (

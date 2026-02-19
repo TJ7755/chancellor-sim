@@ -31,10 +31,6 @@ const DEPARTMENTAL_SPENDING_KEYS = [
   'other',
 ] as const;
 
-function getDepartmentalSpendingTotal(spending: GameState['fiscal']['spending']): number {
-  return DEPARTMENTAL_SPENDING_KEYS.reduce((sum, key) => sum + spending[key], 0);
-}
-
 // CRITICAL FIX: Adviser mechanical benefits
 // Advisers provide actual gameplay bonuses based on their expertise
 interface AdviserBonuses {
@@ -111,7 +107,6 @@ function getAdviserBonuses(state: GameState): AdviserBonuses {
   return bonuses;
 }
 
-const BASELINE_DEPARTMENTAL_SPENDING = getDepartmentalSpendingTotal(createInitialFiscalState().spending);
 const BASELINE_FISCAL_STATE = createInitialFiscalState();
 const BASELINE_DETAILED_SPENDING = Object.fromEntries(
   BASELINE_FISCAL_STATE.detailedSpending.map((item) => [item.id, item.currentBudget])
@@ -147,10 +142,10 @@ function evolveServiceMetric(
   const realRatio = demandAdjustedBaseline > 0 ? realSpending / demandAdjustedBaseline : 1;
 
   let nextValue = currentValue;
-  if (realRatio > 1.08) nextValue += 0.55;
-  else if (realRatio > 1.01) nextValue += 0.22;
-  else if (realRatio > 0.95) nextValue -= 0.08;
-  else if (realRatio > 0.88) nextValue -= 0.35;
+  if (realRatio > 1.06) nextValue += 0.6;
+  else if (realRatio > 1.0) nextValue += 0.25;
+  else if (realRatio > 0.96) nextValue -= 0.12;
+  else if (realRatio > 0.9) nextValue -= 0.4;
   else nextValue -= 0.75;
 
   return Math.max(0, Math.min(100, nextValue));
@@ -267,8 +262,6 @@ export function processTurn(state: GameState): GameState {
 
   // Step 0.7: Calculate productivity growth (before GDP since productivity affects GDP)
   newState = calculateProductivity(newState);
-
-  // Step 1: Calculate GDP growth
   newState = calculateGDPGrowth(newState);
 
   // Step 2: Calculate employment & unemployment
@@ -318,6 +311,12 @@ export function processTurn(state: GameState): GameState {
 
   // Step 14: Calculate PM trust
   newState = calculatePMTrust(newState);
+
+  // Step 14.5: Apply fiscal-framework change consequences
+  newState = applyFiscalFrameworkChangeConsequences(newState);
+
+  // Step 14.6: Enforce PM threat deadlines
+  newState = enforcePMThreatDeadlines(newState);
 
   // Step 15: Check for PM intervention
   newState = checkPMIntervention(newState);
@@ -433,7 +432,6 @@ function processEmergencyProgrammes(state: GameState): GameState {
  */
 function calculateProductivity(state: GameState): GameState {
   const { economic, fiscal, services } = state;
-  const difficulty = getDifficultySettings(state);
 
   // Base productivity growth (very low - reflects UK's productivity puzzle)
   let productivityGrowth = 0.10; // 0.10% annual baseline
@@ -1612,10 +1610,15 @@ function calculateMarkets(state: GameState): GameState {
     }
   }
 
+  const fiscalRuleChangeShock =
+    (political.fiscalRuleYieldShockMonthsRemaining || 0) > 0
+      ? (political.fiscalRuleYieldShock_pp || 0)
+      : 0;
+
   let newYield10y = baseYield + debtPremium + deficitPremium + trendPremium +
     vigilantePremium + credibilityDiscount + creditRatingPremium +
     fiscalRuleCredibilityEffect + marketPsychology +
-    qtSupplyPremium + headroomPremium;
+    qtSupplyPremium + headroomPremium + fiscalRuleChangeShock;
 
   // LDI Crisis Logic (Realistic Mode)
   // If yields rise too fast (>50bps/month), pension funds get margin called
@@ -1684,6 +1687,17 @@ function calculateMarkets(state: GameState): GameState {
       yieldChange10y: smoothedYield - prevYield,
       ldiPanicTriggered: ldiPanicTriggered
     },
+    political: {
+      ...political,
+      fiscalRuleYieldShock_pp:
+        (political.fiscalRuleYieldShockMonthsRemaining || 0) > 0
+          ? (political.fiscalRuleYieldShock_pp || 0) * (5 / 6)
+          : 0,
+      fiscalRuleYieldShockMonthsRemaining: Math.max(
+        0,
+        (political.fiscalRuleYieldShockMonthsRemaining || 0) - 1
+      ),
+    },
   };
 }
 
@@ -1728,10 +1742,10 @@ function calculateServiceQuality(state: GameState): GameState {
   // Marginal benefit decreases: massive spending gives little extra quality
   // Scaled by difficulty (higher efficiency in forgiving mode)
   let nhsQualityChange = 0;
-  if (nhsRealGrowth > 10) {
-    // Excessive spending (>10% above demand): diminishing returns kick in hard
+  if (nhsRealGrowth > 5) {
+    // Excessive spending (>5% above demand): diminishing returns kick in hard
     // Each additional % gives less benefit: 10-15% range gives +0.3, 15-20% gives +0.15, >20% gives +0.05
-    nhsQualityChange = 0.5 + Math.log(nhsRealGrowth / 10 + 1) * 0.15; // Logarithmic: +0.5 base, then diminishing
+    nhsQualityChange = 0.5 + Math.log(nhsRealGrowth / 5 + 1) * 0.15; // Logarithmic: +0.5 base, then diminishing
   } else if (nhsRealGrowth > 0) {
     nhsQualityChange = 0.5; // Keeping pace with or exceeding demand
   } else if (nhsRealGrowth > -1.5) {
@@ -1760,9 +1774,9 @@ function calculateServiceQuality(state: GameState): GameState {
 
   // CRITICAL FIX: Service quality lags (H3)
   // NHS doesn't respond instantly to funding - takes months to hire staff, build facilities
-  // Improvements lag more (30% per month = ~3-4 months to full effect)
-  // Cuts bite faster (50% per month = ~2 months to full effect)
-  const nhsLagCoefficient = nhsQualityChange > 0 ? 0.30 : 0.50;
+  // Improvements lag more (45% per month)
+  // Cuts bite faster (65% per month)
+  const nhsLagCoefficient = nhsQualityChange > 0 ? 0.45 : 0.65;
   nhsQuality += nhsQualityChange * nhsLagCoefficient;
 
   // Education quality
@@ -1806,8 +1820,8 @@ function calculateServiceQuality(state: GameState): GameState {
 
   // CRITICAL FIX: Service quality lags (H3)
   // Education improvements take time (hiring teachers, curriculum changes)
-  // Improvements lag (30% per month), cuts faster (50% per month)
-  const eduLagCoefficient = eduQualityChange > 0 ? 0.30 : 0.50;
+  // Improvements lag (45% per month), cuts faster (65% per month)
+  const eduLagCoefficient = eduQualityChange > 0 ? 0.45 : 0.65;
   eduQuality += eduQualityChange * eduLagCoefficient;
 
   // Infrastructure quality (responds to capital spending with lag)
@@ -2301,6 +2315,134 @@ function calculatePMTrust(state: GameState): GameState {
   };
 }
 
+function applyFiscalFrameworkChangeConsequences(state: GameState): GameState {
+  const { political } = state;
+  if (!political.fiscalRuleChangedLastTurn) {
+    const remaining = political.fiscalRuleUturnReactionTurnsRemaining || 0;
+    if (remaining <= 0) return state;
+    return {
+      ...state,
+      political: {
+        ...political,
+        fiscalRuleUturnReactionTurnsRemaining: remaining - 1,
+      },
+    };
+  }
+
+  const difficulty = getDifficultySettings(state);
+  const changeCount = Math.max(1, political.fiscalRuleChangeCount || 1);
+  const escalation = Math.pow(2, Math.max(0, changeCount - 1));
+  const baseCredibilityHit = (15 + Math.random() * 10) * difficulty.marketReactionScale;
+  const credibilityHit = baseCredibilityHit * escalation;
+  const yieldShock = (0.3 + Math.random() * 0.2) * difficulty.marketReactionScale;
+
+  const newspaper = {
+    newspaper: {
+      name: 'Financial Times',
+      bias: 'financial',
+      style: 'broadsheet',
+      priorities: ['markets', 'debt', 'growth', 'monetary_policy', 'international_trade'],
+    },
+    headline: 'Chancellor performs fiscal framework U-turn as market nerves rise',
+    subheading: 'Analysts warn that repeated rule changes risk permanent credibility damage in gilts and sterling.',
+    paragraphs: [
+      'The Treasury has changed its fiscal framework mid-parliament, prompting immediate criticism from opposition parties and several Labour backbenchers.',
+      'Market participants said the move may increase risk premia unless the government quickly demonstrates a coherent medium-term plan.',
+    ],
+    oppositionQuote: {
+      speaker: 'Shadow Chancellor',
+      quote: 'You cannot rebuild trust by rewriting the rules whenever they become uncomfortable.',
+      party: 'Conservative' as const,
+    },
+    month: state.metadata.currentMonth,
+    date: new Date(state.metadata.currentYear, state.metadata.currentMonth - 1, 1),
+    isSpecialEdition: true,
+  };
+
+  return {
+    ...state,
+    political: {
+      ...political,
+      credibilityIndex: Math.max(0, political.credibilityIndex - credibilityHit),
+      pmTrust: Math.max(0, political.pmTrust - 8),
+      backbenchSatisfaction: Math.max(0, political.backbenchSatisfaction - 5),
+      fiscalRuleChangedLastTurn: false,
+      fiscalRuleYieldShock_pp: (political.fiscalRuleYieldShock_pp || 0) + yieldShock,
+      fiscalRuleYieldShockMonthsRemaining: Math.max(
+        6,
+        political.fiscalRuleYieldShockMonthsRemaining || 0
+      ),
+      fiscalRuleUturnReactionTurnsRemaining: 3,
+    },
+    events: {
+      ...state.events,
+      currentNewspaper: newspaper,
+      eventLog: [
+        ...(state.events.eventLog || []),
+        {
+          event: {
+            id: `fiscal_rule_uturn_${state.metadata.currentTurn}`,
+            type: 'political',
+            title: 'Fiscal framework U-turn',
+            description: 'Government changed fiscal framework mid-term.',
+            active: false,
+          },
+          resolved: true,
+          newsArticle: newspaper,
+        },
+      ],
+    },
+  };
+}
+
+function enforcePMThreatDeadlines(state: GameState): GameState {
+  const activeThreats = state.pmRelationship.activeThreats || [];
+  if (activeThreats.length === 0) return state;
+
+  const currentTurn = state.metadata.currentTurn;
+  let anyChanged = false;
+  let breachedCount = 0;
+
+  const updatedThreats = activeThreats.map((threat) => {
+    if (threat.resolved || threat.breached) return threat;
+
+    if (state.fiscal.deficit_bn <= threat.targetDeficit_bn) {
+      anyChanged = true;
+      return {
+        ...threat,
+        resolved: true,
+      };
+    }
+
+    if (currentTurn > threat.deadlineTurn) {
+      anyChanged = true;
+      breachedCount += 1;
+      return {
+        ...threat,
+        breached: true,
+      };
+    }
+
+    return threat;
+  });
+
+  if (!anyChanged) return state;
+
+  return {
+    ...state,
+    political: {
+      ...state.political,
+      pmTrust: Math.max(0, state.political.pmTrust - breachedCount * (10 + Math.random() * 5)),
+      backbenchSatisfaction: Math.max(0, state.political.backbenchSatisfaction - breachedCount * 4),
+    },
+    pmRelationship: {
+      ...state.pmRelationship,
+      reshuffleRisk: Math.min(100, (state.pmRelationship.reshuffleRisk || 0) + breachedCount * 12),
+      activeThreats: updatedThreats,
+    },
+  };
+}
+
 // ===========================
 // Step 15: PM Intervention
 // ===========================
@@ -2396,6 +2538,39 @@ function processPMCommunicationsStep(state: GameState): GameState {
     return state;
   }
 
+  const breachedThreat = (state.pmRelationship.activeThreats || []).find(
+    (threat) => threat.breached && !threat.followUpSent
+  );
+
+  if (breachedThreat) {
+    const followUpMessage = {
+      id: `pm_${state.metadata.currentTurn}_threat_followup_${Date.now()}`,
+      turn: state.metadata.currentTurn,
+      type: 'threat' as const,
+      subject: 'Deadline missed: PM confidence reduced',
+      content:
+        `Chancellor, the deadline to reduce the deficit below £${breachedThreat.targetDeficit_bn.toFixed(0)}bn has passed without delivery. ` +
+        `You were given until turn ${breachedThreat.deadlineTurn}. I now require an immediate corrective package.`,
+      tone: 'angry' as const,
+      read: false,
+      timestamp: Date.now(),
+    };
+
+    return {
+      ...state,
+      pmRelationship: {
+        ...state.pmRelationship,
+        unreadCount: state.pmRelationship.unreadCount + 1,
+        messages: [...state.pmRelationship.messages, followUpMessage],
+        activeThreats: state.pmRelationship.activeThreats.map((threat) =>
+          threat.id === breachedThreat.id
+            ? { ...threat, followUpSent: true }
+            : threat
+        ),
+      },
+    };
+  }
+
   // Process PM communications for this turn
   const { newMessage, relationshipUpdates, reshuffleTriggered } = processPMCommunications(state);
 
@@ -2427,13 +2602,32 @@ function processPMCommunicationsStep(state: GameState): GameState {
 
     // If message contains a demand, add it to active demands
     if (newMessage.type === 'demand' && newMessage.demandCategory && newMessage.demandDetails) {
+      const targetDeficit = newMessage.threatTargetDeficit_bn ?? 50;
+      const deadlineTurn = newMessage.threatDeadlineTurn ?? (state.metadata.currentTurn + 3);
       const newDemand = {
         category: newMessage.demandCategory,
         description: newMessage.demandDetails,
-        deadline: state.metadata.currentTurn + 3, // 3 months to comply
+        deadline: deadlineTurn,
         met: false,
       };
       updatedPMRelationship.activeDemands = [...updatedPMRelationship.activeDemands, newDemand];
+
+      if (newMessage.demandCategory === 'deficit') {
+        updatedPMRelationship.activeThreats = [
+          ...(updatedPMRelationship.activeThreats || []),
+          {
+            id: `threat_${state.metadata.currentTurn}_${Date.now()}`,
+            category: 'deficit',
+            createdTurn: state.metadata.currentTurn,
+            deadlineTurn,
+            baselineDeficit_bn: newMessage.threatBaselineDeficit_bn ?? state.fiscal.deficit_bn,
+            targetDeficit_bn: targetDeficit,
+            breached: false,
+            resolved: false,
+            followUpSent: false,
+          },
+        ];
+      }
     }
   }
 

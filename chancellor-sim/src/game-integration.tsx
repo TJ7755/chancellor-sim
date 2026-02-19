@@ -784,6 +784,11 @@ export interface PoliticalState {
   credibilityIndex: number;
   strikeRisk: number;
   chosenFiscalRule: FiscalRuleId;
+  fiscalRuleChangedLastTurn: boolean;
+  fiscalRuleChangeCount: number;
+  fiscalRuleYieldShock_pp: number;
+  fiscalRuleYieldShockMonthsRemaining: number;
+  fiscalRuleUturnReactionTurnsRemaining: number;
   fiscalRuleCompliance: {
     currentBudgetMet: boolean;
     overallBalanceMet: boolean;
@@ -822,6 +827,11 @@ export function createInitialPoliticalState(): PoliticalState {
     credibilityIndex: 65,
     strikeRisk: 20,
     chosenFiscalRule: 'starmer-reeves',
+    fiscalRuleChangedLastTurn: false,
+    fiscalRuleChangeCount: 0,
+    fiscalRuleYieldShock_pp: 0,
+    fiscalRuleYieldShockMonthsRemaining: 0,
+    fiscalRuleUturnReactionTurnsRemaining: 0,
     fiscalRuleCompliance: {
       currentBudgetMet: true,
       overallBalanceMet: false,
@@ -840,6 +850,80 @@ export function createInitialPoliticalState(): PoliticalState {
     significantEvents: [],
     creditRating: 'AA-',
     creditRatingOutlook: 'negative',
+  };
+}
+
+export interface InitialFiscalRuleMetrics {
+  fiscalHeadroom_bn: number;
+  fiscalRuleCompliance: PoliticalState['fiscalRuleCompliance'];
+}
+
+export function calculateInitialFiscalRuleMetrics(
+  fiscal: FiscalState,
+  economic: EconomicState,
+  chosenFiscalRule: FiscalRuleId,
+): InitialFiscalRuleMetrics {
+  const rule = getFiscalRuleById(chosenFiscalRule);
+
+  const totalCapitalSpending =
+    fiscal.spending.nhsCapital +
+    fiscal.spending.educationCapital +
+    fiscal.spending.defenceCapital +
+    fiscal.spending.infrastructureCapital +
+    fiscal.spending.policeCapital +
+    fiscal.spending.justiceCapital +
+    fiscal.spending.otherCapital;
+
+  const currentBudgetBalance =
+    fiscal.totalRevenue_bn -
+    (fiscal.totalSpending_bn - totalCapitalSpending) -
+    fiscal.debtInterest_bn;
+
+  const fiscalHeadroom_bn = calculateRuleHeadroom(
+    rule,
+    currentBudgetBalance,
+    fiscal.deficitPctGDP,
+    economic.gdpNominal_bn,
+    fiscal.totalRevenue_bn,
+    fiscal.totalSpending_bn,
+    fiscal.debtInterest_bn,
+  );
+
+  const currentBudgetMet = !rule.rules.currentBudgetBalance || fiscalHeadroom_bn >= -0.5;
+  const overallBalance = fiscal.totalRevenue_bn - fiscal.totalSpending_bn - fiscal.debtInterest_bn;
+  const overallBalanceMet = !rule.rules.overallBalance || overallBalance >= -0.5;
+  const deficitCeilingMet =
+    rule.rules.deficitCeiling === undefined || fiscal.deficitPctGDP <= rule.rules.deficitCeiling;
+  const debtTargetMet =
+    rule.rules.debtTarget === undefined || fiscal.debtPctGDP <= rule.rules.debtTarget;
+
+  let debtFallingMet = true;
+  if (rule.rules.debtFalling) {
+    if (rule.id === 'jeremy-hunt') {
+      debtFallingMet = deficitCeilingMet;
+    } else if (rule.rules.timeHorizon >= 4) {
+      debtFallingMet = fiscalHeadroom_bn >= -0.5;
+    } else {
+      debtFallingMet = true;
+    }
+  }
+
+  const overallCompliant =
+    currentBudgetMet && overallBalanceMet && deficitCeilingMet && debtTargetMet && debtFallingMet;
+
+  return {
+    fiscalHeadroom_bn,
+    fiscalRuleCompliance: {
+      currentBudgetMet,
+      overallBalanceMet,
+      deficitCeilingMet,
+      debtTargetMet,
+      debtFallingMet,
+      overallCompliant,
+      consecutiveBreaches: 0,
+      currentBudgetGap: Math.max(0, -currentBudgetBalance),
+      capitalInvestment: totalCapitalSpending,
+    },
   };
 }
 

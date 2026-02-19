@@ -1,5 +1,6 @@
 import { GameState, PMMessage, PMMessageType, PMRelationshipState } from './game-state';
 import { PM_MESSAGES, PMMessageTemplate } from './data/pm-messages';
+import { getFiscalRuleById } from './game-integration';
 
 // ============================================================================
 // PM MESSAGE GENERATION SYSTEM
@@ -57,7 +58,10 @@ export function shouldSendEventTriggeredMessage(
   }
 
   // Demand: Deficit spiraling
-  if (gameState.fiscal.deficit_bn > 80 && !pmRelationship.activeDemands.find(d => d.category === 'deficit')) {
+  const hasActiveDeficitThreat = (pmRelationship.activeThreats || []).some(
+    (t) => t.category === 'deficit' && !t.resolved && !t.breached
+  );
+  if (gameState.fiscal.deficit_bn > 80 && !hasActiveDeficitThreat) {
     return { shouldSend: true, messageType: 'demand', reason: 'high_deficit' };
   }
 
@@ -74,6 +78,30 @@ export function shouldSendEventTriggeredMessage(
   }
 
   return { shouldSend: false, messageType: null, reason: '' };
+}
+
+function calculateDeficitThreatTarget(gameState: GameState): {
+  targetDeficit_bn: number;
+  deadlineMonths: number;
+} {
+  const currentDeficit = Math.max(0, gameState.fiscal.deficit_bn);
+  const rule = getFiscalRuleById(gameState.political.chosenFiscalRule);
+  const limitFromRule = rule.rules.deficitCeiling
+    ? (rule.rules.deficitCeiling / 100) * gameState.economic.gdpNominal_bn
+    : undefined;
+
+  const reductionShare = 0.15 + Math.random() * 0.1;
+  const proportionalTarget = currentDeficit * (1 - reductionShare);
+  const ruleConstrainedTarget = limitFromRule !== undefined
+    ? Math.min(proportionalTarget, limitFromRule)
+    : proportionalTarget;
+
+  const deadlineMonths = 2 + Math.floor(Math.random() * 3);
+
+  return {
+    targetDeficit_bn: Math.max(5, ruleConstrainedTarget),
+    deadlineMonths,
+  };
 }
 
 /**
@@ -96,6 +124,9 @@ export function generatePMMessage(
   // Let's iterate and check.
 
   let selectedTemplate: PMMessageTemplate | undefined;
+  let threatTargetDeficit_bn: number | undefined;
+  let threatDeadlineTurn: number | undefined;
+  let threatBaselineDeficit_bn: number | undefined;
 
   // Helper to check conditions
   const checkCondition = (template: PMMessageTemplate): boolean => {
@@ -160,13 +191,23 @@ export function generatePMMessage(
 
   // 3. Inject variables
   const monthName = getMonthName(metadata.currentMonth);
+  if (messageType === 'demand' && reason === 'high_deficit') {
+    const threatTarget = calculateDeficitThreatTarget(gameState);
+    threatTargetDeficit_bn = threatTarget.targetDeficit_bn;
+    threatDeadlineTurn = turn + threatTarget.deadlineMonths;
+    threatBaselineDeficit_bn = fiscal.deficit_bn;
+  }
+
   let content = selectedTemplate.content
     .replace('{trust}', Math.round(political.pmTrust).toString())
     .replace('{approval}', Math.round(political.governmentApproval).toString())
     .replace('{growth}', economic.gdpGrowthAnnual.toFixed(1))
     .replace('{deficit}', Math.round(fiscal.deficit_bn).toString())
     .replace('{backbench}', Math.round(political.backbenchSatisfaction).toString())
-    .replace('{month}', monthName);
+    .replace('{month}', monthName)
+    .replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
+    .replace('{deadlineMonths}', String((threatDeadlineTurn ?? (turn + 3)) - turn))
+    .replace('{deadlineTurn}', String(threatDeadlineTurn ?? (turn + 3)));
 
   let subject = selectedTemplate.subject.replace('{month}', monthName);
 
@@ -178,8 +219,14 @@ export function generatePMMessage(
     content,
     tone: selectedTemplate.tone,
     demandCategory: selectedTemplate.demandCategory,
-    demandDetails: selectedTemplate.demandDetails,
+    demandDetails: selectedTemplate.demandDetails
+      ?.replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
+      ?.replace('{deadlineMonths}', String((threatDeadlineTurn ?? (turn + 3)) - turn))
+      ?.replace('{deadlineTurn}', String(threatDeadlineTurn ?? (turn + 3))),
     consequenceWarning: selectedTemplate.consequenceWarning,
+    threatTargetDeficit_bn,
+    threatDeadlineTurn,
+    threatBaselineDeficit_bn,
     read: false,
     timestamp: Date.now()
   };
@@ -373,7 +420,9 @@ export function checkDemandFulfillment(
   gameState: GameState
 ): boolean {
   // Check if demand conditions are satisfied
-  if (demand.category === 'deficit' && gameState.fiscal.deficit_bn < 50) {
+  const targetMatch = demand.description.match(/below £?(\d+(?:\.\d+)?)bn/i);
+  const parsedTarget = targetMatch ? Number(targetMatch[1]) : 50;
+  if (demand.category === 'deficit' && gameState.fiscal.deficit_bn <= parsedTarget) {
     return true;
   }
 

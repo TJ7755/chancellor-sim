@@ -84,6 +84,7 @@ export interface MPProfile {
   background: string;
   enteredParliament: number;    // Year
   isMinister: boolean;
+  dealComplianceProbability?: number;
   ministerialRole?: string;
   committees: string[];
 }
@@ -91,12 +92,16 @@ export interface MPProfile {
 export interface MPPromise {
   id: string;
   promisedToMPs: string[];      // Array of MP IDs
+  mpId?: string;
   category: PromiseCategory;
   description: string;
   specificValue?: number;       // e.g., £2bn for NHS spending
+  turnMade?: number;
   madeInMonth: number;
-  fulfilled: boolean;
+  deadline?: number;
+  fulfilled: boolean | null;
   broken: boolean;
+  brokenBy?: 'player' | 'mp';
   brokenInMonth?: number;
 }
 
@@ -952,11 +957,11 @@ export function calculateMPStance(
   mp: MPProfile,
   budgetChanges: BudgetChanges,
   manifestoViolations: string[],
-  promises: Map<string, MPPromise>
+  promises: Map<string, MPPromise>,
+  currentMonth: number = 0,
 ): DetailedMPStance {
   let supportScore = 50; // Start neutral
   let reason = "Neutral starting point.";
-  let concerns: string[] = [];
   const plausibilityPenalty = getBudgetPlausibilityPenalty(budgetChanges);
 
   // 1. Ideological alignment
@@ -977,9 +982,28 @@ export function calculateMPStance(
 
   // 4. Active promises (positive boost if relevant)
   const activePromisesToMP = Array.from(promises.values()).filter(
-    (p) => p.promisedToMPs.includes(mp.id) && !p.broken && !p.fulfilled
+    (p) => p.promisedToMPs.includes(mp.id) && !p.broken && p.fulfilled !== true
   );
-  supportScore += activePromisesToMP.length * 10;
+
+  const inferredCompliance = mp.dealComplianceProbability
+    ?? Math.max(0.55, Math.min(0.9, 0.8 - (mp.traits.rebelliousness * 0.02) + (mp.constituency.marginality > 70 ? 0.05 : 0)));
+
+  const deterministicRoll = (seed: string): number => {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+    return (hash % 1000) / 1000;
+  };
+
+  activePromisesToMP.forEach((promise) => {
+    const roll = deterministicRoll(`${mp.id}:${promise.id}:${currentMonth}`);
+    if (roll <= inferredCompliance) {
+      supportScore += 10;
+    } else {
+      supportScore += 2;
+    }
+  });
 
   // 5. Constituency impact
   const constituencyImpact = calculateConstituencyImpact(mp.constituency, budgetChanges);
@@ -1102,7 +1126,13 @@ export function calculateAllMPStances(
       if (isStillValid) {
         stances.set(mpId, existingStance!);
       } else {
-        const stance = calculateMPStance(mp, budgetChanges, manifestoViolations, mpSystem.promises);
+        const stance = calculateMPStance(
+          mp,
+          budgetChanges,
+          manifestoViolations,
+          mpSystem.promises,
+          currentMonth ?? 0,
+        );
         stances.set(mpId, stance);
       }
     }
@@ -1145,11 +1175,14 @@ export function createPromise(
   return {
     id: `promise_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     promisedToMPs: mpIds,
+    mpId: mpIds[0],
     category,
     description,
     specificValue,
+    turnMade: currentMonth,
     madeInMonth: currentMonth,
-    fulfilled: false,
+    deadline: currentMonth + 3,
+    fulfilled: null,
     broken: false,
   };
 }
@@ -1217,14 +1250,16 @@ export function detectBrokenPromises(
   const brokenPromiseIds: string[] = [];
 
   promises.forEach((promise, promiseId) => {
-    if (!promise.fulfilled && !promise.broken) {
+    if (promise.fulfilled !== true && !promise.broken) {
       const isFulfilled = checkPromiseFulfillment(promise, budgetChanges);
 
       if (isFulfilled) {
         promise.fulfilled = true;
-      } else {
+      } else if (promise.deadline !== undefined && currentMonth > promise.deadline) {
         // Promise not fulfilled - mark as broken
         promise.broken = true;
+        promise.fulfilled = false;
+        promise.brokenBy = 'player';
         promise.brokenInMonth = currentMonth;
         brokenPromiseIds.push(promiseId);
       }
@@ -1512,11 +1547,6 @@ export function getPromiseCategoryName(category: PromiseCategory): string {
   return names[category];
 }
 
-/**
- * Get count of MPs by stance
- */
-type MPStance = 'support' | 'oppose' | 'undecided';
-
 function normalizeStances(
   stances:
     | Map<string, DetailedMPStance | MPStanceLabel>
@@ -1754,11 +1784,10 @@ export const MPManagementScreen: React.FC<{
   const [filterSettings, setFilterSettings] = useState<MPFilterSettings>({});
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Apply search query to filter settings
-  const activeFilters: MPFilterSettings = {
+  const activeFilters = useMemo<MPFilterSettings>(() => ({
     ...filterSettings,
     searchQuery: searchQuery || undefined,
-  };
+  }), [filterSettings, searchQuery]);
 
   const normalizedStances = useMemo(() => {
     return normalizeStances(mpSystem.currentBudgetSupport);
@@ -1773,6 +1802,47 @@ export const MPManagementScreen: React.FC<{
   const stanceCounts = useMemo(() => {
     return getStanceCounts(normalizedStances);
   }, [normalizedStances]);
+
+  const promiseRows = useMemo(() => {
+    return Array.from(mpSystem.promises.values())
+      .sort((a, b) => (b.madeInMonth || 0) - (a.madeInMonth || 0))
+      .slice(0, 8)
+      .map((promise) => {
+        const sampleMP = promise.promisedToMPs.length > 0 ? mpSystem.allMPs.get(promise.promisedToMPs[0]) : undefined;
+        let status = 'pending';
+        if (promise.broken) {
+          status = promise.brokenBy === 'mp' ? 'broken by MP' : 'broken by player';
+        } else if (promise.fulfilled === true) {
+          status = 'fulfilled';
+        }
+
+        return {
+          id: promise.id,
+          mpName: sampleMP?.name || `${promise.promisedToMPs.length} MP${promise.promisedToMPs.length === 1 ? '' : 's'}`,
+          description: promise.description,
+          deadline: promise.deadline,
+          status,
+        };
+      });
+  }, [mpSystem.promises, mpSystem.allMPs]);
+
+  const narrativeRows = useMemo(() => {
+    return Array.from(normalizedStances.entries())
+      .map(([mpId, stance]) => {
+        if (typeof stance === 'string') return null;
+        const mp = mpSystem.allMPs.get(mpId);
+        if (!mp || mp.party !== 'labour') return null;
+        return {
+          mp,
+          stance,
+          swing: Math.abs((stance.score ?? 50) - 50),
+        };
+      })
+      .filter((entry): entry is { mp: MPProfile; stance: DetailedMPStance; swing: number } => !!entry)
+      .sort((a, b) => a.swing - b.swing)
+      .slice(0, 5)
+      .map(({ mp, stance }) => `${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided'}: ${stance.reason}`);
+  }, [normalizedStances, mpSystem.allMPs]);
 
   // Count by party
   const partyCounts = useMemo(() => {
@@ -1896,6 +1966,36 @@ export const MPManagementScreen: React.FC<{
                 <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>
                 <span className="font-semibold">Undecided: {stanceCounts.undecided}</span>
               </span>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Active deals and promises</h3>
+              <div className="space-y-2">
+                {promiseRows.length === 0 ? (
+                  <div className="text-xs text-gray-500">No active or recent deals recorded.</div>
+                ) : promiseRows.map((row) => (
+                  <div key={row.id} className="border border-gray-200 rounded-sm p-2 text-xs">
+                    <div className="font-semibold text-gray-800">{row.mpName}</div>
+                    <div className="text-gray-600">{row.description}</div>
+                    <div className="text-gray-500 mt-1">Status: {row.status}{row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800 mb-2">Parliamentary narrative summary</h3>
+              <div className="space-y-2">
+                {narrativeRows.length === 0 ? (
+                  <div className="text-xs text-gray-500">Narrative updates appear after stance calculations complete.</div>
+                ) : narrativeRows.map((row, index) => (
+                  <div key={`${index}-${row}`} className="border border-gray-200 rounded-sm p-2 text-xs text-gray-700">
+                    {row}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -2687,6 +2787,7 @@ export function simulateEnhancedParliamentaryVote(
 
   // Calculate stances for all MPs
   const stances = calculateAllMPStances(mpSystem, budgetChanges, manifestoViolations);
+  const namedNarratives: string[] = [];
 
   // Simulate vote for each MP
   mpSystem.allMPs.forEach((mp, mpId) => {
@@ -2706,13 +2807,27 @@ export function simulateEnhancedParliamentaryVote(
 
       if (mpStanceLabel === 'support') {
         // Supporters almost always vote with the whip, with occasional tactical abstentions.
-        const ayeChance = mp.isMinister ? 0.995 : (0.9 - mp.traits.rebelliousness * 0.01);
+        const hasDeal = Array.from(mpSystem.promises.values()).some(
+          (promise) => promise.promisedToMPs.includes(mpId) && !promise.broken
+        );
+        const dealComplianceProbability = mp.dealComplianceProbability
+          ?? Math.max(0.55, Math.min(0.9, 0.8 - (mp.traits.rebelliousness * 0.02) + (mp.constituency.marginality > 70 ? 0.05 : 0)));
+
+        const ayeChance = hasDeal
+          ? dealComplianceProbability
+          : (mp.isMinister ? 0.995 : (0.9 - mp.traits.rebelliousness * 0.01));
         if (Math.random() < ayeChance) {
           voteChoices.set(mpId, 'aye');
           ayesCount++;
         } else {
-          voteChoices.set(mpId, 'abstain');
-          abstentionsCount++;
+          if (hasDeal && Math.random() < 0.45) {
+            voteChoices.set(mpId, 'noe');
+            noesCount++;
+            keyRebels.push(mp.name);
+          } else {
+            voteChoices.set(mpId, 'abstain');
+            abstentionsCount++;
+          }
         }
       } else if (mpStanceLabel === 'oppose') {
         // Opposing MPs usually vote against; abstention is the minority behaviour.
@@ -2847,6 +2962,28 @@ export function simulateEnhancedParliamentaryVote(
   if (manifestoViolations.length > 0) {
     keyRebelsNarrative.push('Fiscal hawks within the party voted against after manifesto violations');
   }
+
+  const candidateNarratives = Array.from(mpSystem.allMPs.values())
+    .filter((mp) => mp.party === 'labour')
+    .map((mp) => {
+      const stance = stances.get(mp.id);
+      if (!stance || typeof stance === 'string') return null;
+      return {
+        mp,
+        stance,
+        swingScore: Math.abs((stance.score ?? 50) - 50),
+      };
+    })
+    .filter((entry): entry is { mp: MPProfile; stance: DetailedMPStance; swingScore: number } => !!entry)
+    .sort((a, b) => a.swingScore - b.swingScore)
+    .slice(0, 5);
+
+  candidateNarratives.forEach(({ mp, stance }) => {
+    const stanceText = stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided';
+    namedNarratives.push(`${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stanceText}: ${stance.reason}`);
+  });
+
+  keyRebelsNarrative.push(...namedNarratives);
 
   // Whip assessment
   let whipAssessment: string;

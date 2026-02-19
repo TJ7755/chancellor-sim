@@ -134,6 +134,8 @@ interface BudgetDraft {
   spending: [string, SpendingChange][];
 }
 
+export type ProjectionBudgetDraft = BudgetDraft;
+
 const BUDGET_DRAFT_STORAGE_KEY = 'chancellor-budget-draft-v2';
 
 /**
@@ -147,10 +149,11 @@ const BUDGET_DRAFT_STORAGE_KEY = 'chancellor-budget-draft-v2';
 export function generateProjections(
   state: GameState,
   months: number = 24,
-  includePendingBudget: boolean = true
+  includePendingBudget: boolean = true,
+  pendingBudgetDraft?: ProjectionBudgetDraft | null,
 ): ProjectionsResult {
   const startDate = `${state.metadata.currentYear}-${String(state.metadata.currentMonth).padStart(2, '0')}`;
-  const hasPending = hasPendingBudgetChanges(state);
+  const hasPending = hasPendingBudgetChanges(state, pendingBudgetDraft || undefined);
 
   // Generate baseline projections (current policies)
   const baselineProjections = simulateForward(state, months, false);
@@ -158,7 +161,7 @@ export function generateProjections(
   // Generate projections with pending budget changes if requested and they exist
   let pendingProjections: ProjectionPoint[] | undefined;
   if (includePendingBudget && hasPending) {
-    pendingProjections = simulateForward(state, months, true);
+    pendingProjections = simulateForward(state, months, true, pendingBudgetDraft || undefined);
   }
 
   return {
@@ -184,14 +187,15 @@ export function generateProjections(
 function simulateForward(
   initialState: GameState,
   months: number,
-  applyPendingBudget: boolean
+  applyPendingBudget: boolean,
+  pendingBudgetDraft?: ProjectionBudgetDraft,
 ): ProjectionPoint[] {
   // Deep clone the state to avoid mutations
   let simulationState = deepCloneForSimulation(initialState);
 
   // Apply pending budget changes if requested
-  if (applyPendingBudget && hasPendingBudgetChanges(simulationState)) {
-    simulationState = applyPendingBudgetToState(simulationState);
+  if (applyPendingBudget && hasPendingBudgetChanges(simulationState, pendingBudgetDraft)) {
+    simulationState = applyPendingBudgetToState(simulationState, pendingBudgetDraft);
   }
 
   const projections: ProjectionPoint[] = [];
@@ -272,12 +276,14 @@ function extractProjectionPoint(state: GameState): ProjectionPoint {
 /**
  * Check if there are pending budget changes that haven't been applied.
  */
-function hasPendingBudgetChanges(state: GameState): boolean {
+function hasPendingBudgetChanges(state: GameState, providedDraft?: ProjectionBudgetDraft): boolean {
   try {
-    const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
-    if (!raw) return false;
-
-    const draft: BudgetDraft = JSON.parse(raw);
+    let draft: BudgetDraft | undefined = providedDraft || undefined;
+    if (!draft) {
+      const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
+      if (!raw) return false;
+      draft = JSON.parse(raw);
+    }
     if (!draft || draft.turn !== state.metadata.currentTurn) {
       return false;
     }
@@ -306,12 +312,14 @@ function hasPendingBudgetChanges(state: GameState): boolean {
  * Apply pending budget changes to the state.
  * This creates a modified state with the pending changes applied.
  */
-function applyPendingBudgetToState(state: GameState): GameState {
+function applyPendingBudgetToState(state: GameState, providedDraft?: ProjectionBudgetDraft): GameState {
   try {
-    const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
-    if (!raw) return state;
-
-    const draft: BudgetDraft = JSON.parse(raw);
+    let draft: BudgetDraft | undefined = providedDraft || undefined;
+    if (!draft) {
+      const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
+      if (!raw) return state;
+      draft = JSON.parse(raw);
+    }
     if (!draft || draft.turn !== state.metadata.currentTurn) {
       return state;
     }

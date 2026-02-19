@@ -1,16 +1,15 @@
 // Main Game Component - Hyper-Realistic UK Chancellor Simulation
 // Integrates all systems into a complete playable game
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   GameStateProvider,
   useGameState,
   useGameActions,
   useGameMetadata,
-  useMPSystem,
   DifficultyMode,
 } from './game-state';
-import { ManifestoDisplay, MANIFESTO_TEMPLATES, OneClickActionResult } from './manifesto-system';
+import { MANIFESTO_TEMPLATES } from './manifesto-system';
 import { TutorialModal, HelpButton } from './tutorial-system';
 import BudgetSystem from './budget-system';
 import {
@@ -24,7 +23,7 @@ import { Newspaper, EventModal, EventLogPanel } from './events-media';
 import { SocialMediaSidebar } from './social-media-system';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
-import { generateProjections, summariseProjections } from './projections-engine';
+import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -177,7 +176,7 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
 }) => {
   const [selectedManifesto, setSelectedManifesto] = useState<string>('random');
   const [selectedFiscalRule, setSelectedFiscalRule] = useState<FiscalRuleId>('starmer-reeves');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyMode>('standard');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyMode>('realistic');
   const [step, setStep] = useState<'manifesto' | 'fiscal-rules'>('manifesto');
 
   if (step === 'fiscal-rules') {
@@ -770,19 +769,13 @@ const SimpleDashboard: React.FC = () => {
   const gameActions = useGameActions();
   const [oneClickMessage, setOneClickMessage] = useState<{message: string, success: boolean} | null>(null);
 
-  const handleOneClick = (result: OneClickActionResult) => {
-    if (result.success && result.pledgeId) {
-      gameActions.executeManifestoOneClick(result.pledgeId);
-      setOneClickMessage({message: result.message, success: true});
-    } else {
-      setOneClickMessage({message: result.message, success: false});
-    }
-  };
-
   return (
     <div className="flex min-h-screen -m-6">
       {/* Social Media Sidebar - Left side */}
-      <SocialMediaSidebar state={gameState} />
+      <SocialMediaSidebar
+        state={gameState}
+        onRecordTemplates={(templateIds, turn) => gameActions.recordSocialMediaTemplates(templateIds, turn)}
+      />
 
       {/* Main Dashboard Content */}
       <div className="flex-1 overflow-y-auto">
@@ -973,10 +966,86 @@ interface ProjectionsViewProps {
 const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate, MiniChart, withBands }) => {
   const [projectionMonths, setProjectionMonths] = useState(24);
   const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'markets' | 'services'>('economic');
+  const [selectedServiceMetric, setSelectedServiceMetric] = useState<string>('nhsQuality');
+  const [pendingDraft, setPendingDraft] = useState<ProjectionBudgetDraft | null>(null);
+  const lastDraftRef = useRef<string>('');
 
-  const projections = useMemo(() => generateProjections(gameState, projectionMonths, true), [gameState, projectionMonths]);
-  const baseline = projections.baseline;
-  const pending = projections.withPendingChanges;
+  useEffect(() => {
+    const poll = () => {
+      const raw = localStorage.getItem('chancellor-budget-draft-v2') || '';
+      if (raw !== lastDraftRef.current) {
+        lastDraftRef.current = raw;
+        try {
+          setPendingDraft(raw ? JSON.parse(raw) as ProjectionBudgetDraft : null);
+        } catch {
+          setPendingDraft(null);
+        }
+      }
+    };
+    poll();
+    const interval = window.setInterval(poll, 400);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const projections = useMemo(
+    () => generateProjections(gameState, projectionMonths, true, pendingDraft),
+    [gameState, projectionMonths, pendingDraft]
+  );
+  const baselineRaw = projections.baseline;
+  const pendingRaw = projections.withPendingChanges;
+
+  const seededRandom = useCallback((seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }, []);
+
+  const gaussianFromSeed = useCallback((seed: number) => {
+    const u1 = Math.max(1e-9, seededRandom(seed));
+    const u2 = Math.max(1e-9, seededRandom(seed + 1.618));
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  }, [seededRandom]);
+
+  const applyProjectionFuzz = useCallback((points: any[] | undefined) => {
+    if (!points) return points;
+    const turnSeed = gameState.metadata.currentTurn * 1000 + projectionMonths;
+    return points.map((point, index) => {
+      const horizon = index + 1;
+      const horizonScale = horizon <= 2 ? 0.35 : horizon <= 12 ? 0.8 : 1.35;
+      const heavyTailMix = seededRandom(turnSeed + index * 13.7) < 0.1 ? 2.4 : 1.0;
+      const gdpShock = gaussianFromSeed(turnSeed + index * 17.3) * 0.1 * horizonScale * heavyTailMix;
+      const borrowingShock = gaussianFromSeed(turnSeed + index * 19.1) * 0.25 * horizonScale * heavyTailMix;
+      const inflationShock = gaussianFromSeed(turnSeed + index * 11.2) * 0.12 * horizonScale;
+      const unemploymentShock = gaussianFromSeed(turnSeed + index * 7.4) * 0.08 * horizonScale;
+      const debtShock = gaussianFromSeed(turnSeed + index * 5.9) * 0.4 * horizonScale;
+      const revenueShock = gaussianFromSeed(turnSeed + index * 3.3) * 1.5 * horizonScale;
+      const spendingShock = gaussianFromSeed(turnSeed + index * 2.2) * 1.8 * horizonScale;
+
+      const fuzzedServices = Object.fromEntries(
+        Object.entries(point.services || {}).map(([serviceKey, value]) => {
+          const serviceShock = gaussianFromSeed(turnSeed + index * 23.7 + serviceKey.length) * 0.9 * horizonScale;
+          return [serviceKey, Math.max(0, Math.min(100, Number(value) + serviceShock))];
+        })
+      );
+
+      return {
+        ...point,
+        gdpGrowth: point.gdpGrowth + gdpShock,
+        deficit: point.deficit + borrowingShock,
+        inflation: point.inflation + inflationShock,
+        unemployment: Math.max(2.5, point.unemployment + unemploymentShock),
+        debt: Math.max(0, point.debt + debtShock),
+        totalRevenue: Math.max(0, point.totalRevenue + revenueShock),
+        totalSpending: Math.max(0, point.totalSpending + spendingShock),
+        services: fuzzedServices,
+      };
+    });
+  }, [gameState.metadata.currentTurn, projectionMonths, gaussianFromSeed, seededRandom]);
+
+  const baseline = useMemo(() => applyProjectionFuzz(baselineRaw) ?? baselineRaw ?? [], [baselineRaw, applyProjectionFuzz]);
+  const pending = useMemo(() => {
+    if (!pendingRaw) return null;
+    return applyProjectionFuzz(pendingRaw) ?? pendingRaw;
+  }, [pendingRaw, applyProjectionFuzz]);
   const baselineSummary = useMemo(() => summariseProjections(baseline), [baseline]);
   const pendingSummary = useMemo(() => (pending ? summariseProjections(pending) : null), [pending]);
   const baselineFinal = baseline[baseline.length - 1];
@@ -1041,6 +1110,9 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             Pending budget changes are included as an alternative projection path.
           </div>
         )}
+        <div className="mt-3 text-xs bg-gray-50 border border-gray-200 text-gray-700 rounded-sm p-3">
+          Projections include modelled forecast uncertainty. Actual outcomes may differ.
+        </div>
       </div>
 
       <div className={`grid gap-4 ${pendingSummary ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -1149,7 +1221,23 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
 
       {activeChart === 'services' && (
         <div className="space-y-4">
-          <MiniChart title="Average Service Quality Projection" data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: p.averageServiceQuality })), 0.5)} color="#059669" formatValue={(v: number) => `${v.toFixed(1)}/100`} />
+          <div className="flex flex-wrap gap-2">
+            {serviceMetrics.map((metric) => (
+              <button
+                key={metric.key}
+                onClick={() => setSelectedServiceMetric(metric.key)}
+                className={`px-3 py-2 rounded-sm text-sm font-semibold transition-all ${selectedServiceMetric === metric.key ? 'bg-red-700 text-white' : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'}`}
+              >
+                {metric.label}
+              </button>
+            ))}
+          </div>
+          <MiniChart
+            title={`${serviceMetrics.find((m) => m.key === selectedServiceMetric)?.label || 'Service'} Projection`}
+            data={withBands(baseline.map((p: any) => ({ label: formatDate(p.date), value: (p.services as any)?.[selectedServiceMetric] ?? 0 })), 0.6)}
+            color="#059669"
+            formatValue={(v: number) => `${v.toFixed(1)}/100`}
+          />
           <div className="bg-white border border-gray-200 p-4 rounded-sm">
             <div className="text-sm font-semibold text-gray-700 mb-3">Projected public service quality indices</div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
