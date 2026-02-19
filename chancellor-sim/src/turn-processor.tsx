@@ -537,25 +537,34 @@ function calculateGDPGrowth(state: GameState): GameState {
   const adviserBonuses = getAdviserBonuses(state);
 
   // Base trend REAL growth = trend productivity growth + labour force growth
-  // Productivity adds to potential GDP
-  const labourForceGrowth = 0.50;
+  // UK labour force growth ~0.75%/yr including net immigration contribution (OBR LTO 2024).
+  // was 0.50; raised to 0.75 to match OBR potential output assumption.
+  const labourForceGrowth = 0.75;
   const rawTrendGrowthAnnual = economic.productivityGrowthAnnual + labourForceGrowth;
 
   // Medium-term convergence to potential (~1.5% real growth)
   // Pulls the economy back toward plausible long-run UK potential output.
+  // Coefficient was 0.06; raised to 0.10 to produce realistic 1.0–1.5% baseline once
+  // the phantom spending-baseline bug (below) is corrected.
   const potentialGrowthTarget = 1.5;
-  const trendGrowthAnnual = rawTrendGrowthAnnual + (potentialGrowthTarget - rawTrendGrowthAnnual) * 0.06;
+  const trendGrowthAnnual = rawTrendGrowthAnnual + (potentialGrowthTarget - rawTrendGrowthAnnual) * 0.10;
   const trendGrowth = trendGrowthAnnual / 12; // Monthly
   let monthlyRealGrowth = trendGrowth;
 
   // === DEMAND-SIDE EFFECTS ===
 
-  // Baselines
+  // Baselines — must exactly match the July 2024 values in createInitialFiscalState()
+  // so that zero delta = zero fiscal demand impulse at game start.
+  // BUG FIX: baselineDefenceCurrent was 39.4 (typo); correct value is 39.0.
+  // CRITICAL FIX: baselineOtherCurrent was 135.8 (incorrectly derived from a partial sum).
+  //   Correct value = policeCurrent(18.5) + justiceCurrent(12.7) + otherCurrent(306.0) = 337.2.
+  //   The miscalibrated 135.8 created a phantom +£201bn demand impulse that added ~3%/yr
+  //   to annualised GDP growth at neutral policy — the primary cause of Known Issue #1.
   const baselineNHSCurrent = 168.4;
   const baselineEducationCurrent = 104.0;
-  const baselineDefenceCurrent = 39.4;
+  const baselineDefenceCurrent = 39.0; // was 39.4; corrected to match initial state
   const baselineWelfareCurrent = 290.0;
-  const baselineOtherCurrent = 135.8; // Police + justice + other current
+  const baselineOtherCurrent = 337.2; // was 135.8; corrected to 18.5+12.7+306.0=337.2
   const baselineCapital = 141.4;
 
   // Changes from baseline
@@ -708,17 +717,23 @@ function calculateGDPGrowth(state: GameState): GameState {
   }
 
   // === SUPPLY-SIDE EFFECTS (from public services) ===
+  // Reference levels use the July 2024 starting quality scores (45, 58, 48)
+  // rather than abstract ideal values (62, 68, 58) that created a structural drag
+  // of ~-0.084%/yr at baseline — i.e. the model penalised neutral policy for simply
+  // starting with a stressed NHS/education system.  Effects remain non-zero relative
+  // to the baseline start, so policy-driven quality improvements still lift GDP.
+  // The productivity step (Step 0.7) separately captures long-run human-capital effects.
 
-  // Healthy workforce: NHS quality affects labour supply and productivity
-  const healthSupplySide = (state.services.nhsQuality - 62) * 0.002 / 12;
+  // Healthy workforce: NHS quality affects labour supply and absenteeism
+  const healthSupplySide = (state.services.nhsQuality - 45) * 0.002 / 12; // ref was 62; corrected to 45
   monthlyRealGrowth += healthSupplySide;
 
-  // Educated workforce: education quality affects human capital
-  const educationSupplySide = (state.services.educationQuality - 68) * 0.003 / 12;
+  // Educated workforce: education quality affects human capital accumulation
+  const educationSupplySide = (state.services.educationQuality - 58) * 0.003 / 12; // ref was 68; corrected to 58
   monthlyRealGrowth += educationSupplySide;
 
-  // Infrastructure: good infrastructure raises productivity (already via productivity function, but also direct GDP)
-  const infraSupplySide = (state.services.infrastructureQuality - 58) * 0.002 / 12;
+  // Infrastructure: good infrastructure raises allocative efficiency (also captured via productivity)
+  const infraSupplySide = (state.services.infrastructureQuality - 48) * 0.002 / 12; // ref was 58; corrected to 48
   monthlyRealGrowth += infraSupplySide;
 
   // === MONETARY CONDITIONS ===
@@ -967,7 +982,8 @@ function calculateWageGrowth(state: GameState): GameState {
 
   // Wage growth = inflation expectations + productivity growth + tightness premium
   // FIXED: Use actual productivity growth instead of hard-coded 1.5%
-  let wageGrowth = inflationExpectation * 0.6 + economic.productivityGrowthAnnual + labourTightness * 0.8;
+  // UPDATED: Raised CPI coefficient to 1.0 to ensure real wage stability at equilibrium
+  let wageGrowth = inflationExpectation * 1.0 + economic.productivityGrowthAnnual + labourTightness * 0.8;
 
   // Gradual adjustment
   const currentWageGrowth = economic.wageGrowthAnnual;
@@ -1127,7 +1143,8 @@ function calculateTaxRevenues(state: GameState): GameState {
     corpTaxAvoidanceLoss = effectiveBase * avoidanceRate * difficulty.taxAvoidanceScale;
   }
 
-  const corpTaxRevenue = Math.max(0, (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.3));
+  // UPDATED: Reduced elasticity from 1.3 to 1.05 to match OBR estimates
+  const corpTaxRevenue = Math.max(0, (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.05));
 
   // Other taxes (elasticity 0.8)
   const otherRevenue = 323 * Math.pow(nominalGDPRatio, 0.8);
@@ -1437,17 +1454,23 @@ function calculateMarkets(state: GameState): GameState {
   // Gilt yields respond to Bank Rate, fiscal position, credibility
   // Term premium is dynamic and can be negative (curve inversion) when policy is restrictive.
   const policyRestrictiveness = markets.bankRate - 3.25;
-  const termPremium = Math.max(-0.35, Math.min(0.6, -0.18 - policyRestrictiveness * 0.06));
+  // UPDATED: Calibrated to match July 2024 yields (~4.2%) with correct separation of expectations vs term premium
+  // Intercept -1.0, Sensitivity 0.05
+  const termPremium = Math.max(-1.8, Math.min(0.6, -1.0 - policyRestrictiveness * 0.05));
   const baseYield = markets.bankRate + termPremium;
 
-  // Fiscal risk premium (non-linear: rises faster above 90% debt/GDP)
-  // RECALIBRATED: More sensitive to fiscal position to match real gilt market behaviour
-  // Scaled by difficulty (more volatile in realistic mode)
+  // Fiscal risk premium (non-linear: rises faster above 100% debt/GDP)
+  // Threshold raised from 80% to 90%: at the corrected PSND ex-BoE debt level (~92.4%),
+  // the previous 80% threshold generated a persistent +38bps overestimate of yields vs
+  // the July 2024 DMO outturn of ~4.1%.  Advanced economies have demonstrated they can
+  // sustain 80-90% debt without a sustained term premium; the premium starts biting above
+  // 90% (IMF/BIS evidence), consistent with IMF Art. IV observations for the UK.
+  // Scaled by difficulty (more volatile in realistic mode).
   const debtRatio = fiscal.debtPctGDP;
   let debtPremium = 0;
-  if (debtRatio > 80) {
-    // Gradual increase from 80-100%: ~0.02% per percentage point
-    debtPremium = (debtRatio - 80) * 0.02 * difficulty.marketReactionScale;
+  if (debtRatio > 90) {
+    // Gradual increase from 90-100%: ~0.02% per percentage point was 80%; threshold raised to 90%
+    debtPremium = (debtRatio - 90) * 0.02 * difficulty.marketReactionScale;
   }
   if (debtRatio > 100) {
     // Accelerates above 100%: additional ~0.05% per percentage point
@@ -2007,7 +2030,7 @@ function calculateApproval(state: GameState): GameState {
 
   approval += totalChange;
 
-  // Clamp
+  // Clamp - UPDATED: Reverted ceiling to 70 to prevent positive feedback loops breaking the game
   approval = Math.max(10, Math.min(70, approval));
 
   return {
@@ -2064,6 +2087,7 @@ function calculateBackbenchSatisfaction(state: GameState): GameState {
 
   // Weakened drift toward baseline (0.008 instead of 0.02)
   // This makes backbench satisfaction genuinely responsive to sustained poor performance
+  // UPDATED: Drift target returned to 55 (mild pro-incumbent bias) to prevent hostility spiral
   satisfaction += (55 - satisfaction) * 0.008;
 
   // Apply adviser bonus (Political Operator +3)

@@ -463,10 +463,16 @@ export function createInitialFiscalState(): FiscalState {
       { id: 'ihtResidenceNilRate', name: 'IHT Residence Nil Rate Band', currentRate: 175000, unit: '£' },
     ],
 
+    // Fiscal aggregates
+    // CORRECTED: debtNominal_bn and debtPctGDP now use PSND excluding Bank of England,
+    // which is the measure targeted by Reeves' Stability Rule and used in OBR forecasts.
+    // ONS PSF June 2024: PSND ex-BoE = 91.6% of GDP.  July 2024 estimate: ~£2,540bn / 92.4%.
+    // Previous values (£2,734bn / 99.4%) were the headline PSND including BoE asset purchase
+    // facility, which overstated the fiscal risk premium inputs by ~£194bn / ~7pp.
     deficit_bn: 87,
     deficitPctGDP: 3.2,
-    debtNominal_bn: 2734,
-    debtPctGDP: 99.4,
+    debtNominal_bn: 2540,    // was 2734; corrected to PSND ex-BoE per ONS/OBR July 2024
+    debtPctGDP: 92.4,        // was 99.4; corrected (2540 / 2750 × 100)
     debtInterest_bn: 95,
     fiscalHeadroom_bn: 8.9,
 
