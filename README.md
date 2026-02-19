@@ -23,14 +23,13 @@ This is **brutally realistic**. Every policy has trade-offs. Breaking manifesto 
 - **Government approval** based on economic performance and public services
 - **PM trust** tracking - get sacked if it falls too low
 - **Backbench revolts** if satisfaction drops below critical thresholds
-- **Honeymoon period** for first 12 months in office
 
 ### Manifesto System
 - **5 different Labour manifesto templates** representing different political approaches:
   - Cautious Centrist (Blairite fiscal prudence)
   - Social Democratic (larger state, higher spending)
   - Growth-Focused (public investment priority)
-  - Blair-Style (progressive pragmatism)
+  - Blair-Style (self explanetory)
   - Prudent Progressive (balanced approach)
 - **Breaking pledges** damages approval and PM trust permanently
 - **Clear warnings** when policies violate manifesto commitments
@@ -46,7 +45,7 @@ This is **brutally realistic**. Every policy has trade-offs. Breaking manifesto 
 - **Auto-save system**: Progress saved automatically
 - **Game over conditions**: PM sacking, backbench revolt, or surviving to 2029
 - **Historical tracking**: Full economic history stored for analysis
-- **Tutorial system**: Comprehensive help explaining all mechanics
+- **Tutorial system**: A help button that gives out help
 
 ## Installation & Running
 
@@ -280,13 +279,13 @@ Chancellor/
 
 ## Credits
 
-**Game Design & Development**: Claude (Anthropic)
+**Game Design & Development**: TJ7755
 **Economic Model**: Based on OBR/HM Treasury models
 **Political System**: Based on UK parliamentary politics 1997-2024
 
 ## Disclaimer
 
-This is a simulation for educational and entertainment purposes. It simplifies complex economic and political relationships. Real fiscal policy involves many more constraints and uncertainties.
+This is a simulation for educational and entertainment purposes. It simplifies complex economic and political relationships. Real fiscal policy involves many more constraints and uncertainvties.
 
 ## Future Enhancements
 
@@ -302,5 +301,3 @@ Potential additions (not yet implemented):
 ## Version
 
 **Version 1.0** - Complete core game (January 2025)
-
-60 months. £2.7 trillion economy. One chancellorship. Can you survive?
