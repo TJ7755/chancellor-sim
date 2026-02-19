@@ -10,7 +10,7 @@ import {
 import { useGameActions, useGameState, serializeGameState } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
-import { getFiscalRuleById } from './game-integration';
+import { getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -2016,34 +2016,59 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const proposedCurrentBudgetBalance = proposedTotalRevenue -
       (proposedTotalSpending - proposedTotalCapital) -
       gameState.fiscal.debtInterest_bn;
-    const currentBudgetMet = !chosenRule.rules.currentBudgetBalance || proposedCurrentBudgetBalance >= -0.5;
+
+    // Deficit ceiling check (needed by Jeremy Hunt debtFalling test below)
+    const proposedDeficitPctGDP = (projectedDeficit / nominalGDP) * 100;
+    const deficitCeilingMet = chosenRule.rules.deficitCeiling === undefined ||
+      proposedDeficitPctGDP <= chosenRule.rules.deficitCeiling;
+
+    // Rule-specific headroom: shows distance from the chosen rule's own threshold.
+    // Uses calculateRuleHeadroom so the Budget tab and Dashboard display consistent figures.
+    const calibratedHeadroom = calculateRuleHeadroom(
+      chosenRule,
+      proposedCurrentBudgetBalance,
+      proposedDeficitPctGDP,
+      nominalGDP,
+      proposedTotalRevenue,
+      proposedTotalSpending,
+      gameState.fiscal.debtInterest_bn,
+    );
+    const currentBudgetMet = !chosenRule.rules.currentBudgetBalance || calibratedHeadroom >= -0.5;
 
     // Overall balance: total revenue >= total spending + debt interest
     const proposedOverallBalance = proposedTotalRevenue - proposedTotalSpending - gameState.fiscal.debtInterest_bn;
     const overallBalanceMet = !chosenRule.rules.overallBalance || proposedOverallBalance >= -0.5;
 
-    // Deficit ceiling check
-    const proposedDeficitPctGDP = (projectedDeficit / nominalGDP) * 100;
-    const deficitCeilingMet = chosenRule.rules.deficitCeiling === undefined ||
-      proposedDeficitPctGDP <= chosenRule.rules.deficitCeiling;
-
     // Debt target check
     const debtTargetMet = chosenRule.rules.debtTarget === undefined ||
       debtGDPRatio <= chosenRule.rules.debtTarget;
 
-    // Debt falling check (compare to current debt or 6 months ago)
+    // Debt falling check
+    // Jeremy Hunt (no capex exemption): the deficit-ceiling test is the operationally correct
+    //   proxy for debt/GDP falling over 5 years (debt falls when nominal deficit < ~3% GDP).
+    // Other medium/long-horizon rules (timeHorizon >= 4): a balanced current budget guarantees
+    //   debt/GDP falls — calibratedHeadroom >= -0.5 is the proxy.
+    // Short-horizon rules: debt/GDP must be demonstrably falling right now.
     let debtFallingMet = true;
     if (chosenRule.rules.debtFalling) {
-      // For budget preview, check if proposed debt is lower than current
-      debtFallingMet = debtGDPRatio <= gameState.fiscal.debtPctGDP;
+      if (chosenRule.id === 'jeremy-hunt') {
+        debtFallingMet = deficitCeilingMet;
+      } else if (chosenRule.rules.timeHorizon >= 4) {
+        // Medium/long-horizon rule: current budget balance is the relevant test
+        debtFallingMet = calibratedHeadroom >= -0.5;
+      } else {
+        // Short-horizon rule: debt/GDP must be falling right now
+        debtFallingMet = debtGDPRatio <= gameState.fiscal.debtPctGDP;
+      }
     }
 
     // Overall compliance: all applicable rules must be met
     const fiscalRulesMet = currentBudgetMet && overallBalanceMet &&
       deficitCeilingMet && debtTargetMet && debtFallingMet;
 
-    // Calculate headroom (how much fiscal space remains)
-    const headroom = fiscalRulesMet ? Math.max(0, proposedCurrentBudgetBalance) : 0;
+    // Headroom is the calibrated current budget balance: positive = surplus above OBR threshold,
+    // negative = breach depth.  Matches the value shown on the Dashboard.
+    const headroom = calibratedHeadroom;
 
     return {
       currentDeficit,
@@ -2056,7 +2081,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       fiscalRulesMet,
       headroom
     };
-  }, [taxes, spending, gameState.political.chosenFiscalRule, gameState.fiscal]);
+  }, [taxes, spending, gameState.political.chosenFiscalRule, gameState.fiscal, gameState.economic]);
 
   const warnings = useMemo((): AdviserWarning[] => {
     const newWarnings: AdviserWarning[] = [];
@@ -2092,7 +2117,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         message: 'Your proposals breach one or both of the fiscal rules. This will severely damage credibility.',
         impact: 'Market reaction likely similar to Truss mini-budget. Sterling could fall 3-5% and gilt yields spike.'
       });
-    } else if (fiscalImpact.headroom < 10) {
+    } else if (fiscalImpact.fiscalRulesMet && fiscalImpact.headroom < 10) {
       newWarnings.push({
         id: 'thin_headroom',
         category: 'fiscal',
@@ -3378,7 +3403,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       {/* Fiscal Impact Summary Bar */}
       <div className="bg-white border-b border-grey-200 shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-5 gap-6">
+          <div className="grid grid-cols-6 gap-4">
             <div>
               <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Deficit Change</div>
               <div className={`text-2xl font-bold ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
@@ -3404,6 +3429,29 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Fiscal Rules</div>
               <div className={`text-2xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
                 {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
+              </div>
+            </div>
+            <div className={`rounded-lg px-3 py-1 -mx-1 ${
+              fiscalImpact.headroom > 10 ? 'bg-green-50' :
+              fiscalImpact.headroom > 0 ? 'bg-amber-50' :
+              'bg-red-50'
+            }`}>
+              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
+              <div className={`text-2xl font-bold ${
+                fiscalImpact.headroom > 10 ? 'text-green-700' :
+                fiscalImpact.headroom > 0 ? 'text-amber-700' :
+                'text-red-700'
+              }`}>
+                {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
+              </div>
+              <div className={`text-xs font-medium mt-0.5 ${
+                fiscalImpact.headroom > 10 ? 'text-green-600' :
+                fiscalImpact.headroom > 0 ? 'text-amber-600' :
+                'text-red-600'
+              }`}>
+                {fiscalImpact.headroom > 10 ? 'Comfortable' :
+                 fiscalImpact.headroom > 0 ? 'Tight' :
+                 'Deficit'}
               </div>
             </div>
             <div>
@@ -3688,8 +3736,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <div className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
                         {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
                       </div>
-                      <div className="text-sm text-grey-600 mt-1">
-                        Headroom: £{fiscalImpact.headroom.toFixed(1)}bn
+                      <div className={`text-sm font-semibold mt-1 ${
+                        fiscalImpact.headroom > 10 ? 'text-green-700' :
+                        fiscalImpact.headroom > 0 ? 'text-amber-700' :
+                        'text-red-700'
+                      }`}>
+                        {getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}: {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
                       </div>
                     </div>
                   </div>

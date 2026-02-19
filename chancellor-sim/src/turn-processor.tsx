@@ -6,6 +6,11 @@ import {
   PoliticalState,
   PMInterventionEvent,
   getFiscalRuleById,
+  OBR_HEADROOM_CALIBRATION,
+  calculateRuleHeadroom,
+  FISCAL_RULE_GILT_EFFECT,
+  FISCAL_RULE_STERLING_EFFECT,
+  FISCAL_RULE_BACKBENCH_DRIFT_TARGET,
 } from './game-integration';
 import { GameState, BudgetChanges } from './game-state';
 import { generateEvents, generateNewspaper, RandomEvent, NewsArticle } from './events-media';
@@ -235,6 +240,7 @@ export function processTurn(state: GameState): GameState {
       turn: newState.metadata.currentTurn,
       date: `${newState.metadata.currentYear}-${String(newState.metadata.currentMonth).padStart(2, '0')}`,
       gdpGrowth: newState.economic.gdpGrowthAnnual,
+      gdpNominal: Math.round(newState.economic.gdpNominal_bn),
       inflation: newState.economic.inflationCPI,
       unemployment: newState.economic.unemploymentRate,
       deficit: newState.fiscal.deficitPctGDP,
@@ -1280,7 +1286,18 @@ function calculateFiscalBalance(state: GameState): GameState {
     fiscal.spending.otherCapital;
 
   const currentBudgetBalance = fiscal.totalRevenue_bn - (fiscal.totalSpending_bn - totalCapitalSpending) - fiscal.debtInterest_bn - emergencyRebuildingCosts;
-  const headroom = Math.max(0, currentBudgetBalance);
+  // Translate raw current-year balance to rule-specific headroom so the Dashboard
+  // displays a figure that reflects the chosen fiscal framework's own threshold.
+  const chosenRule = getFiscalRuleById(state.political.chosenFiscalRule);
+  const headroom = calculateRuleHeadroom(
+    chosenRule,
+    currentBudgetBalance,
+    deficitPctGDP,
+    economic.gdpNominal_bn,
+    fiscal.totalRevenue_bn,
+    fiscal.totalSpending_bn,
+    fiscal.debtInterest_bn,
+  );
 
   return {
     ...state,
@@ -1319,7 +1336,7 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
   const currentBudgetBalance = fiscal.totalRevenue_bn -
     (fiscal.totalSpending_bn - totalCapitalSpending) -
     fiscal.debtInterest_bn;
-  const currentBudgetMet = !rule.rules.currentBudgetBalance || currentBudgetBalance >= -0.5;
+  const currentBudgetMet = !rule.rules.currentBudgetBalance || (currentBudgetBalance + OBR_HEADROOM_CALIBRATION) >= -0.5;
 
   // Overall balance: total revenue >= total spending + debt interest
   const overallBalance = fiscal.totalRevenue_bn - fiscal.totalSpending_bn - fiscal.debtInterest_bn;
@@ -1333,12 +1350,45 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
   const debtTargetMet = rule.rules.debtTarget === undefined ||
     fiscal.debtPctGDP <= rule.rules.debtTarget;
 
-  // Debt falling: compare current debt/GDP to 6 months ago
+  // Debt falling: assessment depends on the rule's time horizon and investment exemption
+  // Jeremy Hunt (no capex exemption, 5yr horizon): debt/GDP falls when deficit is on a path
+  //   to stay below ~3% of GDP (the ceiling itself is the operationally correct test).
+  // Other medium/long-horizon rules (timeHorizon >= 4): a balanced current budget guarantees
+  //   debt/GDP falls because nominal GDP grows ~3-4%/yr while only capex is borrowed.
+  // Short-horizon rules (Balanced Budget 1yr, Maastricht 3yr): require actual observed falls.
   const snapshots = state.simulation.monthlySnapshots;
   let debtFallingMet = true;
-  if (rule.rules.debtFalling && snapshots.length >= 6) {
-    const sixMonthsAgo = snapshots[snapshots.length - 6];
-    debtFallingMet = fiscal.debtPctGDP < sixMonthsAgo.debt;
+  if (rule.rules.debtFalling) {
+    if (rule.id === 'jeremy-hunt') {
+      // No capex exemption: debt path tracks the overall deficit, not just current budget.
+      // Debt/GDP falls in the 5th year when deficit is held below ~3% GDP (ceiling test).
+      debtFallingMet = deficitCeilingMet;
+    } else if (rule.rules.timeHorizon >= 4) {
+      // Long/medium horizon: current budget balance is the operationally correct test
+      const cbBalanceForDebt =
+        fiscal.totalRevenue_bn -
+        (fiscal.totalSpending_bn - (
+          fiscal.spending.nhsCapital +
+          fiscal.spending.educationCapital +
+          fiscal.spending.defenceCapital +
+          fiscal.spending.infrastructureCapital +
+          fiscal.spending.policeCapital +
+          fiscal.spending.justiceCapital +
+          fiscal.spending.otherCapital
+        )) -
+        fiscal.debtInterest_bn;
+      debtFallingMet = (cbBalanceForDebt + OBR_HEADROOM_CALIBRATION) >= -0.5;
+    } else {
+      // Short horizon: actual debt/GDP must be falling
+      if (snapshots.length >= 12) {
+        const twelveMonthsAgo = snapshots[snapshots.length - 12];
+        debtFallingMet = fiscal.debtPctGDP < twelveMonthsAgo.debt;
+      } else if (snapshots.length >= 6) {
+        const sixMonthsAgo = snapshots[snapshots.length - 6];
+        debtFallingMet = fiscal.debtPctGDP < sixMonthsAgo.debt;
+      }
+      // Fewer than 6 months of history: default true (benefit of doubt early game)
+    }
   }
 
   // Overall compliance
@@ -1452,12 +1502,39 @@ function calculateMarkets(state: GameState): GameState {
   const hasTrendHistory = !!previousSnapshot && state.simulation.monthlySnapshots.length >= 2;
 
   // Gilt yields respond to Bank Rate, fiscal position, credibility
-  // Term premium is dynamic and can be negative (curve inversion) when policy is restrictive.
+  //
+  // TERM PREMIUM RECALIBRATION (UK-specific):
+  // The term premium reflects the compensation investors require for duration risk.
+  // At restrictive policy rates (Bank Rate >> neutral), the curve inverts (negative term premium).
+  // At neutral/low rates, a positive term premium of 0.2-0.4% is normal for the UK.
+  // Old formula: -1.0 - restrictiveness*0.05  → produced baseYield of only 2.25% when
+  //   Bank Rate reaches neutral (3.25%), far below OBR/DMO 10yr gilt consensus of ~3.5-4%.
+  // New formula: 0.3 - restrictiveness*0.70
+  //   Bank Rate 5.25% (restrictiveness=2.0):  termPremium = -1.10, baseYield = 4.15 ✓
+  //   Bank Rate 4.00% (restrictiveness=0.75): termPremium = -0.225, baseYield = 3.775 ✓
+  //   Bank Rate 3.25% (neutral, rest=0):      termPremium = +0.30, baseYield = 3.55  ✓
+  //   Bank Rate 1.00% (rest=-2.25):           termPremium = +1.50 (capped), baseYield = 2.50 ✓
   const policyRestrictiveness = markets.bankRate - 3.25;
-  // UPDATED: Calibrated to match July 2024 yields (~4.2%) with correct separation of expectations vs term premium
-  // Intercept -1.0, Sensitivity 0.05
-  const termPremium = Math.max(-1.8, Math.min(0.6, -1.0 - policyRestrictiveness * 0.05));
+  const termPremium = Math.max(-1.8, Math.min(1.5, 0.3 - policyRestrictiveness * 0.70));
   const baseYield = markets.bankRate + termPremium;
+
+  // UK QUANTITATIVE TIGHTENING SUPPLY PREMIUM:
+  // The Bank of England began active gilt sales in Nov 2022, reducing the APF from ~£875bn
+  // at peak to ~£690bn by July 2024 (target ~£50-100bn reduction per year).
+  // Academic estimates (Cesa-Bianchi, Faccini, Lloyd 2023; BIS 2024) suggest QT adds
+  // roughly 5-10bps to 10yr gilt yields relative to a no-QT counterfactual.
+  // We model this as a flat 5bps (0.05%) supply premium, UK-specific.
+  const qtSupplyPremium = 0.05;
+
+  // HEADROOM-BASED MARKET PREMIUM:
+  // Markets price fiscal sustainability via the OBR-certified current budget headroom.
+  // Positive headroom → lower risk premium (government has fiscal space to absorb shocks).
+  // Negative headroom (breach) → higher risk premium (solvency concern).
+  // Calibration: ±£10bn headroom ≈ ±5bps, capped at -25bps (surplus) / +40bps (breach).
+  // Based on UK-specific OBR/DMO work on "headroom sensitivity" (OBR FSR 2023/24).
+  const headroomPremium = Math.max(-0.25, Math.min(0.40,
+    -fiscal.fiscalHeadroom_bn * 0.005
+  ));
 
   // Fiscal risk premium (non-linear: rises faster above 100% debt/GDP)
   // Threshold raised from 80% to 90%: at the corrected PSND ex-BoE debt level (~92.4%),
@@ -1511,16 +1588,9 @@ function calculateMarkets(state: GameState): GameState {
   // Credit rating effect
   const creditRatingPremium = getCreditRatingPremium(political.creditRating);
 
-  // Fiscal rule credibility differential
-  const fiscalRuleId = political.chosenFiscalRule;
-  let fiscalRuleCredibilityEffect = 0;
-  if (fiscalRuleId === 'balanced-budget' || fiscalRuleId === 'maastricht') {
-    fiscalRuleCredibilityEffect = -0.15; // Strict rules rewarded
-  } else if (fiscalRuleId === 'golden-rule' || fiscalRuleId === 'debt-anchor') {
-    fiscalRuleCredibilityEffect = -0.05; // Moderate credibility
-  } else if (fiscalRuleId === 'mmt-inspired') {
-    fiscalRuleCredibilityEffect = 0.25; // Markets skeptical of MMT
-  }
+  // Fiscal rule credibility differential — drives persistent gilt yield level by framework.
+  // FISCAL_RULE_GILT_EFFECT provides the per-rule offset (bp per month, signed).
+  const fiscalRuleCredibilityEffect = FISCAL_RULE_GILT_EFFECT[political.chosenFiscalRule] ?? 0;
 
   // Market psychology component
   let marketPsychology = 0;
@@ -1544,7 +1614,8 @@ function calculateMarkets(state: GameState): GameState {
 
   let newYield10y = baseYield + debtPremium + deficitPremium + trendPremium +
     vigilantePremium + credibilityDiscount + creditRatingPremium +
-    fiscalRuleCredibilityEffect + marketPsychology;
+    fiscalRuleCredibilityEffect + marketPsychology +
+    qtSupplyPremium + headroomPremium;
 
   // LDI Crisis Logic (Realistic Mode)
   // If yields rise too fast (>50bps/month), pension funds get margin called
@@ -1579,8 +1650,10 @@ function calculateMarkets(state: GameState): GameState {
   const confidenceEffect = (political.governmentApproval - 40) * 0.15;
   const credibilityEffect = (political.credibilityIndex - 50) * 0.1;
   const vigilanteSterlingPenalty = vigilantePremium * -4.0; // Vigilantes crush currency
+  // Fiscal rule sterling offset — stricter frameworks provide modest persistent currency support
+  const fiscalRuleSterlingOffset = FISCAL_RULE_STERLING_EFFECT[political.chosenFiscalRule] ?? 0;
 
-  let newSterlingIndex = 100 + yieldSterlingEffect + confidenceEffect + credibilityEffect + vigilanteSterlingPenalty;
+  let newSterlingIndex = 100 + yieldSterlingEffect + confidenceEffect + credibilityEffect + vigilanteSterlingPenalty + fiscalRuleSterlingOffset;
   newSterlingIndex = Math.max(70, Math.min(130, newSterlingIndex));
 
   // Gradual adjustment (unless LDI panic, then instant)
@@ -2087,8 +2160,10 @@ function calculateBackbenchSatisfaction(state: GameState): GameState {
 
   // Weakened drift toward baseline (0.008 instead of 0.02)
   // This makes backbench satisfaction genuinely responsive to sustained poor performance
-  // UPDATED: Drift target returned to 55 (mild pro-incumbent bias) to prevent hostility spiral
-  satisfaction += (55 - satisfaction) * 0.008;
+  // Drift target varies by chosen fiscal rule: stricter frameworks make Labour backbenchers
+  // uncomfortable; more permissive frameworks (MMT, Golden Rule) are more popular.
+  const ruleBackbenchTarget = FISCAL_RULE_BACKBENCH_DRIFT_TARGET[state.political.chosenFiscalRule] ?? 55;
+  satisfaction += (ruleBackbenchTarget - satisfaction) * 0.008;
 
   // Apply adviser bonus (Political Operator +3)
   satisfaction += adviserBonuses.backbenchBonus;
@@ -2637,6 +2712,7 @@ function saveHistoricalSnapshot(state: GameState): GameState {
     turn: state.metadata.currentTurn,
     date: `${state.metadata.currentYear}-${String(state.metadata.currentMonth).padStart(2, '0')}`,
     gdpGrowth: state.economic.gdpGrowthAnnual,
+    gdpNominal: Math.round(state.economic.gdpNominal_bn),
     inflation: state.economic.inflationCPI,
     unemployment: state.economic.unemploymentRate,
     deficit: state.fiscal.deficitPctGDP,

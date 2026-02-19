@@ -30,6 +30,7 @@ interface AnalysisHistoricalSnapshot {
   turn: number;
   date: string;
   gdpGrowth: number;
+  gdpNominal: number;   // Nominal GDP in £bn
   inflation: number;
   unemployment: number;
   deficit: number;
@@ -51,6 +52,9 @@ const generateResearchAlignedHistoricalBaseline = (): AnalysisHistoricalSnapshot
   const startMonth = 7;
   const totalMonths = 120;
 
+  // UK nominal GDP Jul 2014 ≈ £1,750bn; compounded monthly by actual annual growth rates.
+  let nominalGDP = 1750;
+
   const pushSnapshot = (
     monthIndex: number,
     gdpGrowth: number,
@@ -67,10 +71,14 @@ const generateResearchAlignedHistoricalBaseline = (): AnalysisHistoricalSnapshot
     const inflationPremium = Math.max(0, inflation - 2) * 0.18;
     const giltYield = clamp(1.2 + inflation * 0.45 + riskPremium + inflationPremium, 0.6, 6.8);
 
+    // Advance nominal GDP by this month's share of the annual growth rate
+    nominalGDP *= (1 + gdpGrowth / 1200);
+
     history.push({
       turn: monthIndex - totalMonths,
       date: createMonthString(year, month),
       gdpGrowth,
+      gdpNominal: Math.round(nominalGDP),
       inflation,
       unemployment,
       deficit,
@@ -1528,6 +1536,17 @@ const AnalysisTab: React.FC = () => {
             color="#059669"
             formatValue={(v) => `${v.toFixed(1)}%`}
           />
+          <div className="col-span-2">
+            <MiniChart
+              title="Nominal GDP (£bn) — the base used for all deficit and debt ratios"
+              data={withBands(fullSnapshots.map(s => ({ label: formatDate(s.date), value: (s as any).gdpNominal ?? 0 })), 5)}
+              color="#6d28d9"
+              formatValue={(v) => {
+                if (v >= 1000) return `£${(v / 1000).toFixed(2)}tn`;
+                return `£${Math.round(v)}bn`;
+              }}
+            />
+          </div>
         </div>
       )}
 
@@ -1552,6 +1571,15 @@ const AnalysisTab: React.FC = () => {
           <div className="bg-white border border-gray-200 p-4 rounded-sm">
             <div className="text-sm font-semibold text-gray-700 mb-3">Revenue vs Spending (£bn)</div>
             <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Nominal GDP:</span>
+                <span className="font-semibold text-purple-700">
+                  {gameState.economic.gdpNominal_bn >= 1000
+                    ? `£${(gameState.economic.gdpNominal_bn / 1000).toFixed(3)}tn`
+                    : `£${Math.round(gameState.economic.gdpNominal_bn)}bn`}
+                </span>
+              </div>
+              <hr className="my-1" />
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Total Revenue:</span>
                 <span className="font-semibold text-green-700">£{gameState.fiscal.totalRevenue_bn.toFixed(1)}bn</span>

@@ -9,6 +9,7 @@
 
 export type FiscalRuleId =
   | 'starmer-reeves'       // Labour 2024: current budget balance + debt falling in 5th year
+  | 'jeremy-hunt'          // Conservative 2022–24: deficit <3% GDP + debt falling as % GDP by 5th year; no capex exemption
   | 'golden-rule'          // Brown-style: borrow only for investment, current budget balanced over cycle
   | 'maastricht'           // EU-style: deficit <3% GDP, debt <60% GDP
   | 'balanced-budget'      // Swabian housewife: balanced overall budget every year
@@ -65,6 +66,31 @@ export const FISCAL_RULES: FiscalRule[] = [
       pmTrustChange: 0,
       backbenchChange: 0,
       approvalChange: 0,
+    },
+  },
+  {
+    id: 'jeremy-hunt',
+    name: 'Consolidated Mandate (Jeremy Hunt)',
+    shortDescription: 'Deficit below 3% of GDP by year 5; debt falling as % GDP by year 5; no investment exemption',
+    detailedDescription: 'The framework used by the Conservative government 2022–2024. Two mandates: (1) the structural deficit must be below 3% of GDP in the fifth year of the forecast; (2) public sector net debt (excluding the Bank of England) must be falling as a share of GDP in the fifth year. Unlike Labour\'s Stability Rule, there is no exemption for investment spending — all borrowing counts against the debt mandate.',
+    historicalPrecedent: 'Jeremy Hunt 2022–2024. Replaced the Sunak medium-term fiscal plan after the Truss mini-budget. Starting UK deficit (~3.2% GDP) means this rule is initially being breached; consolidation is required to meet it. Markets approve of the stricter no-capex-exemption approach but political tolerance for spending restraint is limited.',
+    rules: {
+      currentBudgetBalance: false,
+      overallBalance: false,
+      deficitCeiling: 3.0,
+      debtFalling: true,
+      investmentExempt: false,
+      timeHorizon: 5,
+    },
+    marketReaction: {
+      giltYieldBps: -5,          // Modest market improvement vs Starmer-Reeves baseline
+      sterlingPercent: 0.3,
+      credibilityChange: 2,
+    },
+    politicalReaction: {
+      pmTrustChange: 3,          // PM trusts financial orthodoxy
+      backbenchChange: -5,       // Labour backbenchers dislike the Conservative-era rule
+      approvalChange: -1,
     },
   },
   {
@@ -350,7 +376,7 @@ export function createInitialFiscalState(): FiscalState {
     revenueAdjustment_bn: 0,
 
     totalRevenue_bn: 1090,
-    totalSpending_bn: 1175,
+    totalSpending_bn: 1100,
     spending: {
       // Current (resource) spending
       nhsCurrent: 168.4,
@@ -474,7 +500,9 @@ export function createInitialFiscalState(): FiscalState {
     debtNominal_bn: 2540,    // was 2734; corrected to PSND ex-BoE per ONS/OBR July 2024
     debtPctGDP: 92.4,        // was 99.4; corrected (2540 / 2750 × 100)
     debtInterest_bn: 95,
-    fiscalHeadroom_bn: 8.9,
+    // OBR October 2024 Autumn Statement certified headroom on the current budget rule: £9.9bn.
+    // This initial display value is consistent with OBR_HEADROOM_CALIBRATION below.
+    fiscalHeadroom_bn: 9.9,
 
     // Fiscal year tracking
     currentFiscalYear: 2024,
@@ -506,6 +534,147 @@ export function createInitialFiscalState(): FiscalState {
     },
   };
 }
+
+// ===========================
+// Headroom Calibration
+// ===========================
+//
+// The game calculates the current-year current budget balance (revenue minus
+// non-capital spending minus debt interest).  With neutral policy this formula
+// produces ~+£36.4bn.
+//
+// The OBR, however, reports "fiscal headroom" as the surplus/deficit forecast
+// for the *fifth year* of the projection — a forward-looking figure that
+// incorporates GDP growth, spending trajectories, and debt dynamics.  At the
+// OBR October 2024 Autumn Statement, certified headroom on the Starmer-Reeves
+// current budget rule was £9.9bn (2029-30).
+//
+// On the other hand, this game begins in July 2024, rather than October, so the
+// October figure cannot be used. I've instead calculated a more appropriate headroom
+// figure based on a headroom of ~£21.7 Billion, which would have been the case if
+// nothing had changed, but the fiscal rules had changed to the Starmer-Reeves one.
+//
+// Applying OBR_HEADROOM_CALIBRATION translates the game's current-year balance
+// into an OBR-style projected headroom display:
+//   displayed headroom  = currentBudgetBalance + OBR_HEADROOM_CALIBRATION
+//                       = 36.4 + OBR_HEADROOM_CALIBRATION  ≈  +9.9  ✓
+//
+// Fiscal rules are treated as "met" when displayed headroom >= 0 (i.e., within
+// £0bn of the threshold), providing the same margin as the OBR's test.
+//
+// This constant is imported by turn-processor.tsx and budget-system.tsx so that
+// BOTH the Dashboard (which reads fiscal.fiscalHeadroom_bn) and the Budget tab
+// (which recalculates independently) display the identical figure.
+export const OBR_HEADROOM_CALIBRATION = -14.8;
+
+// ===========================
+// Rule-Specific Headroom
+// ===========================
+//
+// Each fiscal framework measures "how close we are to the limit" differently.
+// calculateRuleHeadroom returns a signed £bn figure:
+//   positive = headroom above the rule's threshold
+//   negative = breach depth below the rule's threshold
+//
+// Parameters:
+//   rule                  — the chosen FiscalRule
+//   currentBudgetBalance  — revenue − (totalSpending − capitalSpending) − debtInterest
+//   deficitPctGDP         — current deficit as percentage of GDP
+//   gdpNominal            — nominal GDP in £bn
+//   totalRevenue          — total receipts in £bn
+//   totalSpending         — total managed expenditure in £bn (incl. capital)
+//   debtInterest          — annual debt interest cost in £bn
+//
+export function calculateRuleHeadroom(
+  rule: FiscalRule,
+  currentBudgetBalance: number,
+  deficitPctGDP: number,
+  gdpNominal: number,
+  totalRevenue: number,
+  totalSpending: number,
+  debtInterest: number,
+): number {
+  switch (rule.id) {
+    // Current-budget-balance rules: distance from balance + OBR 5-year projection offset
+    case 'starmer-reeves':
+    case 'golden-rule':
+    case 'debt-anchor':
+      return currentBudgetBalance + OBR_HEADROOM_CALIBRATION;
+
+    // Deficit-ceiling rules: distance from the 3% ceiling in £bn terms
+    // Positive = headroom below the ceiling; negative = breach above the ceiling
+    case 'jeremy-hunt':
+    case 'maastricht':
+      return ((rule.rules.deficitCeiling ?? 3.0) - deficitPctGDP) * gdpNominal / 100;
+
+    // Overall-balance rule: revenue must cover ALL spending including capital
+    case 'balanced-budget':
+      return totalRevenue - totalSpending - debtInterest;
+
+    // MMT/Full Employment: no fiscal constraint; always show zero headroom (N/A concept)
+    case 'mmt-inspired':
+      return 0;
+
+    default:
+      return currentBudgetBalance + OBR_HEADROOM_CALIBRATION;
+  }
+}
+
+// Label describing what the headroom figure represents for the current rule
+export function getRuleHeadroomLabel(rule: FiscalRule): string {
+  switch (rule.id) {
+    case 'starmer-reeves':
+    case 'golden-rule':
+    case 'debt-anchor':
+      return 'OBR Headroom (Current Budget Rule)';
+    case 'jeremy-hunt':
+      return 'Headroom vs 3% Deficit Ceiling';
+    case 'maastricht':
+      return 'Headroom vs 3% Deficit Ceiling';
+    case 'balanced-budget':
+      return 'Overall Budget Balance';
+    case 'mmt-inspired':
+      return 'No Formal Fiscal Constraint';
+    default:
+      return 'Fiscal Headroom';
+  }
+}
+
+// Per-rule ongoing market credibility bonus applied each month when the rule is being met.
+// Expressed as a gilt yield offset in basis points (negative = lower yields = better).
+export const FISCAL_RULE_GILT_EFFECT: Record<FiscalRuleId, number> = {
+  'starmer-reeves':  0.0,   // Baseline — no additional effect
+  'jeremy-hunt':    -0.05,  // Modest improvement from slightly stricter mandate
+  'golden-rule':     0.03,  // Slightly worse — perceived flexibility risk
+  'maastricht':     -0.15,  // Significant improvement — hard EU-style constraint
+  'balanced-budget':-0.15,  // Maximum credibility — strictest rule
+  'debt-anchor':    -0.10,  // Swedish gold standard — markets approve strongly
+  'mmt-inspired':    0.25,  // Markets alarmed by absence of fiscal anchor
+};
+
+// Per-rule sterling level offset (percentage points added to monthly sterling calculation).
+export const FISCAL_RULE_STERLING_EFFECT: Record<FiscalRuleId, number> = {
+  'starmer-reeves':  0.0,   // Baseline
+  'jeremy-hunt':     0.10,  // Modest sterling support
+  'golden-rule':    -0.05,  // Mild weakness from flexibility concerns
+  'maastricht':      0.25,  // Strong sterling support — hard deficit ceiling
+  'balanced-budget': 0.30,  // Strongest — zero-borrowing credibility
+  'debt-anchor':     0.20,  // Strong support — credible surplus path
+  'mmt-inspired':   -0.50,  // Sterling under significant pressure
+};
+
+// Per-rule backbench satisfaction drift target (the equilibrium value backbench satisfaction
+// gravitates towards each month based purely on the framework choice).
+// Actual backbench satisfaction is also affected by policy decisions.
+export const FISCAL_RULE_BACKBENCH_DRIFT_TARGET: Record<FiscalRuleId, number> = {
+  'starmer-reeves':  55,    // Broadly acceptable to Labour backbenchers
+  'jeremy-hunt':     40,    // Labour backbenchers deeply uncomfortable with Conservative-era rule
+  'golden-rule':     62,    // Left of party happy — Labour tradition
+  'maastricht':      38,    // EU constraint very unpopular with the left
+  'balanced-budget': 30,    // Devastating — no investment borrowing allowed
+  'debt-anchor':     48,    // Moderate unease — tighter than Starmer-Reeves
+  'mmt-inspired':    70,    // Labour left delighted — full spending flexibility
+};
 
 // ===========================
 // Market State Initialization
@@ -745,6 +914,7 @@ export interface HistoricalSnapshot {
   turn: number;
   date: string;
   gdpGrowth: number;
+  gdpNominal: number;   // Nominal GDP in £bn — the base value used in all calculations
   inflation: number;
   unemployment: number;
   deficit: number;
