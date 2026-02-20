@@ -25,7 +25,7 @@ import { SpendingReviewModal } from './SpendingReviewModal';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ReferenceLine } from 'recharts';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -954,13 +954,14 @@ const SimpleDashboard: React.FC = () => {
           <div className="px-4 pb-4 space-y-4">
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gameState.distributional.deciles.map((d) => ({ decile: `D${d.id}`, value: d.isWinner ? 1 : -1 }))}>
+                <BarChart data={gameState.distributional.deciles.map((d, index) => ({ decile: `D${d.id}`, value: Number((gameState.distributional.decileImpacts?.[index] || 0).toFixed(1)) }))}>
                   <XAxis dataKey="decile" />
-                  <YAxis domain={[-1, 1]} ticks={[-1, 0, 1]} />
+                  <YAxis />
+                  <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
                   <Tooltip />
                   <Bar dataKey="value">
-                    {gameState.distributional.deciles.map((d) => (
-                      <Cell key={d.id} fill={d.isWinner ? '#15803d' : '#b91c1c'} />
+                    {gameState.distributional.deciles.map((d, index) => (
+                      <Cell key={d.id} fill={(gameState.distributional.decileImpacts?.[index] || 0) >= 0 ? '#15803d' : '#b91c1c'} />
                     ))}
                   </Bar>
                 </BarChart>

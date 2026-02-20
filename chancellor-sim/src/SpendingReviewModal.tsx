@@ -41,6 +41,8 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
       return sum + r + c;
     }, 0);
   }, [departments]);
+  const prudenceMargin = Math.max(1.5, fiscalHeadroom_bn * 0.15);
+  const indicativeEnvelope = Math.max(0, (fiscalHeadroom_bn - prudenceMargin) * 9);
 
   return (
     <div className="fixed inset-0 bg-black/70 z-[120] flex items-center justify-center p-4">
@@ -48,9 +50,10 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
         <div className="p-5 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Spending Review</h2>
           <p className="text-sm text-gray-600 mt-1">Set three-year DEL plans. Fiscal headroom: £{fiscalHeadroom_bn.toFixed(1)}bn.</p>
-          {totalPlanned > fiscalHeadroom_bn * 9 && (
+          <p className="text-xs text-gray-600 mt-1">Spending Review plans are indicative guidelines and may be revised.</p>
+          {totalPlanned > indicativeEnvelope && (
             <div className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-300 p-2 rounded-sm">
-              Proposed DEL envelope exceeds projected headroom. You can continue, but markets may react.
+              Proposed DEL plan is £{(totalPlanned - indicativeEnvelope).toFixed(1)}bn above the indicative envelope.
             </div>
           )}
         </div>

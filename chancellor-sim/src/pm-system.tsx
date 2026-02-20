@@ -36,7 +36,7 @@ export function shouldSendScheduledMessage(pmRelationship: PMRelationshipState, 
 export function shouldSendEventTriggeredMessage(
   gameState: GameState
 ): { shouldSend: boolean; messageType: PMMessageType | null; reason: string } {
-  const { political, pmRelationship } = gameState;
+  const { political, pmRelationship, fiscal, markets, services, economic } = gameState;
 
   // Critical: Reshuffle warning (final warning)
   if (pmRelationship.reshuffleRisk >= 80 && !pmRelationship.finalWarningGiven) {
@@ -52,18 +52,35 @@ export function shouldSendEventTriggeredMessage(
     }
   }
 
-  // Medium concern: Government approval tanking
-  if (political.governmentApproval < 25 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 3) {
-    return { shouldSend: true, messageType: 'concern', reason: 'low_approval' };
+  // Priority: fiscal rule breach, then market stress, then service deterioration.
+  if (!gameState.political.fiscalRuleCompliance.overallCompliant && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+    return { shouldSend: true, messageType: 'concern', reason: 'fiscal_rule_breach' };
   }
 
-  // Fiscal headroom commentary
-  if (gameState.fiscal.fiscalHeadroom_bn < 10 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+  if (markets.giltYield10y > 4.75 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+    return { shouldSend: true, messageType: 'concern', reason: 'market_confidence' };
+  }
+
+  const serviceCrisis =
+    services.nhsQuality < 45 ||
+    services.educationQuality < 52 ||
+    services.policingEffectiveness < 46 ||
+    services.courtBacklogPerformance < 40 ||
+    services.prisonSafety < 42 ||
+    services.mentalHealthAccess < 42 ||
+    services.affordableHousingDelivery < 34 ||
+    services.infrastructureQuality < 44 ||
+    (gameState.devolution?.localGov?.localServicesQuality ?? 50) < 40;
+  if (serviceCrisis && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+    return { shouldSend: true, messageType: 'concern', reason: 'service_crisis' };
+  }
+
+  if (fiscal.fiscalHeadroom_bn < 10 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
     return { shouldSend: true, messageType: 'concern', reason: 'tight_headroom' };
   }
 
-  if (!gameState.political.fiscalRuleCompliance.overallCompliant && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
-    return { shouldSend: true, messageType: 'concern', reason: 'fiscal_rule_breach' };
+  if (political.governmentApproval < 25 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 3) {
+    return { shouldSend: true, messageType: 'concern', reason: 'low_approval' };
   }
 
   if (gameState.services.nhsQuality < 50 || gameState.services.educationQuality < 55 || gameState.services.policingEffectiveness < 50) {
@@ -76,7 +93,7 @@ export function shouldSendEventTriggeredMessage(
   const hasActiveDeficitThreat = (pmRelationship.activeThreats || []).some(
     (t) => t.category === 'deficit' && !t.resolved && !t.breached
   );
-  if (gameState.fiscal.deficit_bn > 80 && !hasActiveDeficitThreat) {
+  if (gameState.fiscal.fiscalHeadroom_bn < 3 && gameState.fiscal.deficit_bn > 80 && !hasActiveDeficitThreat) {
     return { shouldSend: true, messageType: 'demand', reason: 'high_deficit' };
   }
 
@@ -85,6 +102,10 @@ export function shouldSendEventTriggeredMessage(
     gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 4 &&
     pmRelationship.consecutivePoorPerformance === 0) {
     return { shouldSend: true, messageType: 'praise', reason: 'good_performance' };
+  }
+  if (fiscal.fiscalHeadroom_bn > 18 && markets.giltYield10y < 4.2 && economic.gdpGrowthAnnual > 1.2 &&
+      gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 4) {
+    return { shouldSend: true, messageType: 'praise', reason: 'headroom_rebuilt' };
   }
 
   // Withdraw support
@@ -152,6 +173,8 @@ export function generatePMMessage(
     if (c.maxApproval !== undefined && political.governmentApproval > c.maxApproval) return false;
     if (c.minDeficit !== undefined && fiscal.deficit_bn < c.minDeficit) return false;
     if (c.maxDeficit !== undefined && fiscal.deficit_bn > c.maxDeficit) return false;
+    if ((c as any).minGiltYield !== undefined && gameState.markets.giltYield10y < (c as any).minGiltYield) return false;
+    if ((c as any).maxGiltYield !== undefined && gameState.markets.giltYield10y > (c as any).maxGiltYield) return false;
     if (c.minHeadroom !== undefined && fiscal.fiscalHeadroom_bn < c.minHeadroom) return false;
     if (c.maxHeadroom !== undefined && fiscal.fiscalHeadroom_bn > c.maxHeadroom) return false;
     if (c.fiscalRuleCompliant !== undefined && gameState.political.fiscalRuleCompliance.overallCompliant !== c.fiscalRuleCompliant) return false;
@@ -159,7 +182,9 @@ export function generatePMMessage(
     if (c.minGrowth !== undefined && economic.gdpGrowthAnnual < c.minGrowth) return false;
     if (c.maxGrowth !== undefined && economic.gdpGrowthAnnual > c.maxGrowth) return false;
     if (c.serviceMetric) {
-      const metricValue = (gameState.services as any)[c.serviceMetric];
+      const metricValue = c.serviceMetric === 'localGovServices'
+        ? (gameState.devolution?.localGov?.localServicesQuality ?? 50)
+        : (gameState.services as any)[c.serviceMetric];
       if (typeof metricValue !== 'number') return false;
       if (c.maxServiceQuality !== undefined && metricValue > c.maxServiceQuality) return false;
       if (c.minServiceQuality !== undefined && metricValue < c.minServiceQuality) return false;
@@ -225,8 +250,27 @@ export function generatePMMessage(
     { serviceName: 'courts', qualityScore: gameState.services.courtBacklogPerformance },
     { serviceName: 'prisons', qualityScore: gameState.services.prisonSafety },
     { serviceName: 'mental health', qualityScore: gameState.services.mentalHealthAccess },
+    { serviceName: 'housing', qualityScore: gameState.services.affordableHousingDelivery },
+    { serviceName: 'local government services', qualityScore: gameState.devolution?.localGov?.localServicesQuality ?? 50 },
   ];
   const lowestService = [...serviceEntries].sort((a, b) => a.qualityScore - b.qualityScore)[0];
+  const targetedMetric = selectedTemplate.conditions.serviceMetric as string | undefined;
+  const targetedService = targetedMetric
+    ? serviceEntries.find((entry) => {
+      const metricName = targetedMetric.toLowerCase();
+      if (metricName === 'nhsquality') return entry.serviceName === 'NHS quality';
+      if (metricName === 'educationquality') return entry.serviceName === 'education quality';
+      if (metricName === 'infrastructurequality') return entry.serviceName === 'infrastructure quality';
+      if (metricName === 'policingeffectiveness') return entry.serviceName === 'policing';
+      if (metricName === 'courtbacklogperformance') return entry.serviceName === 'courts';
+      if (metricName === 'prisonsafety') return entry.serviceName === 'prisons';
+      if (metricName === 'mentalhealthaccess') return entry.serviceName === 'mental health';
+      if (metricName === 'affordablehousingdelivery') return entry.serviceName === 'housing';
+      if (metricName === 'localgovservices') return entry.serviceName === 'local government services';
+      return false;
+    })
+    : null;
+  const serviceForTemplate = targetedService || lowestService;
   if (messageType === 'demand' && reason === 'high_deficit') {
     const threatTarget = calculateDeficitThreatTarget(gameState);
     threatTargetDeficit_bn = threatTarget.targetDeficit_bn;
@@ -241,9 +285,12 @@ export function generatePMMessage(
     .replace('{unemployment}', economic.unemploymentRate.toFixed(1))
     .replace('{deficit}', Math.round(fiscal.deficit_bn).toString())
     .replace('{headroom}', headroom.toFixed(1))
+    .replace('{fiscalHeadroom}', headroom.toFixed(1))
     .replace('{ruleName}', fiscalRule.name)
-    .replace('{serviceName}', lowestService.serviceName)
-    .replace('{qualityScore}', lowestService.qualityScore.toFixed(0))
+    .replace('{fiscalRuleName}', fiscalRule.name)
+    .replace('{giltYield}', gameState.markets.giltYield10y.toFixed(2))
+    .replace('{serviceName}', serviceForTemplate.serviceName)
+    .replace('{qualityScore}', serviceForTemplate.qualityScore.toFixed(0))
     .replace('{backbench}', Math.round(political.backbenchSatisfaction).toString())
     .replace('{month}', monthName)
     .replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
@@ -322,13 +369,19 @@ export function updatePMRelationship(gameState: GameState): Partial<PMRelationsh
     patienceChange += 2;
   }
 
-  // Fiscal responsibility (fiscal rules matter to PM credibility)
-  if (fiscal.deficit_bn > 100) {
-    patienceChange -= 4; // Completely out of control
-  } else if (fiscal.deficit_bn > 80) {
-    patienceChange -= 2; // Very concerning
-  } else if (fiscal.deficit_bn < 30) {
+  // Fiscal sustainability (headroom and borrowing cost matter more than nominal deficit in isolation)
+  if (!gameState.political.fiscalRuleCompliance.overallCompliant) {
+    patienceChange -= 3;
+  }
+  if (fiscal.fiscalHeadroom_bn < 5) {
+    patienceChange -= 3;
+  } else if (fiscal.fiscalHeadroom_bn < 10) {
+    patienceChange -= 1;
+  } else if (fiscal.fiscalHeadroom_bn > 18) {
     patienceChange += 1;
+  }
+  if (gameState.markets.giltYield10y > 5.25) {
+    patienceChange -= 2;
   }
 
   // CRITICAL FIX: Manifesto violations damage PM-Chancellor relationship

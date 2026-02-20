@@ -1,5 +1,17 @@
 # Copilot Instructions — chancellor-sim
 
+## Update Notes (20 February 2026)
+
+- First-turn nominal GDP now includes a jump guard: if turn 1 monthly nominal change exceeds 2%, it is logged and clamped to calibrated monthly bounds.
+- PM comply interventions now apply concrete fiscal-input consequences by trigger reason and add concise labels to turn-delta tracking.
+- Spending Review envelope checks are live and derived from headroom minus AME pressure and prudence margin; credibility market effect is muted versus enacted budgets.
+- Debt-management strategy now feeds gilt yields through strategy basis-point effects and rollover-risk premium accumulation.
+- Distributional analysis now stores decile percentage impacts in `distributional.decileImpacts` and dashboard bars render these values around a zero baseline.
+- Fiscal event fields (`nextFiscalEventTurn`, `fiscalEventType`, `pendingAnnouncements`) are active; major tax changes outside event windows are queued as announcements.
+- Welfare levers (`ucTaperRate`, `workAllowanceMonthly`, `childcareSupportRate`) are active fiscal inputs with labour-market effects and AME cost treatment.
+- Market state now tracks MPC members, vote outcomes, and APF QT rundown; newspaper output includes a recurring MPC briefing.
+- Devolution/local-government simulation now tracks demand-led adult social care pressure, funding stress, and probabilistic Section 114 events.
+
 UK Chancellor economic/political simulation game built with React 18, TypeScript, and Tailwind CSS.
 
 ## Commands

@@ -1,5 +1,17 @@
 # Copilot Instructions for Chancellor Simulator
 
+## Update Notes (20 February 2026)
+
+- First-turn nominal GDP now includes a discontinuity guard and clamp.
+- PM comply interventions apply concrete policy consequences and persist as canonical fiscal-input updates.
+- Spending Review envelope calculations are live from input state, with AME/prudence adjustments and reduced market credibility transmission.
+- Debt issuance strategy now affects gilt yields through explicit basis-point adjustments and rollover-risk premium.
+- Distributional impacts now populate decile-level disposable-income-equivalent deltas (`distributional.decileImpacts`).
+- Fiscal event cycle fields and pending-announcement handling are active for out-of-window major tax packages.
+- Welfare reform levers (UC taper, work allowance, childcare support) now feed both labour-market dynamics and AME costs.
+- MPC voting and APF QT state are now explicit in market state and surfaced in newspaper institutional briefings.
+- Local government financing stress now includes adult social care pressure growth and Section 114 probabilistic events.
+
 ## Economic Model Calibration (Updated Feb 2026)
 
 ### Wage Growth

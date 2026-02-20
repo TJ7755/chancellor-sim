@@ -364,6 +364,20 @@ export interface FiscalState {
   fiscalYearStartSpending: SpendingBreakdown;
   fiscalRuleBreaches: number;
   pmPensionFloor_bn: number;
+  nextFiscalEventTurn: number;
+  fiscalEventType: 'budget' | 'autumn_statement' | 'emergency_budget' | null;
+  pendingAnnouncements: PolicyAnnouncement[];
+  ucTaperRate: number;
+  workAllowanceMonthly: number;
+  childcareSupportRate: number;
+}
+
+export interface PolicyAnnouncement {
+  description: string;
+  fiscalImpact_bn: number;
+  announcedTurn: number;
+  effectiveTurn: number;
+  implemented: boolean;
 }
 
 export function createInitialFiscalState(): FiscalState {
@@ -556,6 +570,12 @@ export function createInitialFiscalState(): FiscalState {
     },
     fiscalRuleBreaches: 0,
     pmPensionFloor_bn: 0,
+    nextFiscalEventTurn: 5,
+    fiscalEventType: 'autumn_statement',
+    pendingAnnouncements: [],
+    ucTaperRate: 55,
+    workAllowanceMonthly: 344,
+    childcareSupportRate: 30,
   };
 }
 
@@ -718,6 +738,12 @@ export function createInitialDevolutionState() {
       localGovStressIndex: 40,
       section114Notices: 0,
       localServicesQuality: 48,
+      coreSettlement_bn: 14,
+      adultSocialCarePressure_bn: 12,
+      councilFundingStress: 42,
+      section114Count: 0,
+      businessRatesRetention: 50,
+      councilTaxGrowthCap: 3,
     },
     barnettConsequentialMultiplier: 1,
     section114Timer: 0,
@@ -740,6 +766,7 @@ export function createInitialDistributionalState() {
     bottomQuintileRealIncomeGrowth: 0,
     topDecileEffectiveTaxRate: 0,
     lastTaxChangeDistribution: null as 'regressive' | 'neutral' | 'progressive' | null,
+    decileImpacts: Array.from({ length: 10 }, () => 0),
   };
 }
 
@@ -897,6 +924,17 @@ export interface MarketState {
   sterlingIndex: number;
   yieldChange10y: number; // Month-on-month change in bps
   ldiPanicTriggered: boolean; // Whether LDI feedback loop is active
+  mpcMembers: Array<{
+    name: string;
+    role: 'Governor' | 'Deputy Governor' | 'External Member';
+    stance: 'dovish' | 'neutral' | 'hawkish';
+    inflationWeight: number;
+    vote: 'cut' | 'hold' | 'hike' | null;
+  }>;
+  lastMPCVoteBreakdown: string;
+  lastMPCDecision: 'cut' | 'hold' | 'hike' | null;
+  assetPurchaseFacility_bn: number;
+  qtPausedTurns: number;
 }
 
 export function createInitialMarketState(): MarketState {
@@ -909,6 +947,21 @@ export function createInitialMarketState(): MarketState {
     sterlingIndex: 100,
     yieldChange10y: 0,
     ldiPanicTriggered: false,
+    mpcMembers: [
+      { name: 'Andrew Bailey', role: 'Governor', stance: 'neutral', inflationWeight: 0.62, vote: null },
+      { name: 'Sarah Breeden', role: 'Deputy Governor', stance: 'neutral', inflationWeight: 0.60, vote: null },
+      { name: 'Dave Ramsden', role: 'Deputy Governor', stance: 'neutral', inflationWeight: 0.58, vote: null },
+      { name: 'Huw Pill', role: 'Deputy Governor', stance: 'hawkish', inflationWeight: 0.70, vote: null },
+      { name: 'Megan Greene', role: 'External Member', stance: 'hawkish', inflationWeight: 0.68, vote: null },
+      { name: 'Jonathan Haskel', role: 'External Member', stance: 'hawkish', inflationWeight: 0.72, vote: null },
+      { name: 'Catherine L Mann', role: 'External Member', stance: 'hawkish', inflationWeight: 0.75, vote: null },
+      { name: 'Swati Dhingra', role: 'External Member', stance: 'dovish', inflationWeight: 0.45, vote: null },
+      { name: 'Clare Lombardelli', role: 'External Member', stance: 'neutral', inflationWeight: 0.56, vote: null },
+    ],
+    lastMPCVoteBreakdown: '9-0 to hold',
+    lastMPCDecision: 'hold',
+    assetPurchaseFacility_bn: 875,
+    qtPausedTurns: 0,
   };
 }
 
@@ -984,6 +1037,7 @@ export interface PMInterventionEvent {
   pmAnger: 'concerned' | 'angry' | 'furious';
   demandTitle: string;
   demandDescription: string;
+  complyPolicyDescription?: string;
   specificPolicyReversal?: {
     taxId?: string;
     spendingId?: string;

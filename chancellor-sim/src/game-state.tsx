@@ -209,6 +209,13 @@ export interface DebtManagementState {
   refinancingRisk: number;
   qeHoldings_bn: number;
   issuanceStrategy: 'short' | 'balanced' | 'long';
+  rolloverRiskPremium_bps?: number;
+  strategyYieldEffect_bps?: number;
+  projectedDebtInterestByStrategy_bn?: {
+    short: number;
+    balanced: number;
+    long: number;
+  };
 }
 
 export interface SelectCommittee {
@@ -240,7 +247,7 @@ export interface ExternalSectorState {
   exportGrowth: number;
   importGrowth: number;
   externalShockActive: boolean;
-  externalShockType: 'energy_spike' | 'trade_war' | 'partner_recession' | 'tariff_shock' | null;
+  externalShockType: 'energy_spike' | 'trade_war' | 'partner_recession' | 'tariff_shock' | 'banking_sector_stress' | null;
   externalShockTurnsRemaining: number;
   externalShockMagnitude: number;
 }
@@ -274,6 +281,12 @@ export interface LocalGovState {
   localGovStressIndex: number;
   section114Notices: number;
   localServicesQuality: number;
+  coreSettlement_bn: number;
+  adultSocialCarePressure_bn: number;
+  councilFundingStress: number;
+  section114Count: number;
+  businessRatesRetention: number;
+  councilTaxGrowthCap: number;
 }
 
 export interface DevolutionState {
@@ -299,6 +312,7 @@ export interface DistributionalState {
   bottomQuintileRealIncomeGrowth: number;
   topDecileEffectiveTaxRate: number;
   lastTaxChangeDistribution: 'regressive' | 'neutral' | 'progressive' | null;
+  decileImpacts: number[];
 }
 
 export interface GameState {
@@ -403,6 +417,9 @@ export interface BudgetChanges {
   detailedTaxRates?: Record<string, number>;
   detailedSpendingBudgets?: Record<string, number>;
   policyRiskModifiers?: PolicyRiskModifier[];
+  ucTaperRateChange?: number;
+  workAllowanceMonthlyChange?: number;
+  childcareSupportRateChange?: number;
 }
 
 // ===========================
@@ -610,9 +627,19 @@ function normalizeLoadedState(state: GameState): GameState {
     ...createInitialFinancialStabilityState(),
     ...((state as any).financialStability || {}),
   };
+  const initialDevolution = createInitialDevolutionState() as DevolutionState;
+  const loadedDevolution = ((state as any).devolution || {}) as Partial<DevolutionState>;
   const devolution = {
-    ...createInitialDevolutionState(),
-    ...((state as any).devolution || {}),
+    ...initialDevolution,
+    ...loadedDevolution,
+    nations: {
+      ...initialDevolution.nations,
+      ...(loadedDevolution.nations || {}),
+    },
+    localGov: {
+      ...initialDevolution.localGov,
+      ...((loadedDevolution as any).localGov || {}),
+    },
   } as DevolutionState;
   const distributional = {
     ...createInitialDistributionalState(),
@@ -1193,14 +1220,54 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   //
   const applyBudgetChanges = useCallback((changes: BudgetChanges) => {
     setGameState((prevState) => {
+      const isFiscalEventTurn = (turn: number): boolean => {
+        const monthInYear = ((turn + 6) % 12) + 1; // Turn 0 = July
+        return monthInYear === 3 || monthInYear === 11;
+      };
+      const findNextFiscalEventTurn = (turn: number): number => {
+        for (let step = 0; step < 24; step++) {
+          const candidate = turn + step;
+          if (isFiscalEventTurn(candidate)) return candidate;
+        }
+        return turn + 1;
+      };
+      const taxDeltas = {
+        incomeTaxBasicChange: changes.incomeTaxBasicChange || 0,
+        incomeTaxHigherChange: changes.incomeTaxHigherChange || 0,
+        incomeTaxAdditionalChange: changes.incomeTaxAdditionalChange || 0,
+        niEmployeeChange: changes.niEmployeeChange || 0,
+        niEmployerChange: changes.niEmployerChange || 0,
+        vatChange: changes.vatChange || 0,
+        corporationTaxChange: changes.corporationTaxChange || 0,
+      };
+      const attemptedMajorTaxChange =
+        taxDeltas.incomeTaxBasicChange !== 0 ||
+        taxDeltas.incomeTaxHigherChange !== 0 ||
+        taxDeltas.incomeTaxAdditionalChange !== 0 ||
+        taxDeltas.vatChange !== 0 ||
+        taxDeltas.corporationTaxChange !== 0;
+      const inFiscalEventWindow = isFiscalEventTurn(prevState.metadata.currentTurn);
+      const queueMajorTaxForEvent = attemptedMajorTaxChange && !inFiscalEventWindow;
+      const appliedTaxDeltas = queueMajorTaxForEvent
+        ? {
+          incomeTaxBasicChange: 0,
+          incomeTaxHigherChange: 0,
+          incomeTaxAdditionalChange: 0,
+          niEmployeeChange: taxDeltas.niEmployeeChange,
+          niEmployerChange: taxDeltas.niEmployerChange,
+          vatChange: 0,
+          corporationTaxChange: 0,
+        }
+        : taxDeltas;
+
       const majorTaxRise = [
-        changes.incomeTaxBasicChange || 0,
-        changes.incomeTaxHigherChange || 0,
-        changes.incomeTaxAdditionalChange || 0,
-        changes.niEmployeeChange || 0,
-        changes.niEmployerChange || 0,
-        changes.vatChange || 0,
-        changes.corporationTaxChange || 0,
+        taxDeltas.incomeTaxBasicChange,
+        taxDeltas.incomeTaxHigherChange,
+        taxDeltas.incomeTaxAdditionalChange,
+        taxDeltas.niEmployeeChange,
+        taxDeltas.niEmployerChange,
+        taxDeltas.vatChange,
+        taxDeltas.corporationTaxChange,
       ].some((delta) => delta > 5);
 
       const deptCuts: Array<{ current: number; delta: number; id: string }> = [
@@ -1258,13 +1325,13 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Check for manifesto violations
       const violationCheck = checkPolicyForViolations(prevState.manifesto, {
-        incomeTaxBasicChange: changes.incomeTaxBasicChange,
-        incomeTaxHigherChange: changes.incomeTaxHigherChange,
-        incomeTaxAdditionalChange: changes.incomeTaxAdditionalChange,
-        niEmployeeChange: changes.niEmployeeChange,
-        niEmployerChange: changes.niEmployerChange,
-        vatChange: changes.vatChange,
-        corporationTaxChange: changes.corporationTaxChange,
+        incomeTaxBasicChange: appliedTaxDeltas.incomeTaxBasicChange,
+        incomeTaxHigherChange: appliedTaxDeltas.incomeTaxHigherChange,
+        incomeTaxAdditionalChange: appliedTaxDeltas.incomeTaxAdditionalChange,
+        niEmployeeChange: appliedTaxDeltas.niEmployeeChange,
+        niEmployerChange: appliedTaxDeltas.niEmployerChange,
+        vatChange: appliedTaxDeltas.vatChange,
+        corporationTaxChange: appliedTaxDeltas.corporationTaxChange,
         nhsSpendingCutReal: nhsNominalChange < nhsRequiredNominalIncrease,
         educationSpendingCutReal: educationNominalChange < educationRequiredNominalIncrease,
       });
@@ -1288,26 +1355,35 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       };
 
       // Update tax rates
-      if (changes.incomeTaxBasicChange) {
-        newFiscal.incomeTaxBasicRate += changes.incomeTaxBasicChange;
+      if (appliedTaxDeltas.incomeTaxBasicChange) {
+        newFiscal.incomeTaxBasicRate += appliedTaxDeltas.incomeTaxBasicChange;
       }
-      if (changes.incomeTaxHigherChange) {
-        newFiscal.incomeTaxHigherRate += changes.incomeTaxHigherChange;
+      if (appliedTaxDeltas.incomeTaxHigherChange) {
+        newFiscal.incomeTaxHigherRate += appliedTaxDeltas.incomeTaxHigherChange;
       }
-      if (changes.incomeTaxAdditionalChange) {
-        newFiscal.incomeTaxAdditionalRate += changes.incomeTaxAdditionalChange;
+      if (appliedTaxDeltas.incomeTaxAdditionalChange) {
+        newFiscal.incomeTaxAdditionalRate += appliedTaxDeltas.incomeTaxAdditionalChange;
       }
-      if (changes.niEmployeeChange) {
-        newFiscal.nationalInsuranceRate += changes.niEmployeeChange;
+      if (appliedTaxDeltas.niEmployeeChange) {
+        newFiscal.nationalInsuranceRate += appliedTaxDeltas.niEmployeeChange;
       }
-      if (changes.niEmployerChange) {
-        newFiscal.employerNIRate += changes.niEmployerChange;
+      if (appliedTaxDeltas.niEmployerChange) {
+        newFiscal.employerNIRate += appliedTaxDeltas.niEmployerChange;
       }
-      if (changes.vatChange) {
-        newFiscal.vatRate += changes.vatChange;
+      if (appliedTaxDeltas.vatChange) {
+        newFiscal.vatRate += appliedTaxDeltas.vatChange;
       }
-      if (changes.corporationTaxChange) {
-        newFiscal.corporationTaxRate += changes.corporationTaxChange;
+      if (appliedTaxDeltas.corporationTaxChange) {
+        newFiscal.corporationTaxRate += appliedTaxDeltas.corporationTaxChange;
+      }
+      if (changes.ucTaperRateChange !== undefined) {
+        newFiscal.ucTaperRate = Math.max(35, Math.min(75, newFiscal.ucTaperRate + changes.ucTaperRateChange));
+      }
+      if (changes.workAllowanceMonthlyChange !== undefined) {
+        newFiscal.workAllowanceMonthly = Math.max(0, newFiscal.workAllowanceMonthly + changes.workAllowanceMonthlyChange);
+      }
+      if (changes.childcareSupportRateChange !== undefined) {
+        newFiscal.childcareSupportRate = Math.max(0, Math.min(100, newFiscal.childcareSupportRate + changes.childcareSupportRateChange));
       }
 
       if (changes.detailedTaxRates) {
@@ -1547,7 +1623,6 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return {
         ...prevState,
-        fiscal: newFiscal,
         manifesto: newManifesto,
         policyRiskModifiers: [
           ...(prevState.policyRiskModifiers || []),
@@ -1563,6 +1638,27 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
             ...prevState.devolution.localGov,
             centralGrant_bn: nextCentralGrant,
           },
+        },
+        fiscal: {
+          ...newFiscal,
+          nextFiscalEventTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1),
+          pendingAnnouncements: queueMajorTaxForEvent
+            ? [
+              ...(prevState.fiscal.pendingAnnouncements || []),
+              {
+                description: 'Pre-announced major tax package for next fiscal event',
+                fiscalImpact_bn:
+                  (taxDeltas.incomeTaxBasicChange * 7) +
+                  (taxDeltas.incomeTaxHigherChange * 2) +
+                  (taxDeltas.incomeTaxAdditionalChange * 0.2) +
+                  (taxDeltas.vatChange * 7.5) +
+                  (taxDeltas.corporationTaxChange * 3.2),
+                announcedTurn: prevState.metadata.currentTurn,
+                effectiveTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1),
+                implemented: false,
+              },
+            ]
+            : prevState.fiscal.pendingAnnouncements || [],
         },
       };
     });
@@ -1632,19 +1728,34 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       // Sector-specific strike resolution effects.
       if (String(event.id).startsWith('sector_nhs_')) {
         if (chosenResponse.label === 'Meet pay demands') {
+          const affectedWorkforceWageBill = 60; // £bn annual NHS pay bill proxy
+          const settlementRate = 5; // %
+          const annualisedCost = (affectedWorkforceWageBill * settlementRate) / 100;
           newState = {
             ...newState,
             fiscal: {
               ...newState.fiscal,
               spending: {
                 ...newState.fiscal.spending,
-                nhsCurrent: newState.fiscal.spending.nhsCurrent + 3.0,
-                nhs: (newState.fiscal.spending.nhsCurrent + 3.0) + newState.fiscal.spending.nhsCapital,
+                nhsCurrent: newState.fiscal.spending.nhsCurrent + annualisedCost,
+                nhs: (newState.fiscal.spending.nhsCurrent + annualisedCost) + newState.fiscal.spending.nhsCapital,
               },
             },
             services: {
               ...newState.services,
               nhsStrikeMonthsRemaining: 0,
+            },
+            simulation: {
+              ...newState.simulation,
+              lastTurnDelta: newState.simulation.lastTurnDelta
+                ? {
+                  ...newState.simulation.lastTurnDelta,
+                  deficitDrivers: [
+                    ...(newState.simulation.lastTurnDelta.deficitDrivers || []),
+                    { name: `Strike settlement: NHS +£${annualisedCost.toFixed(1)}bn/yr`, value: 0 },
+                  ],
+                }
+                : newState.simulation.lastTurnDelta,
             },
           };
         } else if (chosenResponse.label === 'Legislate against strike') {
@@ -1666,19 +1777,34 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (String(event.id).startsWith('sector_teacher_')) {
         if (chosenResponse.label === 'Meet pay demands') {
+          const affectedWorkforceWageBill = 45; // £bn annual education pay bill proxy
+          const settlementRate = 5; // %
+          const annualisedCost = (affectedWorkforceWageBill * settlementRate) / 100;
           newState = {
             ...newState,
             fiscal: {
               ...newState.fiscal,
               spending: {
                 ...newState.fiscal.spending,
-                educationCurrent: newState.fiscal.spending.educationCurrent + 2.5,
-                education: (newState.fiscal.spending.educationCurrent + 2.5) + newState.fiscal.spending.educationCapital,
+                educationCurrent: newState.fiscal.spending.educationCurrent + annualisedCost,
+                education: (newState.fiscal.spending.educationCurrent + annualisedCost) + newState.fiscal.spending.educationCapital,
               },
             },
             services: {
               ...newState.services,
               educationStrikeMonthsRemaining: 0,
+            },
+            simulation: {
+              ...newState.simulation,
+              lastTurnDelta: newState.simulation.lastTurnDelta
+                ? {
+                  ...newState.simulation.lastTurnDelta,
+                  deficitDrivers: [
+                    ...(newState.simulation.lastTurnDelta.deficitDrivers || []),
+                    { name: `Strike settlement: education +£${annualisedCost.toFixed(1)}bn/yr`, value: 0 },
+                  ],
+                }
+                : newState.simulation.lastTurnDelta,
             },
           };
         } else if (chosenResponse.label === 'Legislate against strike') {
@@ -1820,97 +1946,81 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         let services = { ...newState.services };
         let policyRiskModifiers = [...newState.policyRiskModifiers];
         let complianceNote = '';
+        let complianceDeltaLabel = '';
+        const budgetChanges: BudgetChanges = {};
+        const addTurnDeltaNote = (label: string) => {
+          if (!label) return;
+          if (!newState.simulation.lastTurnDelta) return;
+          newState.simulation = {
+            ...newState.simulation,
+            lastTurnDelta: {
+              ...newState.simulation.lastTurnDelta,
+              deficitDrivers: [
+                ...(newState.simulation.lastTurnDelta.deficitDrivers || []),
+                { name: label, value: 0 },
+              ],
+            },
+          };
+        };
 
         if (event.triggerReason === 'backbench_revolt') {
-          const concession = 2 + Math.random() * 2;
-          const baseline = createInitialFiscalState().spending;
-          const welfareRatio = fiscal.spending.welfareCurrent / baseline.welfareCurrent;
-          const publicServiceCandidates: Array<{ key: keyof typeof fiscal.spending; ratio: number }> = [
-            { key: 'nhsCurrent', ratio: fiscal.spending.nhsCurrent / baseline.nhsCurrent },
-            { key: 'educationCurrent', ratio: fiscal.spending.educationCurrent / baseline.educationCurrent },
-            { key: 'defenceCurrent', ratio: fiscal.spending.defenceCurrent / baseline.defenceCurrent },
-            { key: 'infrastructureCurrent', ratio: fiscal.spending.infrastructureCurrent / baseline.infrastructureCurrent },
-            { key: 'policeCurrent', ratio: fiscal.spending.policeCurrent / baseline.policeCurrent },
-            { key: 'justiceCurrent', ratio: fiscal.spending.justiceCurrent / baseline.justiceCurrent },
-            { key: 'otherCurrent', ratio: fiscal.spending.otherCurrent / baseline.otherCurrent },
-          ];
-          const lowestPublic = publicServiceCandidates.sort((a, b) => a.ratio - b.ratio)[0];
-          if (welfareRatio <= lowestPublic.ratio) {
-            fiscal.spending.welfareCurrent += concession;
-            fiscal.spending.welfare += concession;
-            complianceNote = `PM concession: +£${concession.toFixed(1)}bn welfare spending.`;
-          } else {
-            fiscal.spending[lowestPublic.key] = (fiscal.spending[lowestPublic.key] as number) + concession;
-            const map: Record<string, keyof typeof fiscal.spending> = {
-              nhsCurrent: 'nhs',
-              educationCurrent: 'education',
-              defenceCurrent: 'defence',
-              infrastructureCurrent: 'infrastructure',
-              policeCurrent: 'police',
-              justiceCurrent: 'justice',
-              otherCurrent: 'other',
-            };
-            const aggregateKey = map[String(lowestPublic.key)];
-            fiscal.spending[aggregateKey] = (fiscal.spending[aggregateKey] as number) + concession;
-            complianceNote = `PM concession: +£${concession.toFixed(1)}bn to ${String(aggregateKey)} current spending.`;
-          }
+          const concession = 3.0;
+          budgetChanges.nhsCurrentChange = concession;
+          complianceNote = `PM concession: NHS current spending increased by £${concession.toFixed(1)}bn annually.`;
+          complianceDeltaLabel = `PM comply: NHS +£${concession.toFixed(1)}bn`;
         } else if (event.triggerReason === 'manifesto_breach') {
           const recent = [...newState.manifesto.pledges]
             .filter((pledge) => pledge.violated)
             .sort((a, b) => (b.turnViolated || 0) - (a.turnViolated || 0))[0];
           if (recent) {
             if (recent.id.includes('income-tax')) {
-              fiscal.incomeTaxBasicRate -= (fiscal.incomeTaxBasicRate - fiscal.startingTaxRates.incomeTaxBasic) * 0.5;
-              fiscal.incomeTaxHigherRate -= (fiscal.incomeTaxHigherRate - fiscal.startingTaxRates.incomeTaxHigher) * 0.5;
-              fiscal.incomeTaxAdditionalRate -= (fiscal.incomeTaxAdditionalRate - fiscal.startingTaxRates.incomeTaxAdditional) * 0.5;
+              budgetChanges.incomeTaxBasicChange = -(fiscal.incomeTaxBasicRate - fiscal.startingTaxRates.incomeTaxBasic) * 0.5;
+              budgetChanges.incomeTaxHigherChange = -(fiscal.incomeTaxHigherRate - fiscal.startingTaxRates.incomeTaxHigher) * 0.5;
+              budgetChanges.incomeTaxAdditionalChange = -(fiscal.incomeTaxAdditionalRate - fiscal.startingTaxRates.incomeTaxAdditional) * 0.5;
               complianceNote = 'PM reversal: moved income tax rates halfway back to manifesto levels.';
+              complianceDeltaLabel = 'PM comply: income tax partial reversal';
             } else if (recent.id.includes('ni')) {
-              fiscal.nationalInsuranceRate -= (fiscal.nationalInsuranceRate - fiscal.startingTaxRates.niEmployee) * 0.5;
-              fiscal.employerNIRate -= (fiscal.employerNIRate - fiscal.startingTaxRates.niEmployer) * 0.5;
+              budgetChanges.niEmployeeChange = -(fiscal.nationalInsuranceRate - fiscal.startingTaxRates.niEmployee) * 0.5;
+              budgetChanges.niEmployerChange = -(fiscal.employerNIRate - fiscal.startingTaxRates.niEmployer) * 0.5;
               complianceNote = 'PM reversal: moved National Insurance halfway back to manifesto levels.';
+              complianceDeltaLabel = 'PM comply: NI partial reversal';
             } else if (recent.id.includes('vat')) {
-              fiscal.vatRate -= (fiscal.vatRate - fiscal.startingTaxRates.vat) * 0.5;
+              budgetChanges.vatChange = -(fiscal.vatRate - fiscal.startingTaxRates.vat) * 0.5;
               complianceNote = 'PM reversal: moved VAT halfway back to manifesto level.';
+              complianceDeltaLabel = 'PM comply: VAT partial reversal';
             } else if (recent.id.includes('corp')) {
-              fiscal.corporationTaxRate -= (fiscal.corporationTaxRate - fiscal.startingTaxRates.corporationTax) * 0.5;
+              budgetChanges.corporationTaxChange = -(fiscal.corporationTaxRate - fiscal.startingTaxRates.corporationTax) * 0.5;
               complianceNote = 'PM reversal: moved corporation tax halfway back to manifesto level.';
+              complianceDeltaLabel = 'PM comply: corporation tax partial reversal';
             } else if (recent.targetDepartment === 'nhs') {
               const target = fiscal.fiscalYearStartSpending.nhs * 1.02;
               const delta = (target - fiscal.spending.nhs) * 0.5;
-              fiscal.spending.nhsCurrent += delta;
-              fiscal.spending.nhs += delta;
+              budgetChanges.nhsCurrentChange = delta;
               complianceNote = `PM reversal: restored £${Math.abs(delta).toFixed(1)}bn towards NHS pledge path.`;
+              complianceDeltaLabel = `PM comply: NHS +£${Math.abs(delta).toFixed(1)}bn`;
             } else if (recent.targetDepartment === 'education') {
               const target = fiscal.fiscalYearStartSpending.education * 1.02;
               const delta = (target - fiscal.spending.education) * 0.5;
-              fiscal.spending.educationCurrent += delta;
-              fiscal.spending.education += delta;
+              budgetChanges.educationCurrentChange = delta;
               complianceNote = `PM reversal: restored £${Math.abs(delta).toFixed(1)}bn towards education pledge path.`;
+              complianceDeltaLabel = `PM comply: education +£${Math.abs(delta).toFixed(1)}bn`;
             }
           }
         } else if (event.triggerReason === 'approval_collapse') {
-          fiscal.revenueAdjustment_bn = (fiscal.revenueAdjustment_bn || 0) - 0.5;
-          complianceNote = 'PM directive: emergency communications package funded at £0.5bn this month.';
+          budgetChanges.nhsCurrentChange = 2.0;
+          budgetChanges.welfareCurrentChange = 0.5;
+          complianceNote = 'PM directive: immediate £2.5bn annual public services package.';
+          complianceDeltaLabel = 'PM comply: services +£2.5bn';
         } else if (event.triggerReason === 'economic_crisis') {
-          const consolidation = 3 + Math.random() * 2;
-          if (newState.fiscal.deficitPctGDP > 6) {
-            if ((fiscal.revenueAdjustment_bn || 0) < 0) {
-              fiscal.revenueAdjustment_bn = Math.min(0, (fiscal.revenueAdjustment_bn || 0) + consolidation);
-            } else {
-              const departmentalCut = consolidation / 5;
-              fiscal.spending.defenceCurrent = Math.max(0, fiscal.spending.defenceCurrent - departmentalCut);
-              fiscal.spending.infrastructureCurrent = Math.max(0, fiscal.spending.infrastructureCurrent - departmentalCut);
-              fiscal.spending.policeCurrent = Math.max(0, fiscal.spending.policeCurrent - departmentalCut);
-              fiscal.spending.justiceCurrent = Math.max(0, fiscal.spending.justiceCurrent - departmentalCut);
-              fiscal.spending.otherCurrent = Math.max(0, fiscal.spending.otherCurrent - departmentalCut);
-              fiscal.spending.defence = fiscal.spending.defenceCurrent + fiscal.spending.defenceCapital;
-              fiscal.spending.infrastructure = fiscal.spending.infrastructureCurrent + fiscal.spending.infrastructureCapital;
-              fiscal.spending.police = fiscal.spending.policeCurrent + fiscal.spending.policeCapital;
-              fiscal.spending.justice = fiscal.spending.justiceCurrent + fiscal.spending.justiceCapital;
-              fiscal.spending.other = fiscal.spending.otherCurrent + fiscal.spending.otherCapital;
-            }
-            complianceNote = `PM consolidation order: £${consolidation.toFixed(1)}bn tightening package enforced.`;
-          }
+          const consolidation = 5.0;
+          const departmentalCut = consolidation / 5;
+          budgetChanges.defenceCurrentChange = -departmentalCut;
+          budgetChanges.infrastructureCurrentChange = -departmentalCut;
+          budgetChanges.policeCurrentChange = -departmentalCut;
+          budgetChanges.justiceCurrentChange = -departmentalCut;
+          budgetChanges.otherCurrentChange = -departmentalCut;
+          complianceNote = `PM consolidation order: £${consolidation.toFixed(1)}bn annual tightening package enforced.`;
+          complianceDeltaLabel = `PM comply: consolidation £${consolidation.toFixed(1)}bn`;
           if (newState.fiscal.debtPctGDP > 110) {
             policyRiskModifiers.push({
               id: `pm_market_boost_${Date.now()}`,
@@ -1922,6 +2032,32 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
 
+        // PM comply measures are canonical budget changes and must follow the same
+        // fiscal input persistence pathway as player budget edits.
+        console.assert(choice !== 'comply' || Object.keys(budgetChanges).length >= 0, 'PM comply consequences must be committed as budget input changes.');
+        if (budgetChanges.incomeTaxBasicChange !== undefined) fiscal.incomeTaxBasicRate += budgetChanges.incomeTaxBasicChange;
+        if (budgetChanges.incomeTaxHigherChange !== undefined) fiscal.incomeTaxHigherRate += budgetChanges.incomeTaxHigherChange;
+        if (budgetChanges.incomeTaxAdditionalChange !== undefined) fiscal.incomeTaxAdditionalRate += budgetChanges.incomeTaxAdditionalChange;
+        if (budgetChanges.niEmployeeChange !== undefined) fiscal.nationalInsuranceRate += budgetChanges.niEmployeeChange;
+        if (budgetChanges.niEmployerChange !== undefined) fiscal.employerNIRate += budgetChanges.niEmployerChange;
+        if (budgetChanges.vatChange !== undefined) fiscal.vatRate += budgetChanges.vatChange;
+        if (budgetChanges.corporationTaxChange !== undefined) fiscal.corporationTaxRate += budgetChanges.corporationTaxChange;
+        if (budgetChanges.nhsCurrentChange !== undefined) fiscal.spending.nhsCurrent += budgetChanges.nhsCurrentChange;
+        if (budgetChanges.educationCurrentChange !== undefined) fiscal.spending.educationCurrent += budgetChanges.educationCurrentChange;
+        if (budgetChanges.defenceCurrentChange !== undefined) fiscal.spending.defenceCurrent += budgetChanges.defenceCurrentChange;
+        if (budgetChanges.welfareCurrentChange !== undefined) fiscal.spending.welfareCurrent += budgetChanges.welfareCurrentChange;
+        if (budgetChanges.infrastructureCurrentChange !== undefined) fiscal.spending.infrastructureCurrent += budgetChanges.infrastructureCurrentChange;
+        if (budgetChanges.policeCurrentChange !== undefined) fiscal.spending.policeCurrent += budgetChanges.policeCurrentChange;
+        if (budgetChanges.justiceCurrentChange !== undefined) fiscal.spending.justiceCurrent += budgetChanges.justiceCurrentChange;
+        if (budgetChanges.otherCurrentChange !== undefined) fiscal.spending.otherCurrent += budgetChanges.otherCurrentChange;
+        fiscal.spending.nhs = fiscal.spending.nhsCurrent + fiscal.spending.nhsCapital;
+        fiscal.spending.education = fiscal.spending.educationCurrent + fiscal.spending.educationCapital;
+        fiscal.spending.defence = fiscal.spending.defenceCurrent + fiscal.spending.defenceCapital;
+        fiscal.spending.welfare = fiscal.spending.welfareCurrent;
+        fiscal.spending.infrastructure = fiscal.spending.infrastructureCurrent + fiscal.spending.infrastructureCapital;
+        fiscal.spending.police = fiscal.spending.policeCurrent + fiscal.spending.policeCapital;
+        fiscal.spending.justice = fiscal.spending.justiceCurrent + fiscal.spending.justiceCapital;
+        fiscal.spending.other = fiscal.spending.otherCurrent + fiscal.spending.otherCapital;
         fiscal.totalSpending_bn =
           fiscal.spending.nhs +
           fiscal.spending.education +
@@ -1948,6 +2084,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         newState.fiscal = fiscal;
         newState.services = services;
         newState.policyRiskModifiers = policyRiskModifiers;
+        addTurnDeltaNote(complianceDeltaLabel);
         if (complianceNote) {
           newState.pmRelationship = {
             ...newState.pmRelationship,

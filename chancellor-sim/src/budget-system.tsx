@@ -1632,8 +1632,8 @@ const INITIAL_SPENDING = {
     id: 'debtInterest',
     department: 'Debt Interest',
     programme: 'Central Government Debt Interest',
-    currentBudget: 89.0,
-    proposedBudget: 89.0,
+    currentBudget: 95.0,
+    proposedBudget: 95.0,
     type: 'resource' as const
   }
 };
@@ -1966,6 +1966,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [pmInterventionSuccess, setPMInterventionSuccess] = useState(false);
   const [dismissedConflicts, setDismissedConflicts] = useState<Set<string>>(new Set());
   const lastTurnRef = useRef<number | null>(null);
+  const [welfareLevers, setWelfareLevers] = useState({
+    ucTaperRate: gameState.fiscal.ucTaperRate,
+    workAllowanceMonthly: gameState.fiscal.workAllowanceMonthly,
+    childcareSupportRate: gameState.fiscal.childcareSupportRate,
+  });
+  const pmComplianceEventCount = useMemo(
+    () => (gameState.pmRelationship.messages || []).filter((msg) => msg.subject === 'PM intervention implemented').length,
+    [gameState.pmRelationship.messages]
+  );
 
   // Keep unsent draft persistent across navigation
   useEffect(() => {
@@ -1992,6 +2001,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   useEffect(() => {
     setProposedFiscalRule(gameState.political.chosenFiscalRule);
   }, [gameState.political.chosenFiscalRule]);
+
+  useEffect(() => {
+    setTaxes(reconstructTaxesFromGameState(gameState));
+    setSpending(reconstructSpendingFromGameState(gameState));
+    setWelfareLevers({
+      ucTaperRate: gameState.fiscal.ucTaperRate,
+      workAllowanceMonthly: gameState.fiscal.workAllowanceMonthly,
+      childcareSupportRate: gameState.fiscal.childcareSupportRate,
+    });
+  }, [gameState.metadata.currentTurn, pmComplianceEventCount]);
 
   // Force save after PM intervention to ensure changes persist
   // BUGFIX: Use setTimeout to ensure all async state updates complete before saving
@@ -2899,6 +2918,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     if (corpTax && corpTax.proposedRate !== corpTax.currentRate) {
       changes.corporationTaxChange = corpTax.proposedRate - corpTax.currentRate;
     }
+    if (welfareLevers.ucTaperRate !== gameState.fiscal.ucTaperRate) {
+      changes.ucTaperRateChange = welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate;
+    }
+    if (welfareLevers.workAllowanceMonthly !== gameState.fiscal.workAllowanceMonthly) {
+      changes.workAllowanceMonthlyChange = welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly;
+    }
+    if (welfareLevers.childcareSupportRate !== gameState.fiscal.childcareSupportRate) {
+      changes.childcareSupportRateChange = welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate;
+    }
 
     // Calculate revenue adjustment from all OTHER tax changes
     // (taxes beyond the 7 rates the turn processor models: income tax x3, NI x2, VAT, corp tax)
@@ -3010,7 +3038,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     });
     setSpending(updatedSpending);
     clearBudgetDraft();
-  }, [taxes, spending, gameActions, policyConflicts]);
+  }, [taxes, spending, gameActions, policyConflicts, welfareLevers, gameState.fiscal.ucTaperRate, gameState.fiscal.workAllowanceMonthly, gameState.fiscal.childcareSupportRate]);
 
   const handleVoteContinue = useCallback(() => {
     applyBudgetToGameState();
@@ -3439,7 +3467,29 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }, 0);
   }, [gameState.spendingReview.departments]);
 
-  const spendingReviewHeadroomEnvelope = gameState.fiscal.fiscalHeadroom_bn * 9;
+  const spendingReviewEnvelope = useMemo(() => {
+    const ruleRequiresPrudence = gameState.political.chosenFiscalRule !== 'mmt-inspired';
+    const prudenceMargin = ruleRequiresPrudence
+      ? Math.max(1.5, gameState.fiscal.fiscalHeadroom_bn * 0.15)
+      : 0;
+    const amePressures =
+      Math.max(0, (gameState.fiscal.welfareAME_bn || 115) - 115) +
+      Math.max(0, gameState.fiscal.housingAMEPressure_bn || 0) +
+      Math.max(0, (gameState.fiscal.debtInterest_bn || 0) - 95);
+    const annualEnvelope = Math.max(0, gameState.fiscal.fiscalHeadroom_bn - amePressures - prudenceMargin);
+    return {
+      prudenceMargin,
+      amePressures,
+      annualEnvelope,
+      threeYearEnvelope: annualEnvelope * 9,
+    };
+  }, [
+    gameState.fiscal.fiscalHeadroom_bn,
+    gameState.fiscal.welfareAME_bn,
+    gameState.fiscal.housingAMEPressure_bn,
+    gameState.fiscal.debtInterest_bn,
+    gameState.political.chosenFiscalRule,
+  ]);
 
   const handleSpendingReviewPlanChange = useCallback((
     departmentKey: keyof SpendingReviewState['departments'],
@@ -3564,6 +3614,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 );
               })()}
+              {(gameState.fiscal.pendingAnnouncements || []).some((item) => !item.implemented) && (
+                <div className="text-xs text-amber-100 mt-2">
+                  Pending fiscal event measures: {(gameState.fiscal.pendingAnnouncements || []).filter((item) => !item.implemented).length}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3644,6 +3699,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 <option value="long">Long</option>
               </select>
               <div className="text-xs text-grey-500 mt-1">WAM {gameState.debtManagement.weightedAverageMaturity.toFixed(1)} years</div>
+              <div className="text-xs text-grey-500">
+                Yield effect {((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps
+              </div>
             </div>
           </div>
           {Math.abs(gameState.fiscal.barnettConsequentials_bn || 0) > 0.01 && (
@@ -3695,18 +3753,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                     <div className="border border-grey-200 rounded-sm p-3">
                       <div className="text-grey-600">Headroom envelope (3Y)</div>
-                      <div className="text-2xl font-bold">£{spendingReviewHeadroomEnvelope.toFixed(1)}bn</div>
+                      <div className="text-2xl font-bold">£{spendingReviewEnvelope.threeYearEnvelope.toFixed(1)}bn</div>
                     </div>
-                    <div className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                    <div className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
                       <div className="text-grey-600">Envelope check</div>
-                      <div className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'text-amber-700' : 'text-green-700'}`}>
-                        {spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'Overspend' : 'Within envelope'}
+                      <div className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-amber-700' : 'text-green-700'}`}>
+                        {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'Breach' : 'Within envelope'}
                       </div>
                     </div>
                   </div>
-                  {spendingReviewPlanTotal > spendingReviewHeadroomEnvelope && (
+                  <div className="mt-3 text-xs text-grey-600">
+                    Indicative envelope = headroom minus AME pressures (£{spendingReviewEnvelope.amePressures.toFixed(1)}bn) and prudence margin (£{spendingReviewEnvelope.prudenceMargin.toFixed(1)}bn).
+                  </div>
+                  <div className="mt-2 text-xs font-medium text-grey-700">
+                    Spending Review plans are indicative guidelines and may be revised.
+                  </div>
+                  {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope && (
                     <div className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-sm px-3 py-2">
-                      DEL plan exceeds projected headroom envelope. This is allowed, but it may raise gilt yields and weaken sterling.
+                      DEL plan breach: £{(spendingReviewPlanTotal - spendingReviewEnvelope.threeYearEnvelope).toFixed(1)}bn above the envelope.
                     </div>
                   )}
                 </div>
@@ -3726,6 +3790,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                           Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}
                         </div>
                       </div>
+                      {(() => {
+                        const deptTotal = (dept.plannedResourceDEL_bn || []).reduce((acc, value) => acc + value, 0) + (dept.plannedCapitalDEL_bn || []).reduce((acc, value) => acc + value, 0);
+                        const fairShare = spendingReviewPlanTotal > 0
+                          ? (spendingReviewEnvelope.threeYearEnvelope * (deptTotal / spendingReviewPlanTotal))
+                          : 0;
+                        const breach = deptTotal - fairShare;
+                        return (
+                          <div className={`text-xs mb-3 ${breach > 0 ? 'text-amber-700' : 'text-green-700'}`}>
+                            {breach > 0 ? `Department indicative envelope breach: +£${breach.toFixed(1)}bn` : 'Department within indicative envelope share'}
+                          </div>
+                        );
+                      })()}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[0, 1, 2].map((yearIdx) => (
                           <div key={`${key}_year_${yearIdx}`} className="border border-grey-100 rounded-sm p-3">
@@ -3762,18 +3838,39 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6 space-y-4">
                 <h2 className="text-xl font-bold text-grey-900">Debt Management</h2>
                 <p className="text-sm text-grey-600">Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing risk.</p>
+                <div className="text-sm text-grey-700 bg-blue-50 border border-blue-200 rounded-sm p-3">
+                  Active strategy: <span className="font-semibold capitalize">{gameState.debtManagement.issuanceStrategy}</span> ·
+                  Yield effect: <span className="font-semibold">{((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps</span>
+                  {gameState.debtManagement.issuanceStrategy === 'short' && (
+                    <span> · Rollover risk premium: <span className="font-semibold">+{(gameState.debtManagement.rolloverRiskPremium_bps || 0).toFixed(0)} bps</span></span>
+                  )}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="border border-grey-200 rounded-sm p-3">
                     <div className="text-grey-600">Refinancing risk</div>
                     <div className="text-2xl font-bold">{gameState.debtManagement.refinancingRisk.toFixed(1)}</div>
                   </div>
                   <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">QE holdings</div>
-                    <div className="text-2xl font-bold">£{gameState.debtManagement.qeHoldings_bn.toFixed(0)}bn</div>
+                    <div className="text-grey-600">APF stock (QE/QT)</div>
+                    <div className="text-2xl font-bold">£{(gameState.markets.assetPurchaseFacility_bn || 0).toFixed(0)}bn</div>
                   </div>
                   <div className="border border-grey-200 rounded-sm p-3">
                     <div className="text-grey-600">Debt interest</div>
                     <div className="text-2xl font-bold">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">Projected annual interest (Short)</div>
+                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.short ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
+                  </div>
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">Projected annual interest (Balanced)</div>
+                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.balanced ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
+                  </div>
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">Projected annual interest (Long)</div>
+                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.long ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
                   </div>
                 </div>
               </div>
@@ -3792,6 +3889,30 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     {renderTaxControl(taxes.get('incomeTaxBasic')!)}
                     {renderTaxControl(taxes.get('incomeTaxHigher')!)}
                     {renderTaxControl(taxes.get('incomeTaxAdditional')!)}
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900 mb-2">Welfare and Labour Market Levers</h2>
+                  <p className="text-sm text-grey-600 mb-4">
+                    AME measures: reducing taper or increasing work allowances and childcare support can lower structural unemployment over time, but increase welfare spending.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="border border-grey-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-grey-800">Universal Credit taper rate</label>
+                      <input type="range" min={35} max={75} step={1} value={welfareLevers.ucTaperRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))} className="w-full mt-2" />
+                      <div className="text-sm text-grey-700 mt-2">{welfareLevers.ucTaperRate.toFixed(0)}%</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-grey-800">Work allowance</label>
+                      <input type="range" min={200} max={700} step={10} value={welfareLevers.workAllowanceMonthly} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, workAllowanceMonthly: Number(e.target.value) }))} className="w-full mt-2" />
+                      <div className="text-sm text-grey-700 mt-2">£{welfareLevers.workAllowanceMonthly.toFixed(0)}/month</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-grey-800">Childcare support rate</label>
+                      <input type="range" min={0} max={100} step={1} value={welfareLevers.childcareSupportRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, childcareSupportRate: Number(e.target.value) }))} className="w-full mt-2" />
+                      <div className="text-sm text-grey-700 mt-2">{welfareLevers.childcareSupportRate.toFixed(0)}%</div>
+                    </div>
                   </div>
                 </div>
 
@@ -3935,6 +4056,32 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Spending View */}
             {activeView === 'spending' && (
               <div className="space-y-4">
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-4">
+                  <h3 className="text-lg font-bold text-grey-900">Local Government</h3>
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="border border-grey-200 rounded-sm p-2">
+                      <div className="text-grey-600">Core settlement</div>
+                      <div className="text-xl font-bold">£{(gameState.devolution.localGov.coreSettlement_bn || 0).toFixed(1)}bn</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-2">
+                      <div className="text-grey-600">Adult social care pressure</div>
+                      <div className="text-xl font-bold">£{(gameState.devolution.localGov.adultSocialCarePressure_bn || 0).toFixed(1)}bn</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-2">
+                      <div className="text-grey-600">Funding gap</div>
+                      <div className="text-xl font-bold">£{Math.max(0, (gameState.devolution.localGov.adultSocialCarePressure_bn || 0) - (gameState.devolution.localGov.coreSettlement_bn || 0)).toFixed(1)}bn</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-2">
+                      <div className="text-grey-600">Stress index</div>
+                      <div className="text-xl font-bold">{(gameState.devolution.localGov.councilFundingStress || gameState.devolution.localGov.localGovStressIndex || 0).toFixed(0)}</div>
+                    </div>
+                  </div>
+                  {(gameState.devolution.localGov.section114Count || 0) > 0 && (
+                    <div className="mt-3 text-sm text-red-800 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
+                      Section 114 notices this term: {gameState.devolution.localGov.section114Count}
+                    </div>
+                  )}
+                </div>
                 {Array.from(spendingByDepartment.entries()).map(([department, items]) => {
                   const isExpanded = expandedDepartments.has(department);
                   const totalCurrent = items.reduce((sum, item) => sum + item.currentBudget, 0);

@@ -14,6 +14,8 @@ export interface PMMessageTemplate {
         maxApproval?: number;
         minDeficit?: number; // £bn
         maxDeficit?: number;
+        minGiltYield?: number;
+        maxGiltYield?: number;
         minHeadroom?: number; // £bn
         maxHeadroom?: number; // £bn
         fiscalRuleCompliant?: boolean;
@@ -106,11 +108,27 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         tone: 'neutral'
     },
     {
-        id: 'pm_concern_deficit',
+        id: 'pm_concern_headroom_low',
         type: 'concern',
-        conditions: { minDeficit: 70 },
-        subject: 'Deficit Trajectory',
-        content: `Chancellor,\n\nThe deficit is rising toward unsustainable levels (£{deficit}bn). This is becoming a problem for our fiscal credibility.\n\nI'd like to see you address this issue proactively before the markets force our hand.\n\nPrime Minister`,
+        conditions: { maxHeadroom: 10 },
+        subject: 'Headroom Buffer Warning',
+        content: `Chancellor,\n\nWe have less than £{fiscalHeadroom}bn of headroom against our {fiscalRuleName} target. One weak quarter and we breach our own rule.\n\nRebuild a safety buffer before the next shock.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_concern_yields_rising',
+        type: 'concern',
+        conditions: { minGiltYield: 4.8 },
+        subject: 'Gilt Market Concern',
+        content: `Chancellor,\n\nThe gilt market is watching us closely. Ten-year yields at {giltYield}% imply investors are questioning our path.\n\nThis is a credibility problem, not simply an accounting one.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_concern_contextual_deficit',
+        type: 'concern',
+        conditions: { minDeficit: 70, minGrowth: 1.5, maxGiltYield: 4.3 },
+        subject: 'Deficit Context',
+        content: `Chancellor,\n\nBorrowing is elevated at £{deficit}bn, but growth is currently absorbing financing pressure. The OBR will still expect a credible consolidation path at the next fiscal event.\n\nPrime Minister`,
         tone: 'neutral'
     },
     {
@@ -159,6 +177,14 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         conditions: { fiscalRuleCompliant: false },
         subject: 'Off Track Against Fiscal Rule',
         content: `Chancellor,\n\nWe are off track against the active rule: {ruleName}. Current headroom is £{headroom}bn.\n\nGet us back onto a compliant path quickly.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_rule_breach_imminent',
+        type: 'concern',
+        conditions: { fiscalRuleCompliant: true, maxHeadroom: 5 },
+        subject: 'Fiscal Rule Breach Risk',
+        content: `Chancellor,\n\nWe are within £{fiscalHeadroom}bn of breaching {fiscalRuleName}. One bad quarter and we are over the line.\n\nPrime Minister`,
         tone: 'stern'
     },
     {
@@ -215,6 +241,38 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         conditions: { serviceMetric: 'infrastructureQuality', minServiceQuality: 56 },
         subject: 'Infrastructure Progress',
         content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. That strengthens our growth story.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_housing_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'affordableHousingDelivery', maxServiceQuality: 35 },
+        subject: 'Housing Pressure',
+        content: `Chancellor,\n\n{serviceName} has fallen to {qualityScore}/100. Housing pressure is now feeding directly into our political risk.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_service_housing_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'affordableHousingDelivery', minServiceQuality: 42 },
+        subject: 'Housing Delivery Improvement',
+        content: `Chancellor,\n\n{serviceName} has risen to {qualityScore}/100. This helps with both growth and approval.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_localgov_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'localGovServices', maxServiceQuality: 42 },
+        subject: 'Council Services Strain',
+        content: `Chancellor,\n\n{serviceName} are down at {qualityScore}/100. We risk further Section 114 headlines unless council pressures are addressed.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_service_localgov_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'localGovServices', minServiceQuality: 52 },
+        subject: 'Council Services Stabilising',
+        content: `Chancellor,\n\n{serviceName} have improved to {qualityScore}/100. That eases pressure across policing, justice and social care.\n\nPM`,
         tone: 'supportive'
     },
     {

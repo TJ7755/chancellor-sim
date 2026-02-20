@@ -84,6 +84,7 @@ export interface PMInterventionEvent {
   // The PM's demand
   demandTitle: string;
   demandDescription: string;
+  complyPolicyDescription?: string;
 
   // Specific policy to reverse (optional)
   specificPolicyReversal?: {
@@ -927,6 +928,11 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
             {event.demandTitle}
           </h3>
           <p className="text-red-800 leading-relaxed">{event.demandDescription}</p>
+          {event.complyPolicyDescription && (
+            <p className="text-sm text-red-900 mt-3 font-semibold">
+              {event.complyPolicyDescription}
+            </p>
+          )}
         </div>
 
         {/* Choice Buttons */}
@@ -937,7 +943,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
             className="p-5 border-2 border-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all transform hover:scale-105"
           >
             <div className="font-bold text-green-900 mb-3 text-lg">
-              ✓ COMPLY WITH PM
+              COMPLY WITH PM
             </div>
             <div className="text-sm text-green-800 space-y-1 text-left">
               <div>• PM Trust: +{event.consequencesIfComply.pmTrustChange}</div>
@@ -957,7 +963,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
             onClick={onDefy}
             className="p-5 border-2 border-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all transform hover:scale-105"
           >
-            <div className="font-bold text-red-900 mb-3 text-lg">✗ DEFY PM</div>
+            <div className="font-bold text-red-900 mb-3 text-lg">DEFY PM</div>
             <div className="text-sm text-red-800 space-y-1 text-left">
               <div>• PM Trust: {event.consequencesIfDefy.pmTrustChange}</div>
               <div>
