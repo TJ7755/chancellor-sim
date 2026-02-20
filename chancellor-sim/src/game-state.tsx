@@ -20,6 +20,13 @@ import {
   createInitialPoliticalState,
   createInitialAdviserSystem,
   createInitialEventState,
+  createInitialSpendingReviewState,
+  createInitialDebtManagementState,
+  createInitialParliamentaryState,
+  createInitialExternalSectorState,
+  createInitialFinancialStabilityState,
+  createInitialDevolutionState,
+  createInitialDistributionalState,
   calculateInitialFiscalRuleMetrics,
 } from './game-integration';
 import {
@@ -158,6 +165,142 @@ export interface SocialMediaGameState {
   recentlyUsedPostIds: string[];
 }
 
+export interface DepartmentDEL {
+  name: string;
+  resourceDEL_bn: number;
+  capitalDEL_bn: number;
+  plannedResourceDEL_bn: number[];
+  plannedCapitalDEL_bn: number[];
+  backlog: number;
+  deliveryCapacity: number;
+}
+
+export interface SpendingReviewState {
+  lastReviewTurn: number;
+  nextReviewDueTurn: number;
+  departments: {
+    nhs: DepartmentDEL;
+    education: DepartmentDEL;
+    defence: DepartmentDEL;
+    infrastructure: DepartmentDEL;
+    homeOffice: DepartmentDEL;
+    localGov: DepartmentDEL;
+    other: DepartmentDEL;
+  };
+  inReview: boolean;
+  srCredibilityBonus: number;
+  lastDeliveryRiskEvents: string[];
+}
+
+export interface GiltMaturityBucket {
+  outstanding_bn: number;
+  avgCoupon: number;
+  turnsToMaturity: number;
+}
+
+export interface DebtManagementState {
+  maturityProfile: {
+    shortTerm: GiltMaturityBucket;
+    medium: GiltMaturityBucket;
+    longTerm: GiltMaturityBucket;
+    indexLinked: GiltMaturityBucket;
+  };
+  weightedAverageMaturity: number;
+  refinancingRisk: number;
+  qeHoldings_bn: number;
+  issuanceStrategy: 'short' | 'balanced' | 'long';
+}
+
+export interface SelectCommittee {
+  id: 'treasury' | 'health' | 'education' | 'publicAccounts' | 'homeAffairs';
+  scrutinyPressure: number;
+  isInquiryActive: boolean;
+  inquiryTurnsRemaining: number;
+  credibilityImpact: number;
+  inquiryTriggerThreshold: number;
+}
+
+export interface ParliamentaryState {
+  lordsDelayActive: boolean;
+  lordsDelayTurnsRemaining: number;
+  lordsDelayBillType: string | null;
+  whipStrength: number;
+  formalConfidenceVotePending: boolean;
+  confidenceVoteThreshold: number;
+  confidenceVoteTurn: number | null;
+  selectCommittees: SelectCommittee[];
+  rebellionCount: number;
+}
+
+export interface ExternalSectorState {
+  currentAccountGDP: number;
+  tradeBalanceGDP: number;
+  energyImportPricePressure: number;
+  tradeFrictionIndex: number;
+  exportGrowth: number;
+  importGrowth: number;
+  externalShockActive: boolean;
+  externalShockType: 'energy_spike' | 'trade_war' | 'partner_recession' | 'tariff_shock' | null;
+  externalShockTurnsRemaining: number;
+  externalShockMagnitude: number;
+}
+
+export interface FinancialStabilityState {
+  housePriceIndex: number;
+  housePriceGrowthAnnual: number;
+  mortgageApprovals: number;
+  householdDebtToIncome: number;
+  bankStressIndex: number;
+  fpcInterventionActive: boolean;
+  fpcInterventionType: 'lti_cap' | 'ltv_cap' | 'countercyclical_buffer' | null;
+  fpcInterventionTurnsRemaining: number;
+  creditGrowthAnnual: number;
+  housingAffordabilityIndex: number;
+  consecutiveHousingCrashTurns: number;
+}
+
+export interface DevolvdNation {
+  id: 'scotland' | 'wales' | 'northernIreland';
+  blockGrant_bn: number;
+  barnettBaseline_bn: number;
+  politicalTension: number;
+  grantDispute: boolean;
+  grantDisputeTurnsRemaining: number;
+}
+
+export interface LocalGovState {
+  centralGrant_bn: number;
+  councilTaxBaseGrowth: number;
+  localGovStressIndex: number;
+  section114Notices: number;
+  localServicesQuality: number;
+}
+
+export interface DevolutionState {
+  nations: { scotland: DevolvdNation; wales: DevolvdNation; northernIreland: DevolvdNation; };
+  localGov: LocalGovState;
+  barnettConsequentialMultiplier: number;
+  section114Timer: number;
+}
+
+export interface IncomeDecile {
+  id: number;
+  avgIncome_k: number;
+  effectiveTaxRate: number;
+  realIncomeChange: number;
+  isWinner: boolean;
+}
+
+export interface DistributionalState {
+  deciles: IncomeDecile[];
+  giniCoefficient: number;
+  povertyRate: number;
+  childPovertyRate: number;
+  bottomQuintileRealIncomeGrowth: number;
+  topDecileEffectiveTaxRate: number;
+  lastTaxChangeDistribution: 'regressive' | 'neutral' | 'progressive' | null;
+}
+
 export interface GameState {
   metadata: GameMetadata;
   economic: EconomicState;
@@ -174,6 +317,13 @@ export interface GameState {
   emergencyProgrammes: EmergencyProgrammesState;
   pmRelationship: PMRelationshipState;
   socialMedia: SocialMediaGameState;
+  spendingReview: SpendingReviewState;
+  debtManagement: DebtManagementState;
+  parliamentary: ParliamentaryState;
+  externalSector: ExternalSectorState;
+  financialStability: FinancialStabilityState;
+  devolution: DevolutionState;
+  distributional: DistributionalState;
 }
 
 export interface GameActions {
@@ -199,6 +349,9 @@ export interface GameActions {
   updatePromises: (brokenPromiseIds: string[]) => void;
   changeFiscalFramework: (nextRule: FiscalRuleId) => void;
   recordSocialMediaTemplates: (templateIds: string[], turn: number) => void;
+  setSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
+  updateSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
+  setDebtIssuanceStrategy: (strategy: DebtManagementState['issuanceStrategy']) => void;
 }
 
 export interface BudgetChanges {
@@ -433,6 +586,38 @@ function normalizeLoadedState(state: GameState): GameState {
   const socialMedia = state.socialMedia ?? {
     recentlyUsedPostIds: [],
   };
+  const spendingReview = {
+    ...createInitialSpendingReviewState(),
+    ...((state as any).spendingReview || {}),
+  };
+  const debtManagement = {
+    ...createInitialDebtManagementState(
+      state?.fiscal?.debtNominal_bn ?? createInitialFiscalState().debtNominal_bn,
+      state?.markets?.bankRate ?? createInitialMarketState().bankRate,
+      state?.economic?.inflationCPI ?? createInitialEconomicState().inflationCPI
+    ),
+    ...((state as any).debtManagement || {}),
+  };
+  const parliamentary = {
+    ...createInitialParliamentaryState(),
+    ...((state as any).parliamentary || {}),
+  } as ParliamentaryState;
+  const externalSector = {
+    ...createInitialExternalSectorState(),
+    ...((state as any).externalSector || {}),
+  };
+  const financialStability = {
+    ...createInitialFinancialStabilityState(),
+    ...((state as any).financialStability || {}),
+  };
+  const devolution = {
+    ...createInitialDevolutionState(),
+    ...((state as any).devolution || {}),
+  } as DevolutionState;
+  const distributional = {
+    ...createInitialDistributionalState(),
+    ...((state as any).distributional || {}),
+  };
   // Merge all state objects with defaults to handle missing properties from old saves
   const economic = {
     ...createInitialEconomicState(),
@@ -544,6 +729,13 @@ function normalizeLoadedState(state: GameState): GameState {
         : [],
     },
     socialMedia,
+    spendingReview,
+    debtManagement,
+    parliamentary,
+    externalSector,
+    financialStability,
+    devolution,
+    distributional,
   };
 }
 
@@ -596,6 +788,17 @@ function createInitialGameState(): GameState {
   const political = createInitialPoliticalState();
   const advisers = createInitialAdviserSystem();
   const events = createInitialEventState();
+  const spendingReview = createInitialSpendingReviewState();
+  const debtManagement = createInitialDebtManagementState(
+    fiscal.debtNominal_bn,
+    markets.bankRate,
+    economic.inflationCPI
+  );
+  const parliamentary = createInitialParliamentaryState() as ParliamentaryState;
+  const externalSector = createInitialExternalSectorState();
+  const financialStability = createInitialFinancialStabilityState();
+  const devolution = createInitialDevolutionState() as DevolutionState;
+  const distributional = createInitialDistributionalState();
   const manifesto = initializeManifestoState(); // Random manifesto
   const mpSystem = createInitialMPSystem(); // Initialize MP system
   const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
@@ -656,6 +859,13 @@ function createInitialGameState(): GameState {
     socialMedia: {
       recentlyUsedPostIds: [],
     },
+    spendingReview,
+    debtManagement,
+    parliamentary,
+    externalSector,
+    financialStability,
+    devolution,
+    distributional,
   };
 }
 
@@ -795,7 +1005,11 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         gameState.mpSystem,
         emptyBudgetChanges,
         noViolations,
-        gameState.metadata.currentTurn
+        gameState.metadata.currentTurn,
+        {
+          whipStrength: gameState.parliamentary.whipStrength,
+          taxDistribution: gameState.distributional.lastTaxChangeDistribution,
+        }
       );
 
       console.log('[MP System] Initial stances calculated:', {
@@ -813,7 +1027,14 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       }));
     }
-  }, [gameState.mpSystem.allMPs.size, gameState.mpSystem.currentBudgetSupport.size, gameState.metadata.currentTurn, gameState.mpSystem]);
+  }, [
+    gameState.mpSystem.allMPs.size,
+    gameState.mpSystem.currentBudgetSupport.size,
+    gameState.metadata.currentTurn,
+    gameState.mpSystem,
+    gameState.parliamentary.whipStrength,
+    gameState.distributional.lastTaxChangeDistribution,
+  ]);
 
   // Start new game
   const startNewGame = useCallback(
@@ -972,6 +1193,55 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   //
   const applyBudgetChanges = useCallback((changes: BudgetChanges) => {
     setGameState((prevState) => {
+      const majorTaxRise = [
+        changes.incomeTaxBasicChange || 0,
+        changes.incomeTaxHigherChange || 0,
+        changes.incomeTaxAdditionalChange || 0,
+        changes.niEmployeeChange || 0,
+        changes.niEmployerChange || 0,
+        changes.vatChange || 0,
+        changes.corporationTaxChange || 0,
+      ].some((delta) => delta > 5);
+
+      const deptCuts: Array<{ current: number; delta: number; id: string }> = [
+        { id: 'nhs', current: prevState.fiscal.spending.nhs, delta: (changes.nhsCurrentChange || 0) + (changes.nhsCapitalChange || 0) + (changes.nhsSpendingChange || 0) },
+        { id: 'education', current: prevState.fiscal.spending.education, delta: (changes.educationCurrentChange || 0) + (changes.educationCapitalChange || 0) + (changes.educationSpendingChange || 0) },
+        { id: 'defence', current: prevState.fiscal.spending.defence, delta: (changes.defenceCurrentChange || 0) + (changes.defenceCapitalChange || 0) + (changes.defenceSpendingChange || 0) },
+        { id: 'infrastructure', current: prevState.fiscal.spending.infrastructure, delta: (changes.infrastructureCurrentChange || 0) + (changes.infrastructureCapitalChange || 0) + (changes.infrastructureSpendingChange || 0) },
+        { id: 'homeOffice', current: prevState.fiscal.spending.police + prevState.fiscal.spending.justice, delta: (changes.policeCurrentChange || 0) + (changes.policeCapitalChange || 0) + (changes.justiceCurrentChange || 0) + (changes.justiceCapitalChange || 0) + (changes.policeSpendingChange || 0) + (changes.justiceSpendingChange || 0) },
+        { id: 'other', current: prevState.fiscal.spending.other, delta: (changes.otherCurrentChange || 0) + (changes.otherCapitalChange || 0) + (changes.otherSpendingChange || 0) },
+      ];
+      const majorSpendingCut = deptCuts.some((dept) => {
+        if (dept.current <= 0) return false;
+        const nominalAfter = dept.current + dept.delta;
+        const realAfter = nominalAfter / (1 + prevState.economic.inflationCPI / 100);
+        return ((dept.current - realAfter) / dept.current) > 0.15;
+      });
+
+      if (majorTaxRise || majorSpendingCut) {
+        const extendingExistingDelay = prevState.parliamentary.lordsDelayActive;
+        return {
+          ...prevState,
+          fiscal: {
+            ...prevState.fiscal,
+            pendingBudgetChange: { ...(changes as any) },
+            pendingBudgetApplyTurn: prevState.metadata.currentTurn + (extendingExistingDelay ? 12 : 6),
+          },
+          parliamentary: {
+            ...prevState.parliamentary,
+            lordsDelayActive: true,
+            lordsDelayTurnsRemaining: extendingExistingDelay
+              ? Math.min(12, Math.max(prevState.parliamentary.lordsDelayTurnsRemaining, 12))
+              : 6,
+            lordsDelayBillType: majorTaxRise ? 'tax' : 'spending',
+          },
+          political: {
+            ...prevState.political,
+            credibilityIndex: Math.max(0, prevState.political.credibilityIndex - 2),
+          },
+        };
+      }
+
       const expectedInflationIncreaseFactor = prevState.economic.inflationCPI / 100;
       const nhsNominalChange =
         (changes.nhsCurrentChange || 0) +
@@ -1182,6 +1452,99 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
+      const localGovGrantItem = newFiscal.detailedSpending.find((item) => item.id === 'localGovernmentGrants');
+      const nextCentralGrant = localGovGrantItem?.currentBudget ?? prevState.devolution.localGov.centralGrant_bn;
+
+      const nextSpendingReviewDepartments = {
+        ...prevState.spendingReview.departments,
+        nhs: {
+          ...prevState.spendingReview.departments.nhs,
+          resourceDEL_bn: newFiscal.spending.nhsCurrent,
+          capitalDEL_bn: newFiscal.spending.nhsCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.nhsCurrent,
+            ...(prevState.spendingReview.departments.nhs.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.nhsCapital,
+            ...(prevState.spendingReview.departments.nhs.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+        education: {
+          ...prevState.spendingReview.departments.education,
+          resourceDEL_bn: newFiscal.spending.educationCurrent,
+          capitalDEL_bn: newFiscal.spending.educationCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.educationCurrent,
+            ...(prevState.spendingReview.departments.education.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.educationCapital,
+            ...(prevState.spendingReview.departments.education.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+        defence: {
+          ...prevState.spendingReview.departments.defence,
+          resourceDEL_bn: newFiscal.spending.defenceCurrent,
+          capitalDEL_bn: newFiscal.spending.defenceCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.defenceCurrent,
+            ...(prevState.spendingReview.departments.defence.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.defenceCapital,
+            ...(prevState.spendingReview.departments.defence.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+        infrastructure: {
+          ...prevState.spendingReview.departments.infrastructure,
+          resourceDEL_bn: newFiscal.spending.infrastructureCurrent,
+          capitalDEL_bn: newFiscal.spending.infrastructureCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.infrastructureCurrent,
+            ...(prevState.spendingReview.departments.infrastructure.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.infrastructureCapital,
+            ...(prevState.spendingReview.departments.infrastructure.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+        homeOffice: {
+          ...prevState.spendingReview.departments.homeOffice,
+          resourceDEL_bn: newFiscal.spending.policeCurrent + newFiscal.spending.justiceCurrent,
+          capitalDEL_bn: newFiscal.spending.policeCapital + newFiscal.spending.justiceCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.policeCurrent + newFiscal.spending.justiceCurrent,
+            ...(prevState.spendingReview.departments.homeOffice.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.policeCapital + newFiscal.spending.justiceCapital,
+            ...(prevState.spendingReview.departments.homeOffice.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+        localGov: {
+          ...prevState.spendingReview.departments.localGov,
+          resourceDEL_bn: nextCentralGrant,
+          plannedResourceDEL_bn: [
+            nextCentralGrant,
+            ...(prevState.spendingReview.departments.localGov.plannedResourceDEL_bn || []).slice(1),
+          ],
+        },
+        other: {
+          ...prevState.spendingReview.departments.other,
+          resourceDEL_bn: newFiscal.spending.otherCurrent,
+          capitalDEL_bn: newFiscal.spending.otherCapital,
+          plannedResourceDEL_bn: [
+            newFiscal.spending.otherCurrent,
+            ...(prevState.spendingReview.departments.other.plannedResourceDEL_bn || []).slice(1),
+          ],
+          plannedCapitalDEL_bn: [
+            newFiscal.spending.otherCapital,
+            ...(prevState.spendingReview.departments.other.plannedCapitalDEL_bn || []).slice(1),
+          ],
+        },
+      };
+
       return {
         ...prevState,
         fiscal: newFiscal,
@@ -1190,6 +1553,17 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           ...(prevState.policyRiskModifiers || []),
           ...((changes.policyRiskModifiers || []).map((modifier) => ({ ...modifier }))),
         ],
+        spendingReview: {
+          ...prevState.spendingReview,
+          departments: nextSpendingReviewDepartments,
+        },
+        devolution: {
+          ...prevState.devolution,
+          localGov: {
+            ...prevState.devolution.localGov,
+            centralGrant_bn: nextCentralGrant,
+          },
+        },
       };
     });
   }, []);
@@ -1752,7 +2126,11 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           prevState.mpSystem,
           budgetChanges,
           manifestoViolations,
-          prevState.metadata.currentTurn
+          prevState.metadata.currentTurn,
+          {
+            whipStrength: prevState.parliamentary.whipStrength,
+            taxDistribution: prevState.distributional.lastTaxChangeDistribution,
+          }
         );
 
         // Generate concern profiles for all Labour MPs if not already generated
@@ -2058,6 +2436,40 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  const setSpendingReviewPlans = useCallback((plans: SpendingReviewState['departments']) => {
+    setGameState((prevState) => ({
+      ...prevState,
+      spendingReview: {
+        ...prevState.spendingReview,
+        departments: plans,
+        inReview: false,
+        srCredibilityBonus: 8,
+        lastReviewTurn: prevState.metadata.currentTurn,
+        nextReviewDueTurn: prevState.metadata.currentTurn < 37 ? 37 : Number.MAX_SAFE_INTEGER,
+      },
+    }));
+  }, []);
+
+  const updateSpendingReviewPlans = useCallback((plans: SpendingReviewState['departments']) => {
+    setGameState((prevState) => ({
+      ...prevState,
+      spendingReview: {
+        ...prevState.spendingReview,
+        departments: plans,
+      },
+    }));
+  }, []);
+
+  const setDebtIssuanceStrategy = useCallback((strategy: DebtManagementState['issuanceStrategy']) => {
+    setGameState((prevState) => ({
+      ...prevState,
+      debtManagement: {
+        ...prevState.debtManagement,
+        issuanceStrategy: strategy,
+      },
+    }));
+  }, []);
+
   const actions: GameActions = {
     startNewGame,
     advanceTurn,
@@ -2076,6 +2488,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     updatePromises,
     changeFiscalFramework,
     recordSocialMediaTemplates,
+    setSpendingReviewPlans,
+    updateSpendingReviewPlans,
+    setDebtIssuanceStrategy,
   };
 
   return (

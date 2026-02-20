@@ -21,9 +21,11 @@ import { PMMessagesScreen } from './pm-messages-screen';
 import { PMInterventionModal } from './political-system';
 import { Newspaper, EventModal, EventLogPanel } from './events-media';
 import { SocialMediaSidebar } from './social-media-system';
+import { SpendingReviewModal } from './SpendingReviewModal';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -769,6 +771,7 @@ const SimpleDashboard: React.FC = () => {
   const gameActions = useGameActions();
   const [oneClickMessage, setOneClickMessage] = useState<{message: string, success: boolean} | null>(null);
   const [showThisMonth, setShowThisMonth] = useState(true);
+  const [showDistributionImpact, setShowDistributionImpact] = useState(false);
 
   return (
     <div className="flex min-h-screen -m-6">
@@ -937,6 +940,42 @@ const SimpleDashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-sm">
+        <button
+          onClick={() => setShowDistributionImpact(!showDistributionImpact)}
+          className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50"
+        >
+          <span className="font-semibold text-gray-900">Distributional Impact</span>
+          <span className="text-sm text-gray-600">{showDistributionImpact ? 'Hide' : 'Show'}</span>
+        </button>
+        {showDistributionImpact && (
+          <div className="px-4 pb-4 space-y-4">
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={gameState.distributional.deciles.map((d) => ({ decile: `D${d.id}`, value: d.isWinner ? 1 : -1 }))}>
+                  <XAxis dataKey="decile" />
+                  <YAxis domain={[-1, 1]} ticks={[-1, 0, 1]} />
+                  <Tooltip />
+                  <Bar dataKey="value">
+                    {gameState.distributional.deciles.map((d) => (
+                      <Cell key={d.id} fill={d.isWinner ? '#15803d' : '#b91c1c'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="border border-gray-200 rounded-sm p-2">Gini: <span className="font-semibold">{gameState.distributional.giniCoefficient.toFixed(3)}</span></div>
+              <div className="border border-gray-200 rounded-sm p-2">Poverty rate: <span className="font-semibold">{gameState.distributional.povertyRate.toFixed(1)}%</span></div>
+              <div className="border border-gray-200 rounded-sm p-2">Child poverty: <span className="font-semibold">{gameState.distributional.childPovertyRate.toFixed(1)}%</span></div>
+              <div className="border border-gray-200 rounded-sm p-2">Last tax change: <span className="font-semibold">{gameState.distributional.lastTaxChangeDistribution || 'None'}</span></div>
+              <div className="border border-gray-200 rounded-sm p-2">Bottom quintile real income: <span className="font-semibold">{gameState.distributional.bottomQuintileRealIncomeGrowth.toFixed(1)}%</span></div>
+              <div className="border border-gray-200 rounded-sm p-2">Top decile effective tax: <span className="font-semibold">{gameState.distributional.topDecileEffectiveTaxRate.toFixed(1)}%</span></div>
+            </div>
+          </div>
+        )}
       </div>
         </div>
       </div>
@@ -2027,6 +2066,12 @@ const GameInner: React.FC = () => {
         onSaveLoad={() => setShowSaveLoad(true)}
       />
 
+      {gameState.parliamentary.lordsDelayActive && (
+        <div className="bg-amber-100 border-y border-amber-300 px-6 py-2 text-amber-900 text-sm">
+          Lords Scrutiny: {gameState.parliamentary.lordsDelayTurnsRemaining} turns remaining. Delayed bill type: {gameState.parliamentary.lordsDelayBillType || 'budget package'}.
+        </div>
+      )}
+
       {/* Main content area */}
       <div className="relative">
         {currentView === 'dashboard' && (
@@ -2121,6 +2166,14 @@ const GameInner: React.FC = () => {
           event={activePMIntervention}
           onComply={() => actions.respondToPMIntervention('comply')}
           onDefy={() => actions.respondToPMIntervention('defy')}
+        />
+      )}
+
+      {gameState.spendingReview?.inReview && !showNewspaper && (
+        <SpendingReviewModal
+          spendingReview={gameState.spendingReview}
+          fiscalHeadroom_bn={gameState.fiscal.fiscalHeadroom_bn}
+          onConfirm={(plans) => actions.setSpendingReviewPlans(plans)}
         />
       )}
 

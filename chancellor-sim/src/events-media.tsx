@@ -679,6 +679,42 @@ function checkHeadlineConditions(conditions: HeadlineCondition, state: any): boo
 
 // Generate a headline based on state
 export function generateHeadline(state: any, newspaper: NewspaperSource): { headline: string; subheading: string } {
+  if ((state?.devolution?.localGov?.section114Notices || 0) >= 5) {
+    return {
+      headline: 'Local Government Finance Crisis Deepens',
+      subheading: 'A growing number of councils have issued Section 114 notices, intensifying pressure on central government.',
+    };
+  }
+
+  if (state?.externalSector?.shockActive) {
+    const shock = state.externalSector.shockType;
+    if (shock === 'energy_spike') {
+      return {
+        headline: 'Global Energy Shock Hits UK Prices',
+        subheading: 'Import cost pressure is feeding directly into inflation expectations and household bills.',
+      };
+    }
+    if (shock === 'trade_war' || shock === 'tariff_shock') {
+      return {
+        headline: 'Trade Frictions Escalate as Exporters Face New Barriers',
+        subheading: 'Businesses warn that higher tariffs and border friction could drag on growth for months.',
+      };
+    }
+    if (shock === 'partner_recession') {
+      return {
+        headline: 'Overseas Slowdown Weighs on UK Demand',
+        subheading: 'Weaker trading partners are dampening exports and widening external vulnerabilities.',
+      };
+    }
+  }
+
+  if (Array.isArray(state?.parliamentary?.activeInquiries) && state.parliamentary.activeInquiries.length > 0) {
+    return {
+      headline: 'Select Committee Inquiry Intensifies Pressure on Treasury',
+      subheading: 'MPs have opened formal scrutiny hearings, raising doubts over delivery and fiscal control.',
+    };
+  }
+
   // 1. Filter valid headlines
   const validHeadlines = NEWSPAPER_HEADLINES.filter((entry: HeadlineEntry) => checkHeadlineConditions(entry.conditions, state));
 

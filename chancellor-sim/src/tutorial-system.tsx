@@ -69,8 +69,8 @@ export const TUTORIAL_SECTIONS: TutorialSection[] = [
       'Low approval triggers negative media coverage which further reduces approval.',
     ],
     keyPoints: [
-      'Honeymoon period: First 12 months are easier (approval bonus)',
       'Game over if PM trust falls below 20',
+      'Game over if 10 year gilt yields go over 7.5%',
       'Game over if backbench satisfaction below 25 (revolt)',
       'Must reach June 2029 to win',
     ],
@@ -95,7 +95,7 @@ export const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     title: 'Strategy Tips',
     content: [
-      'Start cautiously: You have a honeymoon period, don\'t waste it on risky policies.',
+      'Start cautiously:  don\'t waste time on risky policies.',
       'Build fiscal headroom: Keep deficit manageable so you have space for future shocks.',
       'Invest in infrastructure: High GDP multiplier, long-term growth benefits.',
       'Protect the NHS: Most politically sensitive - real terms cuts are dangerous.',

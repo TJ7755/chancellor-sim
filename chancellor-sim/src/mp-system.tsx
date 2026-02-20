@@ -959,6 +959,7 @@ export function calculateMPStance(
   manifestoViolations: string[],
   promises: Map<string, MPPromise>,
   currentMonth: number = 0,
+  context?: { whipStrength?: number; taxDistribution?: 'regressive' | 'neutral' | 'progressive' | null },
 ): DetailedMPStance {
   let supportScore = 50; // Start neutral
   let reason = "Neutral starting point.";
@@ -1048,7 +1049,13 @@ export function calculateMPStance(
   }
 
   // Determine final stance
-  const stance: MPStanceLabel = supportScore > 62 ? 'support' : (supportScore < 42 ? 'oppose' : 'undecided');
+  let adjustedScore = supportScore;
+  if (context?.taxDistribution === 'regressive' && mp.party === 'labour' && (mp.faction === 'left' || mp.faction === 'soft_left' || mp.faction === 'centre_left')) {
+    adjustedScore -= 2;
+  } else if (context?.taxDistribution === 'progressive' && mp.party === 'labour' && (mp.faction === 'blairite' || mp.faction === 'party_loyalist')) {
+    adjustedScore -= 2;
+  }
+  const stance: MPStanceLabel = adjustedScore > 62 ? 'support' : (adjustedScore < 42 ? 'oppose' : 'undecided');
 
   // Formulate reason
   if (stance === 'support') {
@@ -1068,7 +1075,7 @@ export function calculateMPStance(
 
   return {
     stance,
-    score: supportScore,
+    score: adjustedScore,
     reason,
     concerns: [], // Populated by granular impact analysis in future
     ideologicalAlignment,
@@ -1085,7 +1092,8 @@ export function calculateAllMPStances(
   mpSystem: MPSystemState,
   budgetChanges: BudgetChanges,
   manifestoViolations: string[],
-  currentMonth?: number
+  currentMonth?: number,
+  context?: { whipStrength?: number; taxDistribution?: 'regressive' | 'neutral' | 'progressive' | null }
 ): Map<string, DetailedMPStance> {
   const stances = new Map<string, DetailedMPStance>();
 
@@ -1132,8 +1140,21 @@ export function calculateAllMPStances(
           manifestoViolations,
           mpSystem.promises,
           currentMonth ?? 0,
+          context,
         );
-        stances.set(mpId, stance);
+        let finalStance = stance;
+        const whipStrength = context?.whipStrength;
+        if (mp.party === 'labour' && whipStrength !== undefined) {
+          if (finalStance.stance === 'undecided') {
+            const supportProb = Math.max(0, Math.min(1, whipStrength / 100));
+            if (Math.random() < supportProb) {
+              finalStance = { ...finalStance, stance: 'support', score: Math.max(finalStance.score, 63), reason: 'Persuaded by the whip operation to support the government.' };
+            }
+          } else if (whipStrength < 40 && finalStance.stance === 'support' && Math.random() < 0.15) {
+            finalStance = { ...finalStance, stance: 'undecided', score: 52, reason: 'With weak whipping, this MP abstains despite nominal support.' };
+          }
+        }
+        stances.set(mpId, finalStance);
       }
     }
   };

@@ -341,6 +341,14 @@ export interface FiscalState {
   totalRevenue_bn: number;
   totalSpending_bn: number;
   spending: SpendingBreakdown;
+  welfareDEL_bn: number;
+  welfareAME_bn: number;
+  pendingBudgetChange: Record<string, any> | null;
+  pendingBudgetApplyTurn: number | null;
+  fpcConstraintCost_bn: number;
+  stampDutyRevenue_bn: number;
+  housingAMEPressure_bn: number;
+  barnettConsequentials_bn: number;
 
   // Fiscal aggregates
   deficit_bn: number;
@@ -383,6 +391,14 @@ export function createInitialFiscalState(): FiscalState {
 
     totalRevenue_bn: 1090,
     totalSpending_bn: 1100,
+    welfareDEL_bn: 30,
+    welfareAME_bn: 115,
+    pendingBudgetChange: null,
+    pendingBudgetApplyTurn: null,
+    fpcConstraintCost_bn: 0,
+    stampDutyRevenue_bn: 16,
+    housingAMEPressure_bn: 0,
+    barnettConsequentials_bn: 0,
     spending: {
       // Current (resource) spending
       nhsCurrent: 168.4,
@@ -540,6 +556,190 @@ export function createInitialFiscalState(): FiscalState {
     },
     fiscalRuleBreaches: 0,
     pmPensionFloor_bn: 0,
+  };
+}
+
+export function createInitialSpendingReviewState() {
+  return {
+    lastReviewTurn: -1,
+    nextReviewDueTurn: 1,
+    inReview: false,
+    srCredibilityBonus: 0,
+    lastDeliveryRiskEvents: [] as string[],
+    departments: {
+      nhs: {
+        name: 'NHS',
+        resourceDEL_bn: 180,
+        capitalDEL_bn: 12,
+        plannedResourceDEL_bn: [180, 183, 186],
+        plannedCapitalDEL_bn: [12, 12.4, 12.8],
+        backlog: 45,
+        deliveryCapacity: 65,
+      },
+      education: {
+        name: 'Education',
+        resourceDEL_bn: 116,
+        capitalDEL_bn: 12,
+        plannedResourceDEL_bn: [116, 118, 120],
+        plannedCapitalDEL_bn: [12, 12.3, 12.6],
+        backlog: 40,
+        deliveryCapacity: 80,
+      },
+      defence: {
+        name: 'Defence',
+        resourceDEL_bn: 39,
+        capitalDEL_bn: 16.6,
+        plannedResourceDEL_bn: [39, 39.8, 40.6],
+        plannedCapitalDEL_bn: [16.6, 17.0, 17.4],
+        backlog: 30,
+        deliveryCapacity: 80,
+      },
+      infrastructure: {
+        name: 'Infrastructure',
+        resourceDEL_bn: 20,
+        capitalDEL_bn: 80,
+        plannedResourceDEL_bn: [20, 20.4, 20.8],
+        plannedCapitalDEL_bn: [80, 82, 84],
+        backlog: 55,
+        deliveryCapacity: 65,
+      },
+      homeOffice: {
+        name: 'Home Office',
+        resourceDEL_bn: 31.2,
+        capitalDEL_bn: 0.8,
+        plannedResourceDEL_bn: [31.2, 31.8, 32.4],
+        plannedCapitalDEL_bn: [0.8, 0.85, 0.9],
+        backlog: 35,
+        deliveryCapacity: 80,
+      },
+      localGov: {
+        name: 'Local Government',
+        resourceDEL_bn: 30,
+        capitalDEL_bn: 0,
+        plannedResourceDEL_bn: [30, 30.6, 31.2],
+        plannedCapitalDEL_bn: [0, 0, 0],
+        backlog: 60,
+        deliveryCapacity: 80,
+      },
+      other: {
+        name: 'Other',
+        resourceDEL_bn: 277.4,
+        capitalDEL_bn: 20,
+        plannedResourceDEL_bn: [277.4, 280, 282.6],
+        plannedCapitalDEL_bn: [20, 20.4, 20.8],
+        backlog: 30,
+        deliveryCapacity: 80,
+      },
+    },
+  };
+}
+
+export function createInitialDebtManagementState(debtNominal_bn: number, bankRate: number, inflationCPI: number) {
+  const shortTerm = debtNominal_bn * 0.2;
+  const medium = debtNominal_bn * 0.35;
+  const longTerm = debtNominal_bn * 0.3;
+  const indexLinked = Math.max(0, debtNominal_bn - shortTerm - medium - longTerm);
+
+  return {
+    maturityProfile: {
+      shortTerm: { outstanding_bn: shortTerm, avgCoupon: bankRate, turnsToMaturity: 8 },
+      medium: { outstanding_bn: medium, avgCoupon: 4.2, turnsToMaturity: 60 },
+      longTerm: { outstanding_bn: longTerm, avgCoupon: 4.5, turnsToMaturity: 240 },
+      indexLinked: { outstanding_bn: indexLinked, avgCoupon: inflationCPI + 0.5, turnsToMaturity: 120 },
+    },
+    weightedAverageMaturity: 14,
+    refinancingRisk: 35,
+    qeHoldings_bn: 750,
+    issuanceStrategy: 'balanced' as const,
+  };
+}
+
+export function createInitialParliamentaryState() {
+  return {
+    lordsDelayActive: false,
+    lordsDelayTurnsRemaining: 0,
+    lordsDelayBillType: null,
+    whipStrength: 70,
+    formalConfidenceVotePending: false,
+    confidenceVoteThreshold: 62,
+    confidenceVoteTurn: null,
+    rebellionCount: 0,
+    selectCommittees: [
+      { id: 'treasury', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+      { id: 'health', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+      { id: 'education', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+      { id: 'publicAccounts', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+      { id: 'homeAffairs', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+    ],
+  };
+}
+
+export function createInitialExternalSectorState() {
+  return {
+    currentAccountGDP: -3.1,
+    tradeBalanceGDP: -2.8,
+    energyImportPricePressure: 0,
+    tradeFrictionIndex: 35,
+    exportGrowth: 1.2,
+    importGrowth: 1.5,
+    externalShockActive: false,
+    externalShockType: null,
+    externalShockTurnsRemaining: 0,
+    externalShockMagnitude: 0,
+  };
+}
+
+export function createInitialFinancialStabilityState() {
+  return {
+    housePriceIndex: 100,
+    housePriceGrowthAnnual: 2.5,
+    mortgageApprovals: 60,
+    householdDebtToIncome: 130,
+    bankStressIndex: 15,
+    fpcInterventionActive: false,
+    fpcInterventionType: null,
+    fpcInterventionTurnsRemaining: 0,
+    creditGrowthAnnual: 4.2,
+    housingAffordabilityIndex: 38,
+    consecutiveHousingCrashTurns: 0,
+  };
+}
+
+export function createInitialDevolutionState() {
+  return {
+    nations: {
+      scotland: { id: 'scotland', blockGrant_bn: 41, barnettBaseline_bn: 0.085, politicalTension: 45, grantDispute: false, grantDisputeTurnsRemaining: 0 },
+      wales: { id: 'wales', blockGrant_bn: 20, barnettBaseline_bn: 0.05, politicalTension: 30, grantDispute: false, grantDisputeTurnsRemaining: 0 },
+      northernIreland: { id: 'northernIreland', blockGrant_bn: 18, barnettBaseline_bn: 0.035, politicalTension: 35, grantDispute: false, grantDisputeTurnsRemaining: 0 },
+    },
+    localGov: {
+      centralGrant_bn: 30,
+      councilTaxBaseGrowth: 2.5,
+      localGovStressIndex: 40,
+      section114Notices: 0,
+      localServicesQuality: 48,
+    },
+    barnettConsequentialMultiplier: 1,
+    section114Timer: 0,
+  };
+}
+
+export function createInitialDistributionalState() {
+  const incomes = [9, 14, 18, 22, 27, 33, 40, 51, 68, 120];
+  return {
+    deciles: incomes.map((avgIncome_k, i) => ({
+      id: i + 1,
+      avgIncome_k,
+      effectiveTaxRate: 0,
+      realIncomeChange: 0,
+      isWinner: false,
+    })),
+    giniCoefficient: 0.35,
+    povertyRate: 17.5,
+    childPovertyRate: 29.0,
+    bottomQuintileRealIncomeGrowth: 0,
+    topDecileEffectiveTaxRate: 0,
+    lastTaxChangeDistribution: null as 'regressive' | 'neutral' | 'progressive' | null,
   };
 }
 

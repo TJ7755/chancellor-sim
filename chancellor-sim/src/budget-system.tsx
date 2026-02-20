@@ -7,7 +7,7 @@ import {
   AdviserType,
   SimulationState
 } from './adviser-system';
-import { GameState, useGameActions, useGameState, serializeGameState } from './game-state';
+import { GameState, SpendingReviewState, useGameActions, useGameState, serializeGameState } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel, PolicyRiskModifier } from './game-integration';
@@ -1770,6 +1770,16 @@ const WELFARE_SPENDING_ITEM_IDS = [
   'childBenefit',
 ];
 
+const SPENDING_REVIEW_DEPARTMENT_ORDER: Array<keyof SpendingReviewState['departments']> = [
+  'nhs',
+  'education',
+  'defence',
+  'infrastructure',
+  'homeOffice',
+  'localGov',
+  'other',
+];
+
 // Budget-screen welfare lines are reconstructed proportionally from the welfare aggregate.
 // Use a fixed baseline share to derive an annual state pension target from fiscal-year welfare baseline.
 // Welfare baseline in the current fiscal model is £290bn, with state pension at £130bn.
@@ -1943,7 +1953,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     return draft ? draft.spending : reconstructSpendingFromGameState(gameState);
   });
   const [budgetType, setBudgetType] = useState<'spring' | 'autumn' | 'emergency'>('spring');
-  const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints'>('taxes');
+  const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints' | 'debt' | 'del'>('taxes');
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const [showAdviserDetail, setShowAdviserDetail] = useState<AdviserType | null>(null);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
@@ -3420,6 +3430,41 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     return grouped;
   }, [spending]);
 
+  const spendingReviewPlanTotal = useMemo(() => {
+    return SPENDING_REVIEW_DEPARTMENT_ORDER.reduce((sum, key) => {
+      const dept = gameState.spendingReview.departments[key];
+      const resourceTotal = (dept.plannedResourceDEL_bn || []).reduce((acc, value) => acc + value, 0);
+      const capitalTotal = (dept.plannedCapitalDEL_bn || []).reduce((acc, value) => acc + value, 0);
+      return sum + resourceTotal + capitalTotal;
+    }, 0);
+  }, [gameState.spendingReview.departments]);
+
+  const spendingReviewHeadroomEnvelope = gameState.fiscal.fiscalHeadroom_bn * 9;
+
+  const handleSpendingReviewPlanChange = useCallback((
+    departmentKey: keyof SpendingReviewState['departments'],
+    planType: 'resource' | 'capital',
+    yearIdx: number,
+    nextValue: number,
+  ) => {
+    const normalized = Number.isFinite(nextValue) ? Math.max(0, nextValue) : 0;
+    const nextDepartments = { ...gameState.spendingReview.departments };
+    const nextDepartment = { ...nextDepartments[departmentKey] };
+
+    if (planType === 'resource') {
+      const updated = [...nextDepartment.plannedResourceDEL_bn];
+      updated[yearIdx] = normalized;
+      nextDepartment.plannedResourceDEL_bn = updated;
+    } else {
+      const updated = [...nextDepartment.plannedCapitalDEL_bn];
+      updated[yearIdx] = normalized;
+      nextDepartment.plannedCapitalDEL_bn = updated;
+    }
+
+    nextDepartments[departmentKey] = nextDepartment;
+    gameActions.updateSpendingReviewPlans(nextDepartments);
+  }, [gameActions, gameState.spendingReview.departments]);
+
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
@@ -3527,7 +3572,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       {/* Fiscal Impact Summary Bar */}
       <div className="bg-white border-b border-grey-200 shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-6 gap-4">
+          <div className="grid grid-cols-7 gap-4">
             <div>
               <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Deficit Change</div>
               <div className={`text-2xl font-bold ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
@@ -3587,7 +3632,25 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 {warnings.length}
               </div>
             </div>
+            <div>
+              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Debt Issuance</div>
+              <select
+                value={gameState.debtManagement.issuanceStrategy}
+                onChange={(e) => gameActions.setDebtIssuanceStrategy(e.target.value as 'short' | 'balanced' | 'long')}
+                className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+              >
+                <option value="short">Short</option>
+                <option value="balanced">Balanced</option>
+                <option value="long">Long</option>
+              </select>
+              <div className="text-xs text-grey-500 mt-1">WAM {gameState.debtManagement.weightedAverageMaturity.toFixed(1)} years</div>
+            </div>
           </div>
+          {Math.abs(gameState.fiscal.barnettConsequentials_bn || 0) > 0.01 && (
+            <div className="mt-3 text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
+              Barnett consequentials: +£{(gameState.fiscal.barnettConsequentials_bn || 0).toFixed(1)}bn
+            </div>
+          )}
         </div>
       </div>
 
@@ -3598,7 +3661,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* View Tabs */}
             <div className="bg-white rounded-lg shadow-sm border border-grey-200 mb-6">
               <div className="flex border-b border-grey-200">
-                {(['taxes', 'spending', 'impact', 'constraints'] as const).map((view) => (
+                {(['taxes', 'spending', 'del', 'impact', 'constraints', 'debt'] as const).map((view) => (
                   <button
                     key={view}
                     onClick={() => setActiveView(view)}
@@ -3609,12 +3672,112 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   >
                     {view === 'taxes' && 'Taxation'}
                     {view === 'spending' && 'Public Spending'}
+                    {view === 'del' && 'DEL Plan (3Y)'}
                     {view === 'impact' && 'Fiscal Impact'}
                     {view === 'constraints' && 'Manifesto Commitments'}
+                    {view === 'debt' && 'Debt Management'}
                   </button>
                 ))}
               </div>
             </div>
+
+            {activeView === 'del' && (
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
+                  <h2 className="text-xl font-bold text-grey-900">Departmental Expenditure Limits (3-Year Plan)</h2>
+                  <p className="text-sm text-grey-600 mt-1">
+                    Edit DEL plans at any time. Markets can react to out-year plans, but less than to current budgets and headroom.
+                  </p>
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="border border-grey-200 rounded-sm p-3">
+                      <div className="text-grey-600">Projected 3Y DEL total</div>
+                      <div className="text-2xl font-bold">£{spendingReviewPlanTotal.toFixed(1)}bn</div>
+                    </div>
+                    <div className="border border-grey-200 rounded-sm p-3">
+                      <div className="text-grey-600">Headroom envelope (3Y)</div>
+                      <div className="text-2xl font-bold">£{spendingReviewHeadroomEnvelope.toFixed(1)}bn</div>
+                    </div>
+                    <div className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                      <div className="text-grey-600">Envelope check</div>
+                      <div className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'text-amber-700' : 'text-green-700'}`}>
+                        {spendingReviewPlanTotal > spendingReviewHeadroomEnvelope ? 'Overspend' : 'Within envelope'}
+                      </div>
+                    </div>
+                  </div>
+                  {spendingReviewPlanTotal > spendingReviewHeadroomEnvelope && (
+                    <div className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-sm px-3 py-2">
+                      DEL plan exceeds projected headroom envelope. This is allowed, but it may raise gilt yields and weaken sterling.
+                    </div>
+                  )}
+                </div>
+
+                {SPENDING_REVIEW_DEPARTMENT_ORDER.map((key) => {
+                  const dept = gameState.spendingReview.departments[key];
+                  return (
+                    <div key={key} className="bg-white rounded-lg shadow-sm border border-grey-200 p-5">
+                      <div className="flex justify-between items-center mb-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-grey-900">{dept.name}</h3>
+                          <div className="text-xs text-grey-600">
+                            Service quality and backlog context from latest turn
+                          </div>
+                        </div>
+                        <div className="text-xs text-grey-600">
+                          Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {[0, 1, 2].map((yearIdx) => (
+                          <div key={`${key}_year_${yearIdx}`} className="border border-grey-100 rounded-sm p-3">
+                            <div className="text-xs uppercase tracking-wide text-grey-600 mb-2">Year {yearIdx + 1}</div>
+                            <label className="text-xs text-grey-600 block mb-1">Resource DEL (£bn)</label>
+                            <input
+                              type="number"
+                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              value={yearIdx === 0 ? dept.resourceDEL_bn : dept.plannedResourceDEL_bn[yearIdx]}
+                              disabled={yearIdx === 0}
+                              onChange={(e) => handleSpendingReviewPlanChange(key, 'resource', yearIdx, Number(e.target.value))}
+                            />
+                            <label className="text-xs text-grey-600 block mt-3 mb-1">Capital DEL (£bn)</label>
+                            <input
+                              type="number"
+                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              value={yearIdx === 0 ? dept.capitalDEL_bn : dept.plannedCapitalDEL_bn[yearIdx]}
+                              disabled={yearIdx === 0}
+                              onChange={(e) => handleSpendingReviewPlanChange(key, 'capital', yearIdx, Number(e.target.value))}
+                            />
+                            {yearIdx === 0 && (
+                              <div className="text-[11px] text-grey-500 mt-2">Year 1 is synced to current budget values.</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeView === 'debt' && (
+              <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6 space-y-4">
+                <h2 className="text-xl font-bold text-grey-900">Debt Management</h2>
+                <p className="text-sm text-grey-600">Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing risk.</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">Refinancing risk</div>
+                    <div className="text-2xl font-bold">{gameState.debtManagement.refinancingRisk.toFixed(1)}</div>
+                  </div>
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">QE holdings</div>
+                    <div className="text-2xl font-bold">£{gameState.debtManagement.qeHoldings_bn.toFixed(0)}bn</div>
+                  </div>
+                  <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="text-grey-600">Debt interest</div>
+                    <div className="text-2xl font-bold">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Taxes View */}
             {activeView === 'taxes' && (
