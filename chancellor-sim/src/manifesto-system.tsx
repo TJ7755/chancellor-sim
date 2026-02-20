@@ -1039,9 +1039,11 @@ export function checkPolicyForViolations(
 
       case 'fiscal-rules':
       case 'fiscal-rules-prudent':
+        // Fiscal-rule breaches are tracked separately from manifesto violations.
+        // They still matter for gilt premia and credibility, but do not increment
+        // manifesto violation counters or trigger manifesto penalty tiers.
         if (policyChange.fiscalRuleBreached) {
-          isViolated = true;
-          warnings.push(`Breaking fiscal rules violates manifesto pledge: "${pledge.description}"`);
+          warnings.push(`Fiscal rule breach detected: "${pledge.description}" is off track.`);
         }
         break;
 

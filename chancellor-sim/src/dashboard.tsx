@@ -509,6 +509,16 @@ const EconomicPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
           sublabel={`NAIRU: ${formatPercent(economy.nairu)}`}
         />
         <MetricCard
+          label="Participation"
+          value={formatPercent((economy as any).participationRate ?? 63)}
+          status={((economy as any).participationRate ?? 63) > 63 ? 'good' : 'neutral'}
+        />
+        <MetricCard
+          label="Inactivity"
+          value={formatPercent((economy as any).economicInactivity ?? 21.5)}
+          status={((economy as any).economicInactivity ?? 21.5) < 22 ? 'good' : 'neutral'}
+        />
+        <MetricCard
           label="Output Gap"
           value={formatPercent(economy.outputGap)}
           status={Math.abs(economy.outputGap) < 1.0 ? 'good' : 'neutral'}

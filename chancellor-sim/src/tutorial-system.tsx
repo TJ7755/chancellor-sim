@@ -15,7 +15,7 @@ export const TUTORIAL_SECTIONS: TutorialSection[] = [
       'You are the Chancellor of the Exchequer in a Labour government that took office in July 2024.',
       'Your goal is to survive the full five-year term until the 2029 election.',
       'You must balance economic growth, fiscal responsibility, public services, and political survival.',
-      'The Prime Minister will sack you if you lose their trust. Backbenchers will revolt if you threaten their seats.',
+      'The Prime Minister will sack you if you lose his trust. Backbenchers will revolt if you threaten their seats.',
     ],
     keyPoints: [
       'Game runs from July 2024 to June 2029 (60 months)',

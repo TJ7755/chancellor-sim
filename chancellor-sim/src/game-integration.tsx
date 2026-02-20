@@ -236,6 +236,8 @@ export interface EconomicState {
   inflationAnchorHealth: number; // 0-100, where 100 is fully anchored at 2%
   productivityGrowthAnnual: number; // % annual labour productivity growth
   productivityLevel: number; // Index: 100 = baseline (July 2024)
+  participationRate: number; // Labour force participation rate (%)
+  economicInactivity: number; // Economic inactivity rate (%)
 }
 
 export function createInitialEconomicState(): EconomicState {
@@ -249,6 +251,8 @@ export function createInitialEconomicState(): EconomicState {
     inflationAnchorHealth: 72,
     productivityGrowthAnnual: 0.1,
     productivityLevel: 100, // Baseline index
+    participationRate: 63.0,
+    economicInactivity: 21.5,
   };
 }
 
@@ -350,6 +354,8 @@ export interface FiscalState {
   currentFiscalYear: number;
   fiscalYearStartTurn: number;
   fiscalYearStartSpending: SpendingBreakdown;
+  fiscalRuleBreaches: number;
+  pmPensionFloor_bn: number;
 }
 
 export function createInitialFiscalState(): FiscalState {
@@ -532,6 +538,8 @@ export function createInitialFiscalState(): FiscalState {
       justice: 13,
       other: 326.0,
     },
+    fiscalRuleBreaches: 0,
+    pmPensionFloor_bn: 0,
   };
 }
 
@@ -724,6 +732,15 @@ export interface ServicesState {
   affordableHousingDelivery: number; // 0-100
   floodResilience: number; // 0-100
   researchInnovationOutput: number; // 0-100
+  consecutiveNHSCutMonths: number;
+  consecutiveEducationCutMonths: number;
+  consecutivePensionCutMonths: number;
+  nhsStrikeMonthsRemaining: number;
+  educationStrikeMonthsRemaining: number;
+  pensionerRevoltCooldown: number;
+  nhsStrikeCooldown: number;
+  teacherStrikeCooldown: number;
+  strikeTriggerThresholdMultiplier: number;
 }
 
 export function createInitialServicesState(): ServicesState {
@@ -743,6 +760,15 @@ export function createInitialServicesState(): ServicesState {
     affordableHousingDelivery: 30,
     floodResilience: 53,
     researchInnovationOutput: 58,
+    consecutiveNHSCutMonths: 0,
+    consecutiveEducationCutMonths: 0,
+    consecutivePensionCutMonths: 0,
+    nhsStrikeMonthsRemaining: 0,
+    educationStrikeMonthsRemaining: 0,
+    pensionerRevoltCooldown: 0,
+    nhsStrikeCooldown: 0,
+    teacherStrikeCooldown: 0,
+    strikeTriggerThresholdMultiplier: 1,
   };
 }
 
@@ -1008,6 +1034,60 @@ export interface HistoricalSnapshot {
   productivity: number; // Annual productivity growth %
 }
 
+export interface TurnDeltaDriver {
+  name: string;
+  value: number;
+}
+
+export interface TurnDelta {
+  approvalChange: number;
+  approvalDriversPositive: TurnDeltaDriver[];
+  approvalDriversNegative: TurnDeltaDriver[];
+  giltYieldChange: number;
+  giltYieldDrivers: TurnDeltaDriver[];
+  deficitChange: number;
+  deficitDrivers: TurnDeltaDriver[];
+}
+
+export interface OBRForecastYear {
+  fiscalYearStartTurn: number;
+  projectedGDPGrowth: number;
+  projectedDeficitPctGDP: number;
+  projectedDebtPctGDP: number;
+}
+
+export interface OBRForecastSnapshot {
+  createdTurn: number;
+  createdFiscalYear: number;
+  horizonYears: OBRForecastYear[];
+}
+
+export interface OBRForecastComparisonRow {
+  metric: 'gdpGrowth' | 'deficitPctGDP' | 'debtPctGDP';
+  projected: number;
+  actual: number;
+  delta: number;
+}
+
+export interface OBRForecastComparison {
+  fiscalYear: number;
+  rows: OBRForecastComparisonRow[];
+}
+
+export interface PolicyRiskModifier {
+  id: string;
+  type: 'macro_shock' | 'productivity_drag' | 'strike_accelerator' | 'market_reaction_boost';
+  turnsRemaining: number;
+  macroShockScaleDelta?: number;
+  productivityMonthlyPenalty_pp?: number;
+  strikeThresholdMultiplier?: number;
+  marketReactionScaleDelta?: number;
+  description: string;
+}
+
 export interface SimulationState {
   monthlySnapshots: HistoricalSnapshot[];
+  lastTurnDelta: TurnDelta | null;
+  obrForecastSnapshot: OBRForecastSnapshot | null;
+  lastObrComparison: OBRForecastComparison | null;
 }

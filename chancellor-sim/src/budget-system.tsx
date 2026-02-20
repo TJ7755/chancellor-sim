@@ -7,10 +7,10 @@ import {
   AdviserType,
   SimulationState
 } from './adviser-system';
-import { useGameActions, useGameState, serializeGameState } from './game-state';
+import { GameState, useGameActions, useGameState, serializeGameState } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
-import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
+import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel, PolicyRiskModifier } from './game-integration';
 import { calculateLafferPoint, getLafferTaxTypeForControlId } from './laffer-analysis';
 
 // ============================================================================
@@ -75,6 +75,94 @@ interface AdviserWarning {
   title: string;
   message: string;
   impact?: string;
+}
+
+interface PolicyConflict {
+  id: string;
+  title: string;
+  description: string;
+  modifiers: PolicyRiskModifier[];
+}
+
+export function detectPolicyConflicts(
+  taxes: Map<string, TaxChange>,
+  spending: Map<string, SpendingChange>,
+  gameState: GameState
+): PolicyConflict[] {
+  const conflicts: PolicyConflict[] = [];
+
+  const vatRise = (taxes.get('vat')?.proposedRate || 20) - (taxes.get('vat')?.currentRate || 20);
+  const incomeTaxRise = (taxes.get('incomeTaxBasic')?.proposedRate || 20) - (taxes.get('incomeTaxBasic')?.currentRate || 20);
+
+  const departments = Array.from(new Set(Array.from(spending.values()).map((item) => item.department)));
+  const departmentCutCount = departments.filter((department) => {
+    const items = Array.from(spending.values()).filter((item) => item.department === department);
+    const current = items.reduce((sum, item) => sum + item.currentBudget, 0);
+    const proposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
+    return current > 0 && (proposed - current) / current < -0.05;
+  }).length;
+  const broadSpendingCut = departments.length > 0 && departmentCutCount >= Math.ceil(departments.length * 0.6);
+  if ((vatRise >= 2 || incomeTaxRise >= 2) && broadSpendingCut) {
+    conflicts.push({
+      id: 'demand_shock',
+      title: 'Demand shock risk',
+      description: 'Large tax rises combined with broad real spending cuts could trigger a sharp demand contraction.',
+      modifiers: [
+        {
+          id: `risk_macro_${Date.now()}`,
+          type: 'macro_shock',
+          turnsRemaining: 2,
+          macroShockScaleDelta: 0.2,
+          description: 'Demand-shock implementation risk from contradictory fiscal stance.',
+        },
+      ],
+    });
+  }
+
+  const corpTax = taxes.get('corporationTax');
+  const rdTaxCredit = taxes.get('rdTaxCredit');
+  if ((corpTax?.proposedRate || 25) > 30 && (rdTaxCredit?.proposedRate || 27) < (rdTaxCredit?.currentRate || 27)) {
+    conflicts.push({
+      id: 'innovation_deterrent',
+      title: 'Innovation deterrent',
+      description: 'High corporation tax combined with weaker R&D credits may suppress investment and productivity growth.',
+      modifiers: [
+        {
+          id: `risk_productivity_${Date.now()}`,
+          type: 'productivity_drag',
+          turnsRemaining: 6,
+          productivityMonthlyPenalty_pp: 0.1,
+          description: 'Innovation investment drag from corporate tax and R&D policy mix.',
+        },
+      ],
+    });
+  }
+
+  const frontlineDepartments = ['Health and Social Care', 'Education', 'Home Office', 'Justice'];
+  const payCut = frontlineDepartments.some((department) => {
+    const items = Array.from(spending.values()).filter((item) => item.department === department && item.type === 'resource');
+    const current = items.reduce((sum, item) => sum + item.currentBudget, 0);
+    const proposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
+    return current > 0 && (proposed - current) / current < -0.02;
+  });
+  if (payCut && (gameState.services.nhsQuality < 55 || gameState.services.educationQuality < 55)) {
+    conflicts.push({
+      id: 'strike_accelerator',
+      title: 'Industrial action accelerator',
+      description: 'Public-sector take-home pay pressure with already weak service quality increases strike risk.',
+      modifiers: [
+        {
+          id: `risk_strike_${Date.now()}`,
+          type: 'strike_accelerator',
+          turnsRemaining: 6,
+          strikeThresholdMultiplier: 0.5,
+          description: 'Lower strike-trigger threshold due to pay-service conflict.',
+        },
+      ],
+    });
+  }
+
+  return conflicts;
 }
 
 // ============================================================================
@@ -1866,6 +1954,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [fiscalRuleMessage, setFiscalRuleMessage] = useState<string | null>(null);
   const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{ count: number, mpCount: number } | null>(null);
   const [pmInterventionSuccess, setPMInterventionSuccess] = useState(false);
+  const [dismissedConflicts, setDismissedConflicts] = useState<Set<string>>(new Set());
   const lastTurnRef = useRef<number | null>(null);
 
   // Keep unsent draft persistent across navigation
@@ -2204,6 +2293,25 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     return newWarnings;
   }, [taxes, spending, fiscalImpact, nhsAnnualTargetTotal]);
+
+  const policyConflicts = useMemo(
+    () => detectPolicyConflicts(taxes, spending, gameState),
+    [taxes, spending, gameState]
+  );
+  const visiblePolicyConflicts = useMemo(
+    () => policyConflicts.filter((conflict) => !dismissedConflicts.has(conflict.id)),
+    [policyConflicts, dismissedConflicts]
+  );
+
+  useEffect(() => {
+    setDismissedConflicts((prev) => {
+      const next = new Set<string>();
+      policyConflicts.forEach((conflict) => {
+        if (prev.has(conflict.id)) next.add(conflict.id);
+      });
+      return next;
+    });
+  }, [policyConflicts]);
 
   const constraints = useMemo((): ManifestoConstraint[] => {
     // Combine static constraints with dynamic fiscal rule constraints
@@ -2874,6 +2982,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       detailedSpendingBudgets[item.id] = item.proposedBudget;
     });
     changes.detailedSpendingBudgets = detailedSpendingBudgets;
+    changes.policyRiskModifiers = policyConflicts.flatMap((conflict) => conflict.modifiers);
 
     // Apply to game state
     gameActions.applyBudgetChanges(changes);
@@ -2891,7 +3000,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     });
     setSpending(updatedSpending);
     clearBudgetDraft();
-  }, [taxes, spending, gameActions]);
+  }, [taxes, spending, gameActions, policyConflicts]);
 
   const handleVoteContinue = useCallback(() => {
     applyBudgetToGameState();
@@ -3843,6 +3952,30 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {visiblePolicyConflicts.length > 0 && (
+              <div className="mt-6 space-y-3">
+                {visiblePolicyConflicts.map((conflict) => (
+                  <div key={conflict.id} className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <div className="text-sm font-bold text-amber-900">{conflict.title}</div>
+                        <div className="text-sm text-amber-800">{conflict.description}</div>
+                      </div>
+                      <button
+                        onClick={() => setDismissedConflicts((prev) => new Set(prev).add(conflict.id))}
+                        className="text-xs text-amber-700 hover:text-amber-900 font-semibold"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 

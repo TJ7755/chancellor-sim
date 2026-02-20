@@ -23,3 +23,13 @@
 ## General
 - Adhere to these calibrated values when suggesting code changes or explaining mechanics.
 - Prioritize "Realistic" difficulty settings when discussing game balance.
+
+## New Engine Notes (Feb 2026)
+
+- Fiscal rule breaches are now tracked separately as `fiscal.fiscalRuleBreaches`; they must not increment manifesto violation counters.
+- PM intervention `comply` choices now enforce concrete policy consequences by trigger reason; do not treat comply as purely reputational.
+- `simulation.lastTurnDelta` captures post-turn explainers for approval, gilt yield, and deficit changes; keep contributor labels concise and numeric.
+- `simulation.obrForecastSnapshot` and `simulation.lastObrComparison` are updated in April turns for forecast-vs-outturn credibility effects.
+- Participation/inactivity are part of `economic` state (`participationRate`, `economicInactivity`) and are updated in the labour-market step.
+- Active implementation risks are stored in `gameState.policyRiskModifiers` with `turnsRemaining`; turn processing decrements/removes them automatically.
+- Sector industrial-action/revolt state is persisted in `services` cooldown and duration counters; avoid retrigger spam by respecting cooldowns.

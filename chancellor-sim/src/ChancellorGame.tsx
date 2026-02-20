@@ -768,6 +768,7 @@ const SimpleDashboard: React.FC = () => {
   const gameState = useGameState();
   const gameActions = useGameActions();
   const [oneClickMessage, setOneClickMessage] = useState<{message: string, success: boolean} | null>(null);
+  const [showThisMonth, setShowThisMonth] = useState(true);
 
   return (
     <div className="flex min-h-screen -m-6">
@@ -805,7 +806,7 @@ const SimpleDashboard: React.FC = () => {
             {gameState.economic.unemploymentRate.toFixed(1)}%
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            NAIRU: 4.25%
+            Participation: {gameState.economic.participationRate.toFixed(1)}% · Inactivity: {gameState.economic.economicInactivity.toFixed(1)}%
           </div>
         </div>
 
@@ -819,6 +820,34 @@ const SimpleDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {gameState.simulation.lastTurnDelta && (
+        <div className="bg-white border border-gray-200 rounded-sm">
+          <button
+            onClick={() => setShowThisMonth(!showThisMonth)}
+            className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50"
+          >
+            <span className="font-semibold text-gray-900">This month</span>
+            <span className="text-sm text-gray-600">{showThisMonth ? 'Hide' : 'Show'}</span>
+          </button>
+          {showThisMonth && (
+            <div className="px-4 pb-4 text-sm text-gray-700 space-y-2">
+              <div>
+                Approval: {gameState.simulation.lastTurnDelta.approvalChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.approvalChange.toFixed(1)}
+                {gameState.simulation.lastTurnDelta.approvalDriversNegative.concat(gameState.simulation.lastTurnDelta.approvalDriversPositive).slice(0, 4).map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
+              </div>
+              <div>
+                10Y gilt yield: {gameState.simulation.lastTurnDelta.giltYieldChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.giltYieldChange.toFixed(1)}
+                {gameState.simulation.lastTurnDelta.giltYieldDrivers.map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
+              </div>
+              <div>
+                Deficit: {gameState.simulation.lastTurnDelta.deficitChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.deficitChange.toFixed(1)}bn
+                {gameState.simulation.lastTurnDelta.deficitDrivers.map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 p-4 rounded-sm">
@@ -1113,6 +1142,37 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
         <div className="mt-3 text-xs bg-gray-50 border border-gray-200 text-gray-700 rounded-sm p-3">
           Projections include modelled forecast uncertainty. Actual outcomes may differ.
         </div>
+        {gameState.simulation.lastObrComparison && (
+          <div className="mt-3 border border-gray-200 rounded-sm overflow-hidden">
+            <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700">
+              OBR-style forecast vs outturn ({gameState.simulation.lastObrComparison.fiscalYear}/{String(gameState.simulation.lastObrComparison.fiscalYear + 1).slice(2)})
+            </div>
+            <table className="w-full text-xs">
+              <thead className="bg-white">
+                <tr className="text-left text-gray-600">
+                  <th className="px-3 py-2">Metric</th>
+                  <th className="px-3 py-2">Projected</th>
+                  <th className="px-3 py-2">Actual</th>
+                  <th className="px-3 py-2">Delta</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gameState.simulation.lastObrComparison.rows.map((row: any) => (
+                  <tr key={row.metric} className="border-t border-gray-100">
+                    <td className="px-3 py-2 text-gray-800">
+                      {row.metric === 'gdpGrowth' ? 'GDP growth' : row.metric === 'deficitPctGDP' ? 'Deficit (% GDP)' : 'Debt (% GDP)'}
+                    </td>
+                    <td className="px-3 py-2">{row.projected.toFixed(1)}</td>
+                    <td className="px-3 py-2">{row.actual.toFixed(1)}</td>
+                    <td className={`px-3 py-2 ${row.delta >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                      {row.delta >= 0 ? '+' : ''}{row.delta.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className={`grid gap-4 ${pendingSummary ? 'grid-cols-2' : 'grid-cols-1'}`}>

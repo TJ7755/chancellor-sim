@@ -1281,6 +1281,53 @@ export interface LobbyingResult {
   backfired?: boolean;
 }
 
+export function calculateLobbyingSuccessProbability(
+  mp: MPProfile,
+  approach: LobbyingApproach,
+  promise?: MPPromise,
+  brokenPromisesCount: number = 0
+): number {
+  let successProbability = 0;
+  switch (approach) {
+    case 'promise':
+      successProbability = 0.70;
+      break;
+    case 'persuade':
+      successProbability = 0.40;
+      break;
+    case 'threaten':
+      successProbability = 0.55;
+      break;
+  }
+
+  if (mp.traits.rebelliousness > 7) {
+    successProbability *= 0.6;
+  }
+
+  if (approach === 'threaten') {
+    if (mp.traits.principled > 7) {
+      successProbability *= 0.5;
+    }
+    if (mp.traits.careerist > 7) {
+      successProbability *= 1.4;
+    }
+  }
+
+  if (approach === 'promise' && promise) {
+    successProbability *= 1.1;
+  }
+
+  if (brokenPromisesCount > 0) {
+    successProbability *= Math.pow(0.8, brokenPromisesCount);
+  }
+
+  if (mp.constituency.marginality > 70) {
+    successProbability *= 1.2;
+  }
+
+  return Math.max(0.05, Math.min(0.95, successProbability));
+}
+
 /**
  * Calculate lobbying success probability and execute
  */
@@ -1290,53 +1337,10 @@ export function attemptLobbying(
   promise?: MPPromise,
   brokenPromisesCount: number = 0
 ): LobbyingResult {
-  // Base success rates
-  let successRate = 0;
-  switch (approach) {
-    case 'promise':
-      successRate = 0.70; // 70% base
-      break;
-    case 'persuade':
-      successRate = 0.40; // 40% base
-      break;
-    case 'threaten':
-      successRate = 0.55; // 55% base
-      break;
-  }
-
-  // Modifiers based on MP traits
-  if (mp.traits.rebelliousness > 7) {
-    successRate *= 0.6; // Rebels harder to convince
-  }
-
-  if (approach === 'threaten') {
-    if (mp.traits.principled > 7) {
-      successRate *= 0.5; // Principled MPs don't respond well to threats
-    }
-    if (mp.traits.careerist > 7) {
-      successRate *= 1.4; // Careerists fold under pressure
-    }
-  }
-
-  if (approach === 'promise' && promise) {
-    // Promise relevance based on ideology
-    // (Simplified - could be more sophisticated)
-    successRate *= 1.1;
-  }
-
-  // Broken promises penalty (major)
-  if (brokenPromisesCount > 0) {
-    successRate *= Math.pow(0.8, brokenPromisesCount);
-  }
-
-  // Marginal seat MPs are more cautious
-  if (mp.constituency.marginality > 70) {
-    successRate *= 1.2; // Easier to convince (worried about seat)
-  }
+  const successProbability = calculateLobbyingSuccessProbability(mp, approach, promise, brokenPromisesCount);
 
   // Determine success
-  const roll = Math.random();
-  const success = roll < successRate;
+  const success = Math.random() < successProbability;
 
   // Check for backfire (only for threats)
   let backfired = false;
@@ -2076,23 +2080,8 @@ export const LobbyingModal: React.FC<{
   };
 
   // Calculate success rate for display
-  const getSuccessRate = () => {
-    let baseRate = 0;
-    switch (selectedApproach) {
-      case 'promise': baseRate = 70; break;
-      case 'persuade': baseRate = 40; break;
-      case 'threaten': baseRate = 55; break;
-    }
-
-    // Apply modifiers
-    if (mp.traits.rebelliousness > 7) baseRate *= 0.6;
-    if (selectedApproach === 'threaten' && mp.traits.principled > 7) baseRate *= 0.5;
-    if (selectedApproach === 'threaten' && mp.traits.careerist > 7) baseRate *= 1.4;
-    if (brokenPromisesCount > 0) baseRate *= Math.pow(0.8, brokenPromisesCount);
-    if (mp.constituency.marginality > 70) baseRate *= 1.2;
-
-    return Math.min(95, Math.max(5, Math.round(baseRate)));
-  };
+  const successProbability = calculateLobbyingSuccessProbability(mp, selectedApproach, undefined, brokenPromisesCount);
+  const displayedSuccessRate = Math.round(successProbability * 100);
 
   if (result) {
     return (
@@ -2195,7 +2184,7 @@ export const LobbyingModal: React.FC<{
                   <div className="ml-4 text-right">
                     <div className="text-xs text-gray-500">Success Rate</div>
                     <div className="text-lg font-bold text-blue-600">
-                      {selectedApproach === 'promise' ? getSuccessRate() : '70'}%
+                      {displayedSuccessRate}%
                     </div>
                   </div>
                 </div>
@@ -2219,7 +2208,7 @@ export const LobbyingModal: React.FC<{
                   <div className="ml-4 text-right">
                     <div className="text-xs text-gray-500">Success Rate</div>
                     <div className="text-lg font-bold text-green-600">
-                      {selectedApproach === 'persuade' ? getSuccessRate() : '40'}%
+                      {displayedSuccessRate}%
                     </div>
                   </div>
                 </div>
@@ -2246,7 +2235,7 @@ export const LobbyingModal: React.FC<{
                   <div className="ml-4 text-right">
                     <div className="text-xs text-gray-500">Success Rate</div>
                     <div className="text-lg font-bold text-orange-600">
-                      {selectedApproach === 'threaten' ? getSuccessRate() : '55'}%
+                      {displayedSuccessRate}%
                     </div>
                     <div className="text-xs text-orange-600 mt-1">30% backfire risk</div>
                   </div>
@@ -2273,7 +2262,7 @@ export const LobbyingModal: React.FC<{
               className={`flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-sm transition-all ${isLobbying ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
             >
-              {isLobbying ? 'Lobbying...' : `Lobby MP (${getSuccessRate()}% chance)`}
+              {isLobbying ? 'Lobbying...' : `Lobby MP (${displayedSuccessRate}% chance)`}
             </button>
             <button
               onClick={onClose}

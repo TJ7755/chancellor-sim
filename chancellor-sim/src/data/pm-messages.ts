@@ -14,11 +14,17 @@ export interface PMMessageTemplate {
         maxApproval?: number;
         minDeficit?: number; // £bn
         maxDeficit?: number;
+        minHeadroom?: number; // £bn
+        maxHeadroom?: number; // £bn
+        fiscalRuleCompliant?: boolean;
         minGrowth?: number;
         maxGrowth?: number;
         minInflation?: number; // %
         maxInflation?: number;
         minUnemployment?: number; // %
+        serviceMetric?: string;
+        minServiceQuality?: number;
+        maxServiceQuality?: number;
         reshuffleRisk?: number; // Min risk
 
         // Specific flags (logic must provide these)
@@ -122,6 +128,158 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         subject: 'Tax Burden concerns',
         content: `Chancellor,\n\nI'm getting a lot of angry letters from MPs in the Shires. They say their constituents are furious about the tax rises.\n\nWe seem to be taxing like socialists but delivering services like libertarians. It's the worst of both worlds.\n\nReconsider your strategy.\n\nPrime Minister`,
         tone: 'neutral'
+    },
+    {
+        id: 'pm_headroom_tight',
+        type: 'concern',
+        conditions: { maxHeadroom: 9.9 },
+        subject: 'Fiscal Headroom Tightening',
+        content: `Chancellor,\n\nOur fiscal headroom is now only £{headroom}bn. That leaves almost no room for error.\n\nI need decisions that protect headroom, not just the headline deficit.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_headroom_comfortable',
+        type: 'regular_checkin',
+        conditions: { minHeadroom: 10, maxHeadroom: 30 },
+        subject: 'Headroom Is Manageable',
+        content: `Chancellor,\n\nHeadroom is sitting at £{headroom}bn. That is workable, but not comfortable enough for complacency.\n\nKeep delivery tight and avoid unnecessary shocks.\n\nPM`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_headroom_ample',
+        type: 'praise',
+        conditions: { minHeadroom: 30 },
+        subject: 'Strong Fiscal Space',
+        content: `Chancellor,\n\nHeadroom at £{headroom}bn gives us genuine room to manoeuvre. Good work preserving fiscal space.\n\nUse it carefully and strategically.\n\nPrime Minister`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_rule_offtrack',
+        type: 'concern',
+        conditions: { fiscalRuleCompliant: false },
+        subject: 'Off Track Against Fiscal Rule',
+        content: `Chancellor,\n\nWe are off track against the active rule: {ruleName}. Current headroom is £{headroom}bn.\n\nGet us back onto a compliant path quickly.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_rule_ontrack',
+        type: 'praise',
+        conditions: { fiscalRuleCompliant: true, minHeadroom: 5 },
+        subject: 'Fiscal Rule On Track',
+        content: `Chancellor,\n\nWe are currently on track under {ruleName}, with £{headroom}bn headroom.\n\nKeep this discipline in place.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_nhs_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'nhsQuality', maxServiceQuality: 54 },
+        subject: 'NHS Deterioration',
+        content: `Chancellor,\n\n{serviceName} has slipped to {qualityScore}/100. We cannot defend this trajectory publicly.\n\nFind a credible recovery plan.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_service_nhs_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'nhsQuality', minServiceQuality: 60 },
+        subject: 'NHS Improvement',
+        content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. This is politically valuable progress.\n\nKeep delivery pressure on.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_education_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'educationQuality', maxServiceQuality: 58 },
+        subject: 'Education Quality Slipping',
+        content: `Chancellor,\n\n{serviceName} is down at {qualityScore}/100. This is becoming a strategic political risk.\n\nPrime Minister`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_service_education_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'educationQuality', minServiceQuality: 64 },
+        subject: 'Education Recovery',
+        content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. Keep that momentum.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_infra_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'infrastructureQuality', maxServiceQuality: 50 },
+        subject: 'Infrastructure Strain',
+        content: `Chancellor,\n\n{serviceName} is deteriorating at {qualityScore}/100. Delivery failures are feeding media pressure.\n\nPrime Minister`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_service_infra_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'infrastructureQuality', minServiceQuality: 56 },
+        subject: 'Infrastructure Progress',
+        content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. That strengthens our growth story.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_policing_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'policingEffectiveness', maxServiceQuality: 52 },
+        subject: 'Policing Under Pressure',
+        content: `Chancellor,\n\n{serviceName} sits at {qualityScore}/100. Constituency MPs are raising this repeatedly.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_service_policing_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'policingEffectiveness', minServiceQuality: 60 },
+        subject: 'Policing Performance Improving',
+        content: `Chancellor,\n\n{serviceName} is up to {qualityScore}/100. Keep this trend moving.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_courts_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'courtBacklogPerformance', maxServiceQuality: 45 },
+        subject: 'Courts Backlog Worsening',
+        content: `Chancellor,\n\n{serviceName} is only {qualityScore}/100. This is creating wider confidence problems.\n\nPrime Minister`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_service_courts_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'courtBacklogPerformance', minServiceQuality: 55 },
+        subject: 'Courts Performance Improving',
+        content: `Chancellor,\n\n{serviceName} has reached {qualityScore}/100. This helps our law-and-order case.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_prisons_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'prisonSafety', maxServiceQuality: 45 },
+        subject: 'Prison Safety Decline',
+        content: `Chancellor,\n\n{serviceName} is down to {qualityScore}/100. We need a safer trajectory quickly.\n\nPrime Minister`,
+        tone: 'stern'
+    },
+    {
+        id: 'pm_service_prisons_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'prisonSafety', minServiceQuality: 52 },
+        subject: 'Prison Safety Improvement',
+        content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. Keep pressure on delivery.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_service_mental_down',
+        type: 'concern',
+        conditions: { serviceMetric: 'mentalHealthAccess', maxServiceQuality: 46 },
+        subject: 'Mental Health Access Falling',
+        content: `Chancellor,\n\n{serviceName} is now {qualityScore}/100. This is a major vulnerability for us.\n\nPrime Minister`,
+        tone: 'neutral'
+    },
+    {
+        id: 'pm_service_mental_up',
+        type: 'praise',
+        conditions: { serviceMetric: 'mentalHealthAccess', minServiceQuality: 52 },
+        subject: 'Mental Health Access Improving',
+        content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. This is the right direction.\n\nPM`,
+        tone: 'supportive'
     },
 
     // ===========================================================================
@@ -286,4 +444,3 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         demandDetails: 'Freeze non-essential capital spend'
     }
 ];
-

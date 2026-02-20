@@ -57,6 +57,21 @@ export function shouldSendEventTriggeredMessage(
     return { shouldSend: true, messageType: 'concern', reason: 'low_approval' };
   }
 
+  // Fiscal headroom commentary
+  if (gameState.fiscal.fiscalHeadroom_bn < 10 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+    return { shouldSend: true, messageType: 'concern', reason: 'tight_headroom' };
+  }
+
+  if (!gameState.political.fiscalRuleCompliance.overallCompliant && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+    return { shouldSend: true, messageType: 'concern', reason: 'fiscal_rule_breach' };
+  }
+
+  if (gameState.services.nhsQuality < 50 || gameState.services.educationQuality < 55 || gameState.services.policingEffectiveness < 50) {
+    if (gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+      return { shouldSend: true, messageType: 'concern', reason: 'service_deterioration' };
+    }
+  }
+
   // Demand: Deficit spiraling
   const hasActiveDeficitThreat = (pmRelationship.activeThreats || []).some(
     (t) => t.category === 'deficit' && !t.resolved && !t.breached
@@ -137,9 +152,18 @@ export function generatePMMessage(
     if (c.maxApproval !== undefined && political.governmentApproval > c.maxApproval) return false;
     if (c.minDeficit !== undefined && fiscal.deficit_bn < c.minDeficit) return false;
     if (c.maxDeficit !== undefined && fiscal.deficit_bn > c.maxDeficit) return false;
+    if (c.minHeadroom !== undefined && fiscal.fiscalHeadroom_bn < c.minHeadroom) return false;
+    if (c.maxHeadroom !== undefined && fiscal.fiscalHeadroom_bn > c.maxHeadroom) return false;
+    if (c.fiscalRuleCompliant !== undefined && gameState.political.fiscalRuleCompliance.overallCompliant !== c.fiscalRuleCompliant) return false;
     if (c.reshuffleRisk !== undefined && pmRelationship.reshuffleRisk < c.reshuffleRisk) return false;
     if (c.minGrowth !== undefined && economic.gdpGrowthAnnual < c.minGrowth) return false;
     if (c.maxGrowth !== undefined && economic.gdpGrowthAnnual > c.maxGrowth) return false;
+    if (c.serviceMetric) {
+      const metricValue = (gameState.services as any)[c.serviceMetric];
+      if (typeof metricValue !== 'number') return false;
+      if (c.maxServiceQuality !== undefined && metricValue > c.maxServiceQuality) return false;
+      if (c.minServiceQuality !== undefined && metricValue < c.minServiceQuality) return false;
+    }
 
     // Reason-based flags & Heuristics
     // If template requires Manifesto Breach, reason must be 'manifesto_breach'
@@ -191,6 +215,18 @@ export function generatePMMessage(
 
   // 3. Inject variables
   const monthName = getMonthName(metadata.currentMonth);
+  const fiscalRule = getFiscalRuleById(gameState.political.chosenFiscalRule);
+  const headroom = fiscal.fiscalHeadroom_bn;
+  const serviceEntries: Array<{ serviceName: string; qualityScore: number }> = [
+    { serviceName: 'NHS quality', qualityScore: gameState.services.nhsQuality },
+    { serviceName: 'education quality', qualityScore: gameState.services.educationQuality },
+    { serviceName: 'infrastructure quality', qualityScore: gameState.services.infrastructureQuality },
+    { serviceName: 'policing', qualityScore: gameState.services.policingEffectiveness },
+    { serviceName: 'courts', qualityScore: gameState.services.courtBacklogPerformance },
+    { serviceName: 'prisons', qualityScore: gameState.services.prisonSafety },
+    { serviceName: 'mental health', qualityScore: gameState.services.mentalHealthAccess },
+  ];
+  const lowestService = [...serviceEntries].sort((a, b) => a.qualityScore - b.qualityScore)[0];
   if (messageType === 'demand' && reason === 'high_deficit') {
     const threatTarget = calculateDeficitThreatTarget(gameState);
     threatTargetDeficit_bn = threatTarget.targetDeficit_bn;
@@ -202,7 +238,12 @@ export function generatePMMessage(
     .replace('{trust}', Math.round(political.pmTrust).toString())
     .replace('{approval}', Math.round(political.governmentApproval).toString())
     .replace('{growth}', economic.gdpGrowthAnnual.toFixed(1))
+    .replace('{unemployment}', economic.unemploymentRate.toFixed(1))
     .replace('{deficit}', Math.round(fiscal.deficit_bn).toString())
+    .replace('{headroom}', headroom.toFixed(1))
+    .replace('{ruleName}', fiscalRule.name)
+    .replace('{serviceName}', lowestService.serviceName)
+    .replace('{qualityScore}', lowestService.qualityScore.toFixed(0))
     .replace('{backbench}', Math.round(political.backbenchSatisfaction).toString())
     .replace('{month}', monthName)
     .replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
