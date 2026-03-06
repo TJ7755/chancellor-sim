@@ -868,6 +868,23 @@ const SimpleDashboard: React.FC = () => {
               <span className="text-gray-600">Headroom:</span>
               <span className="font-semibold">£{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">OBR-certified:</span>
+              <span className={`font-semibold ${
+                gameState.obr.fiscalHeadroomForecast_bn < 0 ? 'text-red-700 animate-pulse' :
+                gameState.obr.fiscalHeadroomForecast_bn < 5 ? 'text-red-600' :
+                gameState.obr.fiscalHeadroomForecast_bn <= 20 ? 'text-amber-700' :
+                'text-green-700'
+              }`}>
+                £{gameState.obr.fiscalHeadroomForecast_bn.toFixed(1)}bn
+              </span>
+            </div>
+            <div className={`mt-1 h-2 rounded-full ${
+              gameState.obr.fiscalHeadroomForecast_bn < 0 ? 'bg-red-700' :
+              gameState.obr.fiscalHeadroomForecast_bn < 5 ? 'bg-red-500' :
+              gameState.obr.fiscalHeadroomForecast_bn <= 20 ? 'bg-amber-400' :
+              'bg-green-500'
+            }`} />
           </div>
         </div>
 
