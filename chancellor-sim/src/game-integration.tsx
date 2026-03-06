@@ -231,6 +231,7 @@ export interface EconomicState {
   gdpGrowthMonthly: number;
   gdpGrowthAnnual: number;
   inflationCPI: number;
+  inflationExpectations: number;
   unemploymentRate: number;
   wageGrowthAnnual: number;
   inflationAnchorHealth: number; // 0-100, where 100 is fully anchored at 2%
@@ -246,6 +247,7 @@ export function createInitialEconomicState(): EconomicState {
     gdpGrowthMonthly: 0.083,
     gdpGrowthAnnual: 1.0,
     inflationCPI: 2.2,
+    inflationExpectations: 2.2,
     unemploymentRate: 4.2,
     wageGrowthAnnual: 5.4,
     inflationAnchorHealth: 72,
@@ -317,6 +319,15 @@ export interface FiscalState {
   employerNIRate: number;
   vatRate: number;
   corporationTaxRate: number;
+  personalAllowance: number;
+  basicRateUpperThreshold: number;
+  higherRateUpperThreshold: number;
+  thresholdUprating: 'frozen' | 'cpi_linked' | 'earnings_linked' | 'custom';
+  thresholdFreezeMonths: number;
+  fullExpensing: boolean;
+  antiAvoidanceInvestment_bn: number;
+  hmrcSystemsInvestment_bn: number;
+  sdltAdditionalDwellingsSurcharge: number;
 
   // Persisted granular items
   detailedSpending: DetailedSpendingItem[];
@@ -389,6 +400,15 @@ export function createInitialFiscalState(): FiscalState {
     employerNIRate: 13.8,
     vatRate: 20,
     corporationTaxRate: 25,
+    personalAllowance: 12570,
+    basicRateUpperThreshold: 50270,
+    higherRateUpperThreshold: 125140,
+    thresholdUprating: 'frozen',
+    thresholdFreezeMonths: 36,
+    fullExpensing: false,
+    antiAvoidanceInvestment_bn: 0.3,
+    hmrcSystemsInvestment_bn: 0.3,
+    sdltAdditionalDwellingsSurcharge: 3,
 
     // Capture starting tax rates for manifesto pledge tracking
     startingTaxRates: {
@@ -792,7 +812,7 @@ export function createInitialDistributionalState() {
 // Applying OBR_HEADROOM_CALIBRATION translates the game's current-year balance
 // into an OBR-style projected headroom display:
 //   displayed headroom  = currentBudgetBalance + OBR_HEADROOM_CALIBRATION
-//                       = 36.4 + OBR_HEADROOM_CALIBRATION  ≈  +9.9  ✓
+  //                       = 36.4 + OBR_HEADROOM_CALIBRATION  ~=  +9.9
 //
 // Fiscal rules are treated as "met" when displayed headroom >= 0 (i.e., within
 // £0bn of the threshold), providing the same margin as the OBR's test.
@@ -994,6 +1014,13 @@ export interface ServicesState {
   nhsStrikeCooldown: number;
   teacherStrikeCooldown: number;
   strikeTriggerThresholdMultiplier: number;
+  staffingCapacity: {
+    nhs: number;
+    education: number;
+    policing: number;
+    civilService: number;
+    defence: number;
+  };
 }
 
 export function createInitialServicesState(): ServicesState {
@@ -1022,6 +1049,13 @@ export function createInitialServicesState(): ServicesState {
     nhsStrikeCooldown: 0,
     teacherStrikeCooldown: 0,
     strikeTriggerThresholdMultiplier: 1,
+    staffingCapacity: {
+      nhs: 62,
+      education: 64,
+      policing: 61,
+      civilService: 63,
+      defence: 66,
+    },
   };
 }
 
@@ -1032,7 +1066,7 @@ export function createInitialServicesState(): ServicesState {
 export interface PMInterventionEvent {
   id: string;
   triggered: boolean;
-  triggerReason: 'backbench_revolt' | 'manifesto_breach' | 'economic_crisis' | 'approval_collapse';
+  triggerReason: 'backbench_revolt' | 'manifesto_breach' | 'economic_crisis' | 'approval_collapse' | 'fiscal_rule_oc';
   pmTrust: number;
   pmAnger: 'concerned' | 'angry' | 'furious';
   demandTitle: string;
@@ -1330,12 +1364,14 @@ export interface OBRForecastComparison {
 
 export interface PolicyRiskModifier {
   id: string;
-  type: 'macro_shock' | 'productivity_drag' | 'strike_accelerator' | 'market_reaction_boost';
+  type: 'macro_shock' | 'productivity_drag' | 'strike_accelerator' | 'market_reaction_boost' | 'tax_compliance_boost' | 'hmrc_capacity_boost';
   turnsRemaining: number;
   macroShockScaleDelta?: number;
   productivityMonthlyPenalty_pp?: number;
   strikeThresholdMultiplier?: number;
   marketReactionScaleDelta?: number;
+  taxAvoidanceScaleDelta?: number;
+  hmrcCapacityDelta?: number;
   description: string;
 }
 

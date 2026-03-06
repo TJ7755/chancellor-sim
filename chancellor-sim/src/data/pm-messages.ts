@@ -180,6 +180,15 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         tone: 'stern'
     },
     {
+        id: 'pm_rule_breach_obr_alarm',
+        type: 'concern',
+        priority: 100,
+        conditions: { maxHeadroom: -0.1 },
+        subject: 'OBR Rule Breach Confirmed',
+        content: `Chancellor,\n\nThe OBR-certified headroom is now £{headroom}bn. We are over the fiscal rule, not merely close to it.\n\nBring forward a corrective package before market confidence worsens.\n\nPrime Minister`,
+        tone: 'angry'
+    },
+    {
         id: 'pm_rule_breach_imminent',
         type: 'concern',
         conditions: { fiscalRuleCompliant: true, maxHeadroom: 5 },
@@ -337,6 +346,14 @@ export const PM_MESSAGES: PMMessageTemplate[] = [
         conditions: { serviceMetric: 'mentalHealthAccess', minServiceQuality: 52 },
         subject: 'Mental Health Access Improving',
         content: `Chancellor,\n\n{serviceName} has improved to {qualityScore}/100. This is the right direction.\n\nPM`,
+        tone: 'supportive'
+    },
+    {
+        id: 'pm_progress_acknowledgement',
+        type: 'praise',
+        conditions: { minHeadroom: 2 },
+        subject: 'Progress Acknowledged',
+        content: `Chancellor,\n\nRecent indicators are moving in the right direction and that is beginning to register politically.\n\nKeep delivery discipline high and keep rebuilding headroom.\n\nPrime Minister`,
         tone: 'supportive'
     },
 

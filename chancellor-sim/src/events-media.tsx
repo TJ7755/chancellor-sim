@@ -81,6 +81,7 @@ export interface NewsArticle {
   headline: string;
   subheading: string;
   paragraphs: string[];
+  secondaryPageHeadlines?: Array<{ headline: string; subheading: string }>;
   oppositionQuote: OppositionQuote;
   month: number;
   date: Date;
@@ -679,6 +680,34 @@ function checkHeadlineConditions(conditions: HeadlineCondition, state: any): boo
 
 // Generate a headline based on state
 export function generateHeadline(state: any, newspaper: NewspaperSource): { headline: string; subheading: string } {
+  const mpcDecision = state?.markets?.lastMPCDecision;
+  const voteBreakdown = state?.markets?.lastMPCVoteBreakdown || '';
+  if (mpcDecision === 'hold') {
+    const split = /[1-9]-[1-9]/.test(voteBreakdown) && !voteBreakdown.startsWith('9-0');
+    if (state?.markets?.giltYield10y > 5.5) {
+      return {
+        headline: 'BoE Holds Rates as Market Anxiety Builds',
+        subheading: `MPC kept Bank Rate unchanged ${split ? `with a split vote (${voteBreakdown})` : 'while warning inflation risks remain'}.`,
+      };
+    }
+    if (split) {
+      return {
+        headline: 'BoE Holds in Split MPC Vote',
+        subheading: `Committee voted ${voteBreakdown}, signalling increased uncertainty over the next move.`,
+      };
+    }
+    return {
+      headline: 'BoE Holds Rates as MPC Awaits Clearer Data',
+      subheading: 'Bank Rate unchanged with policymakers signalling a cautious, data-led stance.',
+    };
+  }
+  if (mpcDecision === 'cut' && state?.markets?.bankRate < 3.0) {
+    return {
+      headline: 'BoE Delivers Aggressive Cut to Support Demand',
+      subheading: 'Officials move decisively as growth concerns outweigh near-term inflation risks.',
+    };
+  }
+
   if ((state?.devolution?.localGov?.section114Notices || 0) >= 5) {
     return {
       headline: 'Local Government Finance Crisis Deepens',
@@ -785,8 +814,56 @@ const GENERIC_HEADLINE_POOL: Array<{ headline: string; subheading: string }> = [
   { headline: 'Rail Reliability and Bus Provision Become Budget Battleground', subheading: 'Regional leaders push for stable multi-year settlements to improve commuter confidence.' },
   { headline: 'Debt Interest Bills Keep Pressure on Spending Plans', subheading: 'Even modest market moves are reshaping departmental assumptions for the year ahead.' },
   { headline: 'BoE-Treasury Coordination Under Scrutiny', subheading: 'Commentators debate how fiscal and monetary settings interact in a low-growth environment.' },
+  { headline: 'MPC Holds Despite Inflation Noise', subheading: 'Threadneedle Street keeps policy unchanged while members signal different risk priorities.' },
+  { headline: 'Markets Parse Split MPC Vote for Rate Signal', subheading: 'Investors debate whether divisions on the committee point to a near-term policy pivot.' },
+  { headline: 'Unexpected Hold Leaves Traders Repricing the Path', subheading: 'Sterling and gilt futures adjust as consensus expectations are challenged.' },
+  { headline: 'Emergency Cut Talk Emerges as Growth Wobbles', subheading: 'Analysts assess whether a sharper policy response may be required if demand weakens further.' },
+  { headline: 'Rate Path Unclear as MPC Messaging Diverges', subheading: 'Officials stress optionality, keeping both tightening and easing risks in play.' },
   { headline: 'Policy Fatigue Sets In as Households Seek Predictability', subheading: 'Voters tell pollsters they want fewer surprises and clearer long-term direction from ministers.' },
 ];
+
+function generateSecondaryPageHeadlines(state: any, primaryHeadline: string): Array<{ headline: string; subheading: string }> {
+  const pool = [...GENERIC_HEADLINE_POOL];
+  if ((state?.political?.governmentApproval ?? 50) < 32) {
+    pool.unshift({
+      headline: 'Backbench Unease Grows as Polling Weakens',
+      subheading: 'Senior MPs warn that delivery concerns are now feeding directly into parliamentary management risks.',
+    });
+  }
+  if ((state?.devolution?.localGov?.section114Notices ?? 0) > 0) {
+    pool.unshift({
+      headline: 'Section 114 Notices Add Pressure on Whitehall',
+      subheading: 'Councils report rising social care demand and warn current settlements are increasingly fragile.',
+    });
+  }
+  if ((state?.markets?.yieldChange10y ?? 0) > 0.15) {
+    pool.unshift({
+      headline: 'Gilt Move Raises Fresh Financing Questions',
+      subheading: 'Debt-servicing assumptions are revised after a notable rise in ten-year yields this month.',
+    });
+  }
+  if (Math.abs((state?.markets?.sterlingIndex ?? 100) - 100) > 4) {
+    pool.unshift({
+      headline: 'Sterling Move Reopens External Competitiveness Debate',
+      subheading: 'Exporters and importers face diverging pressures as currency volatility persists.',
+    });
+  }
+
+  // Shuffle the pool so the same headlines don't appear every turn
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  const selected: Array<{ headline: string; subheading: string }> = [];
+  for (const item of pool) {
+    if (item.headline === primaryHeadline) continue;
+    if (selected.some((entry) => entry.headline === item.headline)) continue;
+    selected.push(item);
+    if (selected.length >= 6) break;
+  }
+  return selected;
+}
 
 // ============================================================================
 // OPPOSITION QUOTES GENERATION
@@ -1457,12 +1534,14 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
 
   // Generate opposition quote
   const oppositionQuote = generateOppositionQuote(state, selectedNewspaper);
+  const secondaryPageHeadlines = generateSecondaryPageHeadlines(state, headline);
 
   return {
     newspaper: selectedNewspaper,
     headline,
     subheading,
     paragraphs,
+    secondaryPageHeadlines,
     oppositionQuote,
     month: state.currentMonth,
     date: new Date(state.currentDate),
@@ -1601,7 +1680,7 @@ interface NewspaperProps {
 }
 
 export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
-  const { newspaper, headline, subheading, paragraphs, oppositionQuote, date, isSpecialEdition } = article;
+  const { newspaper, headline, subheading, paragraphs, secondaryPageHeadlines, oppositionQuote, date, isSpecialEdition } = article;
 
   // Newspaper styling based on publication
   const getMastheadColor = () => {
@@ -1761,6 +1840,27 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               — {oppositionQuote.speaker}
             </div>
           </div>
+
+          {Array.isArray(secondaryPageHeadlines) && secondaryPageHeadlines.length > 0 && (
+            <div style={{ marginTop: '28px', borderTop: '2px solid #e2e8f0', paddingTop: '18px' }}>
+              <div style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: '12px',
+                color: '#334155'
+              }}>
+                General News
+              </div>
+              {secondaryPageHeadlines.map((item, idx) => (
+                <div key={`${item.headline}_${idx}`} style={{ marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>{item.headline}</div>
+                  <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px', lineHeight: 1.45 }}>{item.subheading}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Close button */}

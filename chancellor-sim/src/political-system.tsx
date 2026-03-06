@@ -75,7 +75,7 @@ export interface PMInterventionEvent {
   triggered: boolean;
 
   // Why the PM is calling
-  triggerReason: 'backbench_revolt' | 'manifesto_breach' | 'economic_crisis' | 'approval_collapse';
+  triggerReason: 'backbench_revolt' | 'manifesto_breach' | 'economic_crisis' | 'approval_collapse' | 'fiscal_rule_oc';
 
   // PM state at time of intervention
   pmTrust: number; // 0-100
@@ -1084,7 +1084,7 @@ export const PoliticalPanel: React.FC<PoliticalPanelProps> = ({ state }) => {
           className={`p-3 rounded-lg mb-4 border-2 ${getRiskColour(political.backbenchSentiment.rebellionRisk)}`}
         >
           <div className="font-semibold text-sm">
-            ⚠ Rebellion Risk:{' '}
+            Rebellion risk:{' '}
             {political.backbenchSentiment.rebellionRisk.toUpperCase()}
           </div>
           <div className="text-xs mt-1">

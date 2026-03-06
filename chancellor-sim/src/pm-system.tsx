@@ -37,6 +37,7 @@ export function shouldSendEventTriggeredMessage(
   gameState: GameState
 ): { shouldSend: boolean; messageType: PMMessageType | null; reason: string } {
   const { political, pmRelationship, fiscal, markets, services, economic } = gameState;
+  const obrHeadroom = gameState.obr?.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
 
   // Critical: Reshuffle warning (final warning)
   if (pmRelationship.reshuffleRisk >= 80 && !pmRelationship.finalWarningGiven) {
@@ -62,20 +63,17 @@ export function shouldSendEventTriggeredMessage(
   }
 
   const serviceCrisis =
-    services.nhsQuality < 45 ||
-    services.educationQuality < 52 ||
-    services.policingEffectiveness < 46 ||
-    services.courtBacklogPerformance < 40 ||
-    services.prisonSafety < 42 ||
-    services.mentalHealthAccess < 42 ||
-    services.affordableHousingDelivery < 34 ||
-    services.infrastructureQuality < 44 ||
-    (gameState.devolution?.localGov?.localServicesQuality ?? 50) < 40;
+    services.nhsQuality < 55 ||
+    services.educationQuality < 60 ||
+    services.policingEffectiveness < 50 ||
+    services.courtBacklogPerformance < 50 ||
+    services.prisonSafety < 50 ||
+    (gameState.devolution?.localGov?.localServicesQuality ?? 50) < 45;
   if (serviceCrisis && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
     return { shouldSend: true, messageType: 'concern', reason: 'service_crisis' };
   }
 
-  if (fiscal.fiscalHeadroom_bn < 10 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+  if (obrHeadroom < 10 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
     return { shouldSend: true, messageType: 'concern', reason: 'tight_headroom' };
   }
 
@@ -83,7 +81,7 @@ export function shouldSendEventTriggeredMessage(
     return { shouldSend: true, messageType: 'concern', reason: 'low_approval' };
   }
 
-  if (gameState.services.nhsQuality < 50 || gameState.services.educationQuality < 55 || gameState.services.policingEffectiveness < 50) {
+  if (gameState.services.nhsQuality < 55 || gameState.services.educationQuality < 60 || gameState.services.policingEffectiveness < 50 || gameState.services.courtBacklogPerformance < 50) {
     if (gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
       return { shouldSend: true, messageType: 'concern', reason: 'service_deterioration' };
     }
@@ -93,8 +91,21 @@ export function shouldSendEventTriggeredMessage(
   const hasActiveDeficitThreat = (pmRelationship.activeThreats || []).some(
     (t) => t.category === 'deficit' && !t.resolved && !t.breached
   );
-  if (gameState.fiscal.fiscalHeadroom_bn < 3 && gameState.fiscal.deficit_bn > 80 && !hasActiveDeficitThreat) {
+  if (obrHeadroom < 3 && gameState.fiscal.deficit_bn > 80 && !hasActiveDeficitThreat) {
     return { shouldSend: true, messageType: 'demand', reason: 'high_deficit' };
+  }
+
+  const snapshots = gameState.simulation.monthlySnapshots || [];
+  if (snapshots.length >= 3 && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 3) {
+    const [threeAgo, twoAgo, oneAgo] = snapshots.slice(-3);
+    const macroImproving =
+      threeAgo && twoAgo && oneAgo
+        ? (oneAgo.inflation < threeAgo.inflation && oneAgo.unemployment <= threeAgo.unemployment)
+        : false;
+    const headroomImproving = threeAgo && oneAgo && (gameState.obr?.fiscalHeadroomForecast_bn ?? 0) > 0 && (oneAgo.deficit < threeAgo.deficit);
+    if (macroImproving || headroomImproving) {
+      return { shouldSend: true, messageType: 'praise', reason: 'progress_acknowledged' };
+    }
   }
 
   // Positive: Praise for good performance
@@ -153,6 +164,8 @@ export function generatePMMessage(
 
   // 1. Filter messages by type
   const potentialMessages = PM_MESSAGES.filter(m => m.type === messageType);
+  const cooldownMap = gameState.pmRelationship.messageTemplateLastFiredTurn || {};
+  const currentTurn = gameState.metadata.currentTurn;
 
   // 2. Find best match (first one that meets conditions)
   // We prioritize specific conditions over general ones implicitly by order in array?
@@ -175,8 +188,9 @@ export function generatePMMessage(
     if (c.maxDeficit !== undefined && fiscal.deficit_bn > c.maxDeficit) return false;
     if ((c as any).minGiltYield !== undefined && gameState.markets.giltYield10y < (c as any).minGiltYield) return false;
     if ((c as any).maxGiltYield !== undefined && gameState.markets.giltYield10y > (c as any).maxGiltYield) return false;
-    if (c.minHeadroom !== undefined && fiscal.fiscalHeadroom_bn < c.minHeadroom) return false;
-    if (c.maxHeadroom !== undefined && fiscal.fiscalHeadroom_bn > c.maxHeadroom) return false;
+    const obrHeadroom = gameState.obr?.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
+    if (c.minHeadroom !== undefined && obrHeadroom < c.minHeadroom) return false;
+    if (c.maxHeadroom !== undefined && obrHeadroom > c.maxHeadroom) return false;
     if (c.fiscalRuleCompliant !== undefined && gameState.political.fiscalRuleCompliance.overallCompliant !== c.fiscalRuleCompliant) return false;
     if (c.reshuffleRisk !== undefined && pmRelationship.reshuffleRisk < c.reshuffleRisk) return false;
     if (c.minGrowth !== undefined && economic.gdpGrowthAnnual < c.minGrowth) return false;
@@ -198,8 +212,11 @@ export function generatePMMessage(
 
     // Heuristics
     if (c.nhsCrisis) {
-      if ((gameState.services.nhsQuality ?? 60) > 50) return false; // Crisis only if quality <= 50
+      if ((gameState.services.nhsQuality ?? 60) >= 55) return false; // Crisis only if quality is poor
     }
+
+    const lastFiredTurn = cooldownMap[template.id];
+    if (typeof lastFiredTurn === 'number' && currentTurn - lastFiredTurn < 3) return false;
 
     if (c.taxRises) {
       // Assume tax rises if rates are elevated
@@ -216,12 +233,16 @@ export function generatePMMessage(
     return true;
   };
 
-  selectedTemplate = potentialMessages.find(checkCondition);
+  const eligibleTemplates = potentialMessages.filter(checkCondition);
+  if (eligibleTemplates.length > 0) {
+    const ranked = [...eligibleTemplates].sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    const topBandPriority = ranked[0].priority || 0;
+    const topBand = ranked.filter((template) => Math.abs((template.priority || 0) - topBandPriority) <= 5);
+    selectedTemplate = topBand[Math.floor(Math.random() * topBand.length)];
+  }
 
-  // Fallback if no specific condition met (shouldn't happen if data is complete, but safety net)
   if (!selectedTemplate && potentialMessages.length > 0) {
-    // Pick the one with fewest conditions or default
-    selectedTemplate = potentialMessages[potentialMessages.length - 1];
+    selectedTemplate = potentialMessages[Math.floor(Math.random() * potentialMessages.length)];
   }
 
   if (!selectedTemplate) {
@@ -241,7 +262,7 @@ export function generatePMMessage(
   // 3. Inject variables
   const monthName = getMonthName(metadata.currentMonth);
   const fiscalRule = getFiscalRuleById(gameState.political.chosenFiscalRule);
-  const headroom = fiscal.fiscalHeadroom_bn;
+  const headroom = gameState.obr?.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
   const serviceEntries: Array<{ serviceName: string; qualityScore: number }> = [
     { serviceName: 'NHS quality', qualityScore: gameState.services.nhsQuality },
     { serviceName: 'education quality', qualityScore: gameState.services.educationQuality },
@@ -302,6 +323,7 @@ export function generatePMMessage(
   return {
     id: generateMessageId(turn, messageType),
     turn,
+    templateId: selectedTemplate.id,
     type: messageType,
     subject,
     content,
@@ -471,6 +493,10 @@ export function processPMCommunications(gameState: GameState): {
 
   if (newMessage) {
     relationshipUpdates.lastContactTurn = gameState.metadata.currentTurn;
+    relationshipUpdates.messageTemplateLastFiredTurn = {
+      ...(gameState.pmRelationship.messageTemplateLastFiredTurn || {}),
+      ...(newMessage.templateId ? { [newMessage.templateId]: gameState.metadata.currentTurn } : {}),
+    };
   }
 
   return {

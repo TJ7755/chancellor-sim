@@ -62,6 +62,7 @@ import {
   loadPromises,
   savePromises,
 } from './mp-storage';
+import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
 
 // ===========================
 // Game State Types
@@ -108,6 +109,7 @@ export type PMMessageType =
 export interface PMMessage {
   id: string;
   turn: number;
+  templateId?: string;
   type: PMMessageType;
   subject: string;
   content: string;
@@ -159,6 +161,7 @@ export interface PMRelationshipState {
     resolved: boolean;
     followUpSent: boolean;
   }[];
+  messageTemplateLastFiredTurn: Record<string, number>;
 }
 
 export interface SocialMediaGameState {
@@ -315,6 +318,113 @@ export interface DistributionalState {
   decileImpacts: number[];
 }
 
+export type ForecastRiskStatement = 'balanced' | 'skewed_down' | 'skewed_up';
+
+export interface PolicyScoring {
+  measureDescription: string;
+  annualImpact_bn: number;
+  certaintylevel: 'high' | 'medium' | 'low' | 'highly_uncertain';
+}
+
+export interface ObrForecast {
+  eventTurn: number;
+  eventType: 'budget' | 'autumn_statement';
+  gdpGrowthPath: number[];
+  inflationPath: number[];
+  unemploymentPath: number[];
+  deficitPath: number[];
+  debtPath: number[];
+  fiscalHeadroom_bn: number;
+  policyScorings: PolicyScoring[];
+}
+
+export interface ForecastError {
+  forecastTurn: number;
+  metric: string;
+  forecastValue: number;
+  actualValue: number;
+  errorMagnitude: number;
+}
+
+export interface ObrState {
+  forecastVintages: ObrForecast[];
+  latestForecast: ObrForecast | null;
+  obrCredibilityScore: number;
+  cumulativeForecastErrors: ForecastError[];
+  fiscalHeadroomForecast_bn: number;
+  forecastRiskStatement: ForecastRiskStatement;
+}
+
+export interface CapitalProject {
+  name: string;
+  totalCost_bn: number;
+  plannedStartTurn: number;
+  plannedDurationTurns: number;
+  deliveredSoFar_bn: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+export interface CapitalDeliveryState {
+  pipelineCapacity_bn: number;
+  deliveryRiskMultiplier: number;
+  projectQueue: CapitalProject[];
+  shovelReadyReserve_bn: number;
+  overCapacityTurns: number;
+  deferredCapital_bn: number;
+  procurementPrepCost_bn: number;
+}
+
+export interface HousingState {
+  houseBuilding_annualStarts: number;
+  housingAffordabilityIndex: number;
+  rentInflation_pct: number;
+  planningBottleneck: number;
+  htbAndSharedOwnership_bn: number;
+  infrastructureGuarantees_bn: number;
+  planningReformPackage: boolean;
+  councilHouseBuildingGrant_bn: number;
+}
+
+export interface IndustrialIntervention {
+  id: string;
+  name: string;
+  sector: 'clean_energy' | 'advanced_manufacturing' | 'life_sciences' | 'digital' | 'defence' | 'construction';
+  annualCost_bn: number;
+  turnsActive: number;
+  turnsToEffect: number;
+  successProbability: number;
+  outcomeRevealed: boolean;
+  outcome: 'success' | 'failure' | 'partial' | null;
+}
+
+export interface IndustrialStrategyState {
+  activeInterventions: IndustrialIntervention[];
+  totalAnnualCost_bn: number;
+  productivityBoostAccumulated: number;
+  failedInterventionCount: number;
+  stateAidRisk: number;
+  exportShockTurnsRemaining: number;
+}
+
+export interface PipelineItem {
+  measureId: string;
+  description: string;
+  type: 'primary_legislation' | 'secondary_legislation' | 'hmrc_systems' | 'administrative';
+  announcedTurn: number;
+  effectiveTurn: number;
+  turnsRemaining: number;
+  fiscalImpactOnEffect_bn: number;
+  status: 'queued' | 'in_progress' | 'active' | 'delayed';
+  delayRisk: number;
+  capacityCost: number;
+}
+
+export interface LegislativePipelineState {
+  queue: PipelineItem[];
+  hmrcSystemsCapacity: number;
+  consultationLoad: number;
+}
+
 export interface GameState {
   metadata: GameMetadata;
   economic: EconomicState;
@@ -338,6 +448,11 @@ export interface GameState {
   financialStability: FinancialStabilityState;
   devolution: DevolutionState;
   distributional: DistributionalState;
+  obr: ObrState;
+  capitalDelivery: CapitalDeliveryState;
+  housing: HousingState;
+  industrialStrategy: IndustrialStrategyState;
+  legislativePipeline: LegislativePipelineState;
 }
 
 export interface GameActions {
@@ -420,6 +535,76 @@ export interface BudgetChanges {
   ucTaperRateChange?: number;
   workAllowanceMonthlyChange?: number;
   childcareSupportRateChange?: number;
+  personalAllowanceChange?: number;
+  basicRateUpperThresholdChange?: number;
+  higherRateUpperThresholdChange?: number;
+  thresholdUprating?: 'frozen' | 'cpi_linked' | 'earnings_linked' | 'custom';
+  fullExpensing?: boolean;
+  antiAvoidanceInvestmentChange_bn?: number;
+  hmrcSystemsInvestmentChange_bn?: number;
+  sdltAdditionalDwellingsSurchargeChange?: number;
+  planningReformPackage?: boolean;
+  infrastructureGuaranteesChange_bn?: number;
+  htbAndSharedOwnershipChange_bn?: number;
+  councilHouseBuildingGrantChange_bn?: number;
+  localGovCentralGrantChange_bn?: number;
+  councilTaxGrowthCapChange?: number;
+  industrialInterventionAddIds?: string[];
+}
+
+function createInitialObrState(): ObrState {
+  return {
+    forecastVintages: [],
+    latestForecast: null,
+    obrCredibilityScore: 62,
+    cumulativeForecastErrors: [],
+    fiscalHeadroomForecast_bn: 9.9,
+    forecastRiskStatement: 'balanced',
+  };
+}
+
+function createInitialCapitalDeliveryState(): CapitalDeliveryState {
+  return {
+    pipelineCapacity_bn: 80,
+    deliveryRiskMultiplier: 0.9,
+    projectQueue: [],
+    shovelReadyReserve_bn: 8,
+    overCapacityTurns: 0,
+    deferredCapital_bn: 0,
+    procurementPrepCost_bn: 0.2,
+  };
+}
+
+function createInitialHousingState(): HousingState {
+  return {
+    houseBuilding_annualStarts: 240000,
+    housingAffordabilityIndex: 45,
+    rentInflation_pct: 6,
+    planningBottleneck: 65,
+    htbAndSharedOwnership_bn: 1.5,
+    infrastructureGuarantees_bn: 2.0,
+    planningReformPackage: false,
+    councilHouseBuildingGrant_bn: 0.6,
+  };
+}
+
+function createInitialIndustrialStrategyState(): IndustrialStrategyState {
+  return {
+    activeInterventions: [],
+    totalAnnualCost_bn: 0,
+    productivityBoostAccumulated: 0,
+    failedInterventionCount: 0,
+    stateAidRisk: 15,
+    exportShockTurnsRemaining: 0,
+  };
+}
+
+function createInitialLegislativePipelineState(): LegislativePipelineState {
+  return {
+    queue: [],
+    hmrcSystemsCapacity: 100,
+    consultationLoad: 25,
+  };
 }
 
 // ===========================
@@ -599,6 +784,7 @@ function normalizeLoadedState(state: GameState): GameState {
     finalWarningGiven: false,
     activeDemands: [],
     activeThreats: [],
+    messageTemplateLastFiredTurn: {},
   };
   const socialMedia = state.socialMedia ?? {
     recentlyUsedPostIds: [],
@@ -645,6 +831,32 @@ function normalizeLoadedState(state: GameState): GameState {
     ...createInitialDistributionalState(),
     ...((state as any).distributional || {}),
   };
+  const obr = {
+    ...createInitialObrState(),
+    ...((state as any).obr || {}),
+    forecastVintages: ((state as any).obr?.forecastVintages || []) as ObrForecast[],
+    cumulativeForecastErrors: ((state as any).obr?.cumulativeForecastErrors || []) as ForecastError[],
+    latestForecast: (state as any).obr?.latestForecast ?? null,
+  };
+  const capitalDelivery = {
+    ...createInitialCapitalDeliveryState(),
+    ...((state as any).capitalDelivery || {}),
+    projectQueue: ((state as any).capitalDelivery?.projectQueue || []) as CapitalProject[],
+  };
+  const housing = {
+    ...createInitialHousingState(),
+    ...((state as any).housing || {}),
+  };
+  const industrialStrategy = {
+    ...createInitialIndustrialStrategyState(),
+    ...((state as any).industrialStrategy || {}),
+    activeInterventions: ((state as any).industrialStrategy?.activeInterventions || []) as IndustrialIntervention[],
+  };
+  const legislativePipeline = {
+    ...createInitialLegislativePipelineState(),
+    ...((state as any).legislativePipeline || {}),
+    queue: ((state as any).legislativePipeline?.queue || []) as PipelineItem[],
+  };
   // Merge all state objects with defaults to handle missing properties from old saves
   const economic = {
     ...createInitialEconomicState(),
@@ -654,6 +866,15 @@ function normalizeLoadedState(state: GameState): GameState {
     ...createInitialFiscalState(),
     ...state.fiscal,
   } : createInitialFiscalState();
+  fiscal.personalAllowance = state.fiscal?.personalAllowance ?? createInitialFiscalState().personalAllowance;
+  fiscal.basicRateUpperThreshold = state.fiscal?.basicRateUpperThreshold ?? createInitialFiscalState().basicRateUpperThreshold;
+  fiscal.higherRateUpperThreshold = state.fiscal?.higherRateUpperThreshold ?? createInitialFiscalState().higherRateUpperThreshold;
+  fiscal.thresholdUprating = state.fiscal?.thresholdUprating ?? createInitialFiscalState().thresholdUprating;
+  fiscal.thresholdFreezeMonths = state.fiscal?.thresholdFreezeMonths ?? createInitialFiscalState().thresholdFreezeMonths;
+  fiscal.fullExpensing = state.fiscal?.fullExpensing ?? createInitialFiscalState().fullExpensing;
+  fiscal.antiAvoidanceInvestment_bn = state.fiscal?.antiAvoidanceInvestment_bn ?? createInitialFiscalState().antiAvoidanceInvestment_bn;
+  fiscal.hmrcSystemsInvestment_bn = state.fiscal?.hmrcSystemsInvestment_bn ?? createInitialFiscalState().hmrcSystemsInvestment_bn;
+  fiscal.sdltAdditionalDwellingsSurcharge = state.fiscal?.sdltAdditionalDwellingsSurcharge ?? createInitialFiscalState().sdltAdditionalDwellingsSurcharge;
   const markets = {
     ...createInitialMarketState(),
     ...(state.markets || {}),
@@ -754,6 +975,10 @@ function normalizeLoadedState(state: GameState): GameState {
       activeThreats: Array.isArray((pmRelationship as any).activeThreats)
         ? (pmRelationship as any).activeThreats
         : [],
+      messageTemplateLastFiredTurn:
+        (pmRelationship as any).messageTemplateLastFiredTurn && typeof (pmRelationship as any).messageTemplateLastFiredTurn === 'object'
+          ? (pmRelationship as any).messageTemplateLastFiredTurn
+          : {},
     },
     socialMedia,
     spendingReview,
@@ -763,6 +988,11 @@ function normalizeLoadedState(state: GameState): GameState {
     financialStability,
     devolution,
     distributional,
+    obr,
+    capitalDelivery,
+    housing,
+    industrialStrategy,
+    legislativePipeline,
   };
 }
 
@@ -826,6 +1056,11 @@ function createInitialGameState(): GameState {
   const financialStability = createInitialFinancialStabilityState();
   const devolution = createInitialDevolutionState() as DevolutionState;
   const distributional = createInitialDistributionalState();
+  const obr = createInitialObrState();
+  const capitalDelivery = createInitialCapitalDeliveryState();
+  const housing = createInitialHousingState();
+  const industrialStrategy = createInitialIndustrialStrategyState();
+  const legislativePipeline = createInitialLegislativePipelineState();
   const manifesto = initializeManifestoState(); // Random manifesto
   const mpSystem = createInitialMPSystem(); // Initialize MP system
   const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
@@ -882,6 +1117,7 @@ function createInitialGameState(): GameState {
       finalWarningGiven: false,
       activeDemands: [],
       activeThreats: [],
+      messageTemplateLastFiredTurn: {},
     },
     socialMedia: {
       recentlyUsedPostIds: [],
@@ -893,6 +1129,11 @@ function createInitialGameState(): GameState {
     financialStability,
     devolution,
     distributional,
+    obr,
+    capitalDelivery,
+    housing,
+    industrialStrategy,
+    legislativePipeline,
   };
 }
 
@@ -1376,6 +1617,30 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       if (appliedTaxDeltas.corporationTaxChange) {
         newFiscal.corporationTaxRate += appliedTaxDeltas.corporationTaxChange;
       }
+      if (changes.personalAllowanceChange !== undefined) {
+        newFiscal.personalAllowance = Math.max(0, newFiscal.personalAllowance + changes.personalAllowanceChange);
+      }
+      if (changes.basicRateUpperThresholdChange !== undefined) {
+        newFiscal.basicRateUpperThreshold = Math.max(newFiscal.personalAllowance + 1000, newFiscal.basicRateUpperThreshold + changes.basicRateUpperThresholdChange);
+      }
+      if (changes.higherRateUpperThresholdChange !== undefined) {
+        newFiscal.higherRateUpperThreshold = Math.max(newFiscal.basicRateUpperThreshold + 1000, newFiscal.higherRateUpperThreshold + changes.higherRateUpperThresholdChange);
+      }
+      if (changes.thresholdUprating !== undefined) {
+        newFiscal.thresholdUprating = changes.thresholdUprating;
+      }
+      if (changes.fullExpensing !== undefined) {
+        newFiscal.fullExpensing = changes.fullExpensing;
+      }
+      if (changes.antiAvoidanceInvestmentChange_bn !== undefined) {
+        newFiscal.antiAvoidanceInvestment_bn = Math.max(0, Math.min(3, (newFiscal.antiAvoidanceInvestment_bn || 0) + changes.antiAvoidanceInvestmentChange_bn));
+      }
+      if (changes.hmrcSystemsInvestmentChange_bn !== undefined) {
+        newFiscal.hmrcSystemsInvestment_bn = Math.max(0, Math.min(1.5, (newFiscal.hmrcSystemsInvestment_bn || 0) + changes.hmrcSystemsInvestmentChange_bn));
+      }
+      if (changes.sdltAdditionalDwellingsSurchargeChange !== undefined) {
+        newFiscal.sdltAdditionalDwellingsSurcharge = Math.max(0, Math.min(10, (newFiscal.sdltAdditionalDwellingsSurcharge || 3) + changes.sdltAdditionalDwellingsSurchargeChange));
+      }
       if (changes.ucTaperRateChange !== undefined) {
         newFiscal.ucTaperRate = Math.max(35, Math.min(75, newFiscal.ucTaperRate + changes.ucTaperRateChange));
       }
@@ -1528,8 +1793,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
-      const localGovGrantItem = newFiscal.detailedSpending.find((item) => item.id === 'localGovernmentGrants');
-      const nextCentralGrant = localGovGrantItem?.currentBudget ?? prevState.devolution.localGov.centralGrant_bn;
+      const nextCentralGrant = prevState.devolution.localGov.centralGrant_bn;
+      const centralGrantAfterLevers = Math.max(0, nextCentralGrant + (changes.localGovCentralGrantChange_bn || 0));
+      const councilTaxCapAfterLevers = Math.max(3, Math.min(10, (prevState.devolution.localGov.councilTaxGrowthCap || 3) + (changes.councilTaxGrowthCapChange || 0)));
 
       const nextSpendingReviewDepartments = {
         ...prevState.spendingReview.departments,
@@ -1600,9 +1866,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         localGov: {
           ...prevState.spendingReview.departments.localGov,
-          resourceDEL_bn: nextCentralGrant,
+          resourceDEL_bn: centralGrantAfterLevers,
           plannedResourceDEL_bn: [
-            nextCentralGrant,
+            centralGrantAfterLevers,
             ...(prevState.spendingReview.departments.localGov.plannedResourceDEL_bn || []).slice(1),
           ],
         },
@@ -1621,6 +1887,72 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       };
 
+      const policyPipelineEntries: PipelineItem[] = [];
+      if (changes.antiAvoidanceInvestmentChange_bn !== undefined && changes.antiAvoidanceInvestmentChange_bn !== 0) {
+        policyPipelineEntries.push({
+          measureId: `anti_avoidance_${prevState.metadata.currentTurn}`,
+          description: 'HMRC anti-avoidance compliance programme',
+          type: 'hmrc_systems',
+          announcedTurn: prevState.metadata.currentTurn,
+          effectiveTurn: prevState.metadata.currentTurn + 6,
+          turnsRemaining: 6,
+          fiscalImpactOnEffect_bn: Math.abs(changes.antiAvoidanceInvestmentChange_bn),
+          status: 'in_progress',
+          delayRisk: 0.08,
+          capacityCost: 20,
+        });
+      }
+      if (changes.personalAllowanceChange !== undefined || changes.basicRateUpperThresholdChange !== undefined || changes.higherRateUpperThresholdChange !== undefined) {
+        policyPipelineEntries.push({
+          measureId: `thresholds_${prevState.metadata.currentTurn}`,
+          description: 'Income tax threshold policy update',
+          type: 'secondary_legislation',
+          announcedTurn: prevState.metadata.currentTurn,
+          effectiveTurn: prevState.metadata.currentTurn + 1,
+          turnsRemaining: 1,
+          fiscalImpactOnEffect_bn: 0,
+          status: 'in_progress',
+          delayRisk: 0.05,
+          capacityCost: 15,
+        });
+      }
+      if (queueMajorTaxForEvent) {
+        policyPipelineEntries.push({
+          measureId: `preannounced_tax_${prevState.metadata.currentTurn}`,
+          description: 'Pre-announced major tax package',
+          type: 'secondary_legislation',
+          announcedTurn: prevState.metadata.currentTurn,
+          effectiveTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1) + 1,
+          turnsRemaining: Math.max(1, findNextFiscalEventTurn(prevState.metadata.currentTurn + 1) - prevState.metadata.currentTurn),
+          fiscalImpactOnEffect_bn:
+            (taxDeltas.incomeTaxBasicChange * 7) +
+            (taxDeltas.incomeTaxHigherChange * 2) +
+            (taxDeltas.incomeTaxAdditionalChange * 0.2) +
+            (taxDeltas.vatChange * 7.5) +
+            (taxDeltas.corporationTaxChange * 3.2),
+          status: 'queued',
+          delayRisk: 0.06,
+          capacityCost: 20,
+        });
+      }
+      const industrialInterventionsToAdd = (changes.industrialInterventionAddIds || [])
+        .map((id) => INDUSTRIAL_INTERVENTION_CATALOGUE.find((item) => item.id === id))
+        .filter((item): item is NonNullable<typeof item> => !!item)
+        .filter((item) => !(prevState.industrialStrategy.activeInterventions || []).some((active) => active.id === item.id))
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          sector: item.sector,
+          annualCost_bn: item.annualCost_bn,
+          turnsActive: 0,
+          turnsToEffect: item.turnsToEffect,
+          successProbability: item.successProbability,
+          outcomeRevealed: false,
+          outcome: null,
+        }));
+      const planningReformActivated =
+        changes.planningReformPackage === true && !prevState.housing.planningReformPackage;
+
       return {
         ...prevState,
         manifesto: newManifesto,
@@ -1636,11 +1968,46 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           ...prevState.devolution,
           localGov: {
             ...prevState.devolution.localGov,
-            centralGrant_bn: nextCentralGrant,
+            centralGrant_bn: centralGrantAfterLevers,
+            councilTaxGrowthCap: councilTaxCapAfterLevers,
           },
+        },
+        housing: {
+          ...prevState.housing,
+          planningReformPackage: changes.planningReformPackage ?? prevState.housing.planningReformPackage,
+          infrastructureGuarantees_bn: Math.max(0, Math.min(10, prevState.housing.infrastructureGuarantees_bn + (changes.infrastructureGuaranteesChange_bn || 0))),
+          htbAndSharedOwnership_bn: Math.max(0, prevState.housing.htbAndSharedOwnership_bn + (changes.htbAndSharedOwnershipChange_bn || 0)),
+          councilHouseBuildingGrant_bn: Math.max(0, Math.min(3, prevState.housing.councilHouseBuildingGrant_bn + (changes.councilHouseBuildingGrantChange_bn || 0))),
+        },
+        industrialStrategy: {
+          ...prevState.industrialStrategy,
+          activeInterventions: [
+            ...(prevState.industrialStrategy.activeInterventions || []),
+            ...industrialInterventionsToAdd,
+          ],
+        },
+        political: {
+          ...prevState.political,
+          backbenchSatisfaction: planningReformActivated
+            ? Math.max(0, prevState.political.backbenchSatisfaction - 2)
+            : prevState.political.backbenchSatisfaction,
+        },
+        legislativePipeline: {
+          ...prevState.legislativePipeline,
+          queue: [
+            ...(prevState.legislativePipeline.queue || []),
+            ...policyPipelineEntries,
+          ],
+          consultationLoad: Math.max(0, Math.min(100,
+            (prevState.legislativePipeline.consultationLoad || 25) + (policyPipelineEntries.length > 0 ? 5 : 0)
+          )),
         },
         fiscal: {
           ...newFiscal,
+          thresholdFreezeMonths:
+            (changes.thresholdUprating ?? newFiscal.thresholdUprating) === 'frozen'
+              ? (prevState.fiscal.thresholdFreezeMonths || 0)
+              : 0,
           nextFiscalEventTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1),
           pendingAnnouncements: queueMajorTaxForEvent
             ? [
@@ -2030,6 +2397,16 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
               description: 'Emergency market reaction premium after PM crisis intervention.',
             });
           }
+        } else if (event.triggerReason === 'fiscal_rule_oc') {
+          const consolidation = 6.0;
+          const departmentalCut = consolidation / 6;
+          budgetChanges.defenceCurrentChange = -departmentalCut;
+          budgetChanges.infrastructureCurrentChange = -departmentalCut;
+          budgetChanges.policeCurrentChange = -departmentalCut;
+          budgetChanges.justiceCurrentChange = -departmentalCut;
+          budgetChanges.otherCurrentChange = -departmentalCut * 2;
+          complianceNote = `PM directive: OBR rule-breach response enacted with £${consolidation.toFixed(1)}bn annual consolidation.`;
+          complianceDeltaLabel = `PM comply: OBR consolidation £${consolidation.toFixed(1)}bn`;
         }
 
         // PM comply measures are canonical budget changes and must follow the same
