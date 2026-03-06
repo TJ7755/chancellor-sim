@@ -849,6 +849,12 @@ function generateSecondaryPageHeadlines(state: any, primaryHeadline: string): Ar
     });
   }
 
+  // Shuffle the pool so the same headlines don't appear every turn
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
   const selected: Array<{ headline: string; subheading: string }> = [];
   for (const item of pool) {
     if (item.headline === primaryHeadline) continue;

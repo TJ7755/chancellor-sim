@@ -1793,8 +1793,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
 
-      const localGovGrantItem = newFiscal.detailedSpending.find((item) => item.id === 'localGovernmentGrants');
-      const nextCentralGrant = localGovGrantItem?.currentBudget ?? prevState.devolution.localGov.centralGrant_bn;
+      const nextCentralGrant = prevState.devolution.localGov.centralGrant_bn;
       const centralGrantAfterLevers = Math.max(0, nextCentralGrant + (changes.localGovCentralGrantChange_bn || 0));
       const councilTaxCapAfterLevers = Math.max(3, Math.min(10, (prevState.devolution.localGov.councilTaxGrowthCap || 3) + (changes.councilTaxGrowthCapChange || 0)));
 
