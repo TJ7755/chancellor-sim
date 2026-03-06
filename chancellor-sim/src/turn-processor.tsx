@@ -1105,7 +1105,7 @@ function calculateEmployment(state: GameState): GameState {
     adjustedNAIRU -= 0.05;
   }
   if (state.housing.housingAffordabilityIndex < 40) {
-    adjustedNAIRU += 0.1 / 12;
+    adjustedNAIRU += 0.1;
   }
 
   // Clamp adjusted NAIRU to realistic range
@@ -1388,10 +1388,7 @@ function calculateTaxRevenues(state: GameState): GameState {
   const { economic, fiscal } = state;
   const difficulty = getDifficultySettings(state);
   const adviserBonuses = getAdviserBonuses(state);
-  const antiAvoidanceActive = (state.legislativePipeline.queue || []).some((item) => item.measureId.includes('anti_avoidance') && item.status === 'active');
-  const antiAvoidanceExtra = Math.max(0, (fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3);
-  const avoidanceScaleFactor = antiAvoidanceActive ? Math.max(0.5, 1 - antiAvoidanceExtra * 0.15) : 1;
-  const effectiveTaxAvoidanceScale = difficulty.taxAvoidanceScale * avoidanceScaleFactor;
+  const effectiveTaxAvoidanceScale = difficulty.taxAvoidanceScale;
 
   // Base revenues (£bn annual): Income Tax 269, NI 164, VAT 171, Corp Tax 88, Other 386
   // Scale by cumulative nominal GDP growth from baseline, with elasticities
@@ -1653,7 +1650,7 @@ function calculateFiscalBalance(state: GameState): GameState {
   const industrialStrategyCost_bn = state.industrialStrategy.totalAnnualCost_bn || 0;
   totalManagedExpenditure += industrialStrategyCost_bn;
 
-  const localGovernmentGrantCost_bn = Math.max(0, (state.devolution.localGov.centralGrant_bn || 30) - 30);
+  const localGovernmentGrantCost_bn = (state.devolution.localGov.centralGrant_bn || 30) - 30;
   totalManagedExpenditure += localGovernmentGrantCost_bn;
 
   const capitalPreparationCost_bn = state.capitalDelivery.procurementPrepCost_bn || 0;
@@ -2122,7 +2119,24 @@ function processAnnualPayRounds(state: GameState): GameState {
   const armedAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.infrastructureQuality) * 0.2;
   const policeAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.policingEffectiveness) * 0.2;
 
-  const awardCost_bn = (nhsAward * 0.55) + (teachersAward * 0.22) + (civilAward * 0.12) + (armedAward * 0.07) + (policeAward * 0.09);
+  const nhsWeightRaw = 0.55;
+  const teachersWeightRaw = 0.22;
+  const civilWeightRaw = 0.12;
+  const armedWeightRaw = 0.07;
+  const policeWeightRaw = 0.09;
+  const totalAwardWeight = nhsWeightRaw + teachersWeightRaw + civilWeightRaw + armedWeightRaw + policeWeightRaw;
+  const nhsWeight = nhsWeightRaw / totalAwardWeight;
+  const teachersWeight = teachersWeightRaw / totalAwardWeight;
+  const civilWeight = civilWeightRaw / totalAwardWeight;
+  const armedWeight = armedWeightRaw / totalAwardWeight;
+  const policeWeight = policeWeightRaw / totalAwardWeight;
+
+  const awardCost_bn =
+    nhsAward * nhsWeight +
+    teachersAward * teachersWeight +
+    civilAward * civilWeight +
+    armedAward * armedWeight +
+    policeAward * policeWeight;
 
   return {
     ...state,
