@@ -2044,7 +2044,6 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [
     gameState.metadata.currentTurn,
     pmComplianceEventCount,
-    gameState.fiscal,
     gameState.fiscal.ucTaperRate,
     gameState.fiscal.workAllowanceMonthly,
     gameState.fiscal.childcareSupportRate,
