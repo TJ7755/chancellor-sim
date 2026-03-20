@@ -331,7 +331,7 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'industrial_action',
     severity: 'major',
     probability: 0.01,
-    conditions: (state) => (state.economy?.inflationCPI ?? 0) > (state.economy?.wageGrowthReal ?? 4) + 2,
+    conditions: (state) => (state.economic?.inflationCPI ?? 0) > (state.economic?.wageGrowthAnnual ?? 4),
     generate: (state) => ({
       type: 'industrial_action',
       severity: 'major',
@@ -373,7 +373,7 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'market_panic',
     severity: 'crisis',
     probability: 0.005,  // ~6% per year
-    conditions: (state) => (state.fiscal?.debtToGdpPercent ?? 0) > 100 && (state.fiscal?.deficitPctGDP ?? 0) > 5,
+    conditions: (state) => (state.fiscal?.debtPctGDP ?? 0) > 100 && (state.fiscal?.deficitPctGDP ?? 0) > 5,
     generate: (state) => ({
       type: 'market_panic',
       severity: 'crisis',
@@ -415,7 +415,7 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'market_panic',
     severity: 'major',
     probability: 0.008,
-    conditions: (state) => state.economy.inflationCPI > 8,
+    conditions: (state) => state.economic.inflationCPI > 8,
     generate: (state) => ({
       type: 'market_panic',
       severity: 'major',
@@ -547,9 +547,16 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'economic_data',
     severity: 'minor',
     probability: 0.4,  // Common
-    conditions: (state) => Math.abs(state.economy?.gdpGrowthQuarterly ?? 0) > 0.4,
+    conditions: (state) => {
+      const growth = typeof state.economic?.gdpGrowthMonthly === 'number'
+        ? (Math.pow(1 + state.economic.gdpGrowthMonthly / 100, 3) - 1) * 100
+        : (Math.pow(1 + (state.economic?.gdpGrowthAnnual ?? 0) / 100, 0.25) - 1) * 100;
+      return Math.abs(growth) > 0.4;
+    },
     generate: (state) => {
-      const growth = state.economy?.gdpGrowthQuarterly ?? 0;
+      const growth = typeof state.economic?.gdpGrowthMonthly === 'number'
+        ? (Math.pow(1 + state.economic.gdpGrowthMonthly / 100, 3) - 1) * 100
+        : (Math.pow(1 + (state.economic?.gdpGrowthAnnual ?? 0) / 100, 0.25) - 1) * 100;
       const positive = growth > 0;
       return {
         type: 'economic_data',
@@ -568,12 +575,12 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'economic_data',
     severity: 'minor',
     probability: 0.3,
-    conditions: (state) => (state.economy?.inflationCPI ?? 0) > 3.5,
+    conditions: (state) => (state.economic?.inflationCPI ?? 0) > 3.5,
     generate: (state) => ({
       type: 'economic_data',
       severity: 'minor',
       title: 'Inflation Remains Sticky',
-      description: `CPI inflation held at ${(state.economy?.inflationCPI ?? 0).toFixed(1)}% this month, disappointing hopes for a faster decline. Core inflation remains elevated.`,
+      description: `CPI inflation held at ${(state.economic?.inflationCPI ?? 0).toFixed(1)}% this month, disappointing hopes for a faster decline. Core inflation remains elevated.`,
       immediateImpact: {
         approvalRating: -1,
         giltYieldBps: 8
@@ -585,7 +592,7 @@ const EVENT_TEMPLATES: EventTemplate[] = [
     type: 'political_crisis',
     severity: 'minor',
     probability: 0.15,
-    conditions: (state) => state.political?.backbenchSentiment?.rebellionRisk === 'high' || (state.political?.publicApproval ?? 50) < 30,
+    conditions: (state) => (state.political?.backbenchSatisfaction ?? 70) < 40 || (state.political?.governmentApproval ?? 50) < 30,
     generate: (state) => ({
       type: 'political_crisis',
       severity: 'minor',
@@ -637,8 +644,8 @@ export function generateEvents(state: any): RandomEvent[] {
       events.push({
         ...event,
         id: `event_${eventIdCounter++}_${Date.now()}`,
-        month: state.currentMonth,
-        date: new Date(state.currentDate)
+        month: state.metadata?.currentMonth ?? 1,
+        date: new Date(state.metadata?.currentYear ?? 2024, (state.metadata?.currentMonth ?? 1) - 1)
       });
     }
   }
@@ -652,28 +659,25 @@ export function generateEvents(state: any): RandomEvent[] {
 
 // Helper to check if a headline's conditions are met
 function checkHeadlineConditions(conditions: HeadlineCondition, state: any): boolean {
-  const { economy, political, fiscal } = state;
+  const { economic, political, fiscal } = state;
 
-  if (conditions.minGdpGrowth !== undefined && (economy?.gdpGrowthAnnual ?? 0) < conditions.minGdpGrowth) return false;
-  if (conditions.maxGdpGrowth !== undefined && (economy?.gdpGrowthAnnual ?? 0) > conditions.maxGdpGrowth) return false;
+  if (conditions.minGdpGrowth !== undefined && (economic?.gdpGrowthAnnual ?? 0) < conditions.minGdpGrowth) return false;
+  if (conditions.maxGdpGrowth !== undefined && (economic?.gdpGrowthAnnual ?? 0) > conditions.maxGdpGrowth) return false;
 
-  if (conditions.minInflation !== undefined && (economy?.inflationCPI ?? 0) < conditions.minInflation) return false;
-  if (conditions.maxInflation !== undefined && (economy?.inflationCPI ?? 0) > conditions.maxInflation) return false;
+  if (conditions.minInflation !== undefined && (economic?.inflationCPI ?? 0) < conditions.minInflation) return false;
+  if (conditions.maxInflation !== undefined && (economic?.inflationCPI ?? 0) > conditions.maxInflation) return false;
 
-  if (conditions.minUnemployment !== undefined && (economy?.unemploymentRate ?? 0) < conditions.minUnemployment) return false;
-  if (conditions.maxUnemployment !== undefined && (economy?.unemploymentRate ?? 0) > conditions.maxUnemployment) return false;
+  if (conditions.minUnemployment !== undefined && (economic?.unemploymentRate ?? 0) < conditions.minUnemployment) return false;
+  if (conditions.maxUnemployment !== undefined && (economic?.unemploymentRate ?? 0) > conditions.maxUnemployment) return false;
 
-  if (conditions.minApproval !== undefined && (political?.publicApproval ?? 50) < conditions.minApproval) return false;
-  if (conditions.maxApproval !== undefined && (political?.publicApproval ?? 50) > conditions.maxApproval) return false;
+  if (conditions.minApproval !== undefined && (political?.governmentApproval ?? 50) < conditions.minApproval) return false;
+  if (conditions.maxApproval !== undefined && (political?.governmentApproval ?? 50) > conditions.maxApproval) return false;
 
   if (conditions.minDeficit !== undefined && (fiscal?.deficit_bn ?? 0) < conditions.minDeficit) return false;
   if (conditions.maxDeficit !== undefined && (fiscal?.deficit_bn ?? 0) > conditions.maxDeficit) return false;
 
-  if (conditions.minDebt !== undefined && (fiscal?.debtToGdpPercent ?? 0) < conditions.minDebt) return false;
-  if (conditions.maxDebt !== undefined && (fiscal?.debtToGdpPercent ?? 0) > conditions.maxDebt) return false;
-
-  // Party check (simple string match for now)
-  if (conditions.partyInPower && state.political?.party !== conditions.partyInPower) return false;
+  if (conditions.minDebt !== undefined && (fiscal?.debtPctGDP ?? 0) < conditions.minDebt) return false;
+  if (conditions.maxDebt !== undefined && (fiscal?.debtPctGDP ?? 0) > conditions.maxDebt) return false;
 
   return true;
 }
@@ -715,8 +719,8 @@ export function generateHeadline(state: any, newspaper: NewspaperSource): { head
     };
   }
 
-  if (state?.externalSector?.shockActive) {
-    const shock = state.externalSector.shockType;
+  if (state?.externalSector?.externalShockActive) {
+    const shock = state.externalSector.externalShockType;
     if (shock === 'energy_spike') {
       return {
         headline: 'Global Energy Shock Hits UK Prices',
@@ -737,7 +741,10 @@ export function generateHeadline(state: any, newspaper: NewspaperSource): { head
     }
   }
 
-  if (Array.isArray(state?.parliamentary?.activeInquiries) && state.parliamentary.activeInquiries.length > 0) {
+  if (
+    Array.isArray(state?.parliamentary?.selectCommittees) &&
+    state.parliamentary.selectCommittees.some((c: any) => c.isInquiryActive)
+  ) {
     return {
       headline: 'Select Committee Inquiry Intensifies Pressure on Treasury',
       subheading: 'MPs have opened formal scrutiny hearings, raising doubts over delivery and fiscal control.',
@@ -883,7 +890,7 @@ interface OppositionQuoteTemplate {
 
 const OPPOSITION_QUOTE_TEMPLATES: OppositionQuoteTemplate[] = [
   {
-    conditions: (state) => (state.economy?.gdpGrowthAnnual ?? 0) < 0,
+    conditions: (state) => (state.economic?.gdpGrowthAnnual ?? 0) < 0,
     quotes: {
       guardian: [
         '"This recession is the direct result of misguided Treasury policies. Working people are paying the price for economic incompetence."',
@@ -918,7 +925,7 @@ const OPPOSITION_QUOTE_TEMPLATES: OppositionQuoteTemplate[] = [
     }
   },
   {
-    conditions: (state) => (state.economy?.inflationCPI ?? 0) > 6,
+    conditions: (state) => (state.economic?.inflationCPI ?? 0) > 6,
     quotes: {
       guardian: [
         '"Working people cannot afford food and heating while this government does nothing. The cost-of-living crisis demands urgent intervention."',
@@ -1023,7 +1030,7 @@ const OPPOSITION_QUOTE_TEMPLATES: OppositionQuoteTemplate[] = [
     }
   },
   {
-    conditions: (state) => (state.political?.publicApproval ?? 50) < 35,
+    conditions: (state) => (state.political?.governmentApproval ?? 50) < 35,
     quotes: {
       guardian: [
         '"The public has seen through this Chancellor economic illiteracy. His approval collapse is richly deserved."',
@@ -1195,10 +1202,10 @@ function generateLeadStory(state: any, newspaper: NewspaperSource, event: Random
 function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: RandomEvent): string[] {
   const paragraphs: string[] = [];
 
-  const gdpGrowth = state.economy?.gdpGrowthAnnual ?? 0;
-  const inflation = state.economy?.inflationCPI ?? 2;
+  const gdpGrowth = state.economic?.gdpGrowthAnnual ?? 0;
+  const inflation = state.economic?.inflationCPI ?? 2;
   const deficit = state.fiscal?.deficitPctGDP ?? 3;
-  const debt = state.fiscal?.debtToGdpPercent ?? 100;
+  const debt = state.fiscal?.debtPctGDP ?? 100;
   const emergencyProgrammes: EmergencyProgramme[] = state.emergencyProgrammes?.active || [];
   const recentCorpus = buildRecentNewsCorpus(state);
 
@@ -1238,15 +1245,15 @@ function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: R
 
   // Fiscal implications
   if (deficit > 5) {
-    const gdpNominal = state.economy?.gdpNominal ?? 2500;
+    const gdpNominal = state.economic?.gdpNominal_bn ?? 2750;
     const totalEmergencySpending = emergencyProgrammes.reduce((sum, p) => sum + p.rebuildingCostPerMonth_bn, 0);
     const emergencyContext = totalEmergencySpending > 0 ? ` Emergency relief spending is adding £${totalEmergencySpending.toFixed(1)}bn per month to the deficit.` : '';
     paragraphs.push(`The fiscal position adds urgency to the crisis response. The budget deficit has reached ${deficit.toFixed(1)}% of GDP, with the Treasury borrowing £${(deficit * gdpNominal / 100 / 12).toFixed(1)}bn per month. ${event.type === 'natural_disaster' ? 'Emergency relief spending will increase the deficit further.' : 'The government has limited fiscal headroom to respond to any economic shock.'}${emergencyContext} Public debt stands at ${debt.toFixed(0)}% of national income.`);
   }
 
   // Approval and political dimension
-  if (state.political?.publicApproval !== undefined) {
-    const approval = state.political.publicApproval ?? 40;
+  if (state.political?.governmentApproval !== undefined) {
+    const approval = state.political.governmentApproval ?? 40;
     if (approval < 40) {
       const sentiment = approval < 30 ? 'collapsed' : 'fallen';
       paragraphs.push(`The Chancellor's approval rating has ${sentiment} to ${approval.toFixed(0)}%, complicating efforts to build public support for whatever measure the government proposes. ${event.type === 'natural_disaster' ? 'However, disasters often generate public sympathy for government action.' : 'The crisis may further erode confidence in economic management.'}`);
@@ -1281,9 +1288,8 @@ function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: R
     paragraphs.push(pickLeastRepeated(courtOptions, buildRecentNewsCorpus(state)));
   }
 
-  const vatRate = state.taxation?.vatRate;
-  const vatDomesticEnergy = state.taxation?.vatDomesticEnergy;
-  if ((typeof vatRate === 'number' && vatRate > 20) || (typeof vatDomesticEnergy === 'number' && vatDomesticEnergy > 5)) {
+  const vatRate = state.fiscal?.vatRate;
+  if (typeof vatRate === 'number' && vatRate > 20) {
     const householdTaxOptions = [
       `Household tax pressures are intensifying. Consumer groups report rising complaints that higher VAT settings are filtering through to everyday purchases, with one shopper saying even "a basic cake run for the family" now costs noticeably more.`,
       `Families report that recent VAT choices are feeding through to routine spending, with campaigners warning that essentials and utility-linked costs are taking a larger share of disposable income.`,
@@ -1292,9 +1298,8 @@ function generateSecondaryStory(state: any, newspaper: NewspaperSource, event: R
     paragraphs.push(pickLeastRepeated(householdTaxOptions, recentCorpus));
   }
 
-  const corporationTaxRate = state.taxation?.corporationTaxRate;
-  const energyProfitsLevy = state.taxation?.energyProfitsLevy;
-  if ((typeof corporationTaxRate === 'number' && corporationTaxRate > 25) || (typeof energyProfitsLevy === 'number' && energyProfitsLevy > 35)) {
+  const corporationTaxRate = state.fiscal?.corporationTaxRate;
+  if (typeof corporationTaxRate === 'number' && corporationTaxRate > 25) {
     const businessTaxOptions = [
       `Business leaders criticised the cumulative burden of granular tax adjustments. A manufacturing chief executive told the paper that repeated parameter changes are "making investment planning materially harder" and called for greater tax stability.`,
       `Employers said frequent tax parameter revisions are undermining confidence in medium-term planning, with firms asking for clearer multi-year guidance from the Treasury.`,
@@ -1327,15 +1332,13 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
   }
 
   // Fallback to original economic-focused paragraphs if no event
-  const gdpGrowth = typeof state.economy?.gdpGrowthQuarterly === 'number'
-    ? state.economy.gdpGrowthQuarterly
-    : typeof state.economy?.gdpGrowthMonthly === 'number'
-      ? (Math.pow(1 + state.economy.gdpGrowthMonthly / 100, 3) - 1) * 100
-      : (Math.pow(1 + (state.economy?.gdpGrowthAnnual ?? 0) / 100, 1 / 4) - 1) * 100;
-  const inflation = state.economy?.inflationCPI ?? 2;
-  const unemployment = state.economy?.unemploymentRate ?? 4;
+  const gdpGrowth = typeof state.economic?.gdpGrowthMonthly === 'number'
+    ? (Math.pow(1 + state.economic.gdpGrowthMonthly / 100, 3) - 1) * 100
+    : (Math.pow(1 + (state.economic?.gdpGrowthAnnual ?? 0) / 100, 0.25) - 1) * 100;
+  const inflation = state.economic?.inflationCPI ?? 2;
+  const unemployment = state.economic?.unemploymentRate ?? 4;
   const deficit = state.fiscal?.deficitPctGDP ?? 3;
-  const debt = state.fiscal?.debtToGdpPercent ?? 100;
+  const debt = state.fiscal?.debtPctGDP ?? 100;
 
   // Economic situation paragraph
   if (gdpGrowth < -0.1) {
@@ -1353,14 +1356,14 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
 
   // Fiscal situation
   if (deficit > 5) {
-    const gdpNominal = state.economy?.gdpNominal ?? 2500;
+    const gdpNominal = state.economic?.gdpNominal_bn ?? 2750;
     paragraphs.push(`The Treasury is borrowing £${(deficit * gdpNominal / 100 / 12).toFixed(1)}bn per month as the budget deficit reached ${deficit.toFixed(1)}% of GDP, ${newspaper.bias === 'right' || newspaper.bias === 'populist-right' ? 'a level of fiscal incontinence' : 'reflecting weak tax revenues and rising debt interest costs'}. Public debt now stands at ${debt.toFixed(0)}% of national income.`);
   }
 
   // Inflation and living standards
   if (inflation > 3) {
-    const wageGrowthReal = state.economy?.wageGrowthReal ?? 0;
-    paragraphs.push(`Inflation remains ${inflation > 5 ? 'stubbornly' : 'persistently'} above the Bank of England's 2% target at ${inflation.toFixed(1)}%, ${newspaper.bias === 'left' ? 'hammering household budgets' : 'requiring continued monetary tightness'}. Real wages have ${wageGrowthReal > 0 ? 'finally turned positive' : 'fallen ' + Math.abs(wageGrowthReal).toFixed(1) + '%'}, adding to the cost-of-living pressures facing families.`);
+    const realWageGrowth = (state.economic?.wageGrowthAnnual ?? 4) - inflation;
+    paragraphs.push(`Inflation remains ${inflation > 5 ? 'stubbornly' : 'persistently'} above the Bank of England's 2% target at ${inflation.toFixed(1)}%, ${newspaper.bias === 'left' ? 'hammering household budgets' : 'requiring continued monetary tightness'}. Real wages have ${realWageGrowth > 0 ? 'finally turned positive' : 'fallen ' + Math.abs(realWageGrowth).toFixed(1) + '%'}, adding to the cost-of-living pressures facing families.`);
   }
 
   // Labour market
@@ -1369,18 +1372,18 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
   }
 
   // Political dimension
-  if (state.political?.publicApproval !== undefined && state.political.publicApproval < 40) {
-    const approval = state.political.publicApproval ?? 40;
+  if (state.political?.governmentApproval !== undefined && state.political.governmentApproval < 40) {
+    const approval = state.political.governmentApproval ?? 40;
     const leftText = "as voters reject the government's failed economic approach";
     const rightText = "raising questions about the government's political authority to push through necessary reforms";
-    paragraphs.push(`The Chancellor's approval rating has ${approval < 30 ? 'collapsed' : 'fallen'} to ${approval.toFixed(0)}%, ${newspaper.bias === 'left' ? leftText : rightText}. Labour backbenchers are ${state.political?.backbenchSentiment?.rebellionRisk === 'high' ? 'in open revolt' : 'increasingly restive'}, with several reportedly demanding a change of direction.`);
+    paragraphs.push(`The Chancellor's approval rating has ${approval < 30 ? 'collapsed' : 'fallen'} to ${approval.toFixed(0)}%, ${newspaper.bias === 'left' ? leftText : rightText}. Labour backbenchers are ${(state.political?.backbenchSatisfaction ?? 70) < 40 ? 'in open revolt' : 'increasingly restive'}, with several reportedly demanding a change of direction.`);
   }
 
   // Market reaction
-  if (state.markets?.giltYield10yr !== undefined && state.markets.giltYield10yr > 4.5) {
-    const giltYield = state.markets.giltYield10yr ?? 4.5;
-    const yieldChange = state.markets?.giltYield10yrChange ?? 0;
-    const bankRate = state.economy?.boeBaseRate ?? state.economy?.bankRate ?? 4.5;
+  if (state.markets?.giltYield10y !== undefined && state.markets.giltYield10y > 4.5) {
+    const giltYield = state.markets.giltYield10y ?? 4.5;
+    const yieldChange = state.markets?.yieldChange10y ?? 0;
+    const bankRate = state.markets?.bankRate ?? 4.5;
     const riskSpread = giltYield - bankRate;
     let movementVerb = 'edging higher';
     let reactionTone = 'cautiously';
@@ -1509,8 +1512,6 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
   // If there's a special event, that's the headline. Otherwise, find best matching template.
   let headline: string;
   let subheading: string;
-  const recentCorpus = buildRecentNewsCorpus(state);
-
   if (event) {
     // Create event-focused headline
     if (event.severity === 'crisis') {
@@ -1543,8 +1544,8 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
     paragraphs,
     secondaryPageHeadlines,
     oppositionQuote,
-    month: state.currentMonth,
-    date: new Date(state.currentDate),
+    month: state.metadata?.currentMonth ?? 1,
+    date: new Date(state.metadata?.currentYear ?? 2024, (state.metadata?.currentMonth ?? 1) - 1),
     isSpecialEdition: !!event
   };
 }
