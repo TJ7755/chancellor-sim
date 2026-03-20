@@ -64,6 +64,24 @@ import {
 } from './mp-storage';
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
 
+const SAVE_VERSION = "1";
+
+interface SaveEnvelope {
+  version: string;
+  savedAt: number;
+  turnAtSave: number;
+  checksum: string;
+  state: any;
+}
+
+export function simpleChecksum(data: string): string {
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    hash = (Math.imul(31, hash) + data.charCodeAt(i)) | 0;
+  }
+  return hash.toString(16);
+}
+
 // ===========================
 // Game State Types
 // ===========================
@@ -463,7 +481,7 @@ export interface GameActions {
     difficultyMode?: DifficultyMode
   ) => void;
   advanceTurn: () => void;
-  saveGame: (slotName: string) => void;
+  saveGame: (slotName: string) => { success: boolean; error?: string };
   loadGame: (slotName: string) => boolean;
   applyBudgetChanges: (changes: BudgetChanges) => void;
   respondToEvent: (eventId: string, responseIndex: number) => void;
@@ -1016,6 +1034,14 @@ export function serializeGameState(state: GameState): any {
       currentBudgetSupport: state.mpSystem.currentBudgetSupport instanceof Map
         ? Array.from(state.mpSystem.currentBudgetSupport.entries())
         : state.mpSystem.currentBudgetSupport,
+      selectedMPForDetail: null,
+      filterSettings: {
+        party: undefined,
+        faction: undefined,
+        region: undefined,
+        stance: undefined,
+        searchQuery: '',
+      },
     },
     advisers: {
       ...state.advisers,
@@ -1028,8 +1054,81 @@ export function serializeGameState(state: GameState): any {
       currentOpinions: state.advisers.currentOpinions instanceof Map
         ? Array.from(state.advisers.currentOpinions.entries())
         : state.advisers.currentOpinions,
+      showDetailedView: null,
     },
   };
+}
+
+export function writeSave(key: string, state: GameState): { success: boolean; error?: string } {
+  try {
+    const serialised = JSON.stringify(serializeGameState(state));
+    const checksum = simpleChecksum(serialised);
+    const envelope: SaveEnvelope = {
+      version: SAVE_VERSION,
+      savedAt: Date.now(),
+      turnAtSave: state.metadata.currentTurn,
+      checksum,
+      state: JSON.parse(serialised),
+    };
+    const envelopeString = JSON.stringify(envelope);
+    const SIZE_LIMIT = 4_800_000;
+    if (envelopeString.length > SIZE_LIMIT) {
+      return {
+        success: false,
+        error: `Save data too large (${(envelopeString.length / 1_000_000).toFixed(1)} MB). Consider starting a new game.`,
+      };
+    }
+    localStorage.setItem(key, envelopeString);
+    return { success: true };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[Save] Failed to write to localStorage key "${key}":`, message);
+    return { success: false, error: message };
+  }
+}
+
+export function readSave(key: string): { state: any; warnings: string[] } | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    const warnings: string[] = [];
+    let parsed: any;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      console.warn(`[Save] Corrupt JSON at key "${key}" — discarding.`);
+      return null;
+    }
+
+    if (!parsed.version) {
+      warnings.push('Legacy save format detected. Some fields may have been reset to defaults.');
+      return { state: parsed, warnings };
+    }
+
+    const envelope = parsed as SaveEnvelope;
+
+    if (envelope.version !== SAVE_VERSION) {
+      warnings.push(`Save version mismatch (saved: ${envelope.version}, current: ${SAVE_VERSION}). Some fields may have been reset to defaults.`);
+    }
+
+    const reserialised = JSON.stringify(envelope.state);
+    const expectedChecksum = simpleChecksum(reserialised);
+    if (envelope.checksum !== expectedChecksum) {
+      warnings.push('Save integrity check failed. The save file may be corrupted. Proceeding with caution.');
+    }
+
+    if (!envelope.state?.metadata || !envelope.state?.economic) {
+      console.warn(`[Save] Save at key "${key}" is missing required fields — discarding.`);
+      return null;
+    }
+
+    return { state: envelope.state, warnings };
+  } catch (e) {
+    console.error(`[Save] Unexpected error reading key "${key}":`, e);
+    return null;
+  }
 }
 
 // ===========================
@@ -1149,36 +1248,34 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   // Auto-save every turn
   useEffect(() => {
     if (gameState.metadata.gameStarted && !gameState.metadata.gameOver) {
-      localStorage.setItem('chancellor-autosave', JSON.stringify(serializeGameState(gameState)));
+      const result = writeSave('chancellor-autosave', gameState);
+      if (!result.success) {
+        console.warn('[Autosave] Failed:', result.error);
+      }
     }
   }, [gameState.metadata.currentTurn, gameState]);
 
   // Load autosave on mount
   useEffect(() => {
-    const autosave = localStorage.getItem('chancellor-autosave');
-    if (autosave) {
-      try {
-        const savedState = JSON.parse(autosave);
-        // Basic validation
-        if (savedState.metadata && savedState.economic) {
-          setGameState((prevState) => {
-            const normalized = normalizeLoadedState(savedState);
-            // Preserve MP data if already loaded from IndexedDB, as it's not in localStorage
-            return {
-              ...normalized,
-              mpSystem: {
-                ...normalized.mpSystem,
-                allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalized.mpSystem.allMPs,
-                votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalized.mpSystem.votingRecords,
-                promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalized.mpSystem.promises,
-              }
-            };
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load autosave:', error);
-      }
+    const result = readSave('chancellor-autosave');
+    if (!result) return;
+
+    if (result.warnings.length > 0) {
+      result.warnings.forEach((w) => console.warn('[Load]', w));
     }
+
+    setGameState((prevState) => {
+      const normalised = normalizeLoadedState(result.state);
+      return {
+        ...normalised,
+        mpSystem: {
+          ...normalised.mpSystem,
+          allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalised.mpSystem.allMPs,
+          votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalised.mpSystem.votingRecords,
+          promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalised.mpSystem.promises,
+        },
+      };
+    });
   }, []);
 
   // Load MP data from IndexedDB on mount
@@ -1403,47 +1500,40 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   // Save game to named slot
   const saveGame = useCallback(
     (slotName: string) => {
-      const saveData = {
-        ...serializeGameState(gameState),
-        metadata: {
-          ...gameState.metadata,
-          lastSaveTime: Date.now(),
-        },
-      };
-      localStorage.setItem(`chancellor-save-${slotName}`, JSON.stringify(saveData));
+      const result = writeSave(`chancellor-save-${slotName}`, {
+        ...gameState,
+        metadata: { ...gameState.metadata, lastSaveTime: Date.now() },
+      });
+      if (!result.success) {
+        console.error('[Save] Named save failed:', result.error);
+      }
+      return result;
     },
     [gameState]
   );
 
   // Load game from named slot
   const loadGame = useCallback((slotName: string): boolean => {
-    const saveData = localStorage.getItem(`chancellor-save-${slotName}`);
-    if (!saveData) return false;
+    const result = readSave(`chancellor-save-${slotName}`);
+    if (!result) return false;
 
-    try {
-      const loadedState = JSON.parse(saveData);
-      // Basic validation
-      if (loadedState.metadata && loadedState.economic) {
-        setGameState((prevState) => {
-          const normalized = normalizeLoadedState(loadedState);
-          // Preserve MP data if already loaded from IndexedDB, as it's not in localStorage
-          return {
-            ...normalized,
-            mpSystem: {
-              ...normalized.mpSystem,
-              allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalized.mpSystem.allMPs,
-              votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalized.mpSystem.votingRecords,
-              promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalized.mpSystem.promises,
-            }
-          };
-        });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Failed to load game:', error);
-      return false;
+    if (result.warnings.length > 0) {
+      result.warnings.forEach((w) => console.warn('[Load]', w));
     }
+
+    setGameState((prevState) => {
+      const normalised = normalizeLoadedState(result.state);
+      return {
+        ...normalised,
+        mpSystem: {
+          ...normalised.mpSystem,
+          allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalised.mpSystem.allMPs,
+          votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalised.mpSystem.votingRecords,
+          promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalised.mpSystem.promises,
+        },
+      };
+    });
+    return true;
   }, []);
 
   // Apply budget changes
