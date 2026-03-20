@@ -65,6 +65,8 @@ import {
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
 
 const SAVE_VERSION = "1";
+// Conservative cap below common 5 MB per-origin localStorage quota.
+const SAVE_SIZE_LIMIT = 4_800_000;
 
 interface SaveEnvelope {
   version: string;
@@ -1071,8 +1073,7 @@ export function writeSave(key: string, state: GameState): { success: boolean; er
       state: JSON.parse(serialised),
     };
     const envelopeString = JSON.stringify(envelope);
-    const SIZE_LIMIT = 4_800_000;
-    if (envelopeString.length > SIZE_LIMIT) {
+    if (envelopeString.length > SAVE_SIZE_LIMIT) {
       return {
         success: false,
         error: `Save data too large (${(envelopeString.length / 1_000_000).toFixed(1)} MB). Consider starting a new game.`,
@@ -1093,7 +1094,7 @@ export function readSave(key: string): { state: any; warnings: string[] } | null
     if (!raw) return null;
 
     const warnings: string[] = [];
-    let parsed: any;
+    let parsed: unknown;
 
     try {
       parsed = JSON.parse(raw);
@@ -1102,7 +1103,12 @@ export function readSave(key: string): { state: any; warnings: string[] } | null
       return null;
     }
 
-    if (!parsed.version) {
+    if (!parsed || typeof parsed !== 'object') {
+      console.warn(`[Save] Save at key "${key}" has invalid structure — discarding.`);
+      return null;
+    }
+
+    if (!('version' in parsed) || !(parsed as SaveEnvelope).version) {
       warnings.push('Legacy save format detected. Some fields may have been reset to defaults.');
       return { state: parsed, warnings };
     }
