@@ -9,14 +9,14 @@ import {
   useGameMetadata,
   DifficultyMode,
 } from './game-state';
-import { MANIFESTO_TEMPLATES } from './manifesto-system';
+import { MANIFESTO_TEMPLATES, ManifestoDisplay, OneClickActionResult } from './manifesto-system';
 import { TutorialModal, HelpButton } from './tutorial-system';
 import BudgetSystem from './budget-system';
 import {
   AdviserManagementScreen,
   AdviserType,
 } from './adviser-system';
-import { MPManagementScreen, LobbyingModal } from './mp-system';
+import { MPManagementScreen, LobbyingModal, MPDetailModal } from './mp-system';
 import { PMMessagesScreen } from './pm-messages-screen';
 import { PMInterventionModal } from './political-system';
 import { Newspaper, EventModal, EventLogPanel } from './events-media';
@@ -653,12 +653,13 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
 // Navigation Bar
 // ===========================
 
-type View = 'dashboard' | 'budget' | 'analysis' | 'advisers' | 'mps' | 'pm-messages';
+type View = 'dashboard' | 'budget' | 'analysis' | 'advisers' | 'mps' | 'pm-messages' | 'manifesto';
 
 interface NavigationBarProps {
   currentView: View;
   onViewChange: (view: View) => void;
   adviserCount: number;
+  manifestoViolations: number;
   onSaveLoad: () => void;
 }
 
@@ -666,6 +667,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   currentView,
   onViewChange,
   adviserCount,
+  manifestoViolations,
   onSaveLoad,
 }) => {
   const gameState = useGameState();
@@ -732,6 +734,22 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
             }`}
           >
             MPs
+          </button>
+
+          <button
+            onClick={() => onViewChange('manifesto')}
+            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
+              currentView === 'manifesto'
+                ? 'bg-red-700 text-white shadow-md'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            Manifesto
+            {manifestoViolations > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {manifestoViolations}
+              </span>
+            )}
           </button>
 
           <button
@@ -2016,6 +2034,7 @@ const GameInner: React.FC = () => {
   const [saveSlotName, setSaveSlotName] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lobbyingMPId, setLobbyingMPId] = useState<string | null>(null);
+  const [detailMPId, setDetailMPId] = useState<string | null>(null);
 
   // Game start screen
   if (!metadata.gameStarted) {
@@ -2081,6 +2100,7 @@ const GameInner: React.FC = () => {
         currentView={currentView}
         onViewChange={setCurrentView}
         adviserCount={adviserCount}
+        manifestoViolations={gameState.manifesto.totalViolations}
         onSaveLoad={() => setShowSaveLoad(true)}
       />
 
@@ -2129,11 +2149,41 @@ const GameInner: React.FC = () => {
           <MPManagementScreen
             mpSystem={gameState.mpSystem}
             onLobby={(mpId) => setLobbyingMPId(mpId)}
+            onViewDetails={(mpId) => setDetailMPId(mpId)}
             onBack={() => setCurrentView('dashboard')}
           />
         )}
 
         {currentView === 'pm-messages' && <PMMessagesScreen />}
+
+        {currentView === 'manifesto' && (
+          <div className="p-6">
+            <ManifestoDisplay
+              manifestoState={gameState.manifesto}
+              gameState={{
+                currentTaxRates: {
+                  incomeTaxBasic: gameState.fiscal.incomeTaxBasicRate,
+                  incomeTaxHigher: gameState.fiscal.incomeTaxHigherRate,
+                  incomeTaxAdditional: gameState.fiscal.incomeTaxAdditionalRate,
+                  niEmployee: gameState.fiscal.nationalInsuranceRate,
+                  niEmployer: gameState.fiscal.employerNIRate,
+                  vat: gameState.fiscal.vatRate,
+                  corporationTax: gameState.fiscal.corporationTaxRate,
+                },
+                startingTaxRates: gameState.fiscal.startingTaxRates,
+                fiscalRuleMet: gameState.political.fiscalRuleCompliance?.overallCompliant ?? true,
+              }}
+              onExecuteOneClick={(result: OneClickActionResult) => {
+                if (typeof (actions as any).applyOneClickManifestoAction === 'function') {
+                  (actions as any).applyOneClickManifestoAction(result);
+                } else {
+                  // TODO: wire up once applyOneClickManifestoAction is added to GameActions
+                  console.warn('[Manifesto] One-click action not yet wired to game actions:', result);
+                }
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Lobbying Modal */}
@@ -2154,6 +2204,25 @@ const GameInner: React.FC = () => {
               const result = await actions.lobbyMP(lobbyingMPId, approach, promiseCategory, specificValue);
               return result;
             }}
+          />
+        );
+      })()}
+
+      {/* MP Detail Modal */}
+      {detailMPId && (() => {
+        const mp = gameState.mpSystem.allMPs.get(detailMPId);
+        if (!mp) return null;
+
+        const stance = gameState.mpSystem.currentBudgetSupport.get(detailMPId);
+        const votingRecord = gameState.mpSystem.votingRecords.get(detailMPId);
+
+        return (
+          <MPDetailModal
+            mp={mp}
+            votingRecord={votingRecord}
+            promises={gameState.mpSystem.promises}
+            stance={stance}
+            onClose={() => setDetailMPId(null)}
           />
         );
       })()}
