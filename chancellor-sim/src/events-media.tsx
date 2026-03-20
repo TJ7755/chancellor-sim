@@ -1362,8 +1362,8 @@ function generateArticleParagraphs(state: any, newspaper: NewspaperSource, headl
 
   // Inflation and living standards
   if (inflation > 3) {
-    const wageGrowthAnnual = state.economic?.wageGrowthAnnual ?? 4;
-    paragraphs.push(`Inflation remains ${inflation > 5 ? 'stubbornly' : 'persistently'} above the Bank of England's 2% target at ${inflation.toFixed(1)}%, ${newspaper.bias === 'left' ? 'hammering household budgets' : 'requiring continued monetary tightness'}. Nominal pay is growing at ${wageGrowthAnnual.toFixed(1)}%, adding to the cost-of-living pressures facing families.`);
+    const realWageGrowth = (state.economic?.wageGrowthAnnual ?? 4) - inflation;
+    paragraphs.push(`Inflation remains ${inflation > 5 ? 'stubbornly' : 'persistently'} above the Bank of England's 2% target at ${inflation.toFixed(1)}%, ${newspaper.bias === 'left' ? 'hammering household budgets' : 'requiring continued monetary tightness'}. Real wages have ${realWageGrowth > 0 ? 'finally turned positive' : 'fallen ' + Math.abs(realWageGrowth).toFixed(1) + '%'}, adding to the cost-of-living pressures facing families.`);
   }
 
   // Labour market
