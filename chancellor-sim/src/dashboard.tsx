@@ -136,7 +136,7 @@ interface HistoricalSnapshot {
 type DashboardMode = 'normal' | 'budget' | 'crisis';
 
 interface DashboardProps {
-  state: SimulationState;
+  state: any;
   mode?: DashboardMode;
   onModeChange?: (mode: DashboardMode) => void;
   adviserSystem: AdviserSystemState;
@@ -350,6 +350,42 @@ function generateHistoricalBaseline(): HistoricalSnapshot[] {
   return history;
 }
 
+/**
+ * Maps a canonical monthly snapshot (from state.simulation.monthlySnapshots)
+ * to the local HistoricalSnapshot shape used by the dashboard charts.
+ */
+function mapCanonicalSnapshot(snap: any): HistoricalSnapshot {
+  const date = typeof snap.date === 'string'
+    ? new Date(snap.date.replace('-', '/') + '/01')
+    : (snap.date instanceof Date ? snap.date : new Date());
+
+  return {
+    month: snap.turn ?? 0,
+    date,
+    economy: {
+      gdpNominal: snap.gdpNominal ?? 2750,
+      gdpReal: snap.gdpNominal ?? 2750,
+      gdpGrowthAnnual: snap.gdpGrowth ?? 0,
+      gdpGrowthMonthly: (snap.gdpGrowth ?? 0) / 12,
+      outputGap: 0,
+      potentialGdp: snap.gdpNominal ?? 2750,
+      trendGrowth: 1.5,
+      cpi: snap.inflation ?? 2.0,
+      rpi: (snap.inflation ?? 2.0) + 1.0,
+      inflationExpectations: 2.0,
+      unemploymentRate: snap.unemployment ?? 4.5,
+      nairu: 4.25,
+      wageGrowthNominal: (snap.inflation ?? 2.0) + 1.0,
+      wageGrowthReal: 1.0,
+      bankRate: Math.max(0, (snap.giltYield ?? 4.5) - 1.0),
+    },
+    fiscal: {
+      deficit: snap.deficit ?? 0,
+      debtToGdp: snap.debt ?? 90,
+    },
+  };
+}
+
 // ============================================================================
 // FORMATTING UTILITIES
 // ============================================================================
@@ -380,20 +416,18 @@ const formatIndex = (num: number): string => {
 /**
  * Determine dashboard mode based on economic conditions
  */
-function determineDashboardMode(state: SimulationState): DashboardMode {
-  // Crisis: Severe economic conditions
+function determineDashboardMode(state: any): DashboardMode {
   if (
-    state.fiscal.debtToGdp > 110 ||
-    state.fiscal.deficitToGdp > 8 ||
-    state.economy.unemploymentRate > 8 ||
-    state.markets.giltYield10yr > 8
+    (state?.fiscal?.debtPctGDP ?? 0) > 110 ||
+    (state?.fiscal?.deficitPctGDP ?? 0) > 8 ||
+    (state?.economic?.unemploymentRate ?? 0) > 8 ||
+    (state?.markets?.giltYield10y ?? 0) > 8
   ) {
     return 'crisis';
   }
 
-  // Budget: Every 6 months (March and September/October)
-  const month = state.currentDate.getMonth();
-  if (month === 2 || month === 9) {
+  const month = state?.metadata?.currentMonth ?? 1;
+  if (month === 3 || month === 10) {
     return 'budget';
   }
 
@@ -483,55 +517,56 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral
 /**
  * Economic Metrics Panel
  */
-const EconomicPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
-  const { economy } = state;
-
+const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Economic Indicators</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="GDP Growth"
-          value={formatPercent(economy.gdpGrowthAnnual)}
-          status={economy.gdpGrowthAnnual > 2.0 ? 'good' : economy.gdpGrowthAnnual > 0.5 ? 'neutral' : 'bad'}
+          value={formatPercent(state.economic?.gdpGrowthAnnual ?? 0)}
+          status={(state.economic?.gdpGrowthAnnual ?? 0) > 2.0 ? 'good' : (state.economic?.gdpGrowthAnnual ?? 0) > 0.5 ? 'neutral' : 'bad'}
           target="1.5%"
         />
         <MetricCard
           label="CPI Inflation"
-          value={formatPercent(economy.cpi)}
-          status={Math.abs(economy.cpi - 2.0) < 0.5 ? 'good' : Math.abs(economy.cpi - 2.0) < 1.5 ? 'neutral' : 'bad'}
+          value={formatPercent(state.economic?.inflationCPI ?? 0)}
+          status={Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 0.5 ? 'good' : Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 1.5 ? 'neutral' : 'bad'}
           target="2.0%"
         />
         <MetricCard
           label="Unemployment"
-          value={formatPercent(economy.unemploymentRate)}
-          status={economy.unemploymentRate < 4.5 ? 'good' : economy.unemploymentRate < 6.0 ? 'neutral' : 'bad'}
-          sublabel={`NAIRU: ${formatPercent(economy.nairu)}`}
+          value={formatPercent(state.economic?.unemploymentRate ?? 0)}
+          status={
+            (state.economic?.unemploymentRate ?? 0) < 4.5 ? 'good' :
+            (state.economic?.unemploymentRate ?? 0) < 6.0 ? 'neutral' : 'bad'
+          }
+          sublabel={`NAIRU: 4.25%`}
         />
         <MetricCard
           label="Participation"
-          value={formatPercent((economy as any).participationRate ?? 63)}
-          status={((economy as any).participationRate ?? 63) > 63 ? 'good' : 'neutral'}
+          value={formatPercent(state.economic?.participationRate ?? 63)}
+          status={(state.economic?.participationRate ?? 63) > 63 ? 'good' : 'neutral'}
         />
         <MetricCard
           label="Inactivity"
-          value={formatPercent((economy as any).economicInactivity ?? 21.5)}
-          status={((economy as any).economicInactivity ?? 21.5) < 22 ? 'good' : 'neutral'}
+          value={formatPercent(state.economic?.economicInactivity ?? 21.5)}
+          status={(state.economic?.economicInactivity ?? 21.5) < 22 ? 'good' : 'neutral'}
         />
         <MetricCard
           label="Output Gap"
-          value={formatPercent(economy.outputGap)}
-          status={Math.abs(economy.outputGap) < 1.0 ? 'good' : 'neutral'}
+          value={formatPercent(0)}
+          status={Math.abs(0) < 1.0 ? 'good' : 'neutral'}
         />
         <MetricCard
           label="Nominal Wages"
-          value={formatPercent(economy.wageGrowthNominal)}
+          value={formatPercent(state.economic?.wageGrowthAnnual ?? 0)}
           status="neutral"
         />
         <MetricCard
           label="Real Wages"
-          value={formatPercent(economy.wageGrowthReal)}
-          status={economy.wageGrowthReal > 0 ? 'good' : 'bad'}
+          value={formatPercent((state.economic?.wageGrowthAnnual ?? 0) - (state.economic?.inflationCPI ?? 0))}
+          status={((state.economic?.wageGrowthAnnual ?? 0) - (state.economic?.inflationCPI ?? 0)) > 0 ? 'good' : 'bad'}
         />
       </div>
     </div>
@@ -541,8 +576,7 @@ const EconomicPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
 /**
  * Fiscal Metrics Panel
  */
-const FiscalPanel: React.FC<{ state: SimulationState; mode: DashboardMode }> = ({ state, mode }) => {
-  const { fiscal } = state;
+const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mode }) => {
   const isExpanded = mode === 'budget';
 
   return (
@@ -553,37 +587,37 @@ const FiscalPanel: React.FC<{ state: SimulationState; mode: DashboardMode }> = (
       <div className={`grid ${isExpanded ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
         <MetricCard
           label="Total Revenue"
-          value={formatCurrency(fiscal.totalRevenue)}
+          value={formatCurrency(state.fiscal?.totalRevenue_bn ?? 0)}
           status="neutral"
         />
         <MetricCard
           label="Total Spending"
-          value={formatCurrency(fiscal.totalSpending)}
+          value={formatCurrency(state.fiscal?.totalSpending_bn ?? 0)}
           status="neutral"
         />
         <MetricCard
           label="Public Sector Net Borrowing"
-          value={formatCurrency(fiscal.deficit)}
-          status={fiscal.deficit < 0 ? 'good' : fiscal.deficitToGdp < 3.0 ? 'neutral' : 'bad'}
-          sublabel={`${formatPercent(fiscal.deficitToGdp)} of GDP`}
+          value={formatCurrency(state.fiscal?.deficit_bn ?? 0)}
+          status={(state.fiscal?.deficit_bn ?? 0) < 0 ? 'good' : (state.fiscal?.deficitPctGDP ?? 0) < 3.0 ? 'neutral' : 'bad'}
+          sublabel={`${formatPercent(state.fiscal?.deficitPctGDP ?? 0)} of GDP`}
         />
         <MetricCard
           label="Debt Stock"
-          value={formatCurrency(fiscal.debtStock)}
-          status={fiscal.debtToGdp < 60 ? 'good' : fiscal.debtToGdp < 90 ? 'neutral' : 'bad'}
-          sublabel={`${formatPercent(fiscal.debtToGdp)} of GDP`}
+          value={formatCurrency(state.fiscal?.debtNominal_bn ?? 0)}
+          status={(state.fiscal?.debtPctGDP ?? 0) < 60 ? 'good' : (state.fiscal?.debtPctGDP ?? 0) < 90 ? 'neutral' : 'bad'}
+          sublabel={`${formatPercent(state.fiscal?.debtPctGDP ?? 0)} of GDP`}
         />
         {isExpanded && (
           <>
             <MetricCard
               label="Debt Interest"
-              value={formatCurrency(fiscal.debtInterest)}
+              value={formatCurrency(state.fiscal?.debtInterest_bn ?? 0)}
               status="neutral"
             />
             <MetricCard
               label="Primary Balance"
-              value={formatCurrency(fiscal.deficit - fiscal.debtInterest)}
-              status={fiscal.deficit - fiscal.debtInterest < 0 ? 'good' : 'bad'}
+              value={formatCurrency((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0))}
+              status={((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0)) < 0 ? 'good' : 'bad'}
             />
           </>
         )}
@@ -595,9 +629,10 @@ const FiscalPanel: React.FC<{ state: SimulationState; mode: DashboardMode }> = (
 /**
  * Political Metrics Panel (using mock data)
  */
-const PoliticalPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
-  const political = state.political || MOCK_POLITICAL;
-
+const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
+  const pmTrust = state.political?.pmTrust ?? MOCK_POLITICAL.pmTrust;
+  const governmentApproval = state.political?.governmentApproval ?? MOCK_POLITICAL.publicApproval;
+  const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? MOCK_POLITICAL.backbenchSentiment;
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
@@ -607,18 +642,18 @@ const PoliticalPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
       <div className="grid grid-cols-3 gap-4">
         <MetricCard
           label="PM Trust"
-          value={formatNumber(political.pmTrust, 0)}
-          status={political.pmTrust > 50 ? 'good' : political.pmTrust > 35 ? 'neutral' : 'bad'}
+          value={formatNumber(pmTrust, 0)}
+          status={pmTrust > 50 ? 'good' : pmTrust > 35 ? 'neutral' : 'bad'}
         />
         <MetricCard
           label="Public Approval"
-          value={formatNumber(political.publicApproval, 0)}
-          status={political.publicApproval > 50 ? 'good' : political.publicApproval > 35 ? 'neutral' : 'bad'}
+          value={formatNumber(governmentApproval, 0)}
+          status={governmentApproval > 50 ? 'good' : governmentApproval > 35 ? 'neutral' : 'bad'}
         />
         <MetricCard
           label="Backbench Support"
-          value={formatNumber(political.backbenchSentiment, 0)}
-          status={political.backbenchSentiment > 60 ? 'good' : political.backbenchSentiment > 40 ? 'neutral' : 'bad'}
+          value={formatNumber(backbenchSatisfaction, 0)}
+          status={backbenchSatisfaction > 60 ? 'good' : backbenchSatisfaction > 40 ? 'neutral' : 'bad'}
         />
       </div>
     </div>
@@ -628,21 +663,20 @@ const PoliticalPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
 /**
  * Services Metrics Panel
  */
-const ServicesPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
-  const { services } = state;
+const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
   const expandedMetrics = [
-    { label: 'Mental Health Access', value: services.mentalHealthAccess ?? 55 },
-    { label: 'Primary Care Access', value: services.primaryCareAccess ?? 58 },
-    { label: 'Social Care Quality', value: services.socialCareQuality ?? 52 },
-    { label: 'Prison Safety', value: services.prisonSafety ?? 48 },
-    { label: 'Court Performance', value: services.courtBacklogPerformance ?? 50 },
-    { label: 'Legal Aid Access', value: services.legalAidAccess ?? 51 },
-    { label: 'Policing Effectiveness', value: services.policingEffectiveness ?? 57 },
-    { label: 'Border Security', value: services.borderSecurityPerformance ?? 55 },
-    { label: 'Rail Reliability', value: services.railReliability ?? 54 },
-    { label: 'Affordable Housing Delivery', value: services.affordableHousingDelivery ?? 48 },
-    { label: 'Flood Resilience', value: services.floodResilience ?? 53 },
-    { label: 'Innovation Output', value: services.researchInnovationOutput ?? 63 },
+    { key: 'mentalHealthAccess', label: 'Mental Health Access' },
+    { key: 'primaryCareAccess', label: 'Primary Care Access' },
+    { key: 'socialCareQuality', label: 'Social Care Quality' },
+    { key: 'prisonSafety', label: 'Prison Safety' },
+    { key: 'courtBacklogPerformance', label: 'Court Performance' },
+    { key: 'legalAidAccess', label: 'Legal Aid Access' },
+    { key: 'policingEffectiveness', label: 'Policing Effectiveness' },
+    { key: 'borderSecurityPerformance', label: 'Border Security' },
+    { key: 'railReliability', label: 'Rail Reliability' },
+    { key: 'affordableHousingDelivery', label: 'Affordable Housing Delivery' },
+    { key: 'floodResilience', label: 'Flood Resilience' },
+    { key: 'researchInnovationOutput', label: 'Innovation Output' },
   ];
 
   return (
@@ -651,30 +685,25 @@ const ServicesPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="NHS Quality Index"
-          value={`${formatNumber(services.nhsQuality, 0)}/100`}
-          status={services.nhsQuality > 70 ? 'good' : services.nhsQuality > 55 ? 'neutral' : 'bad'}
-        />
-        <MetricCard
-          label="NHS Waiting List"
-          value={`${formatNumber(services.nhsWaitingList, 2)}m`}
-          status={services.nhsWaitingList < 7.0 ? 'good' : services.nhsWaitingList < 8.0 ? 'neutral' : 'bad'}
+          value={`${formatNumber(state.services?.nhsQuality ?? 50, 0)}/100`}
+          status={(state.services?.nhsQuality ?? 50) > 70 ? 'good' : (state.services?.nhsQuality ?? 50) > 55 ? 'neutral' : 'bad'}
         />
         <MetricCard
           label="Education Quality"
-          value={`${formatNumber(services.educationQuality, 0)}/100`}
-          status={services.educationQuality > 70 ? 'good' : services.educationQuality > 55 ? 'neutral' : 'bad'}
+          value={`${formatNumber(state.services?.educationQuality ?? 50, 0)}/100`}
+          status={(state.services?.educationQuality ?? 50) > 70 ? 'good' : (state.services?.educationQuality ?? 50) > 55 ? 'neutral' : 'bad'}
         />
         <MetricCard
           label="Infrastructure Quality"
-          value={`${formatNumber(services.infrastructureQuality, 0)}/100`}
-          status={services.infrastructureQuality > 65 ? 'good' : services.infrastructureQuality > 50 ? 'neutral' : 'bad'}
+          value={`${formatNumber(state.services?.infrastructureQuality ?? 50, 0)}/100`}
+          status={(state.services?.infrastructureQuality ?? 50) > 65 ? 'good' : (state.services?.infrastructureQuality ?? 50) > 50 ? 'neutral' : 'bad'}
         />
         {expandedMetrics.map((metric) => (
           <MetricCard
             key={metric.label}
             label={metric.label}
-            value={`${formatNumber(metric.value, 0)}/100`}
-            status={metric.value > 65 ? 'good' : metric.value > 50 ? 'neutral' : 'bad'}
+            value={`${formatNumber(state.services?.[metric.key] ?? 50, 0)}/100`}
+            status={(state.services?.[metric.key] ?? 50) > 65 ? 'good' : (state.services?.[metric.key] ?? 50) > 50 ? 'neutral' : 'bad'}
           />
         ))}
       </div>
@@ -685,32 +714,30 @@ const ServicesPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
 /**
  * Markets Panel
  */
-const MarketsPanel: React.FC<{ state: SimulationState }> = ({ state }) => {
-  const { markets, economy } = state;
-
+const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Markets & Rates</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="Bank Rate"
-          value={formatPercent(economy.bankRate)}
+          value={formatPercent(state.markets?.bankRate ?? 0)}
           status="neutral"
         />
         <MetricCard
           label="10yr Gilt Yield"
-          value={formatPercent(markets.giltYield10yr)}
-          status={markets.giltYield10yr < 4.0 ? 'good' : markets.giltYield10yr < 6.0 ? 'neutral' : 'bad'}
+          value={formatPercent(state.markets?.giltYield10y ?? 0)}
+          status={(state.markets?.giltYield10y ?? 0) < 4.0 ? 'good' : (state.markets?.giltYield10y ?? 0) < 6.0 ? 'neutral' : 'bad'}
         />
         <MetricCard
           label="2yr Mortgage Rate"
-          value={formatPercent(markets.mortgageRate2yr)}
-          status={markets.mortgageRate2yr < 5.0 ? 'good' : 'neutral'}
+          value={formatPercent(state.markets?.mortgageRate2y ?? 0)}
+          status={(state.markets?.mortgageRate2y ?? 0) < 5.0 ? 'good' : 'neutral'}
         />
         <MetricCard
           label="Sterling Index"
-          value={formatIndex(markets.sterlingIndex)}
-          status={markets.sterlingIndex > 100 ? 'good' : markets.sterlingIndex > 95 ? 'neutral' : 'bad'}
+          value={formatIndex(state.markets?.sterlingIndex ?? 100)}
+          status={(state.markets?.sterlingIndex ?? 100) > 100 ? 'good' : (state.markets?.sterlingIndex ?? 100) > 95 ? 'neutral' : 'bad'}
         />
       </div>
     </div>
@@ -945,8 +972,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
 
   // Merge historical baseline with game history
   const fullHistory = useMemo(() => {
-    return mergeHistoricalData(historicalBaseline, state.history);
-  }, [historicalBaseline, state.history]);
+    const canonicalSnapshots: HistoricalSnapshot[] = Array.isArray(state?.simulation?.monthlySnapshots)
+      ? state.simulation.monthlySnapshots.map(mapCanonicalSnapshot)
+      : [];
+    return mergeHistoricalData(historicalBaseline, canonicalSnapshots);
+  }, [historicalBaseline, state?.simulation?.monthlySnapshots]);
 
   // Determine current mode
   const autoMode = determineDashboardMode(state);
@@ -987,7 +1017,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
                 HM Treasury Dashboard
               </h1>
               <p className="text-gray-700">
-                {formatDateFull(state.currentDate)} • Fiscal Month {state.currentMonth + 1}
+                {`${new Date(state?.metadata?.currentYear ?? 2024, (state?.metadata?.currentMonth ?? 1) - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`} • Month {(state?.metadata?.currentTurn ?? 0) + 1} of 60
               </p>
             </div>
             <div className="mt-4 md:mt-0">
