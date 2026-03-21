@@ -394,6 +394,12 @@ const formatCurrency = (num: number): string => {
   const n = Number(num);
   return !isNaN(n) ? `£${n.toFixed(1)}bn` : '£0.0bn';
 };
+const formatCurrencyCompact = (num: number): string => {
+  const n = Number(num);
+  if (isNaN(n)) return '£0bn';
+  if (Math.abs(n) >= 1000) return `£${(n / 1000).toFixed(2)}tn`;
+  return `£${n.toFixed(1)}bn`;
+};
 const formatPercent = (num: number): string => {
   const n = Number(num);
   return !isNaN(n) ? `${n.toFixed(1)}%` : '0.0%';
@@ -497,7 +503,7 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral
       <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">
         {label}
       </div>
-      <div className={`text-lg font-bold leading-snug break-all ${statusColors[status]}`}>
+      <div className={`text-base font-bold leading-snug ${statusColors[status]}`}>
         {value}
       </div>
       {target && (
@@ -584,41 +590,49 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">
         {mode === 'budget' ? 'Fiscal Position (Budget Mode)' : 'Fiscal Position'}
       </h2>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-        <MetricCard
-          label="Total Revenue"
-          value={formatCurrency(state.fiscal?.totalRevenue_bn ?? 0)}
-          status="neutral"
-        />
-        <MetricCard
-          label="Total Spending"
-          value={formatCurrency(state.fiscal?.totalSpending_bn ?? 0)}
-          status="neutral"
-        />
-        <MetricCard
-          label="Public Sector Net Borrowing"
-          value={formatCurrency(state.fiscal?.deficit_bn ?? 0)}
-          status={(state.fiscal?.deficit_bn ?? 0) < 0 ? 'good' : (state.fiscal?.deficitPctGDP ?? 0) < 3.0 ? 'neutral' : 'bad'}
-          sublabel={`${formatPercent(state.fiscal?.deficitPctGDP ?? 0)} of GDP`}
-        />
-        <MetricCard
-          label="Debt Stock"
-          value={formatCurrency(state.fiscal?.debtNominal_bn ?? 0)}
-          status={(state.fiscal?.debtPctGDP ?? 0) < 60 ? 'good' : (state.fiscal?.debtPctGDP ?? 0) < 90 ? 'neutral' : 'bad'}
-          sublabel={`${formatPercent(state.fiscal?.debtPctGDP ?? 0)} of GDP`}
-        />
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-x-6">
+          <MetricCard
+            label="Total Revenue"
+            value={formatCurrencyCompact(state.fiscal?.totalRevenue_bn ?? 0)}
+            status="neutral"
+          />
+          <MetricCard
+            label="Total Spending"
+            value={formatCurrencyCompact(state.fiscal?.totalSpending_bn ?? 0)}
+            status="neutral"
+          />
+        </div>
+        <hr className="border-gray-100" />
+        <div className="grid grid-cols-2 gap-x-6">
+          <MetricCard
+            label="Net Borrowing"
+            value={formatCurrencyCompact(state.fiscal?.deficit_bn ?? 0)}
+            status={(state.fiscal?.deficitPctGDP ?? 0) < 3.0 ? 'neutral' : 'bad'}
+            sublabel={`${formatPercent(state.fiscal?.deficitPctGDP ?? 0)} of GDP`}
+          />
+          <MetricCard
+            label="Debt Stock"
+            value={formatCurrencyCompact(state.fiscal?.debtNominal_bn ?? 0)}
+            status={(state.fiscal?.debtPctGDP ?? 0) < 90 ? 'neutral' : 'bad'}
+            sublabel={`${formatPercent(state.fiscal?.debtPctGDP ?? 0)} of GDP`}
+          />
+        </div>
         {isExpanded && (
           <>
-            <MetricCard
-              label="Debt Interest"
-              value={formatCurrency(state.fiscal?.debtInterest_bn ?? 0)}
-              status="neutral"
-            />
-            <MetricCard
-              label="Primary Balance"
-              value={formatCurrency((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0))}
-              status={((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0)) < 0 ? 'good' : 'bad'}
-            />
+            <hr className="border-gray-100" />
+            <div className="grid grid-cols-2 gap-x-6">
+              <MetricCard
+                label="Debt Interest"
+                value={formatCurrencyCompact(state.fiscal?.debtInterest_bn ?? 0)}
+                status="neutral"
+              />
+              <MetricCard
+                label="Primary Balance"
+                value={formatCurrencyCompact((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0))}
+                status={((state.fiscal?.deficit_bn ?? 0) - (state.fiscal?.debtInterest_bn ?? 0)) < 0 ? 'good' : 'bad'}
+              />
+            </div>
           </>
         )}
       </div>
@@ -1050,7 +1064,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
         )}
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
           <EconomicPanel state={state} />
           <FiscalPanel state={state} mode={currentMode} />
           <PoliticalPanel state={state} />
