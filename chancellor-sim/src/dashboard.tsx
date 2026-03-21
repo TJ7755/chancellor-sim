@@ -487,26 +487,26 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral', target, sublabel }) => {
   const statusColors = {
-    good: 'text-green-700 bg-green-50',
-    neutral: 'text-gray-700 bg-gray-50',
-    bad: 'text-red-700 bg-red-50',
+    good: 'text-green-700',
+    neutral: 'text-gray-800',
+    bad: 'text-red-700',
   };
 
   return (
-    <div className="flex flex-col">
-      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+    <div className="flex flex-col gap-0.5">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">
         {label}
       </div>
-      <div className={`text-2xl font-bold font-mono ${statusColors[status]}`}>
+      <div className={`text-lg font-bold leading-snug break-all ${statusColors[status]}`}>
         {value}
       </div>
       {target && (
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-gray-400">
           Target: {target}
         </div>
       )}
       {sublabel && (
-        <div className="text-xs text-gray-600 mt-1">
+        <div className="text-xs text-gray-500">
           {sublabel}
         </div>
       )}
@@ -519,8 +519,8 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral
  */
 const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Economic Indicators</h2>
+    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Economic Indicators</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="GDP Growth"
@@ -580,11 +580,11 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
   const isExpanded = mode === 'budget';
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
+    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">
         {mode === 'budget' ? 'Fiscal Position (Budget Mode)' : 'Fiscal Position'}
       </h2>
-      <div className={`grid ${isExpanded ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5">
         <MetricCard
           label="Total Revenue"
           value={formatCurrency(state.fiscal?.totalRevenue_bn ?? 0)}
@@ -634,11 +634,8 @@ const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
   const governmentApproval = state.political?.governmentApproval ?? MOCK_POLITICAL.publicApproval;
   const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? MOCK_POLITICAL.backbenchSentiment;
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-        Political Capital
-        <span className="text-xs font-normal text-gray-500 ml-2">(Placeholder data)</span>
-      </h2>
+    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Political Capital</h2>
       <div className="grid grid-cols-3 gap-4">
         <MetricCard
           label="PM Trust"
@@ -680,9 +677,10 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Public Services</h2>
-      <div className="grid grid-cols-2 gap-4">
+    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Public Services</h2>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        {/* Headline metrics */}
         <MetricCard
           label="NHS Quality Index"
           value={`${formatNumber(state.services?.nhsQuality ?? 50, 0)}/100`}
@@ -698,6 +696,11 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
           value={`${formatNumber(state.services?.infrastructureQuality ?? 50, 0)}/100`}
           status={(state.services?.infrastructureQuality ?? 50) > 65 ? 'good' : (state.services?.infrastructureQuality ?? 50) > 50 ? 'neutral' : 'bad'}
         />
+
+        {/* Divider */}
+        <div className="col-span-2 border-t border-gray-100 my-1" />
+
+        {/* Expanded metrics */}
         {expandedMetrics.map((metric) => (
           <MetricCard
             key={metric.label}
@@ -716,8 +719,8 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
  */
 const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Markets & Rates</h2>
+    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Markets & Rates</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="Bank Rate"
@@ -1021,7 +1024,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
               </p>
             </div>
             <div className="mt-4 md:mt-0">
-              <div className={`inline-block px-4 py-2 rounded-lg font-semibold ${
+              <div className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
                 currentMode === 'crisis' ? 'bg-red-600 text-white' :
                 currentMode === 'budget' ? 'bg-purple-600 text-white' :
                 'bg-blue-600 text-white'
