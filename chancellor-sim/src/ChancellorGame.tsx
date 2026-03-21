@@ -20,12 +20,11 @@ import { MPManagementScreen, LobbyingModal, MPDetailModal } from './mp-system';
 import { PMMessagesScreen } from './pm-messages-screen';
 import { PMInterventionModal } from './political-system';
 import { Newspaper, EventModal, EventLogPanel } from './events-media';
-import { SocialMediaSidebar } from './social-media-system';
 import { SpendingReviewModal } from './SpendingReviewModal';
+import { Dashboard } from './dashboard';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ReferenceLine } from 'recharts';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -777,286 +776,6 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
         </button>
       </div>
     </nav>
-  );
-};
-
-// ===========================
-// Simple Dashboard Display
-// ===========================
-
-const SimpleDashboard: React.FC = () => {
-  const gameState = useGameState();
-  const gameActions = useGameActions();
-  const [oneClickMessage, setOneClickMessage] = useState<{message: string, success: boolean} | null>(null);
-  const [showThisMonth, setShowThisMonth] = useState(true);
-  const [showDistributionImpact, setShowDistributionImpact] = useState(false);
-
-  return (
-    <div className="flex min-h-screen -m-6">
-      {/* Social Media Sidebar - Left side */}
-      <SocialMediaSidebar
-        state={gameState}
-        onRecordTemplates={(templateIds, turn) => gameActions.recordSocialMediaTemplates(templateIds, turn)}
-      />
-
-      {/* Main Dashboard Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-6 space-y-6">
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600">GDP Growth</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {gameState.economic.gdpGrowthAnnual.toFixed(1)}%
-          </div>
-          <div className="text-xs text-gray-500 mt-1">Annual rate</div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600">Inflation (CPI)</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {gameState.economic.inflationCPI.toFixed(1)}%
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Target: 2.0%
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600">Unemployment</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {gameState.economic.unemploymentRate.toFixed(1)}%
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            Participation: {gameState.economic.participationRate.toFixed(1)}% · Inactivity: {gameState.economic.economicInactivity.toFixed(1)}%
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600">Government Approval</div>
-          <div className="text-3xl font-bold text-gray-900">
-            {Math.round(gameState.political.governmentApproval)}%
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            PM Trust: {Math.round(gameState.political.pmTrust)}
-          </div>
-        </div>
-      </div>
-
-      {gameState.simulation.lastTurnDelta && (
-        <div className="bg-white border border-gray-200 rounded-sm">
-          <button
-            onClick={() => setShowThisMonth(!showThisMonth)}
-            className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50"
-          >
-            <span className="font-semibold text-gray-900">This month</span>
-            <span className="text-sm text-gray-600">{showThisMonth ? 'Hide' : 'Show'}</span>
-          </button>
-          {showThisMonth && (
-            <div className="px-4 pb-4 text-sm text-gray-700 space-y-2">
-              <div>
-                Approval: {gameState.simulation.lastTurnDelta.approvalChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.approvalChange.toFixed(1)}
-                {gameState.simulation.lastTurnDelta.approvalDriversNegative.concat(gameState.simulation.lastTurnDelta.approvalDriversPositive).slice(0, 4).map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
-              </div>
-              <div>
-                10Y gilt yield: {gameState.simulation.lastTurnDelta.giltYieldChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.giltYieldChange.toFixed(1)}
-                {gameState.simulation.lastTurnDelta.giltYieldDrivers.map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
-              </div>
-              <div>
-                Deficit: {gameState.simulation.lastTurnDelta.deficitChange >= 0 ? '+' : ''}{gameState.simulation.lastTurnDelta.deficitChange.toFixed(1)}bn
-                {gameState.simulation.lastTurnDelta.deficitDrivers.map((driver: any) => ` (${driver.name} ${driver.value >= 0 ? '+' : ''}${driver.value.toFixed(1)})`).join(',')}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600 mb-2">Fiscal Position</div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Deficit:</span>
-              <span className="font-semibold">{gameState.fiscal.deficitPctGDP.toFixed(1)}% of GDP</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Debt:</span>
-              <span className="font-semibold">{gameState.fiscal.debtPctGDP.toFixed(1)}% of GDP</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Headroom:</span>
-              <span className="font-semibold">£{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">OBR-certified:</span>
-              <span className={`font-semibold ${
-                gameState.obr.fiscalHeadroomForecast_bn < 0 ? 'text-red-700 animate-pulse' :
-                gameState.obr.fiscalHeadroomForecast_bn < 5 ? 'text-red-600' :
-                gameState.obr.fiscalHeadroomForecast_bn <= 20 ? 'text-amber-700' :
-                'text-green-700'
-              }`}>
-                £{gameState.obr.fiscalHeadroomForecast_bn.toFixed(1)}bn
-              </span>
-            </div>
-            <div className={`mt-1 h-2 rounded-full ${
-              gameState.obr.fiscalHeadroomForecast_bn < 0 ? 'bg-red-700' :
-              gameState.obr.fiscalHeadroomForecast_bn < 5 ? 'bg-red-500' :
-              gameState.obr.fiscalHeadroomForecast_bn <= 20 ? 'bg-amber-400' :
-              'bg-green-500'
-            }`} />
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600 mb-2">Markets</div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Bank Rate:</span>
-              <span className="font-semibold">{gameState.markets.bankRate.toFixed(2)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">10Y Gilt:</span>
-              <span className="font-semibold">{gameState.markets.giltYield10y.toFixed(2)}%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Sterling Index:</span>
-              <span className="font-semibold">{gameState.markets.sterlingIndex.toFixed(1)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 p-4 rounded-sm">
-          <div className="text-sm text-gray-600 mb-2">Public Services</div>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">NHS Quality:</span>
-              <span className="font-semibold">{Math.round(gameState.services.nhsQuality)}/100</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Education:</span>
-              <span className="font-semibold">{Math.round(gameState.services.educationQuality)}/100</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Infrastructure:</span>
-              <span className="font-semibold">{Math.round(gameState.services.infrastructureQuality)}/100</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-gray-200 p-4 rounded-sm">
-        <div className="text-sm text-gray-600 mb-2">Manifesto Adherence</div>
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-3xl font-bold">
-              <span className={gameState.manifesto.totalViolations === 0 ? 'text-green-600' : gameState.manifesto.totalViolations <= 2 ? 'text-amber-600' : 'text-red-600'}>
-                {gameState.manifesto.totalPledges - gameState.manifesto.totalViolations}
-              </span>
-              <span className="text-gray-400">/{gameState.manifesto.totalPledges}</span>
-            </div>
-            <div className="text-xs text-gray-600 mt-1">
-              {gameState.manifesto.totalViolations === 0 ? 'All commitments met' :
-               gameState.manifesto.totalViolations === 1 ? '1 commitment broken' :
-               `${gameState.manifesto.totalViolations} commitments broken`}
-            </div>
-          </div>
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
-            gameState.manifesto.totalViolations === 0 ? 'bg-green-100' :
-            gameState.manifesto.totalViolations <= 2 ? 'bg-amber-100' :
-            'bg-red-100'
-          }`}>
-            {gameState.manifesto.totalViolations === 0 ? (
-              <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              <svg className={`w-8 h-8 ${gameState.manifesto.totalViolations <= 2 ? 'text-amber-600' : 'text-red-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-gray-200 rounded-sm">
-        <button
-          onClick={() => setShowDistributionImpact(!showDistributionImpact)}
-          className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-gray-50"
-        >
-          <span className="font-semibold text-gray-900">Distributional Impact</span>
-          <span className="text-sm text-gray-600">{showDistributionImpact ? 'Hide' : 'Show'}</span>
-        </button>
-        {showDistributionImpact && (
-          <div className="px-4 pb-4 space-y-4">
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gameState.distributional.deciles.map((d, index) => ({ decile: `D${d.id}`, value: Number((gameState.distributional.decileImpacts?.[index] || 0).toFixed(1)) }))}>
-                  <XAxis dataKey="decile" />
-                  <YAxis />
-                  <ReferenceLine y={0} stroke="#6b7280" strokeDasharray="3 3" />
-                  <Tooltip />
-                  <Bar dataKey="value">
-                    {gameState.distributional.deciles.map((d, index) => (
-                      <Cell key={d.id} fill={(gameState.distributional.decileImpacts?.[index] || 0) >= 0 ? '#15803d' : '#b91c1c'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="border border-gray-200 rounded-sm p-2">Gini: <span className="font-semibold">{gameState.distributional.giniCoefficient.toFixed(3)}</span></div>
-              <div className="border border-gray-200 rounded-sm p-2">Poverty rate: <span className="font-semibold">{gameState.distributional.povertyRate.toFixed(1)}%</span></div>
-              <div className="border border-gray-200 rounded-sm p-2">Child poverty: <span className="font-semibold">{gameState.distributional.childPovertyRate.toFixed(1)}%</span></div>
-              <div className="border border-gray-200 rounded-sm p-2">Last tax change: <span className="font-semibold">{gameState.distributional.lastTaxChangeDistribution || 'None'}</span></div>
-              <div className="border border-gray-200 rounded-sm p-2">Bottom quintile real income: <span className="font-semibold">{gameState.distributional.bottomQuintileRealIncomeGrowth.toFixed(1)}%</span></div>
-              <div className="border border-gray-200 rounded-sm p-2">Top decile effective tax: <span className="font-semibold">{gameState.distributional.topDecileEffectiveTaxRate.toFixed(1)}%</span></div>
-            </div>
-          </div>
-        )}
-      </div>
-        </div>
-      </div>
-
-      {/* One-Click Action Result Modal */}
-      {oneClickMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-2xl w-full shadow-2xl rounded-lg">
-            <div className={`${oneClickMessage.success ? 'bg-green-600' : 'bg-red-600'} text-white p-6`}>
-              <div className="text-center">
-                <h2 className="text-3xl font-bold">
-                  {oneClickMessage.success ? 'Pledge Fulfilled' : 'Action Unavailable'}
-                </h2>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <div className={`${oneClickMessage.success ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'} border-2 rounded-lg p-4 mb-6`}>
-                <div className="flex items-start gap-3">
-                  <svg className={`w-6 h-6 ${oneClickMessage.success ? 'text-green-600' : 'text-red-600'} flex-shrink-0 mt-0.5`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    {oneClickMessage.success ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    )}
-                  </svg>
-                  <div>
-                    <p className={oneClickMessage.success ? 'text-green-900' : 'text-red-900'}>{oneClickMessage.message}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setOneClickMessage(null)}
-                  className={`flex-1 px-6 py-3 ${oneClickMessage.success ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} text-white font-bold rounded-lg transition-colours`}
-                >
-                  Understood
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
   );
 };
 
@@ -2045,7 +1764,10 @@ const GameInner: React.FC = () => {
   if (metadata.gameOver) {
     return (
       <>
-        <SimpleDashboard />
+        <Dashboard
+          state={gameState}
+          adviserSystem={gameState.advisers as any}
+        />
         <GameOverModal
           reason={metadata.gameOverReason || 'Game over'}
           onRestart={() => actions.startNewGame()}
@@ -2115,7 +1837,10 @@ const GameInner: React.FC = () => {
         {currentView === 'dashboard' && (
           <div className="flex gap-6 p-6">
             <div className="flex-1">
-              <SimpleDashboard />
+              <Dashboard
+                state={gameState}
+                adviserSystem={gameState.advisers as any}
+              />
             </div>
             {eventLog.length > 0 && (
               <div className="w-80 flex-shrink-0">
