@@ -1,17 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  /* Typography */
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  /* Light Mode Colours */
+  --color-bg-primary: #F7F4EF;
+  --color-bg-surface: #FDFCFA;
+  --color-bg-elevated: #FFFFFF;
+  --color-text-primary: #1A1614;
+  --color-text-secondary: #4A4540;
+  --color-text-tertiary: #6B6560;
+
+  /* Accent Colours */
+  --color-treasury-red: #8B0000;
+  --color-treasury-red-hover: #A50000;
+  --color-ink-blue: #1D3557;
+  --color-ink-blue-light: #457B9D;
+
+  /* Status Colours */
+  --color-good: #2D5016;
+  --color-good-bg: #E8F5E9;
+  --color-neutral: #5D4E37;
+  --color-neutral-bg: #FFF8E1;
+  --color-bad: #8B0000;
+  --color-bad-bg: #FFEBEE;
+
+  /* Financial Data Colours */
+  --color-financial-blue: #1D3557;
+  --color-market-cyan: #006D77;
+  --color-yield-teal: #0A9396;
+
+  /* Borders and Dividers */
+  --color-border-subtle: #D9D4CC;
+  --color-border-emphasis: #B8AFA3;
+  --color-divider: #E8E4DC;
+
+  /* Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+
+  /* Shadows (minimal) */
+  --shadow-subtle: 0 1px 2px rgba(26, 22, 20, 0.05);
+  --shadow-emphasis: 0 2px 4px rgba(26, 22, 20, 0.08);
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.dark {
+  /* Dark Mode Colours */
+  --color-bg-primary: #141210;
+  --color-bg-surface: #1E1B18;
+  --color-bg-elevated: #282420;
+  --color-text-primary: #F5F1E8;
+  --color-text-secondary: #D4CFBF;
+  --color-text-tertiary: #A8A197;
+
+  /* Accent Colours (adjusted for dark mode) */
+  --color-treasury-red: #C41E1E;
+  --color-treasury-red-hover: #E03232;
+  --color-ink-blue: #6B9AC4;
+  --color-ink-blue-light: #89B4D9;
+
+  /* Status Colours (dark mode) */
+  --color-good: #4A7C2E;
+  --color-good-bg: #1A2415;
+  --color-neutral: #8B7355;
+  --color-neutral-bg: #2A2418;
+  --color-bad: #C41E1E;
+  --color-bad-bg: #2A1414;
+
+  /* Financial Data Colours (dark mode) */
+  --color-financial-blue: #6B9AC4;
+  --color-market-cyan: #4ECDC4;
+  --color-yield-teal: #52D1D6;
+
+  /* Borders and Dividers (dark mode) */
+  --color-border-subtle: #3A352E;
+  --color-border-emphasis: #4A4540;
+  --color-divider: #2E2A24;
+
+  /* Shadows (dark mode) */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-emphasis: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+code, .monospace {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+/* Number formatting utility */
+.tabular-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
