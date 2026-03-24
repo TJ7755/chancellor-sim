@@ -182,55 +182,55 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
 
   if (step === 'fiscal-rules') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-        <div className="max-w-5xl w-full bg-white shadow-2xl rounded-sm border-t-8 border-red-700">
-          <div className="bg-red-700 text-white p-6">
-            <h1 className="text-4xl font-bold">HM Treasury</h1>
-            <h2 className="text-2xl mt-2">Choose Your Fiscal Framework</h2>
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-8">
+        <div className="max-w-5xl w-full bg-bg-elevated shadow-emphasis rounded-sm border-t-4 border-treasury-red">
+          <div className="bg-treasury-red text-white p-6">
+            <h1 className="text-4xl font-display font-semibold">HM Treasury</h1>
+            <h2 className="text-2xl font-display mt-2">Choose Your Fiscal Framework</h2>
           </div>
 
           <div className="p-8">
-            <div className="prose max-w-none mb-6">
-              <p className="text-gray-700 leading-relaxed">
+            <div className="mb-6">
+              <p className="text-text-primary font-body leading-relaxed">
                 Your first act as Chancellor is to set the fiscal rules that will govern
                 your Chancellorship. This is perhaps the most important decision you will make.
                 Markets will react immediately to your choice. The rules you set will determine
                 your room for manoeuvre on spending and tax for the entire parliament.
               </p>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-text-tertiary font-body mt-2">
                 Choose carefully: once announced, changing your fiscal rules will be seen as
                 a sign of weakness and severely damage market confidence.
               </p>
             </div>
 
-            <div className="space-y-3 mb-8">
+            <div className="space-y-2 mb-8">
               {FISCAL_RULES.map((rule) => {
                 const isSelected = selectedFiscalRule === rule.id;
-                const marketColor = rule.marketReaction.giltYieldBps <= 0 ? 'text-green-700' : 'text-red-700';
-                const politicalColor = rule.politicalReaction.backbenchChange >= 0 ? 'text-green-700' : 'text-red-700';
+                const marketColor = rule.marketReaction.giltYieldBps <= 0 ? 'text-status-good' : 'text-status-bad';
+                const politicalColor = rule.politicalReaction.backbenchChange >= 0 ? 'text-status-good' : 'text-status-bad';
 
                 return (
                   <button
                     key={rule.id}
                     onClick={() => setSelectedFiscalRule(rule.id)}
-                    className={`w-full text-left p-5 border-2 rounded-sm transition-all ${
+                    className={`w-full text-left p-5 border rounded-sm transition-all font-body ${
                       isSelected
-                        ? 'border-red-700 bg-red-50'
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-treasury-red bg-bg-surface shadow-subtle'
+                        : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                     }`}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="font-bold text-gray-900 text-lg">{rule.name}</div>
-                        <div className="text-sm text-gray-700 mt-1">{rule.shortDescription}</div>
+                        <div className="font-semibold text-text-primary text-lg">{rule.name}</div>
+                        <div className="text-sm text-text-secondary mt-1">{rule.shortDescription}</div>
                         {isSelected && (
                           <div className="mt-3 space-y-2">
-                            <p className="text-sm text-gray-600">{rule.detailedDescription}</p>
-                            <p className="text-xs text-gray-500 italic">{rule.historicalPrecedent}</p>
+                            <p className="text-sm text-text-primary">{rule.detailedDescription}</p>
+                            <p className="text-xs text-text-tertiary italic">{rule.historicalPrecedent}</p>
                           </div>
                         )}
                       </div>
-                      <div className="ml-4 text-right flex-shrink-0 w-48">
+                      <div className="ml-4 text-right flex-shrink-0 w-48 font-mono tabular-nums">
                         <div className={`text-xs font-semibold ${marketColor}`}>
                           Gilt Yields: {rule.marketReaction.giltYieldBps > 0 ? '+' : ''}{rule.marketReaction.giltYieldBps}bps
                         </div>
@@ -240,7 +240,7 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
                         <div className={`text-xs ${politicalColor} mt-1`}>
                           Backbench: {rule.politicalReaction.backbenchChange > 0 ? '+' : ''}{rule.politicalReaction.backbenchChange}
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-xs text-text-tertiary mt-1">
                           Credibility: {rule.marketReaction.credibilityChange > 0 ? '+' : ''}{rule.marketReaction.credibilityChange}
                         </div>
                       </div>
@@ -251,40 +251,40 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
             </div>
 
             <div className="mb-8">
-              <h4 className="text-xl font-bold text-gray-900 mb-3">Difficulty</h4>
+              <h4 className="text-xl font-display font-semibold text-text-primary mb-3">Difficulty</h4>
               <div className="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => setSelectedDifficulty('forgiving')}
-                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                  className={`p-3 border rounded-sm text-left transition-all font-body ${
                     selectedDifficulty === 'forgiving'
-                      ? 'border-green-700 bg-green-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-status-good bg-status-good-bg'
+                      : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                   }`}
                 >
-                  <div className="font-semibold text-green-800">Forgiving</div>
-                  <div className="text-xs text-gray-600 mt-1">Lower volatility, later crisis triggers</div>
+                  <div className="font-semibold text-status-good">Forgiving</div>
+                  <div className="text-xs text-text-secondary mt-1">Lower volatility, later crisis triggers</div>
                 </button>
                 <button
                   onClick={() => setSelectedDifficulty('standard')}
-                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                  className={`p-3 border rounded-sm text-left transition-all font-body ${
                     selectedDifficulty === 'standard'
-                      ? 'border-blue-700 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-ink-blue bg-bg-surface'
+                      : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                   }`}
                 >
-                  <div className="font-semibold text-blue-800">Standard</div>
-                  <div className="text-xs text-gray-600 mt-1">Balanced realism and playability</div>
+                  <div className="font-semibold text-ink-blue">Standard</div>
+                  <div className="text-xs text-text-secondary mt-1">Balanced realism and playability</div>
                 </button>
                 <button
                   onClick={() => setSelectedDifficulty('realistic')}
-                  className={`p-3 border-2 rounded-sm text-left transition-all ${
+                  className={`p-3 border rounded-sm text-left transition-all font-body ${
                     selectedDifficulty === 'realistic'
-                      ? 'border-red-700 bg-red-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-treasury-red bg-status-bad-bg'
+                      : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                   }`}
                 >
-                  <div className="font-semibold text-red-800">Realistic</div>
-                  <div className="text-xs text-gray-600 mt-1">Higher volatility, stricter political/market discipline</div>
+                  <div className="font-semibold text-treasury-red">Realistic</div>
+                  <div className="text-xs text-text-secondary mt-1">Higher volatility, stricter political/market discipline</div>
                 </button>
               </div>
             </div>
@@ -292,7 +292,7 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
             <div className="flex gap-4">
               <button
                 onClick={() => setStep('manifesto')}
-                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-sm hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-border-emphasis text-text-primary font-body font-semibold rounded-sm hover:bg-bg-surface transition-all"
               >
                 Back
               </button>
@@ -302,14 +302,14 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
                   selectedFiscalRule,
                   selectedDifficulty
                 )}
-                className="flex-1 bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-sm transition-colors text-lg"
+                className="flex-1 bg-treasury-red hover:bg-treasury-red-hover text-white font-body font-semibold py-3 px-6 rounded-sm transition-all shadow-subtle"
               >
                 Announce Fiscal Framework and Begin
               </button>
             </div>
 
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-sm">
-              <p className="text-xs text-yellow-800">
+            <div className="mt-4 p-3 bg-status-neutral-bg border border-border-subtle rounded-sm">
+              <p className="text-xs text-status-neutral font-body">
                 Markets will react in real time when you announce your fiscal framework.
                 Gilt yields, sterling, and credibility will adjust immediately.
                 The Stability Rule (Starmer-Reeves) is the expected baseline - deviations will surprise markets.
@@ -322,31 +322,31 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
-      <div className="max-w-4xl w-full bg-white shadow-2xl rounded-sm border-t-8 border-red-700">
-        <div className="bg-red-700 text-white p-6">
-          <h1 className="text-4xl font-bold">HM Treasury</h1>
-          <h2 className="text-2xl mt-2">Chancellor of the Exchequer Simulation</h2>
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center p-8">
+      <div className="max-w-4xl w-full bg-bg-elevated shadow-emphasis rounded-sm border-t-4 border-treasury-red">
+        <div className="bg-treasury-red text-white p-6">
+          <h1 className="text-4xl font-display font-semibold">HM Treasury</h1>
+          <h2 className="text-2xl font-display mt-2">Chancellor of the Exchequer Simulation</h2>
         </div>
 
         <div className="p-8">
-          <div className="prose max-w-none mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          <div className="mb-8">
+            <h3 className="text-2xl font-display font-semibold text-text-primary mb-4">
               Welcome, Chancellor
             </h3>
-            <p className="text-gray-700 leading-relaxed mb-4">
+            <p className="text-text-primary font-body leading-relaxed mb-4">
               It is July 2024. Labour has just won a historic landslide victory with a
               majority of 174 seats. The public have high expectations. Your task is to
               manage the UK economy and public finances for the full five-year term until
               the next election in 2029.
             </p>
-            <p className="text-gray-700 leading-relaxed mb-4">
+            <p className="text-text-primary font-body leading-relaxed mb-4">
               You must balance economic growth, sound public finances, quality public
               services, and political survival. The Prime Minister will not hesitate to
               sack you if you lose their confidence. Backbenchers will revolt if you
               threaten their seats. The markets will punish fiscal irresponsibility.
             </p>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-text-primary font-body leading-relaxed">
               <strong>This simulation is brutally realistic.</strong> Every policy has
               trade-offs. Breaking manifesto pledges has consequences. Economic
               relationships are based on real UK data and OBR forecasts.
@@ -354,25 +354,25 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
           </div>
 
           <div className="mb-8">
-            <h4 className="text-xl font-bold text-gray-900 mb-4">
+            <h4 className="text-xl font-display font-semibold text-text-primary mb-4">
               Select Your Manifesto
             </h4>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-text-secondary font-body mb-4">
               Different manifestos have different pledges and constraints. Choose
               carefully - breaking pledges damages trust and approval.
             </p>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <button
                 onClick={() => setSelectedManifesto('random')}
-                className={`w-full text-left p-4 border-2 rounded-sm transition-all ${
+                className={`w-full text-left p-4 border rounded-sm transition-all font-body ${
                   selectedManifesto === 'random'
-                    ? 'border-red-700 bg-red-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-treasury-red bg-bg-surface shadow-subtle'
+                    : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                 }`}
               >
-                <div className="font-semibold text-gray-900">Random Manifesto</div>
-                <div className="text-sm text-gray-600 mt-1">
+                <div className="font-semibold text-text-primary">Random Manifesto</div>
+                <div className="text-sm text-text-secondary mt-1">
                   System will randomly select one of the five manifesto templates
                 </div>
               </button>
@@ -381,15 +381,15 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
                 <button
                   key={template.id}
                   onClick={() => setSelectedManifesto(template.id)}
-                  className={`w-full text-left p-4 border-2 rounded-sm transition-all ${
+                  className={`w-full text-left p-4 border rounded-sm transition-all font-body ${
                     selectedManifesto === template.id
-                      ? 'border-red-700 bg-red-50'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-treasury-red bg-bg-surface shadow-subtle'
+                      : 'border-border-subtle hover:border-border-emphasis bg-bg-elevated'
                   }`}
                 >
-                  <div className="font-semibold text-gray-900">{template.name}</div>
-                  <div className="text-sm text-gray-600 mt-1">{template.theme}</div>
-                  <div className="text-xs text-gray-500 mt-2">
+                  <div className="font-semibold text-text-primary">{template.name}</div>
+                  <div className="text-sm text-text-secondary mt-1">{template.theme}</div>
+                  <div className="text-xs text-text-tertiary mt-2 tabular-nums">
                     {template.pledges.length} pledges
                   </div>
                 </button>
@@ -399,13 +399,13 @@ const GameStartScreen: React.FC<{ onStart: (manifestoId: string, fiscalRuleId: F
 
           <button
             onClick={() => setStep('fiscal-rules')}
-            className="w-full bg-red-700 hover:bg-red-800 text-white font-bold py-4 px-6 rounded-sm transition-colors text-lg"
+            className="w-full bg-treasury-red hover:bg-treasury-red-hover text-white font-body font-semibold py-4 px-6 rounded-sm transition-all shadow-subtle"
           >
             Next: Choose Fiscal Framework
           </button>
 
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-sm">
-            <p className="text-sm text-yellow-800">
+          <div className="mt-6 p-4 bg-status-neutral-bg border border-border-subtle rounded-sm">
+            <p className="text-sm text-status-neutral font-body">
               <strong>Difficulty: Challenging</strong> - Realistic UK fiscal constraints.
               About 40-50% of players survive if they play carefully. Economic
               relationships are unforgiving but fair.
@@ -625,25 +625,36 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
     'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
+  const progressPercent = (metadata.currentTurn / 60) * 100;
+
   return (
-    <div className="bg-red-700 text-white p-4 flex items-center justify-between shadow-lg">
-      <div>
-        <div className="text-sm opacity-90">HM Treasury</div>
-        <div className="text-2xl font-bold">
-          {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
+    <div className="relative bg-treasury-red shadow-emphasis">
+      <div className="px-6 py-4 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-wider text-white/70 font-body font-medium">HM Treasury</div>
+          <div className="text-3xl font-display font-semibold text-white mt-0.5">
+            {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
+          </div>
+          <div className="text-sm text-white/80 font-body mt-1 tabular-nums">
+            Month {metadata.currentTurn + 1} of 60 • {Math.round(progressPercent)}% complete
+          </div>
         </div>
-        <div className="text-sm opacity-75">
-          Month {metadata.currentTurn + 1} of 60 • Term Progress:{' '}
-          {Math.round((metadata.currentTurn / 60) * 100)}%
-        </div>
+
+        <button
+          onClick={onAdvanceTurn}
+          className="bg-bg-elevated hover:bg-bg-surface text-treasury-red font-body font-semibold py-3 px-8 rounded-sm transition-all border border-border-subtle"
+        >
+          Advance to Next Month →
+        </button>
       </div>
 
-      <button
-        onClick={onAdvanceTurn}
-        className="bg-white text-red-700 font-bold py-3 px-8 rounded-sm hover:bg-gray-100 transition-colors text-lg"
-      >
-        Advance to Next Month →
-      </button>
+      {/* Thin progress bar at bottom edge */}
+      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20">
+        <div
+          className="h-full bg-white transition-all duration-300"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
     </div>
   );
 };
@@ -670,110 +681,90 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   onSaveLoad,
 }) => {
   const gameState = useGameState();
+  const [darkMode, setDarkMode] = useState(false);
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  const TabButton: React.FC<{ view: View; label: string; badge?: number }> = ({ view, label, badge }) => {
+    const isActive = currentView === view;
+    return (
+      <button
+        onClick={() => onViewChange(view)}
+        className={`
+          relative px-6 py-3 font-body font-medium transition-all
+          border-b-2
+          ${isActive
+            ? 'border-treasury-red text-text-primary bg-bg-surface'
+            : 'border-transparent text-text-secondary hover:text-text-primary hover:border-border-emphasis'
+          }
+        `}
+      >
+        {label}
+        {badge !== undefined && badge > 0 && (
+          <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 bg-treasury-red text-white text-xs font-semibold rounded-full tabular-nums">
+            {badge}
+          </span>
+        )}
+      </button>
+    );
+  };
 
   return (
-    <nav className="bg-white border-b border-gray-300 shadow-sm">
-      <div className="px-6 py-2 flex justify-between items-center">
-        <div className="flex gap-2">
-          <button
-            onClick={() => onViewChange('dashboard')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'dashboard'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Dashboard
-          </button>
+    <nav className="bg-bg-elevated border-b border-divider shadow-subtle">
+      <div className="px-6 flex justify-between items-stretch">
+        <div className="flex -mb-px">
+          <TabButton view="dashboard" label="Dashboard" />
+          <TabButton view="budget" label="Budget" />
+          <TabButton view="analysis" label="Analysis" />
+          <TabButton view="advisers" label="Advisers" badge={adviserCount} />
+          <TabButton view="mps" label="MPs" />
+          <TabButton view="manifesto" label="Manifesto" badge={manifestoViolations} />
 
-          <button
-            onClick={() => onViewChange('budget')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'budget'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Budget
-          </button>
-
-          <button
-            onClick={() => onViewChange('analysis')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'analysis'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Analysis
-          </button>
-
-          <button
-            onClick={() => onViewChange('advisers')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'advisers'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Advisers
-            {adviserCount > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                {adviserCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => onViewChange('mps')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'mps'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            MPs
-          </button>
-
-          <button
-            onClick={() => onViewChange('manifesto')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
-              currentView === 'manifesto'
-                ? 'bg-red-700 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Manifesto
-            {manifestoViolations > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                {manifestoViolations}
-              </span>
-            )}
-          </button>
-
+          {/* PM Messages - distinct inbox style */}
           <button
             onClick={() => onViewChange('pm-messages')}
-            className={`px-6 py-2 font-bold rounded-sm transition-all ${
-              currentView === 'pm-messages'
-                ? 'bg-blue-700 text-white shadow-md'
-                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-            }`}
+            className={`
+              px-5 py-3 ml-3 font-body font-semibold transition-all border-l border-divider
+              ${currentView === 'pm-messages'
+                ? 'bg-ink-blue text-white'
+                : 'bg-bg-surface text-ink-blue hover:bg-ink-blue/10'
+              }
+            `}
           >
-            PM
+            PM Inbox
             {gameState?.pmRelationship?.unreadCount > 0 && (
-              <span className="ml-2 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full px-2 py-0.5">
+              <span className="ml-2 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 bg-status-bad text-white text-xs font-bold rounded-full tabular-nums">
                 {gameState.pmRelationship.unreadCount}
               </span>
             )}
           </button>
         </div>
 
-        <button
-          onClick={onSaveLoad}
-          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-sm transition-all"
-        >
-          Save / Load
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleDarkMode}
+            className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+            title="Toggle dark mode"
+          >
+            {darkMode ? '☀' : '☾'}
+          </button>
+
+          <button
+            onClick={onSaveLoad}
+            className="px-4 py-2 text-sm font-body font-medium text-text-secondary hover:text-text-primary hover:bg-bg-surface rounded-sm transition-all"
+          >
+            Save / Load
+          </button>
+        </div>
       </div>
     </nav>
   );
