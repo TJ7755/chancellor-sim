@@ -871,10 +871,10 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-8">
+      <div className="bg-white   max-w-2xl w-full p-8">
         {/* Phone Icon */}
         <div className="flex justify-center mb-4">
-          <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center animate-pulse">
+          <div className="w-20 h-20 bg-red-600  flex items-center justify-center animate-pulse">
             <svg
               className="w-10 h-10 text-white"
               fill="none"
@@ -905,7 +905,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
         </p>
 
         {/* PM Trust Indicator */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="mb-6 p-4 bg-gray-50 ">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium text-gray-700">
               PM Trust Level
@@ -914,16 +914,16 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
               {Math.round(event.pmTrust)}/100
             </span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-gray-200  h-3">
             <div
-              className={`h-3 rounded-full ${getTrustBgColour(event.pmTrust)}`}
+              className={`h-3  ${getTrustBgColour(event.pmTrust)}`}
               style={{ width: `${event.pmTrust}%` }}
             />
           </div>
         </div>
 
         {/* PM's Demand */}
-        <div className="mb-6 p-6 border-2 border-red-300 bg-red-50 rounded-lg">
+        <div className="mb-6 p-6 border-2 border-red-300 bg-red-50 ">
           <h3 className="font-bold text-red-900 mb-3 text-xl">
             {event.demandTitle}
           </h3>
@@ -940,7 +940,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
           {/* Comply */}
           <button
             onClick={onComply}
-            className="p-5 border-2 border-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all transform hover:scale-105"
+            className="p-5 border-2 border-green-600 bg-green-50 hover:bg-green-100  transition-all transform hover:scale-105"
           >
             <div className="font-bold text-green-900 mb-3 text-lg">
               COMPLY WITH PM
@@ -961,7 +961,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
           {/* Defy */}
           <button
             onClick={onDefy}
-            className="p-5 border-2 border-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all transform hover:scale-105"
+            className="p-5 border-2 border-red-600 bg-red-50 hover:bg-red-100  transition-all transform hover:scale-105"
           >
             <div className="font-bold text-red-900 mb-3 text-lg">DEFY PM</div>
             <div className="text-sm text-red-800 space-y-1 text-left">
@@ -1030,7 +1030,7 @@ export const PoliticalPanel: React.FC<PoliticalPanelProps> = ({ state }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white   p-6">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
         Political Capital
       </h2>
@@ -1081,7 +1081,7 @@ export const PoliticalPanel: React.FC<PoliticalPanelProps> = ({ state }) => {
       {/* Rebellion Warning */}
       {political.backbenchSentiment.rebellionRisk !== 'none' && (
         <div
-          className={`p-3 rounded-lg mb-4 border-2 ${getRiskColour(political.backbenchSentiment.rebellionRisk)}`}
+          className={`p-3  mb-4 border-2 ${getRiskColour(political.backbenchSentiment.rebellionRisk)}`}
         >
           <div className="font-semibold text-sm">
             Rebellion risk:{' '}
@@ -1322,7 +1322,7 @@ export const PoliticalSystemDemo: React.FC = () => {
         </h1>
 
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white   p-6 mb-6">
           <h2 className="text-xl font-bold mb-4">Simulation Controls</h2>
           <div className="flex flex-wrap gap-4">
             <button
@@ -1372,7 +1372,7 @@ export const PoliticalSystemDemo: React.FC = () => {
         {/* Detailed Breakdown */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Backbench Breakdown */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white   p-6">
             <h2 className="text-xl font-bold mb-4">Backbench Breakdown</h2>
             <div className="space-y-3">
               <div>
@@ -1415,7 +1415,7 @@ export const PoliticalSystemDemo: React.FC = () => {
           </div>
 
           {/* Opinion Factors */}
-          <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="bg-white   p-6">
             <h2 className="text-xl font-bold mb-4">Opinion Factors</h2>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -1461,7 +1461,7 @@ export const PoliticalSystemDemo: React.FC = () => {
         {/* Reshuffle Event */}
         {state.political.reshuffleEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl max-w-lg w-full p-8">
+            <div className="bg-white   max-w-lg w-full p-8">
               <h2 className="text-3xl font-bold text-center text-red-900 mb-4">
                 GAME OVER
               </h2>

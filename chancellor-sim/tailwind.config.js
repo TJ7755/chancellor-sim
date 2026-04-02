@@ -11,12 +11,14 @@ module.exports = {
         'bg': 'var(--color-bg)',
         'bg-surface': 'var(--color-bg-surface)',
         'bg-elevated': 'var(--color-bg-elevated)',
+        'bg-subdued': 'var(--color-bg-subdued)',
         
         // Text colours
         'text-primary': 'var(--color-text-primary)',
         'text-secondary': 'var(--color-text-secondary)',
         'text-tertiary': 'var(--color-text-tertiary)',
         'text-muted': 'var(--color-text-muted)',
+        'text-inverse': 'var(--color-text-inverse)',
         
         // Primary accent (Treasury Red)
         'primary': 'var(--color-primary)',

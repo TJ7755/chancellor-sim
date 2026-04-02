@@ -1701,7 +1701,7 @@ export const MPCard: React.FC<{
     const colors = {
       support: 'bg-status-good-subtle text-status-good',
       oppose: 'bg-status-bad-subtle text-status-bad',
-      undecided: 'border border-border-custom text-muted',
+      undecided: 'border-b border-border-strong text-muted',
     };
     const labels = {
       support: 'Support',
@@ -1721,7 +1721,7 @@ export const MPCard: React.FC<{
   };
 
   return (
-    <div className="border-b border-border-custom py-3 px-4 flex items-center justify-between hover:bg-bg-surface transition-colors">
+    <div className="border-b border-border-custom py-3 px-4 flex items-center justify-between hover:bg-transparent transition-colors">
       {/* Left: Name, Party, Constituency */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="font-semibold text-primary truncate w-40">{mp.name}</div>
@@ -1768,7 +1768,7 @@ export const MPCard: React.FC<{
           {onViewDetails && (
             <button
               onClick={() => onViewDetails(mp.id)}
-              className="px-3 py-1 border border-border-custom hover:bg-bg-elevated text-primary text-xs font-semibold"
+              className="px-3 py-1 border-b border-border-strong hover:bg-transparent text-primary text-xs font-semibold"
             >
               Details
             </button>
@@ -1863,7 +1863,7 @@ export const MPManagementScreen: React.FC<{
   return (
     <div className="min-h-screen bg-default">
       {/* Header */}
-      <div className="bg-bg-surface border-b border-border-custom p-6">
+      <div className="bg-transparent border-b border-border-custom p-6">
         <div className="max-w-7xl mx-auto">
           {onBack && (
             <button
@@ -1882,7 +1882,7 @@ export const MPManagementScreen: React.FC<{
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Compact Filter Toolbar */}
-        <div className="bg-bg-surface border-b border-border-custom px-6 py-3 mb-6">
+        <div className="bg-transparent border-b border-border-custom px-6 py-3 mb-6">
           <div className="flex items-center gap-4">
             {/* Party Filter */}
             <div className="flex items-center gap-2">
@@ -1892,7 +1892,7 @@ export const MPManagementScreen: React.FC<{
                 onChange={(e) =>
                   setFilterSettings({ ...filterSettings, party: e.target.value as PartyAffiliation || undefined })
                 }
-                className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
+                className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
               >
                 <option value="">All</option>
                 <option value="labour">Labour</option>
@@ -1913,7 +1913,7 @@ export const MPManagementScreen: React.FC<{
                   onChange={(e) =>
                     setFilterSettings({ ...filterSettings, faction: e.target.value as LabourFaction || undefined })
                   }
-                  className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
+                  className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
                 >
                   <option value="">All</option>
                   <option value="left">Left</option>
@@ -1933,7 +1933,7 @@ export const MPManagementScreen: React.FC<{
                 onChange={(e) =>
                   setFilterSettings({ ...filterSettings, stance: e.target.value as 'support' | 'oppose' | 'undecided' || undefined })
                 }
-                className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
+                className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
               >
                 <option value="">All</option>
                 <option value="support">Support</option>
@@ -1950,7 +1950,7 @@ export const MPManagementScreen: React.FC<{
                 placeholder="MP name or constituency..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
+                className="flex-1 px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
               />
             </div>
           </div>
@@ -1982,7 +1982,7 @@ export const MPManagementScreen: React.FC<{
                 {promiseRows.length === 0 ? (
                   <div className="text-xs text-muted">No active or recent deals recorded.</div>
                 ) : promiseRows.map((row) => (
-                  <div key={row.id} className="border border-border-custom p-2 text-xs bg-bg-surface">
+                  <div key={row.id} className="border-b border-border-strong p-2 text-xs bg-transparent">
                     <div className="font-semibold text-primary">{row.mpName}</div>
                     <div className="text-secondary">{row.description}</div>
                     <div className="text-muted mt-1">Status: {row.status}{row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}</div>
@@ -1997,7 +1997,7 @@ export const MPManagementScreen: React.FC<{
                 {narrativeRows.length === 0 ? (
                   <div className="text-xs text-muted">Narrative updates appear after stance calculations complete.</div>
                 ) : narrativeRows.map((row, index) => (
-                  <div key={`${index}-${row}`} className="border border-border-custom p-2 text-xs text-secondary bg-bg-surface">
+                  <div key={`${index}-${row}`} className="border-b border-border-strong p-2 text-xs text-secondary bg-transparent">
                     {row}
                   </div>
                 ))}
@@ -2007,8 +2007,8 @@ export const MPManagementScreen: React.FC<{
         </div>
 
         {/* MP List - Table Header */}
-        <div className="border border-border-custom bg-bg-elevated">
-          <div className="border-b border-border-custom py-2 px-4 flex items-center justify-between text-xs uppercase tracking-wide text-tertiary bg-bg-surface">
+        <div className="border-b border-border-strong bg-transparent">
+          <div className="border-b border-border-custom py-2 px-4 flex items-center justify-between text-xs uppercase tracking-wide text-tertiary bg-transparent">
             <div className="flex items-center gap-4 flex-1">
               <div className="w-40">Name</div>
               <div>Party</div>
@@ -2103,7 +2103,7 @@ export const LobbyingModal: React.FC<{
   if (result) {
     return (
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <div className="bg-bg-surface border border-border-custom shadow-2xl max-w-md w-full p-6">
+        <div className="bg-transparent border-b border-border-strong  max-w-md w-full p-6">
           <h2 className="font-display text-2xl font-semibold text-primary mb-4">
             {result.success ? 'Lobbying Successful' : 'Lobbying Failed'}
           </h2>
@@ -2123,7 +2123,7 @@ export const LobbyingModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-bg-surface border border-border-custom shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-transparent border-b border-border-strong  max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-accent text-accent-text p-6">
           <h2 className="font-display text-2xl font-semibold">Lobby {mp.name}</h2>
@@ -2172,7 +2172,7 @@ export const LobbyingModal: React.FC<{
                         <select
                           value={selectedPromiseCategory}
                           onChange={(e) => setSelectedPromiseCategory(e.target.value as PromiseCategory)}
-                          className="w-full px-3 py-2 border border-border-custom text-sm bg-bg-elevated text-primary"
+                          className="w-full px-3 py-2 border-b border-border-strong text-sm bg-transparent text-primary"
                         >
                           <option value="nhs_spending">NHS Spending Increase</option>
                           <option value="education_spending">Education Spending Increase</option>
@@ -2191,7 +2191,7 @@ export const LobbyingModal: React.FC<{
                             min="0.5"
                             max="10"
                             step="0.5"
-                            className="w-full px-3 py-2 border border-border-custom text-sm bg-bg-elevated text-primary"
+                            className="w-full px-3 py-2 border-b border-border-strong text-sm bg-transparent text-primary"
                             placeholder="Amount (£bn)"
                           />
                         )}
@@ -2284,7 +2284,7 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={onClose}
               disabled={isLobbying}
-              className="px-6 py-3 border border-border-custom hover:bg-bg-elevated text-primary font-semibold"
+              className="px-6 py-3 border-b border-border-strong hover:bg-transparent text-primary font-semibold"
             >
               Cancel
             </button>
@@ -2324,7 +2324,7 @@ export const MPDetailModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-bg-surface max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-border-custom">
+      <div className="bg-transparent max-w-4xl w-full max-h-[90vh] overflow-y-auto  border-b border-border-strong">
         {/* Header */}
         <div className="bg-accent text-accent-text p-6">
           <div className="flex justify-between items-start">
@@ -2393,7 +2393,7 @@ export const MPDetailModal: React.FC<{
         </div>
 
         {/* Tabs - Underline Style */}
-        <div className="flex border-b border-border-custom bg-bg-elevated">
+        <div className="flex border-b border-border-custom bg-transparent">
           {[
             { id: 'profile', label: 'Profile' },
             { id: 'ideology', label: 'Ideology' },
@@ -2405,7 +2405,7 @@ export const MPDetailModal: React.FC<{
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex-1 px-4 py-3 font-semibold transition-colors border-b-2 ${activeTab === tab.id
-                ? 'text-accent border-accent bg-bg-surface'
+                ? 'text-accent border-accent bg-transparent'
                 : 'text-tertiary border-transparent hover:text-primary'
                 }`}
             >
@@ -2425,11 +2425,11 @@ export const MPDetailModal: React.FC<{
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-bg-elevated border border-border-custom p-3">
+                <div className="bg-transparent border-b border-border-strong p-3">
                   <div className="text-sm text-tertiary">Entered Parliament</div>
                   <div className="text-xl font-mono font-semibold text-primary">{mp.enteredParliament}</div>
                 </div>
-                <div className="bg-bg-elevated border border-border-custom p-3">
+                <div className="bg-transparent border-b border-border-strong p-3">
                   <div className="text-sm text-tertiary">Years in Office</div>
                   <div className="text-xl font-mono font-semibold text-primary">{new Date().getFullYear() - mp.enteredParliament}</div>
                 </div>
@@ -2454,7 +2454,7 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Rebelliousness</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-bg-elevated h-2">
+                      <div className="w-32 bg-transparent h-2">
                         <div
                           className="bg-status-bad h-2"
                           style={{ width: `${(mp.traits.rebelliousness / 10) * 100}%` }}
@@ -2466,7 +2466,7 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Principled</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-bg-elevated h-2">
+                      <div className="w-32 bg-transparent h-2">
                         <div
                           className="bg-accent h-2"
                           style={{ width: `${(mp.traits.principled / 10) * 100}%` }}
@@ -2478,7 +2478,7 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Ambition</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-bg-elevated h-2">
+                      <div className="w-32 bg-transparent h-2">
                         <div
                           className="bg-secondary h-2"
                           style={{ width: `${(mp.traits.ambition / 10) * 100}%` }}
@@ -2497,7 +2497,7 @@ export const MPDetailModal: React.FC<{
             <div className="space-y-6">
               <div>
                 <h3 className="font-display font-semibold text-primary mb-3">Political Compass</h3>
-                <div className="bg-bg-elevated p-6 border border-border-custom">
+                <div className="bg-transparent p-6 border-b border-border-strong">
                   <div className="relative w-full h-64 border-2 border-border-custom">
                     {/* Axes */}
                     <div className="absolute top-1/2 left-0 w-full h-px bg-border"></div>
@@ -2511,7 +2511,7 @@ export const MPDetailModal: React.FC<{
 
                     {/* MP Position */}
                     <div
-                      className="absolute w-4 h-4 bg-status-bad border-2 border-white shadow-lg -translate-x-1/2 -translate-y-1/2"
+                      className="absolute w-4 h-4 bg-status-bad border-2 border-white  -translate-x-1/2 -translate-y-1/2"
                       style={{
                         left: `${((mp.ideology.economicAxis + 10) / 20) * 100}%`,
                         top: `${((mp.ideology.socialAxis + 10) / 20) * 100}%`,
@@ -2536,7 +2536,7 @@ export const MPDetailModal: React.FC<{
               <div>
                 <h3 className="font-display font-semibold text-primary mb-3">Fiscal Position</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-bg-elevated h-4">
+                  <div className="flex-1 bg-transparent h-4">
                     <div
                       className="bg-warning h-4"
                       style={{ width: `${(mp.ideology.fiscalConservatism / 10) * 100}%` }}
@@ -2572,7 +2572,7 @@ export const MPDetailModal: React.FC<{
                   <h3 className="font-display font-semibold text-primary mb-3">Recent Budget Votes</h3>
                   <div className="space-y-2">
                     {votingRecord.budgetVotes.slice(-10).reverse().map((vote, idx) => (
-                      <div key={idx} className="bg-bg-elevated border border-border-custom p-3">
+                      <div key={idx} className="bg-transparent border-b border-border-strong p-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
@@ -2688,7 +2688,7 @@ export const MPDetailModal: React.FC<{
               <div>
                 <h3 className="font-display font-semibold text-primary mb-3">{mp.constituency.name}</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-bg-elevated border border-border-custom p-3">
+                  <div className="bg-transparent border-b border-border-strong p-3">
                     <div className="text-sm text-tertiary">Region</div>
                     <div className="text-lg font-semibold text-primary capitalize">{mp.constituency.region}</div>
                   </div>
@@ -2758,7 +2758,7 @@ export const MPDetailModal: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border-custom p-4 bg-bg-elevated">
+        <div className="border-t border-border-custom p-4 bg-transparent">
           <button
             onClick={onClose}
             className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-text font-semibold"

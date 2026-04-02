@@ -56,18 +56,18 @@ export const PMMessagesScreen: React.FC = () => {
     <div className="treasury-stage p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="treasury-card-strong mb-6 px-6 py-6">
+        <div className="treasury-panel px-6 py-6 mb-6">
           <div className="treasury-kicker">Number 10</div>
-          <h1 className="mt-2 font-display text-4xl font-semibold text-primary">Prime Minister&apos;s Office</h1>
-          <p className="mt-2 max-w-3xl text-secondary">Communications, demands and warnings from Downing Street, arranged as if someone actually cared how this inbox feels to use.</p>
+          <h1 className="mt-1 font-display text-3xl font-semibold text-primary">Prime Minister&apos;s Office</h1>
+          <p className="mt-1 max-w-2xl text-secondary text-sm">Communications, demands and warnings from Downing Street.</p>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
           {/* Left Sidebar - Relationship Status */}
           <div className="col-span-12 xl:col-span-4">
-            <div className="treasury-card-strong sticky top-6 p-6">
+            <div className="treasury-panel sticky top-6 p-6">
               <div className="treasury-panel-title">
-                <h2 className="font-display text-xl font-semibold text-primary">Relationship Status</h2>
+                <h2 className="font-display text-lg font-semibold text-primary">Relationship Status</h2>
                 <span className="treasury-kicker">Live</span>
               </div>
 
@@ -169,10 +169,10 @@ export const PMMessagesScreen: React.FC = () => {
           <div className="col-span-12 xl:col-span-8">
             {/* Message List */}
             {!selectedMessage && (
-              <div className="treasury-card-strong overflow-hidden">
+              <div className="treasury-panel overflow-hidden">
                 <div className="border-b border-border-subtle bg-primary px-6 py-5">
                   <div className="treasury-kicker text-white/60">Inbox</div>
-                  <h2 className="mt-1 font-display text-2xl font-semibold text-white">Messages from the Prime Minister</h2>
+                  <h2 className="mt-1 font-display text-xl font-semibold text-white">Messages from the Prime Minister</h2>
                   <p className="mt-1 text-sm text-white/80">
                     {sortedMessages.length === 0 ? 'No messages yet' : `${sortedMessages.length} message${sortedMessages.length !== 1 ? 's' : ''}`}
                   </p>
@@ -191,7 +191,7 @@ export const PMMessagesScreen: React.FC = () => {
                       <div
                         key={message.id}
                         onClick={() => handleMessageClick(message)}
-                        className={`p-6 cursor-pointer transition-colors hover:bg-bg-surface focus:outline-none focus:ring-2 focus:ring-primary ${
+                        className={`p-6 cursor-pointer transition-colors hover:bg-bg-subdued focus:outline-none focus:ring-2 focus:ring-primary ${
                           index === highlightedIndex ? 'ring-2 ring-primary ring-inset' : ''
                         } ${
                           !message.read ? 'bg-secondary-subtle' : ''
@@ -203,13 +203,13 @@ export const PMMessagesScreen: React.FC = () => {
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-3">
                             {!message.read && (
-                              <span className="w-2 h-2 bg-primary rounded-full"></span>
+                              <span className="w-2 h-2 bg-primary"></span>
                             )}
                             <div>
-                              <h3 className="text-lg font-semibold text-primary">{message.subject}</h3>
+                              <h3 className="text-base font-semibold text-primary">{message.subject}</h3>
                               <div className="flex items-center gap-4 mt-1">
                                 <span className="text-xs text-muted">
-                                  Turn {message.turn} ({getMonthName(gameState.metadata.currentMonth)} {gameState.metadata.currentYear})
+                                  Turn {message.turn}
                                 </span>
                                 <span className={`text-xs px-2 py-0.5 font-semibold ${getMessageTypeBadgeColor(message.type)}`}>
                                   {getMessageTypeLabel(message.type)}
@@ -238,7 +238,7 @@ export const PMMessagesScreen: React.FC = () => {
 
             {/* Message Detail View */}
             {selectedMessage && (
-              <div className="treasury-card-strong overflow-hidden">
+              <div className="treasury-panel overflow-hidden">
                 {/* Message Header */}
                 <div className={`px-6 py-4 ${getMessageHeaderColor(selectedMessage.tone)}`}>
                   <button
@@ -247,10 +247,10 @@ export const PMMessagesScreen: React.FC = () => {
                   >
                     Back to messages
                   </button>
-                  <h2 className="font-display text-2xl font-semibold text-white mb-2">{selectedMessage.subject}</h2>
+                  <h2 className="font-display text-xl font-semibold text-white mb-2">{selectedMessage.subject}</h2>
                   <div className="flex items-center gap-4">
                     <span className="text-white/90 text-sm">
-                      Turn {selectedMessage.turn} • {getMonthName(gameState.metadata.currentMonth)} {gameState.metadata.currentYear}
+                      Turn {selectedMessage.turn}
                     </span>
                     <span className="text-xs px-3 py-1 font-semibold bg-white/20 text-white">
                       {getMessageTypeLabel(selectedMessage.type)}
@@ -269,7 +269,7 @@ export const PMMessagesScreen: React.FC = () => {
                   {/* Consequence Warning */}
                   {selectedMessage.consequenceWarning && (
                     <div className="mt-6 p-4 bg-bad-subtle border-l-4 border-bad">
-                      <p className="text-sm font-semibold text-bad mb-1">[Warning] Consequence Warning</p>
+                      <p className="text-sm font-semibold text-bad mb-1">Consequence Warning</p>
                       <p className="text-sm text-bad">{selectedMessage.consequenceWarning}</p>
                     </div>
                   )}
@@ -277,7 +277,7 @@ export const PMMessagesScreen: React.FC = () => {
                   {/* Demand Details */}
                   {selectedMessage.demandCategory && selectedMessage.demandDetails && (
                     <div className="mt-6 p-4 bg-warning-subtle border-l-4 border-warning">
-                      <p className="text-sm font-semibold text-warning mb-1">[Demands] Demand Details</p>
+                      <p className="text-sm font-semibold text-warning mb-1">Demand Details</p>
                       <p className="text-sm text-warning mb-2">{selectedMessage.demandDetails}</p>
                       <p className="text-xs text-warning">Category: {selectedMessage.demandCategory}</p>
                     </div>
@@ -313,12 +313,6 @@ export const PMMessagesScreen: React.FC = () => {
 };
 
 // Helper functions
-
-function getMonthName(month: number): string {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                  'July', 'August', 'September', 'October', 'November', 'December'];
-  return months[month - 1] || 'Unknown';
-}
 
 function getMessageTypeLabel(type: string): string {
   const labels: Record<string, string> = {

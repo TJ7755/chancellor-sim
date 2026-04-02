@@ -51,6 +51,10 @@ jobs:
         working-directory: chancellor-sim
         run: npm test -- --watchAll=false
 
+      - name: Check formatting
+        working-directory: chancellor-sim
+        run: npm run format:check
+
       - name: Build React app
         working-directory: ./chancellor-sim
         run: CI=false npm run build

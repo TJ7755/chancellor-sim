@@ -969,7 +969,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
 
   if (advisersList.length === 0) {
     return (
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+      <div className="bg-slate-50 border border-slate-200  p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
           <Brain className="w-5 h-5 text-slate-400" />
           <h3 className="font-semibold text-slate-700">Economic Advisers</h3>
@@ -994,7 +994,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 mb-4">
+    <div className="bg-white border border-slate-200  p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Brain className="w-5 h-5 text-slate-700" />
         <h3 className="font-semibold text-slate-900">Adviser Assessment</h3>
@@ -1059,7 +1059,7 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white   max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="border-b border-slate-200 p-6">
           <div className="flex items-start justify-between">
@@ -1371,7 +1371,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
           </button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white   p-6 mb-6">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Economic Adviser Management</h1>
           <p className="text-slate-600">
             Appoint up to {maxAdvisers} economic advisers to provide guidance on policy decisions.
@@ -1381,13 +1381,13 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
 
         {/* Currently Hired Advisers */}
         {hiredAdvisersSize > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="bg-white   p-6 mb-6">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Current Advisory Team</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {hiredAdvisersList.map((hired) => (
                 <div
                   key={hired.profile.type}
-                  className="border border-slate-200 rounded-lg p-4"
+                  className="border border-slate-200  p-4"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
@@ -1450,7 +1450,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
         )}
 
         {/* Available Advisers */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white   p-6">
           <h2 className="text-xl font-bold text-slate-900 mb-4">
             {canHireMore ? 'Available Advisers' : 'All Adviser Slots Filled'}
           </h2>
@@ -1475,7 +1475,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
             }).map((profile) => (
               <div
                 key={profile.type}
-                className="border border-slate-200 rounded-lg p-4 hover:border-slate-300 transition-colors"
+                className="border border-slate-200  p-4 hover:border-slate-300 transition-colors"
               >
                 <h3 className="font-bold text-slate-900 mb-1">{profile.name}</h3>
                 <p className="text-sm text-slate-600 mb-3">{profile.title}</p>
@@ -1508,7 +1508,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
       {/* Detail Modal */}
       {selectedAdviser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-white   max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">{selectedAdviser.name}</h2>

@@ -1267,7 +1267,7 @@ export function createInitialAdviserSystem(): AdviserSystem {
     advisers: [],
     maxAdvisers: 3,
     hiredAdvisers: new Map(),
-    availableAdvisers: new Set(['treasury', 'political', 'heterodox', 'fhawk', 'socdem', 'technocrat']),
+    availableAdvisers: new Set(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']),
     currentOpinions: new Map(),
     showDetailedView: null,
     adviserEvents: [],

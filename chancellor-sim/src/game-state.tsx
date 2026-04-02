@@ -748,7 +748,7 @@ function normalizeAdviserSystem(system: AdviserSystem): AdviserSystem {
   } else if (Array.isArray(availableAdvisersInner)) {
     (availableAdvisersInner as any[]).forEach((item: any) => normalizedAvailable.add(String(item)));
   } else {
-    normalizedAvailable = new Set(['treasury', 'political', 'heterodox', 'fhawk', 'socdem', 'technocrat']);
+    normalizedAvailable = new Set(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']);
   }
 
   let normalizedOpinions = new Map<string, any>();
@@ -1368,7 +1368,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   const startNewGame = useCallback(
     (
       playerName?: string,
-      manifestoId: string = 'standard_labour',
+      manifestoId: string = 'cautious-centrist',
       fiscalRuleId: FiscalRuleId = 'starmer-reeves',
       difficultyMode: DifficultyMode = 'realistic'
     ) => {

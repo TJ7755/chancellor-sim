@@ -27,7 +27,7 @@ const SHORTCUTS: ShortcutItem[] = [
 export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
-      <div className="w-full max-w-2xl border border-border-custom bg-bg-elevated shadow-lg">
+      <div className="w-full max-w-2xl border-b border-border-strong bg-transparent ">
         <div className="flex items-center justify-between border-b border-border-custom px-6 py-4">
           <div>
             <h2 id="shortcuts-title" className="font-display text-2xl font-semibold text-primary">Keyboard Shortcuts</h2>
@@ -39,7 +39,7 @@ export const ShortcutsHelpModal: React.FC<ShortcutsHelpModalProps> = ({ onClose 
         </div>
         <div className="grid gap-3 px-6 py-5 md:grid-cols-2">
           {SHORTCUTS.map((shortcut) => (
-            <div key={shortcut.keys} className="flex items-start justify-between gap-4 border border-border-subtle bg-bg-surface px-4 py-3">
+            <div key={shortcut.keys} className="flex items-start justify-between gap-4 border-b border-border-subtle bg-transparent px-4 py-3">
               <span className="font-mono text-sm font-semibold text-primary">{shortcut.keys}</span>
               <span className="text-sm text-secondary">{shortcut.description}</span>
             </div>
