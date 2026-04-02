@@ -1,8 +1,9 @@
 // Main Game Component - Hyper-Realistic UK Chancellor Simulation
 // Integrates all systems into a complete playable game
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  useBudgetDraft,
   GameStateProvider,
   useGameState,
   useGameActions,
@@ -25,6 +26,7 @@ import { Dashboard } from './dashboard';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
+import { ShortcutsHelpModal } from './ui/shell/ShortcutsHelpModal';
 
 interface AnalysisHistoricalSnapshot {
   turn: number;
@@ -619,6 +621,7 @@ const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({
 
 const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) => {
   const metadata = useGameMetadata();
+  const gameState = useGameState();
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -628,29 +631,54 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
   const termProgress = Math.round((metadata.currentTurn / 60) * 100);
 
   return (
-    <div className="bg-primary text-white">
-      <div className="flex items-center justify-between px-6 py-4">
-        <div>
-          <div className="text-xs font-medium tracking-wider opacity-80 uppercase">HM Treasury</div>
-          <div className="font-display text-3xl font-semibold tracking-tight">
-            {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
+    <div className="treasury-masthead">
+      <div className="relative px-6 py-6 md:px-8">
+        <div className="treasury-toolbar">
+          <div className="max-w-3xl">
+            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-white/65">HM Treasury</div>
+            <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-1">
+              <h1 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
+                {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
+              </h1>
+              <div className="pb-1 text-sm uppercase tracking-[0.22em] text-white/70">
+                Month {metadata.currentTurn + 1} of 60
+              </div>
+            </div>
+            <p className="mt-3 max-w-2xl text-sm text-white/78 md:text-base">
+              Chancellor {metadata.playerName || 'Reeves'} is navigating fiscal rules, market nerves and the Prime Minister’s patience.
+            </p>
           </div>
-          <div className="text-sm opacity-75 mt-0.5">
-            Month {metadata.currentTurn + 1} of 60
-          </div>
+
+          <button
+            onClick={onAdvanceTurn}
+            className="btn rounded-none border border-white/25 bg-white/10 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white backdrop-blur hover:bg-white/20"
+          >
+            Advance Month
+          </button>
         </div>
 
-        <button
-          onClick={onAdvanceTurn}
-          className="px-6 py-3 bg-white text-primary font-semibold text-sm border-2 border-white hover:bg-bg-surface active:bg-bg transition-colors"
-        >
-          Advance to Next Month
-        </button>
+        <div className="treasury-data-strip mt-6">
+          <div className="treasury-data-cell">
+            <div className="treasury-kicker text-white/55">Government Approval</div>
+            <div className="mt-2 font-mono text-2xl font-semibold text-white">{gameState.political.governmentApproval.toFixed(0)}</div>
+          </div>
+          <div className="treasury-data-cell">
+            <div className="treasury-kicker text-white/55">Fiscal Headroom</div>
+            <div className="mt-2 font-mono text-2xl font-semibold text-white">£{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn</div>
+          </div>
+          <div className="treasury-data-cell">
+            <div className="treasury-kicker text-white/55">10Y Gilt</div>
+            <div className="mt-2 font-mono text-2xl font-semibold text-white">{gameState.markets.giltYield10y.toFixed(2)}%</div>
+          </div>
+          <div className="treasury-data-cell">
+            <div className="treasury-kicker text-white/55">PM Trust</div>
+            <div className="mt-2 font-mono text-2xl font-semibold text-white">{gameState.political.pmTrust.toFixed(0)}</div>
+          </div>
+        </div>
       </div>
-      {/* Term progress bar */}
-      <div className="h-1 bg-primary-active">
-        <div 
-          className="h-full bg-white opacity-50 transition-all duration-300"
+      <div className="h-1.5 bg-black/25">
+        <div
+          className="h-full bg-white/65 transition-all duration-300"
           style={{ width: `${termProgress}%` }}
         />
       </div>
@@ -663,6 +691,16 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
 // ===========================
 
 type View = 'dashboard' | 'budget' | 'analysis' | 'advisers' | 'mps' | 'pm-messages' | 'manifesto';
+
+const VIEW_SHORTCUTS: Record<string, View> = {
+  '1': 'dashboard',
+  '2': 'budget',
+  '3': 'analysis',
+  '4': 'advisers',
+  '5': 'mps',
+  '6': 'pm-messages',
+  '7': 'manifesto',
+};
 
 interface NavigationBarProps {
   currentView: View;
@@ -707,55 +745,70 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
   ];
 
   return (
-    <nav className="bg-bg-elevated border-b border-border-custom">
-      <div className="px-6 flex items-center justify-between">
-        {/* Left side: Navigation tabs */}
-        <div className="flex">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => onViewChange(tab.id)}
-              className={`tab ${currentView === tab.id ? 'tab-active' : ''}`}
-            >
-              {tab.label}
-              {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-white rounded-sm">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-          
-          {/* PM button - distinct as it's an inbox */}
+    <nav className="treasury-rail overflow-hidden">
+      <div className="border-b border-border-subtle px-5 py-5">
+        <div className="treasury-kicker">Cabinet Control</div>
+        <div className="mt-2 font-display text-3xl font-semibold text-primary">Treasury Briefing</div>
+        <p className="mt-2 text-sm text-secondary">
+          A live working brief, not a strip of tabs pretending to be an interface.
+        </p>
+      </div>
+
+      <div className="border-b border-border-subtle px-3 py-3">
+        {tabs.map((tab) => (
           <button
-            onClick={() => onViewChange('pm-messages')}
-            className={`tab border-l border-border-custom ml-2 pl-4 ${currentView === 'pm-messages' ? 'tab-active' : ''}`}
+            key={tab.id}
+            onClick={() => onViewChange(tab.id)}
+            className={`treasury-nav-link ${currentView === tab.id ? 'treasury-nav-link-active' : ''}`}
           >
-            <span className="flex items-center gap-2">
-              PM
-              {gameState?.pmRelationship?.unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 text-xs bg-primary text-white rounded-sm">
-                  {gameState.pmRelationship.unreadCount}
-                </span>
-              )}
+            <span>
+              <span className="mr-3 font-mono text-xs text-muted">{Object.entries(VIEW_SHORTCUTS).find(([, view]) => view === tab.id)?.[0]}</span>
+              {tab.label}
             </span>
+            {tab.badge !== undefined && tab.badge > 0 && <span className="treasury-badge">{tab.badge}</span>}
           </button>
+        ))}
+
+        <button
+          onClick={() => onViewChange('pm-messages')}
+          className={`treasury-nav-link ${currentView === 'pm-messages' ? 'treasury-nav-link-active' : ''}`}
+        >
+          <span>
+            <span className="mr-3 font-mono text-xs text-muted">6</span>
+            Prime Minister
+          </span>
+          {gameState?.pmRelationship?.unreadCount > 0 && <span className="treasury-badge">{gameState.pmRelationship.unreadCount}</span>}
+        </button>
+      </div>
+
+      <div className="space-y-3 px-5 py-5">
+        <div className="treasury-card px-4 py-4">
+          <div className="treasury-kicker">Political Risk</div>
+          <div className="mt-3 flex items-end justify-between">
+            <div>
+              <div className="text-sm text-secondary">Manifesto breaches</div>
+              <div className="mt-1 font-mono text-2xl font-semibold text-primary">{manifestoViolations}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-secondary">Unread PM</div>
+              <div className="mt-1 font-mono text-2xl font-semibold text-primary">{gameState.pmRelationship.unreadCount}</div>
+            </div>
+          </div>
         </div>
 
-        {/* Right side: Dark mode toggle and Save/Load */}
-        <div className="flex items-center gap-3">
+        <div className="flex gap-3">
           <button
             onClick={toggleDarkMode}
-            className="btn btn-ghost text-xs"
+            className="btn btn-ghost flex-1 rounded-none border border-border-subtle text-xs uppercase tracking-[0.18em]"
             title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDarkMode ? 'Light' : 'Dark'}
           </button>
           <button
             onClick={onSaveLoad}
-            className="btn btn-secondary text-xs"
+            className="btn btn-secondary flex-1 rounded-none text-xs uppercase tracking-[0.18em]"
           >
-            Save / Load
+            Save
           </button>
         </div>
       </div>
@@ -774,25 +827,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
   const [projectionMonths, setProjectionMonths] = useState(24);
   const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'markets' | 'services'>('economic');
   const [selectedServiceMetric, setSelectedServiceMetric] = useState<string>('nhsQuality');
-  const [pendingDraft, setPendingDraft] = useState<ProjectionBudgetDraft | null>(null);
-  const lastDraftRef = useRef<string>('');
-
-  useEffect(() => {
-    const poll = () => {
-      const raw = localStorage.getItem('chancellor-budget-draft-v2') || '';
-      if (raw !== lastDraftRef.current) {
-        lastDraftRef.current = raw;
-        try {
-          setPendingDraft(raw ? JSON.parse(raw) as ProjectionBudgetDraft : null);
-        } catch {
-          setPendingDraft(null);
-        }
-      }
-    };
-    poll();
-    const interval = window.setInterval(poll, 400);
-    return () => window.clearInterval(interval);
-  }, []);
+  const pendingDraft = useBudgetDraft() as ProjectionBudgetDraft | null;
 
   const projections = useMemo(
     () => generateProjections(gameState, projectionMonths, true, pendingDraft),
@@ -1737,14 +1772,87 @@ const GameInner: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [showNewspaper, setShowNewspaper] = useState(false);
   const [showSaveLoad, setShowSaveLoad] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [saveSlotName, setSaveSlotName] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [lobbyingMPId, setLobbyingMPId] = useState<string | null>(null);
   const [detailMPId, setDetailMPId] = useState<string | null>(null);
 
+  const handleAdvanceTurn = useCallback(() => {
+    actions.advanceTurn();
+    setTimeout(() => setShowNewspaper(true), 100);
+  }, [actions]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName;
+      const isEditable = !!target && (
+        target.isContentEditable ||
+        tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'SELECT'
+      );
+
+      if (event.key === 'Escape') {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+          return;
+        }
+        if (showSaveLoad) {
+          setShowSaveLoad(false);
+          return;
+        }
+        if (showNewspaper) {
+          setShowNewspaper(false);
+          return;
+        }
+        if (lobbyingMPId) {
+          setLobbyingMPId(null);
+          return;
+        }
+        if (detailMPId) {
+          setDetailMPId(null);
+        }
+        return;
+      }
+
+      if (isEditable) {
+        return;
+      }
+
+      if (event.key === '?') {
+        event.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
+
+      if (event.key === '/') {
+        event.preventDefault();
+        setCurrentView('budget');
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+        event.preventDefault();
+        handleAdvanceTurn();
+        return;
+      }
+
+      const shortcutView = VIEW_SHORTCUTS[event.key];
+      if (shortcutView) {
+        event.preventDefault();
+        setCurrentView(shortcutView);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [detailMPId, handleAdvanceTurn, lobbyingMPId, showNewspaper, showSaveLoad, showShortcuts]);
+
   // Game start screen
   if (!metadata.gameStarted) {
-    return <GameStartScreen onStart={(manifestoId, fiscalRuleId, difficultyMode) => actions.startNewGame('', manifestoId, fiscalRuleId, difficultyMode)} />;
+    return <GameStartScreen onStart={(manifestoId, fiscalRuleId, difficultyMode) => actions.startNewGame(undefined, manifestoId, fiscalRuleId, difficultyMode)} />;
   }
 
   // Game over modal
@@ -1784,13 +1892,6 @@ const GameInner: React.FC = () => {
   // Event log entries
   const eventLog = gameState.events?.eventLog || [];
 
-  // Handle advancing turn and showing newspaper
-  const handleAdvanceTurn = () => {
-    actions.advanceTurn();
-    // Show newspaper after a short delay so state updates first
-    setTimeout(() => setShowNewspaper(true), 100);
-  };
-
   // Handle event response
   const handleEventResponse = (response: EventResponseOption) => {
     if (activeEvent) {
@@ -1803,15 +1904,10 @@ const GameInner: React.FC = () => {
 
   // Main game
   return (
-    <div className="min-h-screen bg-default">
+    <div className="treasury-shell">
       <TurnPanel onAdvanceTurn={handleAdvanceTurn} />
-      <NavigationBar
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        adviserCount={adviserCount}
-        manifestoViolations={gameState.manifesto.totalViolations}
-        onSaveLoad={() => setShowSaveLoad(true)}
-      />
+
+      {showShortcuts && <ShortcutsHelpModal onClose={() => setShowShortcuts(false)} />}
 
       {gameState.parliamentary.lordsDelayActive && (
         <div className="bg-warning-subtle border-y border-warning px-6 py-2 text-warning text-sm">
@@ -1819,10 +1915,18 @@ const GameInner: React.FC = () => {
         </div>
       )}
 
-      {/* Main content area */}
-      <div className="relative">
+      <div className="treasury-shell-grid">
+        <NavigationBar
+          currentView={currentView}
+          onViewChange={setCurrentView}
+          adviserCount={adviserCount}
+          manifestoViolations={gameState.manifesto.totalViolations}
+          onSaveLoad={() => setShowSaveLoad(true)}
+        />
+
+        <div className="relative min-w-0">
         {currentView === 'dashboard' && (
-          <div className="flex gap-6 p-6">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
             <div className="flex-1">
               <Dashboard
                 state={gameState}
@@ -1830,7 +1934,7 @@ const GameInner: React.FC = () => {
               />
             </div>
             {eventLog.length > 0 && (
-              <div className="w-80 flex-shrink-0">
+              <div className="treasury-card-strong w-full flex-shrink-0">
                 <EventLogPanel events={eventLog} />
               </div>
             )}
@@ -1869,7 +1973,7 @@ const GameInner: React.FC = () => {
         {currentView === 'pm-messages' && <PMMessagesScreen />}
 
         {currentView === 'manifesto' && (
-          <div className="p-6">
+          <div className="treasury-card-strong p-6">
             <ManifestoDisplay
               manifestoState={gameState.manifesto}
               gameState={{
@@ -1886,16 +1990,12 @@ const GameInner: React.FC = () => {
                 fiscalRuleMet: gameState.political.fiscalRuleCompliance?.overallCompliant ?? true,
               }}
               onExecuteOneClick={(result: OneClickActionResult) => {
-                if (typeof (actions as any).applyOneClickManifestoAction === 'function') {
-                  (actions as any).applyOneClickManifestoAction(result);
-                } else {
-                  // TODO: wire up once applyOneClickManifestoAction is added to GameActions
-                  console.warn('[Manifesto] One-click action not yet wired to game actions:', result);
-                }
+                actions.executeManifestoOneClick(result.pledgeId);
               }}
             />
           </div>
         )}
+        </div>
       </div>
 
       {/* Lobbying Modal */}

@@ -1,4 +1,4 @@
-import { detectPolicyConflicts } from '../budget-system';
+import { detectPolicyConflicts } from '../domain/budget/policy-conflicts';
 
 describe('detectPolicyConflicts', () => {
   it('flags demand-shock conflict when large tax rises combine with broad cuts', () => {
@@ -15,8 +15,7 @@ describe('detectPolicyConflicts', () => {
       ['d', { department: 'Justice', type: 'resource', currentBudget: 100, proposedBudget: 90 }],
     ]);
 
-    const state: any = { services: { nhsQuality: 60, educationQuality: 60 } };
-    const conflicts = detectPolicyConflicts(taxes, spending, state);
+    const conflicts = detectPolicyConflicts(taxes, spending, { nhsQuality: 60, educationQuality: 60 });
     expect(conflicts.some((c) => c.id === 'demand_shock')).toBe(true);
   });
 });

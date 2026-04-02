@@ -8,8 +8,7 @@ import {
   RegionUK,
   BudgetChanges,
   generateMPConcernProfile,
-  DetailedMPStance,
-  MPStanceLabel
+  DetailedMPStance
 } from './mp-system';
 
 // ===========================

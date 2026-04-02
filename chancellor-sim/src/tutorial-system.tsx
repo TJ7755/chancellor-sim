@@ -213,7 +213,7 @@ export const HelpButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   return (
     <button
       onClick={onClick}
-      className="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center text-2xl font-bold z-40"
+      className="treasury-floating-help transition-transform flex items-center justify-center text-2xl font-bold"
       aria-label="Help"
       title="How to play"
     >
@@ -222,8 +222,10 @@ export const HelpButton: React.FC<{ onClick: () => void }> = ({ onClick }) => {
   );
 };
 
-export default {
+const tutorialSystem = {
   TutorialModal,
   HelpButton,
   TUTORIAL_SECTIONS,
 };
+
+export default tutorialSystem;

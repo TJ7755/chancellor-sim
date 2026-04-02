@@ -62,27 +62,10 @@ import {
   loadPromises,
   savePromises,
 } from './mp-storage';
+import { markMessageAsRead } from './pm-system';
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
-
-const SAVE_VERSION = "1";
-// Conservative cap below common 5 MB per-origin localStorage quota.
-const SAVE_SIZE_LIMIT = 4_800_000;
-
-interface SaveEnvelope {
-  version: string;
-  savedAt: number;
-  turnAtSave: number;
-  checksum: string;
-  state: any;
-}
-
-export function simpleChecksum(data: string): string {
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    hash = (Math.imul(31, hash) + data.charCodeAt(i)) | 0;
-  }
-  return hash.toString(16);
-}
+import { BudgetDraft, clearBudgetDraft, readBudgetDraft, writeBudgetDraft } from './state/budget-draft';
+import { buildSaveEnvelope, SAVE_SIZE_LIMIT, validateSave } from './state/save-game';
 
 // ===========================
 // Game State Types
@@ -97,6 +80,7 @@ export interface GameMetadata {
   gameOver: boolean;
   gameOverReason?: string;
   lastSaveTime?: number;
+  playerName?: string;
 }
 
 export type DifficultyMode = 'forgiving' | 'standard' | 'realistic';
@@ -477,7 +461,7 @@ export interface GameState {
 
 export interface GameActions {
   startNewGame: (
-    adviserChoice?: string,
+    playerName?: string,
     manifestoChoice?: string,
     fiscalRuleChoice?: FiscalRuleId,
     difficultyMode?: DifficultyMode
@@ -497,6 +481,9 @@ export interface GameActions {
   recordBudgetVotes: (votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => void;
   updatePromises: (brokenPromiseIds: string[]) => void;
   changeFiscalFramework: (nextRule: FiscalRuleId) => void;
+  markPMMessageAsRead: (messageId: string) => void;
+  setBudgetDraft: (draft: BudgetDraft | null) => void;
+  clearBudgetDraft: () => void;
   recordSocialMediaTemplates: (templateIds: string[], turn: number) => void;
   setSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
   updateSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
@@ -633,6 +620,7 @@ function createInitialLegislativePipelineState(): LegislativePipelineState {
 
 const GameStateContext = createContext<GameState | undefined>(undefined);
 const GameActionsContext = createContext<GameActions | undefined>(undefined);
+const BudgetDraftContext = createContext<BudgetDraft | null>(null);
 
 // ===========================
 // Helper Functions
@@ -1064,15 +1052,7 @@ export function serializeGameState(state: GameState): any {
 export function writeSave(key: string, state: GameState): { success: boolean; error?: string } {
   try {
     const serialised = JSON.stringify(serializeGameState(state));
-    const checksum = simpleChecksum(serialised);
-    const envelope: SaveEnvelope = {
-      version: SAVE_VERSION,
-      savedAt: Date.now(),
-      turnAtSave: state.metadata.currentTurn,
-      checksum,
-      state: JSON.parse(serialised),
-    };
-    const envelopeString = JSON.stringify(envelope);
+    const envelopeString = JSON.stringify(buildSaveEnvelope(state, serialised));
     if (envelopeString.length > SAVE_SIZE_LIMIT) {
       return {
         success: false,
@@ -1093,44 +1073,13 @@ export function readSave(key: string): { state: any; warnings: string[] } | null
     const raw = localStorage.getItem(key);
     if (!raw) return null;
 
-    const warnings: string[] = [];
-    let parsed: unknown;
-
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      console.warn(`[Save] Corrupt JSON at key "${key}" — discarding.`);
+    const validation = validateSave(raw);
+    if (!validation.success || !validation.state) {
+      console.warn(`[Save] ${validation.error || `Save at key "${key}" is invalid.`}`);
       return null;
     }
 
-    if (!parsed || typeof parsed !== 'object') {
-      console.warn(`[Save] Save at key "${key}" has invalid structure — discarding.`);
-      return null;
-    }
-
-    if (!('version' in parsed) || !(parsed as SaveEnvelope).version) {
-      warnings.push('Legacy save format detected. Some fields may have been reset to defaults.');
-      return { state: parsed, warnings };
-    }
-
-    const envelope = parsed as SaveEnvelope;
-
-    if (envelope.version !== SAVE_VERSION) {
-      warnings.push(`Save version mismatch (saved: ${envelope.version}, current: ${SAVE_VERSION}). Some fields may have been reset to defaults.`);
-    }
-
-    const reserialised = JSON.stringify(envelope.state);
-    const expectedChecksum = simpleChecksum(reserialised);
-    if (envelope.checksum !== expectedChecksum) {
-      warnings.push('Save integrity check failed. The save file may be corrupted. Proceeding with caution.');
-    }
-
-    if (!envelope.state?.metadata || !envelope.state?.economic) {
-      console.warn(`[Save] Save at key "${key}" is missing required fields — discarding.`);
-      return null;
-    }
-
-    return { state: envelope.state, warnings };
+    return { state: validation.state, warnings: validation.warnings };
   } catch (e) {
     console.error(`[Save] Unexpected error reading key "${key}":`, e);
     return null;
@@ -1250,6 +1199,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [gameState, setGameState] = useState<GameState>(createInitialGameState());
+  const [budgetDraft, setBudgetDraftState] = useState<BudgetDraft | null>(() => readBudgetDraft());
 
   // Auto-save every turn
   useEffect(() => {
@@ -1260,6 +1210,13 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }
   }, [gameState.metadata.currentTurn, gameState]);
+
+  useEffect(() => {
+    if (budgetDraft && budgetDraft.turn !== gameState.metadata.currentTurn) {
+      clearBudgetDraft();
+      setBudgetDraftState(null);
+    }
+  }, [budgetDraft, gameState.metadata.currentTurn]);
 
   // Load autosave on mount
   useEffect(() => {
@@ -1410,7 +1367,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   // Start new game
   const startNewGame = useCallback(
     (
-      saveName?: string,
+      playerName?: string,
       manifestoId: string = 'standard_labour',
       fiscalRuleId: FiscalRuleId = 'starmer-reeves',
       difficultyMode: DifficultyMode = 'realistic'
@@ -1437,7 +1394,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
             ...newState.metadata,
             currentYear: 2024,
             currentTurn: 0,
-            playerName: saveName || 'Chancellor',
+            playerName: playerName || 'Chancellor',
             gameStarted: true,
             difficultyMode,
           },
@@ -1457,6 +1414,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           manifesto: initializeManifestoState(manifestoId),
         };
       });
+      setBudgetDraftState(null);
+      clearBudgetDraft();
     },
     []
   );
@@ -1501,6 +1460,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
       return processedState;
     });
+    setBudgetDraftState(null);
+    clearBudgetDraft();
   }, []);
 
   // Save game to named slot
@@ -1539,6 +1500,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       };
     });
+    setBudgetDraftState(null);
+    clearBudgetDraft();
     return true;
   }, []);
 
@@ -3022,6 +2985,29 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   }, []);
 
+  const markPMMessageAsReadAction = useCallback((messageId: string) => {
+    setGameState((prevState) => ({
+      ...prevState,
+      pmRelationship: markMessageAsRead(prevState.pmRelationship, messageId),
+    }));
+  }, []);
+
+  const setBudgetDraft = useCallback((draft: BudgetDraft | null) => {
+    if (!draft) {
+      clearBudgetDraft();
+      setBudgetDraftState(null);
+      return;
+    }
+
+    writeBudgetDraft(draft);
+    setBudgetDraftState(draft);
+  }, []);
+
+  const clearBudgetDraftAction = useCallback(() => {
+    clearBudgetDraft();
+    setBudgetDraftState(null);
+  }, []);
+
   const recordSocialMediaTemplates = useCallback((templateIds: string[], turn: number) => {
     setGameState((prevState) => {
       if (!templateIds || templateIds.length === 0) return prevState;
@@ -3097,6 +3083,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     recordBudgetVotes,
     updatePromises,
     changeFiscalFramework,
+    markPMMessageAsRead: markPMMessageAsReadAction,
+    setBudgetDraft,
+    clearBudgetDraft: clearBudgetDraftAction,
     recordSocialMediaTemplates,
     setSpendingReviewPlans,
     updateSpendingReviewPlans,
@@ -3106,7 +3095,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <GameStateContext.Provider value={gameState}>
       <GameActionsContext.Provider value={actions}>
-        {children}
+        <BudgetDraftContext.Provider value={budgetDraft}>
+          {children}
+        </BudgetDraftContext.Provider>
       </GameActionsContext.Provider>
     </GameStateContext.Provider>
   );
@@ -3130,6 +3121,10 @@ export function useGameActions(): GameActions {
     throw new Error('useGameActions must be used within GameStateProvider');
   }
   return context;
+}
+
+export function useBudgetDraft(): BudgetDraft | null {
+  return useContext(BudgetDraftContext);
 }
 
 // Convenience hooks for specific subsystems

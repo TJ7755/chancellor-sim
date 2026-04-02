@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   LineChart,
   Line,
-  AreaChart,
   Area,
   ComposedChart,
   XAxis,
@@ -16,6 +15,8 @@ import {
 import { format } from 'date-fns';
 import { AdviserSystemState } from './adviser-system';
 import { SocialMediaSidebar } from './social-media-system';
+import { createDashboardHistoricalBaseline } from './data/dashboard-history';
+import { selectDashboardHeadlineMetrics, selectPoliticalOverview } from './state/selectors';
 
 /**
  * HM TREASURY DASHBOARD
@@ -78,50 +79,6 @@ interface FiscalState {
   debtInterest: number;
 }
 
-interface ServicesState {
-  nhsQuality: number;
-  educationQuality: number;
-  infrastructureQuality: number;
-  nhsWaitingList: number;
-  nhsRealFundingGrowth: number;
-  mentalHealthAccess?: number;
-  primaryCareAccess?: number;
-  socialCareQuality?: number;
-  prisonSafety?: number;
-  courtBacklogPerformance?: number;
-  legalAidAccess?: number;
-  policingEffectiveness?: number;
-  borderSecurityPerformance?: number;
-  railReliability?: number;
-  affordableHousingDelivery?: number;
-  floodResilience?: number;
-  researchInnovationOutput?: number;
-}
-
-interface MarketState {
-  giltYield10yr: number;
-  mortgageRate2yr: number;
-  housePriceIndex: number;
-  sterlingIndex: number;
-}
-
-interface PoliticalState {
-  pmTrust: number;
-  publicApproval: number;
-  backbenchSentiment: number;
-}
-
-interface SimulationState {
-  currentMonth: number;
-  currentDate: Date;
-  economy: EconomicState;
-  fiscal: FiscalState;
-  services: ServicesState;
-  markets: MarketState;
-  history: HistoricalSnapshot[];
-  political?: PoliticalState;
-}
-
 interface HistoricalSnapshot {
   month: number;
   date: Date;
@@ -145,30 +102,6 @@ interface DashboardProps {
 // ============================================================================
 // CONSTANTS
 // ============================================================================
-
-const COLORS = {
-  treasuryBlue: '#1d70b8',
-  govGrey: '#505a5f',
-  good: '#00703c',
-  warning: '#f47738',
-  bad: '#d4351c',
-  gdp: '#2563eb',
-  inflation: '#dc2626',
-  unemployment: '#ea580c',
-  deficit: '#7c3aed',
-  debt: '#0891b2',
-  yields: '#1d70b8',
-  bankRate: '#059669',
-  neutral: '#6b7280',
-  grid: '#e5e7eb',
-};
-
-// Mock political data (until political system implemented)
-const MOCK_POLITICAL: PoliticalState = {
-  pmTrust: 45,
-  publicApproval: 42,
-  backbenchSentiment: 65,
-};
 
 // ============================================================================
 // HISTORICAL BASELINE GENERATION (2014-2024)
@@ -205,13 +138,11 @@ function generateHistoricalBaseline(): HistoricalSnapshot[] {
 
     // Calculate derived values
     const gdpBase = 2200; // £2.2tn in 2014
-    const gdpGrowthMultiplier = 1 + (gdpGrowth / 100);
     const monthsElapsed = monthIndex;
     const gdpNominal = gdpBase * Math.pow(1 + (2.5 / 100 / 12), monthsElapsed); // Nominal growth
     const rpi = cpi + 1.0;
     const nairu = 4.5;
     const wageGrowthNominal = 2.5 + 0.4 * cpi - 0.45 * (unemployment - nairu);
-    const giltYield = Math.max(0.5, 1.5 + cpi / 100 + 0.5 + (debtToGdp - 80) * 0.02);
 
     return {
       month: monthIndex - 120, // Relative to July 2024 (month 0)
@@ -241,111 +172,17 @@ function generateHistoricalBaseline(): HistoricalSnapshot[] {
     };
   };
 
-  // 2014-2015: Stable post-crisis recovery (months 0-23)
-  for (let i = 0; i < 24; i++) {
-    const gdpGrowth = 2.5 - i * 0.01; // Slowing from 2.5% to 2.3%
-    const cpi = 0.5 + i * 0.03; // Rising from 0.5% to 1.2%
-    const unemployment = 6.0 - i * 0.05; // Falling from 6% to 4.8%
-    const bankRate = 0.5;
-    const deficitToGdp = 5.0 - i * 0.05; // Falling from 5% to 3.8%
-    const debtToGdp = 85.0 + i * 0.05; // Rising slowly
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
-
-  // 2016: Brexit year (months 24-35)
-  for (let i = 24; i < 36; i++) {
-    const monthInYear = i - 24;
-    const isPostBrexit = monthInYear >= 5; // June 2016 referendum
-    const gdpGrowth = isPostBrexit ? 1.5 : 2.0;
-    const cpi = isPostBrexit ? 2.0 + (monthInYear - 5) * 0.15 : 1.0; // Sterling crash effect
-    const unemployment = 4.9;
-    const bankRate = 0.5 - (isPostBrexit && monthInYear >= 7 ? 0.25 : 0); // Emergency cut
-    const deficitToGdp = 3.5;
-    const debtToGdp = 87.0;
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
-
-  // 2017-2019: Brexit uncertainty, slow growth (months 36-71)
-  for (let i = 36; i < 72; i++) {
-    const gdpGrowth = 1.5 + Math.sin(i / 6) * 0.3; // Volatile around 1.5%
-    const cpi = 2.5 + Math.sin(i / 8) * 0.5; // Volatile 2-3%
-    const unemployment = 4.0 + Math.sin(i / 12) * 0.3; // Around 4%
-    const bankRate = 0.25 + (i - 36) * 0.015; // Gradual rises to 0.75%
-    const deficitToGdp = 2.5 + Math.sin(i / 6) * 0.3;
-    const debtToGdp = 86.0 - (i - 36) * 0.05; // Slowly falling
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
-
-  // 2020: COVID crash (months 72-83)
-  for (let i = 72; i < 84; i++) {
-    const monthInYear = i - 72;
-    const isCrash = monthInYear >= 2 && monthInYear <= 4; // March-May 2020
-    const isRecovery = monthInYear > 4;
-
-    let gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp;
-
-    if (isCrash) {
-      gdpGrowth = -20.0 + (monthInYear - 2) * 5; // -20%, -15%, -10%
-      cpi = 0.5;
-      unemployment = 4.0 + (monthInYear - 2) * 0.4; // Spike to 5.2%
-      bankRate = 0.1; // Emergency cut to 0.1%
-      deficitToGdp = 10.0 + (monthInYear - 2) * 2; // Exploding deficit
-      debtToGdp = 85.0 + (monthInYear - 2) * 3;
-    } else if (isRecovery) {
-      gdpGrowth = -10.0 + (monthInYear - 4) * 2.5; // Recovering
-      cpi = 0.5 + (monthInYear - 4) * 0.1;
-      unemployment = 5.2 - (monthInYear - 4) * 0.1;
-      bankRate = 0.1;
-      deficitToGdp = 16.0 - (monthInYear - 4) * 0.3;
-      debtToGdp = 94.0 + (monthInYear - 4) * 0.5;
-    } else {
-      gdpGrowth = 1.0;
-      cpi = 1.5;
-      unemployment = 4.0;
-      bankRate = 0.75;
-      deficitToGdp = 2.0;
-      debtToGdp = 85.0;
-    }
-
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
-
-  // 2021: Recovery year (months 84-95)
-  for (let i = 84; i < 96; i++) {
-    const monthInYear = i - 84;
-    const gdpGrowth = 7.0 - monthInYear * 0.3; // Strong recovery fading
-    const cpi = 1.5 + monthInYear * 0.15; // Inflation building
-    const unemployment = 4.8 - monthInYear * 0.05; // Falling
-    const bankRate = 0.1;
-    const deficitToGdp = 12.0 - monthInYear * 0.6; // Deficit narrows
-    const debtToGdp = 98.0 + monthInYear * 0.1;
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
-
-  // 2022-2023: Inflation crisis (months 96-119)
-  for (let i = 96; i < 120; i++) {
-    const monthInYear = (i - 96) % 12;
-    const yearOffset = Math.floor((i - 96) / 12); // 0 for 2022, 1 for 2023
-
-    let gdpGrowth, cpi, bankRate;
-
-    if (yearOffset === 0) {
-      // 2022: Inflation spike
-      gdpGrowth = 3.0 - monthInYear * 0.3; // Slowing through year
-      cpi = 5.0 + monthInYear * 0.5; // Rising to 11%
-      bankRate = 0.1 + monthInYear * 0.35; // Rapid hiking
-    } else {
-      // 2023: Inflation falling
-      gdpGrowth = 0.1 + monthInYear * 0.05; // Weak growth
-      cpi = 11.0 - monthInYear * 0.75; // Falling from 11% to 2%
-      bankRate = 4.25 + (monthInYear < 6 ? monthInYear * 0.17 : 0); // Peak at 5.25%
-    }
-
-    const unemployment = 3.7 + yearOffset * 0.3; // Rising slightly
-    const deficitToGdp = 5.0 - yearOffset * 0.5;
-    const debtToGdp = 100.0 - (1 - yearOffset) * 1.0; // Falling slightly in 2023
-    history.push(createSnapshot(i, gdpGrowth, cpi, unemployment, bankRate, deficitToGdp, debtToGdp));
-  }
+  createDashboardHistoricalBaseline().forEach((point) => {
+    history.push(createSnapshot(
+      point.monthIndex,
+      point.gdpGrowth,
+      point.cpi,
+      point.unemployment,
+      point.bankRate,
+      point.deficitToGdp,
+      point.debtToGdp
+    ));
+  });
 
   return history;
 }
@@ -390,10 +227,6 @@ function mapCanonicalSnapshot(snap: any): HistoricalSnapshot {
 // FORMATTING UTILITIES
 // ============================================================================
 
-const formatCurrency = (num: number): string => {
-  const n = Number(num);
-  return !isNaN(n) ? `£${n.toFixed(1)}bn` : '£0.0bn';
-};
 const formatCurrencyCompact = (num: number): string => {
   const n = Number(num);
   if (isNaN(n)) return '£0bn';
@@ -409,7 +242,6 @@ const formatNumber = (num: number, decimals = 1): string => {
   return !isNaN(n) ? n.toFixed(decimals) : '0';
 };
 const formatDate = (date: Date): string => format(date, 'MMM yy');
-const formatDateFull = (date: Date): string => format(date, 'MMMM yyyy');
 const formatIndex = (num: number): string => {
   const n = Number(num);
   return !isNaN(n) ? n.toFixed(1) : '0.0';
@@ -448,32 +280,6 @@ function mergeHistoricalData(
   gameHistory: HistoricalSnapshot[]
 ): HistoricalSnapshot[] {
   return [...baseline, ...gameHistory];
-}
-
-/**
- * Get status color for a metric
- */
-function getStatusColor(metric: string, value: number): string {
-  switch (metric) {
-    case 'gdpGrowth':
-      return value > 2.0 ? COLORS.good : value > 0.5 ? COLORS.neutral : COLORS.bad;
-    case 'inflation':
-      return Math.abs(value - 2.0) < 0.5 ? COLORS.good : Math.abs(value - 2.0) < 1.5 ? COLORS.warning : COLORS.bad;
-    case 'unemployment':
-      return value < 4.5 ? COLORS.good : value < 6.0 ? COLORS.warning : COLORS.bad;
-    case 'deficit':
-      return value < 0 ? COLORS.good : value < 3.0 ? COLORS.warning : COLORS.bad;
-    case 'debt':
-      return value < 60 ? COLORS.good : value < 90 ? COLORS.warning : COLORS.bad;
-    case 'giltYield':
-      return value < 4.0 ? COLORS.good : value < 6.0 ? COLORS.warning : COLORS.bad;
-    case 'nhsQuality':
-      return value > 70 ? COLORS.good : value > 55 ? COLORS.warning : COLORS.bad;
-    case 'political':
-      return value > 50 ? COLORS.good : value > 35 ? COLORS.warning : COLORS.bad;
-    default:
-      return COLORS.neutral;
-  }
 }
 
 // ============================================================================
@@ -644,11 +450,21 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
  * Political Metrics Panel with Gauge Rows
  */
 const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
-  const pmTrust = state.political?.pmTrust ?? MOCK_POLITICAL.pmTrust;
-  const governmentApproval = state.political?.governmentApproval ?? MOCK_POLITICAL.publicApproval;
-  const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? MOCK_POLITICAL.backbenchSentiment;
+  const politicalOverview = selectPoliticalOverview(state);
+  const pmTrust = politicalOverview.pmTrust;
+  const governmentApproval = politicalOverview.governmentApproval;
+  const backbenchSatisfaction = politicalOverview.backbenchSatisfaction;
 
-  const GaugeRow: React.FC<{ label: string; value: number; max?: number }> = ({ label, value, max = 100 }) => {
+  const GaugeRow: React.FC<{ label: string; value?: number; max?: number }> = ({ label, value, max = 100 }) => {
+    if (typeof value !== 'number') {
+      return (
+        <div className="flex items-center gap-3 py-2">
+          <div className="text-xs uppercase tracking-wide text-tertiary w-24">{label}</div>
+          <div className="text-xs text-muted">Unavailable</div>
+        </div>
+      );
+    }
+
     const percentage = Math.min(100, Math.max(0, (value / max) * 100));
     const getBarColor = () => {
       if (label === 'PM Trust') return 'var(--color-accent)';
@@ -1035,7 +851,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
   };
 
   // Headline KPIs
-  const HeadlineKPI: React.FC<{ label: string; value: number; unit: string; target: string; status: 'good' | 'neutral' | 'bad' }> = ({ label, value, unit, target, status }) => {
+  const HeadlineKPI: React.FC<{ label: string; value?: number; unit: string; target: string; status: 'good' | 'neutral' | 'bad' }> = ({ label, value, unit, target, status }) => {
     const statusColors = {
       good: 'text-status-good',
       neutral: 'text-primary',
@@ -1043,10 +859,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
     };
 
     return (
-      <div className="bg-bg-elevated border border-border-custom p-4">
-        <div className="text-xs uppercase tracking-wide text-tertiary mb-1">{label}</div>
+      <div className="treasury-card-strong p-4">
+        <div className="treasury-kicker mb-1">{label}</div>
         <div className={`font-mono text-3xl font-semibold ${statusColors[status]}`}>
-          {value.toFixed(1)}{unit}
+          {typeof value === 'number' ? `${value.toFixed(1)}${unit}` : 'Unavailable'}
         </div>
         <div className="text-xs text-muted mt-1">{target}</div>
       </div>
@@ -1057,35 +873,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
   const currentTurn = (state?.metadata?.currentTurn ?? 0) + 1;
 
   // KPI data
-  const gdpGrowth = state?.economic?.gdpGrowthAnnual ?? 0;
-  const inflation = state?.economic?.inflationCPI ?? 0;
-  const unemployment = state?.economic?.unemploymentRate ?? 0;
-  const approval = state?.political?.governmentApproval ?? 0;
+  const { gdpGrowth, inflation, unemployment, approval } = selectDashboardHeadlineMetrics(state);
 
   return (
-    <div className="min-h-screen bg-default flex">
+    <div className="treasury-stage flex min-h-screen">
       {/* Social Media Sidebar - Left side only on dashboard */}
       <SocialMediaSidebar state={state} />
 
       {/* Main Dashboard Content */}
       <div className="flex-1 p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-[1800px] mx-auto">
-        {/* Header - Slim Strip */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-custom">
-          <h1 className="font-display text-2xl text-primary">HM Treasury Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted font-mono">
-              {dateString} · Month {currentTurn} of 60
-            </span>
-            <span className={`text-xs font-sans uppercase tracking-widest px-3 py-1 border ${modeBorderClasses[currentMode]}`}>
-              {modeLabels[currentMode]}
-            </span>
+        <div className="treasury-card-strong mb-6 px-6 py-6">
+          <div className="treasury-toolbar">
+            <div>
+              <div className="treasury-kicker">Overview</div>
+              <h1 className="mt-2 font-display text-3xl text-primary md:text-4xl">HM Treasury Dashboard</h1>
+              <p className="mt-2 max-w-3xl text-secondary">
+                A working summary of the state, not a graveyard of interchangeable cards.
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted font-mono">
+                {dateString} · Month {currentTurn} of 60
+              </span>
+              <span className={`text-xs font-sans uppercase tracking-widest px-3 py-1 border ${modeBorderClasses[currentMode]}`}>
+                {modeLabels[currentMode]}
+              </span>
+            </div>
+          </div>
+
+          <div className="treasury-data-strip mt-5">
+            <div className="treasury-data-cell">
+              <div className="treasury-kicker">Debt Ratio</div>
+              <div className="mt-2 font-mono text-xl font-semibold text-primary">{(state?.fiscal?.debtPctGDP ?? 0).toFixed(1)}%</div>
+            </div>
+            <div className="treasury-data-cell">
+              <div className="treasury-kicker">Headroom</div>
+              <div className="mt-2 font-mono text-xl font-semibold text-primary">£{(state?.fiscal?.fiscalHeadroom_bn ?? 0).toFixed(1)}bn</div>
+            </div>
+            <div className="treasury-data-cell">
+              <div className="treasury-kicker">PM Trust</div>
+              <div className="mt-2 font-mono text-xl font-semibold text-primary">{(state?.political?.pmTrust ?? 0).toFixed(0)}</div>
+            </div>
           </div>
         </div>
 
         {/* Crisis Alert Banner */}
         {currentMode === 'crisis' && (
-          <div className="bg-bad-subtle border-l-4 border-bad p-4 mb-6">
+          <div className="treasury-card mb-6 border-l-4 border-bad bg-bad-subtle p-4">
             <div className="flex items-center">
               <div className="text-bad font-bold text-lg">
                 ECONOMIC CRISIS DETECTED
@@ -1098,7 +933,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
         )}
 
         {/* Headline KPI Strip */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <HeadlineKPI
             label="GDP Growth"
             value={gdpGrowth}
@@ -1125,7 +960,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
             value={approval}
             unit="%"
             target="Danger: below 35%"
-            status={approval > 50 ? 'good' : approval > 35 ? 'neutral' : 'bad'}
+            status={typeof approval !== 'number' ? 'neutral' : approval > 50 ? 'good' : approval > 35 ? 'neutral' : 'bad'}
           />
         </div>
 

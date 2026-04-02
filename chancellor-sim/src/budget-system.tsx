@@ -7,12 +7,14 @@ import {
   AdviserType,
   SimulationState
 } from './adviser-system';
-import { GameState, SpendingReviewState, useGameActions, useGameState, serializeGameState } from './game-state';
+import { SpendingReviewState, useBudgetDraft, useGameActions, useGameState, writeSave } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
-import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel, PolicyRiskModifier } from './game-integration';
+import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
 import { calculateLafferPoint, getLafferTaxTypeForControlId } from './laffer-analysis';
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
+import type { BudgetDraft } from './state/budget-draft';
+import { detectPolicyConflicts } from './domain/budget/policy-conflicts';
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -76,94 +78,6 @@ interface AdviserWarning {
   title: string;
   message: string;
   impact?: string;
-}
-
-interface PolicyConflict {
-  id: string;
-  title: string;
-  description: string;
-  modifiers: PolicyRiskModifier[];
-}
-
-export function detectPolicyConflicts(
-  taxes: Map<string, TaxChange>,
-  spending: Map<string, SpendingChange>,
-  gameState: GameState
-): PolicyConflict[] {
-  const conflicts: PolicyConflict[] = [];
-
-  const vatRise = (taxes.get('vat')?.proposedRate || 20) - (taxes.get('vat')?.currentRate || 20);
-  const incomeTaxRise = (taxes.get('incomeTaxBasic')?.proposedRate || 20) - (taxes.get('incomeTaxBasic')?.currentRate || 20);
-
-  const departments = Array.from(new Set(Array.from(spending.values()).map((item) => item.department)));
-  const departmentCutCount = departments.filter((department) => {
-    const items = Array.from(spending.values()).filter((item) => item.department === department);
-    const current = items.reduce((sum, item) => sum + item.currentBudget, 0);
-    const proposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
-    return current > 0 && (proposed - current) / current < -0.05;
-  }).length;
-  const broadSpendingCut = departments.length > 0 && departmentCutCount >= Math.ceil(departments.length * 0.6);
-  if ((vatRise >= 2 || incomeTaxRise >= 2) && broadSpendingCut) {
-    conflicts.push({
-      id: 'demand_shock',
-      title: 'Demand shock risk',
-      description: 'Large tax rises combined with broad real spending cuts could trigger a sharp demand contraction.',
-      modifiers: [
-        {
-          id: `risk_macro_${Date.now()}`,
-          type: 'macro_shock',
-          turnsRemaining: 2,
-          macroShockScaleDelta: 0.2,
-          description: 'Demand-shock implementation risk from contradictory fiscal stance.',
-        },
-      ],
-    });
-  }
-
-  const corpTax = taxes.get('corporationTax');
-  const rdTaxCredit = taxes.get('rdTaxCredit');
-  if ((corpTax?.proposedRate || 25) > 30 && (rdTaxCredit?.proposedRate || 27) < (rdTaxCredit?.currentRate || 27)) {
-    conflicts.push({
-      id: 'innovation_deterrent',
-      title: 'Innovation deterrent',
-      description: 'High corporation tax combined with weaker R&D credits may suppress investment and productivity growth.',
-      modifiers: [
-        {
-          id: `risk_productivity_${Date.now()}`,
-          type: 'productivity_drag',
-          turnsRemaining: 6,
-          productivityMonthlyPenalty_pp: 0.1,
-          description: 'Innovation investment drag from corporate tax and R&D policy mix.',
-        },
-      ],
-    });
-  }
-
-  const frontlineDepartments = ['Health and Social Care', 'Education', 'Home Office', 'Justice'];
-  const payCut = frontlineDepartments.some((department) => {
-    const items = Array.from(spending.values()).filter((item) => item.department === department && item.type === 'resource');
-    const current = items.reduce((sum, item) => sum + item.currentBudget, 0);
-    const proposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
-    return current > 0 && (proposed - current) / current < -0.02;
-  });
-  if (payCut && (gameState.services.nhsQuality < 55 || gameState.services.educationQuality < 55)) {
-    conflicts.push({
-      id: 'strike_accelerator',
-      title: 'Industrial action accelerator',
-      description: 'Public-sector take-home pay pressure with already weak service quality increases strike risk.',
-      modifiers: [
-        {
-          id: `risk_strike_${Date.now()}`,
-          type: 'strike_accelerator',
-          turnsRemaining: 6,
-          strikeThresholdMultiplier: 0.5,
-          description: 'Lower strike-trigger threshold due to pay-service conflict.',
-        },
-      ],
-    });
-  }
-
-  return conflicts;
 }
 
 // ============================================================================
@@ -1219,50 +1133,6 @@ function reconstructTaxesFromGameState(gameState: any): Map<string, TaxChange> {
   return taxesMap;
 }
 
-const BUDGET_DRAFT_STORAGE_KEY = 'chancellor-budget-draft-v2';
-
-function loadBudgetDraft(turn: number): { taxes: Map<string, TaxChange>; spending: Map<string, SpendingChange> } | null {
-  try {
-    const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-    if (!parsed || parsed.turn !== turn || !Array.isArray(parsed.taxes) || !Array.isArray(parsed.spending)) {
-      return null;
-    }
-
-    return {
-      taxes: new Map(parsed.taxes),
-      spending: new Map(parsed.spending),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function saveBudgetDraft(turn: number, taxes: Map<string, TaxChange>, spending: Map<string, SpendingChange>): void {
-  try {
-    localStorage.setItem(
-      BUDGET_DRAFT_STORAGE_KEY,
-      JSON.stringify({
-        turn,
-        taxes: Array.from(taxes.entries()),
-        spending: Array.from(spending.entries()),
-      })
-    );
-  } catch {
-    // ignore localStorage failures
-  }
-}
-
-function clearBudgetDraft(): void {
-  try {
-    localStorage.removeItem(BUDGET_DRAFT_STORAGE_KEY);
-  } catch {
-    // ignore localStorage failures
-  }
-}
-
 const INITIAL_SPENDING = {
   // NHS and Health
   nhsEngland: {
@@ -1950,13 +1820,13 @@ interface BudgetSystemProps {
 export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => {
   const gameActions = useGameActions();
   const gameState = useGameState();
+  const budgetDraft = useBudgetDraft();
+  const currentDraft = budgetDraft?.turn === gameState.metadata.currentTurn ? budgetDraft : null;
   const [taxes, setTaxes] = useState<Map<string, TaxChange>>(() => {
-    const draft = loadBudgetDraft(gameState.metadata.currentTurn);
-    return draft ? draft.taxes : reconstructTaxesFromGameState(gameState);
+    return currentDraft ? new Map(currentDraft.taxes) : reconstructTaxesFromGameState(gameState);
   });
   const [spending, setSpending] = useState<Map<string, SpendingChange>>(() => {
-    const draft = loadBudgetDraft(gameState.metadata.currentTurn);
-    return draft ? draft.spending : reconstructSpendingFromGameState(gameState);
+    return currentDraft ? new Map(currentDraft.spending) : reconstructSpendingFromGameState(gameState);
   });
   const [budgetType, setBudgetType] = useState<'spring' | 'autumn' | 'emergency'>('spring');
   const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints' | 'debt' | 'del'>('taxes');
@@ -1998,8 +1868,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   // Depending on the whole game state would wipe in-progress edits for unrelated turn updates.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    saveBudgetDraft(gameState.metadata.currentTurn, taxes, spending);
-  }, [gameState.metadata.currentTurn, taxes, spending]);
+    const draft: BudgetDraft = {
+      turn: gameState.metadata.currentTurn,
+      taxes: Array.from(taxes.entries()),
+      spending: Array.from(spending.entries()),
+    };
+    gameActions.setBudgetDraft(draft);
+  }, [gameActions, gameState.metadata.currentTurn, taxes, spending]);
 
   // When the turn changes, clear old draft and initialise from the latest game state
   useEffect(() => {
@@ -2013,10 +1888,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     lastTurnRef.current = gameState.metadata.currentTurn;
-    clearBudgetDraft();
+    gameActions.clearBudgetDraft();
     setTaxes(reconstructTaxesFromGameState({ fiscal: gameState.fiscal }));
     setSpending(reconstructSpendingFromGameState({ fiscal: gameState.fiscal }));
-  }, [gameState]);
+  }, [gameActions, gameState]);
 
   useEffect(() => {
     setProposedFiscalRule(gameState.political.chosenFiscalRule);
@@ -2042,6 +1917,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     setCouncilTaxReferendumCap(gameState.devolution.localGov.councilTaxGrowthCap || 3);
     setSelectedIndustrialInterventions(new Set());
   }, [
+    gameState.fiscal,
     gameState.metadata.currentTurn,
     pmComplianceEventCount,
     gameState.fiscal.ucTaperRate,
@@ -2071,7 +1947,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       // Wait for next tick to ensure all state updates have propagated
       const timeoutId = setTimeout(() => {
         try {
-          localStorage.setItem('chancellor-autosave', JSON.stringify(serializeGameState(gameState)));
+          writeSave('chancellor-autosave', gameState);
           setPMInterventionTriggered(false);
         } catch (error) {
           console.error('Failed to save after PM intervention:', error);
@@ -2414,8 +2290,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [taxes, spending, fiscalImpact, nhsAnnualTargetTotal]);
 
   const policyConflicts = useMemo(
-    () => detectPolicyConflicts(taxes, spending, gameState),
-    [taxes, spending, gameState]
+    () => detectPolicyConflicts(taxes, spending, {
+      nhsQuality: gameState.services.nhsQuality,
+      educationQuality: gameState.services.educationQuality,
+    }),
+    [taxes, spending, gameState.services.educationQuality, gameState.services.nhsQuality]
   );
   const visiblePolicyConflicts = useMemo(
     () => policyConflicts.filter((conflict) => !dismissedConflicts.has(conflict.id)),
@@ -2809,8 +2688,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const resetBudget = useCallback(() => {
     setTaxes(reconstructTaxesFromGameState(gameState));
     setSpending(reconstructSpendingFromGameState(gameState));
-    clearBudgetDraft();
-  }, [gameState]);
+    gameActions.clearBudgetDraft();
+  }, [gameActions, gameState]);
 
   const submitBudget = useCallback(() => {
     // Count tax increases and spending cuts for vote simulation
@@ -3176,7 +3055,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       updatedSpending.set(key, { ...item, currentBudget: item.proposedBudget });
     });
     setSpending(updatedSpending);
-    clearBudgetDraft();
+    gameActions.clearBudgetDraft();
   }, [taxes, spending, gameActions, policyConflicts, welfareLevers, thresholdUprating, fullExpensing, antiAvoidanceInvestment, hmrcSystemsInvestment, planningReformPackage, infrastructureGuarantees, htbSupport, councilHousingGrant, selectedIndustrialInterventions, localGovernmentGrantSettlement, councilTaxReferendumCap, gameState.fiscal.ucTaperRate, gameState.fiscal.workAllowanceMonthly, gameState.fiscal.childcareSupportRate, gameState.fiscal.thresholdUprating, gameState.fiscal.fullExpensing, gameState.fiscal.antiAvoidanceInvestment_bn, gameState.fiscal.hmrcSystemsInvestment_bn, gameState.housing.planningReformPackage, gameState.housing.infrastructureGuarantees_bn, gameState.housing.htbAndSharedOwnership_bn, gameState.housing.councilHouseBuildingGrant_bn, gameState.devolution.localGov.centralGrant_bn, gameState.devolution.localGov.councilTaxGrowthCap]);
 
   const handleVoteContinue = useCallback(() => {

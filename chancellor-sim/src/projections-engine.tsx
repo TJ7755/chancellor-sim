@@ -10,6 +10,8 @@
 
 import type { GameState } from './game-state';
 import { processTurn } from './turn-processor';
+import type { BudgetDraft as ProjectionBudgetDraft } from './state/budget-draft';
+export type { ProjectionBudgetDraft };
 
 function deepCloneForSimulation(state: GameState): GameState {
   // Important: projections must preserve Maps/Sets in game state (e.g. mpSystem/allMPs).
@@ -108,35 +110,6 @@ export interface ProjectionsResult {
     hasPendingChanges: boolean;
   };
 }
-
-interface TaxChange {
-  id: string;
-  name: string;
-  currentRate: number;
-  proposedRate: number;
-  currentRevenue: number;
-  projectedRevenue: number;
-  unit: string;
-}
-
-interface SpendingChange {
-  id: string;
-  department: string;
-  programme?: string;
-  currentBudget: number;
-  proposedBudget: number;
-  type: 'resource' | 'capital';
-}
-
-interface BudgetDraft {
-  turn: number;
-  taxes: [string, TaxChange][];
-  spending: [string, SpendingChange][];
-}
-
-export type ProjectionBudgetDraft = BudgetDraft;
-
-const BUDGET_DRAFT_STORAGE_KEY = 'chancellor-budget-draft-v2';
 
 /**
  * Generate economic projections by simulating future months.
@@ -278,12 +251,7 @@ function extractProjectionPoint(state: GameState): ProjectionPoint {
  */
 function hasPendingBudgetChanges(state: GameState, providedDraft?: ProjectionBudgetDraft): boolean {
   try {
-    let draft: BudgetDraft | undefined = providedDraft || undefined;
-    if (!draft) {
-      const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
-      if (!raw) return false;
-      draft = JSON.parse(raw);
-    }
+    const draft = providedDraft;
     if (!draft || draft.turn !== state.metadata.currentTurn) {
       return false;
     }
@@ -314,12 +282,7 @@ function hasPendingBudgetChanges(state: GameState, providedDraft?: ProjectionBud
  */
 function applyPendingBudgetToState(state: GameState, providedDraft?: ProjectionBudgetDraft): GameState {
   try {
-    let draft: BudgetDraft | undefined = providedDraft || undefined;
-    if (!draft) {
-      const raw = localStorage.getItem(BUDGET_DRAFT_STORAGE_KEY);
-      if (!raw) return state;
-      draft = JSON.parse(raw);
-    }
+    const draft = providedDraft;
     if (!draft || draft.turn !== state.metadata.currentTurn) {
       return state;
     }

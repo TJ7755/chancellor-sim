@@ -785,9 +785,6 @@ export function generateAllMPs(): Map<string, MPProfile> {
   }
 
   // 5. Backbench Labour MPs (remaining to reach 411)
-  const realLabourCount = REAL_CABINET_MPS.length + REAL_SCG_MPS.length + REAL_SOFT_LEFT_MPS.length;
-  const remainingBackbenchers = 411 - 211 - (realLabourCount - REAL_CABINET_MPS.length);
-  
   // Left faction (30 more - we already have 10 real ones)
   for (let i = 0; i < 30; i++) {
     const constituency = constituencies[constituencyIndex++];

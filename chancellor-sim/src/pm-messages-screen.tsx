@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useGameState, PMMessage, PMRelationshipState } from './game-state';
-import { markMessageAsRead } from './pm-system';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useGameActions, useGameState, PMMessage } from './game-state';
+import { selectPMInboxViewModel } from './state/selectors';
 
 // ============================================================================
 // PM MESSAGES SCREEN
@@ -8,33 +8,68 @@ import { markMessageAsRead } from './pm-system';
 
 export const PMMessagesScreen: React.FC = () => {
   const gameState = useGameState();
+  const gameActions = useGameActions();
   const [selectedMessage, setSelectedMessage] = useState<PMMessage | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inbox = useMemo(() => selectPMInboxViewModel(gameState), [gameState]);
+  const { patience, reshuffleRisk, warningsIssued, demandsIssued, activeDemands } = inbox;
+  const sortedMessages = inbox.messages;
 
-  const { pmRelationship } = gameState;
-  const { messages, patience, reshuffleRisk, warningsIssued, demandsIssued, activeDemands } = pmRelationship;
+  useEffect(() => {
+    if (sortedMessages.length === 0) {
+      setHighlightedIndex(0);
+      return;
+    }
 
-  // Sort messages by turn (most recent first)
-  const sortedMessages = [...messages].sort((a, b) => b.turn - a.turn);
+    setHighlightedIndex((current) => Math.min(current, sortedMessages.length - 1));
+  }, [sortedMessages]);
 
   const handleMessageClick = (message: PMMessage) => {
     setSelectedMessage(message);
-    // Mark as read (we'll handle this through game actions later)
+    if (!message.read) {
+      gameActions.markPMMessageAsRead(message.id);
+    }
+  };
+
+  const handleListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (sortedMessages.length === 0) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.min(current + 1, sortedMessages.length - 1));
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.max(current - 1, 0));
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleMessageClick(sortedMessages[highlightedIndex]);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-default p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="treasury-stage p-6">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="font-display text-4xl font-semibold text-primary mb-2">Prime Minister's Office</h1>
-          <p className="text-secondary">Communications from Number 10 Downing Street</p>
+        <div className="treasury-card-strong mb-6 px-6 py-6">
+          <div className="treasury-kicker">Number 10</div>
+          <h1 className="mt-2 font-display text-4xl font-semibold text-primary">Prime Minister&apos;s Office</h1>
+          <p className="mt-2 max-w-3xl text-secondary">Communications, demands and warnings from Downing Street, arranged as if someone actually cared how this inbox feels to use.</p>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
           {/* Left Sidebar - Relationship Status */}
-          <div className="col-span-3">
-            <div className="bg-bg-elevated border border-border-custom p-6 sticky top-6">
-              <h2 className="font-display text-xl font-semibold text-primary mb-4">Relationship Status</h2>
+          <div className="col-span-12 xl:col-span-4">
+            <div className="treasury-card-strong sticky top-6 p-6">
+              <div className="treasury-panel-title">
+                <h2 className="font-display text-xl font-semibold text-primary">Relationship Status</h2>
+                <span className="treasury-kicker">Live</span>
+              </div>
 
               {/* PM Patience */}
               <div className="mb-4">
@@ -91,11 +126,11 @@ export const PMMessagesScreen: React.FC = () => {
               <div className="border-t border-border-custom pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-secondary">Total Messages:</span>
-                  <span className="font-mono text-sm font-semibold text-primary">{messages.length}</span>
+                  <span className="font-mono text-sm font-semibold text-primary">{sortedMessages.length}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-secondary">Unread:</span>
-                  <span className="font-mono text-sm font-semibold text-secondary">{pmRelationship.unreadCount}</span>
+                  <span className="font-mono text-sm font-semibold text-secondary">{inbox.unreadCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-secondary">Warnings Received:</span>
@@ -131,18 +166,19 @@ export const PMMessagesScreen: React.FC = () => {
           </div>
 
           {/* Main Content Area */}
-          <div className="col-span-9">
+          <div className="col-span-12 xl:col-span-8">
             {/* Message List */}
             {!selectedMessage && (
-              <div className="bg-bg-elevated border border-border-custom">
-                <div className="bg-primary px-6 py-4">
-                  <h2 className="font-display text-2xl font-semibold text-white">Messages from the Prime Minister</h2>
-                  <p className="text-white/80 text-sm mt-1">
-                    {messages.length === 0 ? 'No messages yet' : `${messages.length} message${messages.length !== 1 ? 's' : ''}`}
+              <div className="treasury-card-strong overflow-hidden">
+                <div className="border-b border-border-subtle bg-primary px-6 py-5">
+                  <div className="treasury-kicker text-white/60">Inbox</div>
+                  <h2 className="mt-1 font-display text-2xl font-semibold text-white">Messages from the Prime Minister</h2>
+                  <p className="mt-1 text-sm text-white/80">
+                    {sortedMessages.length === 0 ? 'No messages yet' : `${sortedMessages.length} message${sortedMessages.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
 
-                {messages.length === 0 ? (
+                {sortedMessages.length === 0 ? (
                   <div className="p-12 text-center">
                     <p className="text-secondary text-lg">No messages from the PM yet.</p>
                     <p className="text-muted text-sm mt-2">
@@ -150,14 +186,19 @@ export const PMMessagesScreen: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border-subtle">
-                    {sortedMessages.map((message) => (
+                  <div className="divide-y divide-border-subtle" tabIndex={0} onKeyDown={handleListKeyDown} aria-label="PM message list">
+                    {sortedMessages.map((message, index) => (
                       <div
                         key={message.id}
                         onClick={() => handleMessageClick(message)}
-                        className={`p-6 cursor-pointer transition-colors hover:bg-bg-surface ${
+                        className={`p-6 cursor-pointer transition-colors hover:bg-bg-surface focus:outline-none focus:ring-2 focus:ring-primary ${
+                          index === highlightedIndex ? 'ring-2 ring-primary ring-inset' : ''
+                        } ${
                           !message.read ? 'bg-secondary-subtle' : ''
                         }`}
+                        tabIndex={-1}
+                        role="button"
+                        aria-pressed={index === highlightedIndex}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-3">
@@ -197,7 +238,7 @@ export const PMMessagesScreen: React.FC = () => {
 
             {/* Message Detail View */}
             {selectedMessage && (
-              <div className="bg-bg-elevated border border-border-custom">
+              <div className="treasury-card-strong overflow-hidden">
                 {/* Message Header */}
                 <div className={`px-6 py-4 ${getMessageHeaderColor(selectedMessage.tone)}`}>
                   <button

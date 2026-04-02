@@ -1535,8 +1535,6 @@ export function generateTradeOffAnalysis(
     .map((p) => `"${p.description}"`)
     .join(', ');
 
-  const totalPoliticalCost = Math.abs(violationCheck.totalApprovalCost) + Math.abs(violationCheck.totalPmTrustCost);
-
   let tradeOffMessage = `${policyChange.description} would violate ${violationCheck.violatedPledges.length} manifesto pledge${violationCheck.violatedPledges.length > 1 ? 's' : ''}: ${pledgeDescriptions}.\n\n`;
 
   tradeOffMessage += `Political cost: ${Math.abs(violationCheck.totalApprovalCost)} approval points and ${Math.abs(violationCheck.totalPmTrustCost)} PM trust points.\n\n`;
@@ -1694,7 +1692,7 @@ export function checkAnnualGrowthPledges(
   return violatedPledges;
 }
 
-export default {
+const manifestoSystem = {
   getRandomManifesto,
   getManifestoById,
   initializeManifestoState,
@@ -1707,3 +1705,5 @@ export default {
   generateManifestoPerformanceReport,
   MANIFESTO_TEMPLATES,
 };
+
+export default manifestoSystem;

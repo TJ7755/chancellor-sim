@@ -1694,7 +1694,6 @@ export const MPCard: React.FC<{
 }> = ({ mp, stance, votingRecord, brokenPromisesCount, onLobby, onViewDetails }) => {
   const partyName = getPartyName(mp.party);
 
-  const detailedStance = typeof stance === 'string' ? null : stance;
   const stanceLabel = typeof stance === 'string' ? stance : stance?.stance;
 
   const getStanceBadge = () => {
@@ -2315,7 +2314,6 @@ export const MPDetailModal: React.FC<{
   const detailedStance = typeof stance === 'string' ? null : stance;
   const stanceLabel = typeof stance === 'string' ? stance : stance?.stance;
 
-  const partyColor = getPartyColor(mp.party);
   const partyName = getPartyName(mp.party);
 
   // Filter promises for this MP
