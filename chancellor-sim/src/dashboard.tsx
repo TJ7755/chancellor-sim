@@ -493,26 +493,26 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral', target, sublabel }) => {
   const statusColors = {
-    good: 'text-green-700',
-    neutral: 'text-gray-800',
-    bad: 'text-red-700',
+    good: 'text-good',
+    neutral: 'text-primary',
+    bad: 'text-bad',
   };
 
   return (
     <div className="flex flex-col gap-0.5">
-      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">
+      <div className="text-label text-tertiary">
         {label}
       </div>
-      <div className={`text-base font-bold leading-snug ${statusColors[status]}`}>
+      <div className={`font-mono text-base font-semibold ${statusColors[status]}`}>
         {value}
       </div>
       {target && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-muted">
           Target: {target}
         </div>
       )}
       {sublabel && (
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-secondary">
           {sublabel}
         </div>
       )}
@@ -525,8 +525,8 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral
  */
 const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Economic Indicators</h2>
+    <div className="bg-bg-elevated border border-border-custom p-5">
+      <h2 className="font-display text-lg font-semibold text-primary mb-4 border-b border-border-custom pb-2">Economic Indicators</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="GDP Growth"
@@ -586,8 +586,8 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
   const isExpanded = mode === 'budget';
 
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">
+    <div className="bg-bg-elevated border border-border-custom p-5">
+      <h2 className="font-display text-lg font-semibold text-primary mb-4 border-b border-border-custom pb-2">
         {mode === 'budget' ? 'Fiscal Position (Budget Mode)' : 'Fiscal Position'}
       </h2>
       <div className="space-y-3">
@@ -603,7 +603,7 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
             status="neutral"
           />
         </div>
-        <hr className="border-gray-100" />
+        <hr className="border-border-subtle" />
         <div className="grid grid-cols-2 gap-x-6">
           <MetricCard
             label="Net Borrowing"
@@ -620,7 +620,7 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
         </div>
         {isExpanded && (
           <>
-            <hr className="border-gray-100" />
+            <hr className="border-border-subtle" />
             <div className="grid grid-cols-2 gap-x-6">
               <MetricCard
                 label="Debt Interest"
@@ -641,38 +641,49 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
 };
 
 /**
- * Political Metrics Panel (using mock data)
+ * Political Metrics Panel with Gauge Rows
  */
 const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
   const pmTrust = state.political?.pmTrust ?? MOCK_POLITICAL.pmTrust;
   const governmentApproval = state.political?.governmentApproval ?? MOCK_POLITICAL.publicApproval;
   const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? MOCK_POLITICAL.backbenchSentiment;
+
+  const GaugeRow: React.FC<{ label: string; value: number; max?: number }> = ({ label, value, max = 100 }) => {
+    const percentage = Math.min(100, Math.max(0, (value / max) * 100));
+    const getBarColor = () => {
+      if (label === 'PM Trust') return 'var(--color-accent)';
+      if (value < 35) return 'var(--color-status-bad)';
+      return 'var(--color-status-neutral)';
+    };
+
+    return (
+      <div className="flex items-center gap-3 py-2">
+        <div className="text-xs uppercase tracking-wide text-tertiary w-24">{label}</div>
+        <div className="font-mono text-sm font-semibold text-primary w-12 text-right">{Math.round(value)}</div>
+        <div className="flex-1 h-2 bg-bg-elevated">
+          <div
+            className="h-full"
+            style={{ width: `${percentage}%`, backgroundColor: getBarColor() }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Political Capital</h2>
-      <div className="grid grid-cols-3 gap-4">
-        <MetricCard
-          label="PM Trust"
-          value={formatNumber(pmTrust, 0)}
-          status={pmTrust > 50 ? 'good' : pmTrust > 35 ? 'neutral' : 'bad'}
-        />
-        <MetricCard
-          label="Public Approval"
-          value={formatNumber(governmentApproval, 0)}
-          status={governmentApproval > 50 ? 'good' : governmentApproval > 35 ? 'neutral' : 'bad'}
-        />
-        <MetricCard
-          label="Backbench Support"
-          value={formatNumber(backbenchSatisfaction, 0)}
-          status={backbenchSatisfaction > 60 ? 'good' : backbenchSatisfaction > 40 ? 'neutral' : 'bad'}
-        />
+    <div className="bg-bg-elevated border border-border-custom p-5 h-fit">
+      <h2 className="font-display text-lg font-semibold text-primary mb-4 border-b border-border-custom pb-2">Political Capital</h2>
+      <div className="space-y-1">
+        <GaugeRow label="PM Trust" value={pmTrust} />
+        <GaugeRow label="Public Approval" value={governmentApproval} />
+        <GaugeRow label="Backbench Support" value={backbenchSatisfaction} />
       </div>
     </div>
   );
 };
 
 /**
- * Services Metrics Panel
+ * Services Metrics Panel with Horizontal Rows
  */
 const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
   const expandedMetrics = [
@@ -690,37 +701,47 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
     { key: 'researchInnovationOutput', label: 'Innovation Output' },
   ];
 
+  const ServiceRow: React.FC<{ label: string; value: number }> = ({ label, value }) => {
+    const getStatusColor = (val: number) => {
+      if (val > 65) return 'var(--color-status-good)';
+      if (val > 50) return 'var(--color-status-neutral)';
+      return 'var(--color-status-bad)';
+    };
+
+    return (
+      <div className="flex items-center gap-3 py-2 border-b border-border-subtle last:border-b-0">
+        <div className="text-xs uppercase tracking-wide text-tertiary flex-1">{label}</div>
+        <div className="font-mono text-sm font-semibold" style={{ color: getStatusColor(value) }}>
+          {formatNumber(value, 0)}/100
+        </div>
+        <div className="w-24 h-1 bg-bg-elevated">
+          <div
+            className="h-full"
+            style={{ width: `${value}%`, backgroundColor: getStatusColor(value) }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Public Services</h2>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+    <div className="bg-bg-elevated border border-border-custom p-5">
+      <h2 className="font-display text-lg font-semibold text-primary mb-4 border-b border-border-custom pb-2">Public Services</h2>
+      <div className="space-y-1">
         {/* Headline metrics */}
-        <MetricCard
-          label="NHS Quality Index"
-          value={`${formatNumber(state.services?.nhsQuality ?? 50, 0)}/100`}
-          status={(state.services?.nhsQuality ?? 50) > 70 ? 'good' : (state.services?.nhsQuality ?? 50) > 55 ? 'neutral' : 'bad'}
-        />
-        <MetricCard
-          label="Education Quality"
-          value={`${formatNumber(state.services?.educationQuality ?? 50, 0)}/100`}
-          status={(state.services?.educationQuality ?? 50) > 70 ? 'good' : (state.services?.educationQuality ?? 50) > 55 ? 'neutral' : 'bad'}
-        />
-        <MetricCard
-          label="Infrastructure Quality"
-          value={`${formatNumber(state.services?.infrastructureQuality ?? 50, 0)}/100`}
-          status={(state.services?.infrastructureQuality ?? 50) > 65 ? 'good' : (state.services?.infrastructureQuality ?? 50) > 50 ? 'neutral' : 'bad'}
-        />
+        <ServiceRow label="NHS Quality Index" value={state.services?.nhsQuality ?? 50} />
+        <ServiceRow label="Education Quality" value={state.services?.educationQuality ?? 50} />
+        <ServiceRow label="Infrastructure Quality" value={state.services?.infrastructureQuality ?? 50} />
 
         {/* Divider */}
-        <div className="col-span-2 border-t border-gray-100 my-1" />
+        <div className="border-t border-border-subtle my-2" />
 
         {/* Expanded metrics */}
         {expandedMetrics.map((metric) => (
-          <MetricCard
+          <ServiceRow
             key={metric.label}
             label={metric.label}
-            value={`${formatNumber(state.services?.[metric.key] ?? 50, 0)}/100`}
-            status={(state.services?.[metric.key] ?? 50) > 65 ? 'good' : (state.services?.[metric.key] ?? 50) > 50 ? 'neutral' : 'bad'}
+            value={state.services?.[metric.key] ?? 50}
           />
         ))}
       </div>
@@ -733,8 +754,8 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
  */
 const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Markets & Rates</h2>
+    <div className="bg-bg-elevated border border-border-custom p-5">
+      <h2 className="font-display text-lg font-semibold text-primary mb-4 border-b border-border-custom pb-2">Markets & Rates</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
           label="Bank Rate"
@@ -776,44 +797,44 @@ const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history })
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">Economic Overview (2014-Present)</h3>
+    <div className="bg-bg-elevated border border-border-custom p-6">
+      <h3 className="font-display text-lg font-semibold text-primary mb-4">Economic Overview (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis
             dataKey="date"
             angle={-45}
             textAnchor="end"
             height={80}
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <YAxis
             yAxisId="left"
-            label={{ value: 'GDP Growth & Unemployment (%)', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
-            style={{ fontSize: '11px' }}
+            label={{ value: 'GDP Growth & Unemployment (%)', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: 'var(--color-text-secondary)' } }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            label={{ value: 'Inflation (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px' } }}
-            style={{ fontSize: '11px' }}
+            label={{ value: 'Inflation (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px', fill: 'var(--color-text-secondary)' } }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '4px' }}
+            contentStyle={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
           />
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
           />
-          <ReferenceLine yAxisId="left" y={0} stroke={COLORS.neutral} strokeDasharray="3 3" />
-          <ReferenceLine yAxisId="right" y={2} stroke={COLORS.bad} strokeDasharray="3 3" label="Target" />
-          <ReferenceLine yAxisId="left" x="Jul 24" stroke={COLORS.treasuryBlue} strokeWidth={2} label="Your takeover" />
+          <ReferenceLine yAxisId="left" y={0} stroke="var(--color-neutral)" strokeDasharray="3 3" />
+          <ReferenceLine yAxisId="right" y={2} stroke="var(--color-bad)" strokeDasharray="3 3" label="Target" />
+          <ReferenceLine yAxisId="left" x="Jul 24" stroke="var(--color-secondary)" strokeWidth={2} label="Your takeover" />
 
           <Line
             yAxisId="left"
             type="monotone"
             dataKey="gdpGrowth"
-            stroke={COLORS.gdp}
+            stroke="var(--color-chart-2)"
             strokeWidth={2}
             dot={false}
             name="GDP Growth"
@@ -822,7 +843,7 @@ const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history })
             yAxisId="right"
             type="monotone"
             dataKey="inflation"
-            stroke={COLORS.inflation}
+            stroke="var(--color-chart-1)"
             strokeWidth={2}
             dot={false}
             name="CPI Inflation"
@@ -831,14 +852,14 @@ const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history })
             yAxisId="left"
             type="monotone"
             dataKey="unemployment"
-            stroke={COLORS.unemployment}
+            stroke="var(--color-chart-4)"
             strokeWidth={2}
             dot={false}
             name="Unemployment"
           />
         </ComposedChart>
       </ResponsiveContainer>
-      <div className="text-xs text-gray-500 mt-2 text-center">
+      <div className="text-xs text-muted mt-2 text-center">
         Source: HM Treasury Economic Simulation (Historical baseline: ONS/OBR data)
       </div>
     </div>
@@ -858,45 +879,45 @@ const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) =
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">Fiscal Position (2014-Present)</h3>
+    <div className="bg-bg-elevated border border-border-custom p-6">
+      <h3 className="font-display text-lg font-semibold text-primary mb-4">Fiscal Position (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={350}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis
             dataKey="date"
             angle={-45}
             textAnchor="end"
             height={80}
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <YAxis
             yAxisId="left"
-            label={{ value: 'Deficit (£bn)', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
-            style={{ fontSize: '11px' }}
+            label={{ value: 'Deficit (£bn)', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: 'var(--color-text-secondary)' } }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <YAxis
             yAxisId="right"
             orientation="right"
-            label={{ value: 'Debt/GDP (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px' } }}
-            style={{ fontSize: '11px' }}
+            label={{ value: 'Debt/GDP (%)', angle: 90, position: 'insideRight', style: { fontSize: '12px', fill: 'var(--color-text-secondary)' } }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '4px' }}
+            contentStyle={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
           />
           <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
-          <ReferenceLine yAxisId="right" y={60} stroke={COLORS.good} strokeDasharray="3 3" label="Maastricht" />
-          <ReferenceLine yAxisId="right" y={100} stroke={COLORS.bad} strokeDasharray="3 3" label="100%" />
-          <ReferenceLine yAxisId="left" x="Jul 24" stroke={COLORS.treasuryBlue} strokeWidth={2} />
+          <ReferenceLine yAxisId="right" y={60} stroke="var(--color-good)" strokeDasharray="3 3" label="Maastricht" />
+          <ReferenceLine yAxisId="right" y={100} stroke="var(--color-bad)" strokeDasharray="3 3" label="100%" />
+          <ReferenceLine yAxisId="left" x="Jul 24" stroke="var(--color-secondary)" strokeWidth={2} />
 
           <Area
             yAxisId="left"
             type="monotone"
             dataKey="deficit"
-            fill={COLORS.deficit}
+            fill="var(--color-chart-5)"
             fillOpacity={0.3}
-            stroke={COLORS.deficit}
+            stroke="var(--color-chart-5)"
             strokeWidth={2}
             name="Deficit (£bn)"
           />
@@ -904,14 +925,14 @@ const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) =
             yAxisId="right"
             type="monotone"
             dataKey="debtToGdp"
-            stroke={COLORS.debt}
+            stroke="var(--color-chart-2)"
             strokeWidth={3}
             dot={false}
             name="Debt/GDP (%)"
           />
         </ComposedChart>
       </ResponsiveContainer>
-      <div className="text-xs text-gray-500 mt-2 text-center">
+      <div className="text-xs text-muted mt-2 text-center">
         Note: COVID-19 fiscal expansion visible 2020-2021
       </div>
     </div>
@@ -931,33 +952,33 @@ const MarketsChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) 
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">Interest Rates (2014-Present)</h3>
+    <div className="bg-bg-elevated border border-border-custom p-6">
+      <h3 className="font-display text-lg font-semibold text-primary mb-4">Interest Rates (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
           <XAxis
             dataKey="date"
             angle={-45}
             textAnchor="end"
             height={80}
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <YAxis
-            label={{ value: 'Interest Rate (%)', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
-            style={{ fontSize: '11px' }}
+            label={{ value: 'Interest Rate (%)', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: 'var(--color-text-secondary)' } }}
+            style={{ fontSize: '11px', fill: 'var(--color-text-secondary)' }}
           />
           <Tooltip
-            contentStyle={{ backgroundColor: 'white', border: '1px solid #ddd', borderRadius: '4px' }}
+            contentStyle={{ backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', borderRadius: '4px' }}
           />
           <Legend wrapperStyle={{ paddingTop: '20px' }} />
 
-          <ReferenceLine x="Jul 24" stroke={COLORS.treasuryBlue} strokeWidth={2} />
+          <ReferenceLine x="Jul 24" stroke="var(--color-secondary)" strokeWidth={2} />
 
           <Line
             type="monotone"
             dataKey="bankRate"
-            stroke={COLORS.bankRate}
+            stroke="var(--color-chart-3)"
             strokeWidth={2}
             dot={false}
             name="Bank Rate"
@@ -965,14 +986,14 @@ const MarketsChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) 
           <Line
             type="monotone"
             dataKey="giltYield"
-            stroke={COLORS.yields}
+            stroke="var(--color-yield)"
             strokeWidth={2}
             dot={false}
             name="10yr Gilt Yield (est.)"
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="text-xs text-gray-500 mt-2 text-center">
+      <div className="text-xs text-muted mt-2 text-center">
         BOE hiking cycle 2022-2023 visible
       </div>
     </div>
@@ -1006,62 +1027,107 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
     crisis: 'CRISIS MODE',
   };
 
-  const modeBgColors = {
-    normal: 'bg-blue-50',
-    budget: 'bg-purple-50',
-    crisis: 'bg-red-50',
+  // Mode indicator styles for border
+  const modeBorderClasses = {
+    normal: 'border-border',
+    budget: 'border-accent',
+    crisis: 'border-status-bad',
   };
 
-  const modeTextColors = {
-    normal: 'text-blue-900',
-    budget: 'text-purple-900',
-    crisis: 'text-red-900',
+  // Headline KPIs
+  const HeadlineKPI: React.FC<{ label: string; value: number; unit: string; target: string; status: 'good' | 'neutral' | 'bad' }> = ({ label, value, unit, target, status }) => {
+    const statusColors = {
+      good: 'text-status-good',
+      neutral: 'text-primary',
+      bad: 'text-status-bad',
+    };
+
+    return (
+      <div className="bg-bg-elevated border border-border-custom p-4">
+        <div className="text-xs uppercase tracking-wide text-tertiary mb-1">{label}</div>
+        <div className={`font-mono text-3xl font-semibold ${statusColors[status]}`}>
+          {value.toFixed(1)}{unit}
+        </div>
+        <div className="text-xs text-muted mt-1">{target}</div>
+      </div>
+    );
   };
+
+  const dateString = new Date(state?.metadata?.currentYear ?? 2024, (state?.metadata?.currentMonth ?? 1) - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+  const currentTurn = (state?.metadata?.currentTurn ?? 0) + 1;
+
+  // KPI data
+  const gdpGrowth = state?.economic?.gdpGrowthAnnual ?? 0;
+  const inflation = state?.economic?.inflationCPI ?? 0;
+  const unemployment = state?.economic?.unemploymentRate ?? 0;
+  const approval = state?.political?.governmentApproval ?? 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-default flex">
       {/* Social Media Sidebar - Left side only on dashboard */}
       <SocialMediaSidebar state={state} />
 
       {/* Main Dashboard Content */}
       <div className="flex-1 p-4 md:p-8 overflow-x-hidden">
       <div className="max-w-[1800px] mx-auto">
-        {/* Header */}
-        <div className={`rounded-lg shadow-md p-6 mb-6 ${modeBgColors[currentMode]}`}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className={`text-3xl font-bold ${modeTextColors[currentMode]} mb-2`}>
-                HM Treasury Dashboard
-              </h1>
-              <p className="text-gray-700">
-                {`${new Date(state?.metadata?.currentYear ?? 2024, (state?.metadata?.currentMonth ?? 1) - 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`} • Month {(state?.metadata?.currentTurn ?? 0) + 1} of 60
-              </p>
-            </div>
-            <div className="mt-4 md:mt-0">
-              <div className={`inline-block px-3 py-1 rounded text-sm font-semibold ${
-                currentMode === 'crisis' ? 'bg-red-600 text-white' :
-                currentMode === 'budget' ? 'bg-purple-600 text-white' :
-                'bg-blue-600 text-white'
-              }`}>
-                {modeLabels[currentMode]}
-              </div>
-            </div>
+        {/* Header - Slim Strip */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-custom">
+          <h1 className="font-display text-2xl text-primary">HM Treasury Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted font-mono">
+              {dateString} · Month {currentTurn} of 60
+            </span>
+            <span className={`text-xs font-sans uppercase tracking-widest px-3 py-1 border ${modeBorderClasses[currentMode]}`}>
+              {modeLabels[currentMode]}
+            </span>
           </div>
         </div>
 
         {/* Crisis Alert Banner */}
         {currentMode === 'crisis' && (
-          <div className="bg-red-100 border-l-4 border-red-600 p-4 mb-6 rounded">
+          <div className="bg-bad-subtle border-l-4 border-bad p-4 mb-6">
             <div className="flex items-center">
-              <div className="text-red-700 font-bold text-lg">
+              <div className="text-bad font-bold text-lg">
                 ECONOMIC CRISIS DETECTED
               </div>
             </div>
-            <div className="text-red-600 text-sm mt-1">
+            <div className="text-bad text-sm mt-1">
                Critical thresholds breached. Immediate policy action required.
             </div>
           </div>
         )}
+
+        {/* Headline KPI Strip */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <HeadlineKPI
+            label="GDP Growth"
+            value={gdpGrowth}
+            unit="%"
+            target="Target: 1.5%"
+            status={gdpGrowth > 2.0 ? 'good' : gdpGrowth > 0.5 ? 'neutral' : 'bad'}
+          />
+          <HeadlineKPI
+            label="CPI Inflation"
+            value={inflation}
+            unit="%"
+            target="Target: 2.0%"
+            status={Math.abs(inflation - 2.0) < 0.5 ? 'good' : Math.abs(inflation - 2.0) < 1.5 ? 'neutral' : 'bad'}
+          />
+          <HeadlineKPI
+            label="Unemployment"
+            value={unemployment}
+            unit="%"
+            target="Target: below 4.5%"
+            status={unemployment < 4.5 ? 'good' : unemployment < 6.0 ? 'neutral' : 'bad'}
+          />
+          <HeadlineKPI
+            label="Government Approval"
+            value={approval}
+            unit="%"
+            target="Danger: below 35%"
+            status={approval > 50 ? 'good' : approval > 35 ? 'neutral' : 'bad'}
+          />
+        </div>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
@@ -1089,7 +1155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
+        <div className="mt-8 text-center text-sm text-muted">
           <p>HM Treasury Economic Simulation • Chancellor Dashboard v1.0</p>
           <p className="mt-1">Historical baseline (2014-2024) based on ONS/OBR data</p>
         </div>

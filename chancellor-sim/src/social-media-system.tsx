@@ -528,9 +528,9 @@ export const SocialMediaSidebar: React.FC<{
   if (!socialMedia) return null;
 
   const getSentimentColor = (value: number, type: 'positive' | 'negative' | 'neutral') => {
-    if (type === 'positive') return 'bg-green-500';
-    if (type === 'negative') return 'bg-red-500';
-    return 'bg-gray-400';
+    if (type === 'positive') return 'bg-good';
+    if (type === 'negative') return 'bg-bad';
+    return 'bg-neutral';
   };
 
   const getSentimentIcon = (sentiment: 'positive' | 'negative' | 'neutral') => {
@@ -540,17 +540,17 @@ export const SocialMediaSidebar: React.FC<{
   };
 
   return (
-    <div className="bg-white border-r border-gray-200 h-full overflow-y-auto w-80 flex flex-col">
+    <div className="bg-bg-surface border-r border-border-custom h-full overflow-y-auto w-80 flex flex-col">
       {/* Header */}
-      <div className="bg-blue-600 text-white p-4 sticky top-0 z-10">
+      <div className="bg-accent text-accent-text p-4 sticky top-0 z-10">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold">Social Media Pulse</h3>
           <button
             onClick={refreshSocialMedia}
-            className="text-white hover:text-blue-200 text-sm"
+            className="text-accent-text hover:text-white text-sm"
             title="Refresh feed"
           >
-            ↻
+            Refresh
           </button>
         </div>
         <div className="text-xs opacity-90">
@@ -559,9 +559,9 @@ export const SocialMediaSidebar: React.FC<{
       </div>
 
       {/* Sentiment Meter */}
-      <div className="p-4 bg-gray-50 border-b border-gray-200">
-        <div className="text-xs font-bold text-gray-700 mb-2 uppercase">Public Sentiment</div>
-        <div className="flex h-6 rounded-full overflow-hidden mb-2">
+      <div className="p-4 bg-bg-elevated border-b border-border-custom">
+        <div className="text-xs font-bold text-secondary mb-2 uppercase">Public Sentiment</div>
+        <div className="flex h-6 overflow-hidden mb-2">
           <div
             className={getSentimentColor(socialMedia.sentiment.positive, 'positive')}
             style={{ width: `${socialMedia.sentiment.positive}%` }}
@@ -578,34 +578,34 @@ export const SocialMediaSidebar: React.FC<{
             title={`Negative: ${socialMedia.sentiment.negative}%`}
           />
         </div>
-        <div className="flex justify-between text-xs text-gray-600">
-          <span className="text-green-700">+ {socialMedia.sentiment.positive}%</span>
-          <span className="text-gray-600">○ {socialMedia.sentiment.neutral}%</span>
-          <span className="text-red-700">− {socialMedia.sentiment.negative}%</span>
+        <div className="flex justify-between text-xs text-secondary">
+          <span className="text-good">+ {socialMedia.sentiment.positive}%</span>
+          <span className="text-muted">{socialMedia.sentiment.neutral}%</span>
+          <span className="text-bad">- {socialMedia.sentiment.negative}%</span>
         </div>
         <div className="mt-2 text-xs text-center">
-          <span className={`font-semibold ${socialMedia.sentiment.trending === 'improving' ? 'text-green-700' :
-            socialMedia.sentiment.trending === 'worsening' ? 'text-red-700' :
-              'text-gray-600'
+          <span className={`font-semibold ${socialMedia.sentiment.trending === 'improving' ? 'text-good' :
+            socialMedia.sentiment.trending === 'worsening' ? 'text-bad' :
+              'text-muted'
             }`}>
-            {socialMedia.sentiment.trending === 'improving' ? '↑ Improving' :
-              socialMedia.sentiment.trending === 'worsening' ? '↓ Worsening' :
-                '→ Stable'}
+            {socialMedia.sentiment.trending === 'improving' ? 'Improving' :
+              socialMedia.sentiment.trending === 'worsening' ? 'Worsening' :
+                'Stable'}
           </span>
         </div>
       </div>
 
       {/* Trending Hashtags */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="text-xs font-bold text-gray-700 mb-2 uppercase">Trending Now</div>
+      <div className="p-4 border-b border-border-custom">
+        <div className="text-xs font-bold text-secondary mb-2 uppercase">Trending Now</div>
         <div className="space-y-2">
           {socialMedia.hashtags.map((hashtag, idx) => (
             <div key={idx} className="flex items-center justify-between text-sm">
               <div className="flex items-center space-x-2">
-                <span className="text-blue-600 font-semibold">{hashtag.tag}</span>
-                {hashtag.trending === 'rising' && <span className="text-xs font-bold text-red-600">[RISING]</span>}
+                <span className="text-accent font-semibold">{hashtag.tag}</span>
+                {hashtag.trending === 'rising' && <span className="text-xs font-bold text-bad">[RISING]</span>}
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-muted">
                 {(hashtag.posts / 1000).toFixed(1)}K posts
               </div>
             </div>
@@ -615,20 +615,20 @@ export const SocialMediaSidebar: React.FC<{
 
       {/* Posts Feed */}
       <div className="flex-1 overflow-y-auto">
-        <div className="text-xs font-bold text-gray-700 p-4 pb-2 uppercase">Recent Posts</div>
+        <div className="text-xs font-bold text-secondary p-4 pb-2 uppercase">Recent Posts</div>
         <div className="space-y-3 p-4 pt-2">
           {socialMedia.posts.map((post) => (
-            <div key={post.id} className="border border-gray-200 rounded-lg p-3 bg-white hover:bg-gray-50 transition-colors">
+            <div key={post.id} className="border border-border-custom p-3 bg-bg-surface hover:bg-bg-elevated transition-colors">
               <div className="flex items-start justify-between mb-1">
                 <div className="flex items-center space-x-2">
-                  <div className="font-semibold text-sm">{post.author}</div>
-                  {post.verified && <span className="text-blue-500 text-xs">✓</span>}
+                  <div className="font-semibold text-sm text-primary">{post.author}</div>
+                  {post.verified && <span className="text-accent text-xs">Verified</span>}
                 </div>
                 <span className="text-lg">{getSentimentIcon(post.sentiment)}</span>
               </div>
-              <div className="text-xs text-gray-600 mb-2">{post.handle}</div>
-              <div className="text-sm text-gray-800 mb-2 leading-snug">{post.content}</div>
-              <div className="flex items-center space-x-4 text-xs text-gray-500">
+              <div className="text-xs text-muted mb-2">{post.handle}</div>
+              <div className="text-sm text-primary mb-2 leading-snug">{post.content}</div>
+              <div className="flex items-center space-x-4 text-xs text-muted">
                 <span>Comments: {Math.floor(post.likes / 10)}</span>
                 <span>Shares: {post.retweets}</span>
                 <span>Likes: {post.likes}</span>

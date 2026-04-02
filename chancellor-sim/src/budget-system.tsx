@@ -3223,7 +3223,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
   const renderTaxControl = (tax: TaxChange) => {
     const change = tax.proposedRate - tax.currentRate;
-    const changeColour = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-grey-600';
+    const changeColour = change > 0 ? 'text-status-bad' : change < 0 ? 'text-status-good' : 'text-tertiary';
     const { min: minRate, max: maxRate } = getTaxRateLimits(tax);
 
     // Determine input step based on tax type and magnitude
@@ -3261,20 +3261,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const lafferPeak = lafferTaxType ? calculateLafferPoint(lafferTaxType, gameState as any) : null;
 
     return (
-      <div key={tax.id} className="bg-white border border-grey-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div key={tax.id} className="bg-bg-surface border border-border-custom p-4 hover:border-accent transition-colors">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h4 className="font-semibold text-grey-900">{tax.name}</h4>
-            {revenueLabel && <p className="text-sm text-grey-600">{revenueLabel}</p>}
+            <h4 className="font-semibold text-primary">{tax.name}</h4>
+            {revenueLabel && <p className="text-sm text-tertiary">{revenueLabel}</p>}
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-grey-900">
+            <div className="text-xl font-mono font-semibold text-primary">
               {isThreshold && tax.currentRate >= 100000
                 ? `£${(tax.proposedRate / 1000).toFixed(0)}k`
                 : `${formatValue(tax.proposedRate)}`
               }
               {!(isThreshold && tax.currentRate >= 100000) && (
-                <span className="text-sm font-normal text-grey-600 ml-1">{tax.unit}</span>
+                <span className="text-sm font-normal text-tertiary ml-1">{tax.unit}</span>
               )}
             </div>
             {change !== 0 && (
@@ -3289,7 +3289,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-grey-600 uppercase tracking-wide">Proposed value</label>
+          <label className="text-xs text-tertiary uppercase tracking-wide">Proposed value</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -3301,19 +3301,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 const parsed = parseFloat(e.target.value);
                 handleTaxChange(tax.id, Number.isFinite(parsed) ? parsed : tax.currentRate);
               }}
-              className="w-full border border-grey-300 rounded px-3 py-2 text-grey-900"
+              className="w-full border border-border-custom bg-bg-elevated px-3 py-2 text-primary"
             />
-            <span className="text-sm text-grey-600 min-w-[4rem]">{tax.unit}</span>
+            <span className="text-sm text-tertiary min-w-[4rem]">{tax.unit}</span>
           </div>
-          <div className="text-xs text-grey-500">
-            Current: <span className="font-semibold text-grey-700">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
+          <div className="text-xs text-tertiary">
+            Current: <span className="font-semibold text-secondary">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
           </div>
         </div>
 
         {change !== 0 && (
-          <div className="mt-3 pt-3 border-t border-grey-100">
-            <div className="text-sm text-grey-700">
-              Estimated revenue impact: <span className={`font-semibold ${changeColour}`}>
+          <div className="mt-3 pt-3 border-t border-border-custom">
+            <div className="text-sm text-secondary">
+              Revenue impact: <span className={`font-semibold ${changeColour}`}>
                 {calculateRevenueImpact(tax) >= 0 ? '+' : ''}£{calculateRevenueImpact(tax).toFixed(2)}bn
               </span>
             </div>
@@ -3321,8 +3321,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         )}
 
         {lafferPeak !== null && (
-          <div className="mt-3 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-sm p-2">
-            Est. revenue peak: {lafferPeak.toFixed(1)}% · model-estimated, not OBR-certified.
+          <div className="mt-3 text-xs text-secondary bg-bg-elevated border border-border-custom p-2">
+            Est. revenue peak: {lafferPeak.toFixed(1)}%
           </div>
         )}
       </div>
@@ -3345,7 +3345,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const isDebtInterest = item.id === 'debtInterest';
     const change = item.proposedBudget - item.currentBudget;
     const changePct = item.currentBudget > 0 ? (change / item.currentBudget) * 100 : 0;
-    const changeColour = change > 0 ? 'text-blue-600' : change < 0 ? 'text-red-600' : 'text-grey-600';
+    const changeColour = change > 0 ? 'text-accent' : change < 0 ? 'text-status-bad' : 'text-tertiary';
 
     // Calculate target value for manifesto commitments
     let targetBudget: number | null = null;
@@ -3376,32 +3376,32 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     return (
-      <div key={item.id} className={`bg-white border rounded-lg p-4 transition-shadow ${isDebtInterest ? 'border-grey-300 bg-grey-50/50 opacity-90' : 'border-grey-200 hover:shadow-md'
+      <div key={item.id} className={`bg-bg-surface border p-4 ${isDebtInterest ? 'border-border-custom bg-bg-elevated/50' : 'border-border-custom hover:border-accent'
         }`}>
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
-            <h4 className="font-semibold text-grey-900">{item.programme || item.department}</h4>
+            <h4 className="font-semibold text-primary">{item.programme || item.department}</h4>
             <div className="flex flex-wrap gap-2 items-center mt-1">
-              <span className="text-xs text-grey-600">{item.department}</span>
-              <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'capital' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+              <span className="text-xs text-tertiary">{item.department}</span>
+              <span className={`text-xs px-2 py-0.5 ${item.type === 'capital' ? 'bg-accent-subtle text-accent border border-accent' : 'bg-secondary-subtle text-secondary border border-secondary'
                 }`}>
                 {item.type === 'capital' ? 'Capital' : 'Resource'}
               </span>
               {targetBudget && (
-                <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-700">
+                <span className="text-xs px-2 py-0.5 bg-warning-subtle text-warning border border-warning">
                   {targetLabel}
                 </span>
               )}
               {isDebtInterest && (
-                <span className="text-xs px-2 py-0.5 rounded bg-grey-200 text-grey-700 font-medium">
+                <span className="text-xs px-2 py-0.5 bg-bg-elevated text-muted border border-border-custom">
                   Non-Discretionary
                 </span>
               )}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-grey-900">
-              £{item.proposedBudget.toFixed(1)}<span className="text-sm font-normal text-grey-600">bn</span>
+            <div className="text-xl font-mono font-semibold text-primary">
+              £{item.proposedBudget.toFixed(1)}<span className="text-sm font-normal text-tertiary">bn</span>
             </div>
             {change !== 0 && (
               <div className={`text-sm font-semibold ${changeColour}`}>
@@ -3412,11 +3412,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-grey-600 uppercase tracking-wide">
+          <label className="text-xs text-tertiary uppercase tracking-wide">
             {isDebtInterest ? 'Current interest commitment' : 'Proposed budget'}
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-grey-600">£</span>
+            <span className="text-sm text-tertiary">£</span>
             <input
               type="number"
               min={0}
@@ -3429,30 +3429,27 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 const nextValue = Number.isFinite(parsed) ? Math.max(0, parsed) : item.currentBudget;
                 handleSpendingChange(item.id, nextValue);
               }}
-              className={`w-full border rounded px-3 py-2 text-grey-900 ${isDebtInterest
-                ? 'bg-grey-100 border-grey-200 text-grey-500 cursor-not-allowed font-medium'
-                : 'bg-white border-grey-300'
+              className={`w-full border px-3 py-2 text-primary ${isDebtInterest
+                ? 'bg-bg-elevated border-border-custom text-muted cursor-not-allowed'
+                : 'bg-bg-elevated border-border-custom'
                 }`}
             />
-            <span className="text-sm text-grey-600">bn</span>
+            <span className="text-sm text-tertiary">bn</span>
           </div>
-          <div className="flex justify-between text-xs text-grey-500">
-            <span className="font-semibold text-grey-700">Current: £{item.currentBudget.toFixed(1)}bn</span>
+          <div className="flex justify-between text-xs text-tertiary">
+            <span className="font-semibold text-secondary">Current: £{item.currentBudget.toFixed(1)}bn</span>
             {targetBudget && (
-              <span className="font-semibold text-amber-700">Target: £{targetBudget.toFixed(1)}bn</span>
+              <span className="font-semibold text-warning">Target: £{targetBudget.toFixed(1)}bn</span>
             )}
             {!isDebtInterest && <span>Minimum: £0.0bn</span>}
           </div>
 
           {isDebtInterest && (
-            <div className="mt-2 p-3 bg-blue-50/50 border border-blue-100 rounded text-xs text-blue-800 leading-relaxed">
+            <div className="mt-2 p-3 bg-accent-subtle border border-accent text-xs text-accent leading-relaxed">
               <div className="flex gap-2">
-                <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <span className="font-semibold">Note:</span>
                 <span>
-                  Interest payments are non-discretionary. They are automatically calculated based on the UK's total debt stock and current market gilt yields.
-                  <strong> To reduce interest costs, you must reduce the deficit and/or lower the total debt stock.</strong>
+                  Interest payments are non-discretionary. To reduce interest costs, reduce the deficit and/or lower the total debt stock.
                 </span>
               </div>
             </div>
@@ -3461,10 +3458,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
         {/* Set to target button */}
         {targetBudget && Math.abs(item.proposedBudget - targetBudget) > 0.01 && (
-          <div className="mt-3 pt-3 border-t border-grey-100">
+          <div className="mt-3 pt-3 border-t border-border-custom">
             <button
               onClick={() => handleSpendingChange(item.id, targetBudget!)}
-              className="w-full px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 text-sm font-semibold rounded transition-colors"
+              className="w-full px-3 py-2 bg-warning-subtle hover:bg-warning-subtle/80 text-warning text-sm font-semibold border border-warning transition-colors"
             >
               Set to target (£{targetBudget.toFixed(1)}bn)
             </button>
@@ -3680,192 +3677,142 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-grey-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold">Budget System</h1>
-              <p className="text-red-100 mt-1">HM Treasury Budget Planning · Fiscal Year 2024-25</p>
+    <div className="min-h-screen bg-bg-default">
+      {/* Header - Slim strip design */}
+      <div className="bg-accent text-accent-text">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h1 className="font-display text-2xl font-semibold">Budget System</h1>
+              <span className="text-sm opacity-80">HM Treasury Budget Planning · Fiscal Year 2024-25</span>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-red-100 uppercase tracking-wide mb-2">Budget Type</div>
-              <div className="flex gap-2 justify-end">
-                {(() => {
-                  const month = gameState.metadata.currentMonth; // 1-12
-                  const isSpring = month >= 3 && month <= 5; // March-May
-                  const isAutumn = month >= 9 && month <= 11; // September-November
-
-                  return (
-                    <>
-                      {/* Spring Budget - March-May */}
-                      <button
-                        onClick={() => isSpring && setBudgetType('spring')}
-                        disabled={!isSpring}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'spring'
-                          ? 'bg-white text-red-700 ring-2 ring-white'
-                          : isSpring
-                            ? 'bg-red-700/30 text-white hover:bg-red-700/50 cursor-pointer'
-                            : 'bg-red-900/20 text-red-200/40 cursor-not-allowed'
-                          }`}
-                        title={isSpring
-                          ? "Spring Budget: Major tax and spending announcements for the fiscal year ahead."
-                          : "Spring Budget only available March-May"}
-                      >
-                        <div className="text-sm font-bold">Spring Budget</div>
-                        <div className="text-xs opacity-80">March-May</div>
-                      </button>
-
-                      {/* Autumn Statement - September-November */}
-                      <button
-                        onClick={() => isAutumn && setBudgetType('autumn')}
-                        disabled={!isAutumn}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'autumn'
-                          ? 'bg-white text-red-700 ring-2 ring-white'
-                          : isAutumn
-                            ? 'bg-red-700/30 text-white hover:bg-red-700/50 cursor-pointer'
-                            : 'bg-red-900/20 text-red-200/40 cursor-not-allowed'
-                          }`}
-                        title={isAutumn
-                          ? "Autumn Statement: Economic updates and policy adjustments for mid-year."
-                          : "Autumn Statement only available September-November"}
-                      >
-                        <div className="text-sm font-bold">Autumn Statement</div>
-                        <div className="text-xs opacity-80">September-November</div>
-                      </button>
-
-                      {/* Emergency Budget - Any Time */}
-                      <button
-                        onClick={() => setBudgetType('emergency')}
-                        className={`px-4 py-2 rounded-full font-semibold transition-all shadow-sm ${budgetType === 'emergency'
-                          ? 'bg-white text-red-700 ring-2 ring-white'
-                          : 'bg-red-700/30 text-white hover:bg-red-700/50'
-                          }`}
-                        title="Emergency Budget: Urgent fiscal measures signaling crisis or major policy shift. Available any time."
-                      >
-                        <div className="text-sm font-bold">Emergency Budget</div>
-                        <div className="text-xs opacity-80">Any Time</div>
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
-              {/* Show timing guidance based on current month */}
+            <div className="flex items-center gap-2">
               {(() => {
-                const month = gameState.metadata.currentMonth; // 1-12
-                const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
-                  'July', 'August', 'September', 'October', 'November', 'December'];
+                const month = gameState.metadata.currentMonth;
                 const isSpring = month >= 3 && month <= 5;
                 const isAutumn = month >= 9 && month <= 11;
 
-                let message = '';
-                if (isSpring) {
-                  message = `${monthNames[month]}: Spring Budget season`;
-                } else if (isAutumn) {
-                  message = `${monthNames[month]}: Autumn Statement season`;
-                } else {
-                  message = `${monthNames[month]}: Out of traditional budget season`;
-                }
-
                 return (
-                  <div className="text-xs text-red-100 mt-2 opacity-90">
-                    {message}
-                  </div>
+                  <>
+                    <button
+                      onClick={() => isSpring && setBudgetType('spring')}
+                      disabled={!isSpring}
+                      className={`px-3 py-1.5 text-sm font-semibold transition-all ${budgetType === 'spring'
+                        ? 'bg-accent-text text-accent'
+                        : isSpring
+                          ? 'bg-accent-text/20 hover:bg-accent-text/30'
+                          : 'opacity-40 cursor-not-allowed'
+                        }`}
+                      title={isSpring
+                        ? "Spring Budget: Major tax and spending announcements for the fiscal year ahead."
+                        : "Spring Budget only available March-May"}
+                    >
+                      Spring Budget
+                    </button>
+
+                    <button
+                      onClick={() => isAutumn && setBudgetType('autumn')}
+                      disabled={!isAutumn}
+                      className={`px-3 py-1.5 text-sm font-semibold transition-all ${budgetType === 'autumn'
+                        ? 'bg-accent-text text-accent'
+                        : isAutumn
+                          ? 'bg-accent-text/20 hover:bg-accent-text/30'
+                          : 'opacity-40 cursor-not-allowed'
+                        }`}
+                      title={isAutumn
+                        ? "Autumn Statement: Economic updates and policy adjustments for mid-year."
+                        : "Autumn Statement only available September-November"}
+                    >
+                      Autumn Statement
+                    </button>
+
+                    <button
+                      onClick={() => setBudgetType('emergency')}
+                      className={`px-3 py-1.5 text-sm font-semibold transition-all ${budgetType === 'emergency'
+                        ? 'bg-accent-text text-accent'
+                        : 'bg-accent-text/20 hover:bg-accent-text/30'
+                        }`}
+                      title="Emergency Budget: Urgent fiscal measures signaling crisis or major policy shift."
+                    >
+                      Emergency
+                    </button>
+                  </>
                 );
               })()}
-              {(gameState.fiscal.pendingAnnouncements || []).some((item) => !item.implemented) && (
-                <div className="text-xs text-amber-100 mt-2">
-                  Pending fiscal event measures: {(gameState.fiscal.pendingAnnouncements || []).filter((item) => !item.implemented).length}
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Fiscal Impact Summary Bar */}
-      <div className="bg-white border-b border-grey-200 shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="grid grid-cols-7 gap-4">
+      {/* Fiscal Impact Summary Bar - Sticky */}
+      <div className="bg-bg-surface border-b border-border-custom shadow-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-3">
+          <div className="grid grid-cols-7 gap-4 text-sm">
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Deficit Change</div>
-              <div className={`text-2xl font-bold ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
-                fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                  'text-grey-900'
+              <div className="text-xs text-tertiary uppercase tracking-wide">Deficit Change</div>
+              <div className={`text-lg font-mono font-semibold ${fiscalImpact.deficitChange > 0 ? 'text-status-bad' :
+                fiscalImpact.deficitChange < 0 ? 'text-status-good' :
+                  'text-primary'
                 }`}>
                 {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Projected Deficit</div>
-              <div className="text-2xl font-bold text-grey-900">
+              <div className="text-xs text-tertiary uppercase tracking-wide">Projected Deficit</div>
+              <div className="text-lg font-mono font-semibold text-primary">
                 £{fiscalImpact.projectedDeficit.toFixed(1)}bn
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Debt-to-GDP</div>
-              <div className="text-2xl font-bold text-grey-900">
+              <div className="text-xs text-tertiary uppercase tracking-wide">Debt-to-GDP</div>
+              <div className="text-lg font-mono font-semibold text-primary">
                 {fiscalImpact.debtGDPRatio.toFixed(1)}%
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Fiscal Rules</div>
-              <div className={`text-2xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
-                {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
+              <div className="text-xs text-tertiary uppercase tracking-wide">Fiscal Rules</div>
+              <div className={`text-lg font-mono font-semibold ${fiscalImpact.fiscalRulesMet ? 'text-status-good' : 'text-status-bad'}`}>
+                {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACH'}
               </div>
             </div>
-            <div className={`rounded-lg px-3 py-1 -mx-1 ${
-              fiscalImpact.headroom > 10 ? 'bg-green-50' :
-              fiscalImpact.headroom > 0 ? 'bg-amber-50' :
-              'bg-red-50'
+            <div className={`px-2 py-1 -mx-1 ${
+              fiscalImpact.headroom > 10 ? 'bg-status-good-subtle' :
+              fiscalImpact.headroom > 0 ? 'bg-warning-subtle' :
+              'bg-status-bad-subtle'
             }`}>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
-              <div className={`text-2xl font-bold ${
-                fiscalImpact.headroom > 10 ? 'text-green-700' :
-                fiscalImpact.headroom > 0 ? 'text-amber-700' :
-                'text-red-700'
+              <div className="text-xs text-tertiary uppercase tracking-wide">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
+              <div className={`text-lg font-mono font-semibold ${
+                fiscalImpact.headroom > 10 ? 'text-status-good' :
+                fiscalImpact.headroom > 0 ? 'text-warning' :
+                'text-status-bad'
               }`}>
                 {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
               </div>
-              <div className={`text-xs font-medium mt-0.5 ${
-                fiscalImpact.headroom > 10 ? 'text-green-600' :
-                fiscalImpact.headroom > 0 ? 'text-amber-600' :
-                'text-red-600'
-              }`}>
-                {fiscalImpact.headroom > 10 ? 'Comfortable' :
-                 fiscalImpact.headroom > 0 ? 'Tight' :
-                 'Deficit'}
-              </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Warnings</div>
-              <div className={`text-2xl font-bold ${warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-red-600' :
-                warnings.length > 0 ? 'text-amber-600' :
-                  'text-green-600'
+              <div className="text-xs text-tertiary uppercase tracking-wide">Warnings</div>
+              <div className={`text-lg font-mono font-semibold ${warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-status-bad' :
+                warnings.length > 0 ? 'text-warning' :
+                  'text-status-good'
                 }`}>
                 {warnings.length}
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Debt Issuance</div>
+              <div className="text-xs text-tertiary uppercase tracking-wide">Debt Strategy</div>
               <select
                 value={gameState.debtManagement.issuanceStrategy}
                 onChange={(e) => gameActions.setDebtIssuanceStrategy(e.target.value as 'short' | 'balanced' | 'long')}
-                className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                className="w-full border border-border-custom bg-bg-elevated px-2 py-1 text-sm text-primary mt-1"
               >
                 <option value="short">Short</option>
                 <option value="balanced">Balanced</option>
                 <option value="long">Long</option>
               </select>
-              <div className="text-xs text-grey-500 mt-1">WAM {gameState.debtManagement.weightedAverageMaturity.toFixed(1)} years</div>
-              <div className="text-xs text-grey-500">
-                Yield effect {((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps
-              </div>
             </div>
           </div>
           {Math.abs(gameState.fiscal.barnettConsequentials_bn || 0) > 0.01 && (
-            <div className="mt-3 text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-sm px-3 py-2">
+            <div className="mt-2 text-xs text-accent bg-accent-subtle border border-accent px-3 py-1.5 inline-block">
               Barnett consequentials: +£{(gameState.fiscal.barnettConsequentials_bn || 0).toFixed(1)}bn
             </div>
           )}
@@ -3876,16 +3823,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         <div className="flex gap-6">
           {/* Main Content */}
           <div className="flex-1">
-            {/* View Tabs */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 mb-6">
-              <div className="flex border-b border-grey-200">
+            {/* View Tabs - Underline style */}
+            <div className="bg-bg-surface border border-border-custom mb-6">
+              <div className="flex border-b border-border-custom">
                 {(['taxes', 'spending', 'del', 'impact', 'constraints', 'debt'] as const).map((view) => (
                   <button
                     key={view}
                     onClick={() => setActiveView(view)}
-                    className={`flex-1 px-6 py-4 font-semibold transition-colours ${activeView === view
-                      ? 'bg-red-50 text-red-900 border-b-2 border-red-600'
-                      : 'text-grey-600 hover:text-grey-900 hover:bg-grey-50'
+                    className={`flex-1 px-6 py-3 font-semibold transition-colors border-b-2 ${activeView === view
+                      ? 'text-accent border-accent bg-bg-surface'
+                      : 'text-tertiary border-transparent hover:text-primary hover:bg-bg-elevated'
                       }`}
                   >
                     {view === 'taxes' && 'Taxation'}

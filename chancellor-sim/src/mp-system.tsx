@@ -1682,7 +1682,7 @@ export function filterMPs(
 // ===========================
 
 /**
- * MP Card Component - Compact display for MP list
+ * MP Card Component - Table Row Display for MP List
  */
 export const MPCard: React.FC<{
   mp: MPProfile;
@@ -1692,7 +1692,6 @@ export const MPCard: React.FC<{
   onLobby?: (mpId: string) => void;
   onViewDetails?: (mpId: string) => void;
 }> = ({ mp, stance, votingRecord, brokenPromisesCount, onLobby, onViewDetails }) => {
-  const partyColor = getPartyColor(mp.party);
   const partyName = getPartyName(mp.party);
 
   const detailedStance = typeof stance === 'string' ? null : stance;
@@ -1701,9 +1700,9 @@ export const MPCard: React.FC<{
   const getStanceBadge = () => {
     if (!stanceLabel) return null;
     const colors = {
-      support: 'bg-green-100 text-green-800',
-      oppose: 'bg-red-100 text-red-800',
-      undecided: 'bg-yellow-100 text-yellow-800',
+      support: 'bg-status-good-subtle text-status-good',
+      oppose: 'bg-status-bad-subtle text-status-bad',
+      undecided: 'border border-border-custom text-muted',
     };
     const labels = {
       support: 'Support',
@@ -1711,88 +1710,72 @@ export const MPCard: React.FC<{
       undecided: 'Undecided',
     };
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${colors[stanceLabel]}`}>
+      <span className={`px-2 py-0.5 text-xs font-semibold ${colors[stanceLabel]}`}>
         {labels[stanceLabel]}
       </span>
     );
   };
 
+  const getPartyBadgeColor = () => {
+    if (mp.party === 'labour') return 'bg-accent text-accent-text';
+    return 'bg-secondary text-white';
+  };
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          {/* Name and Party */}
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-bold text-lg text-gray-900">{mp.name}</h3>
-            <span className={`px-2 py-0.5 rounded text-xs text-white ${partyColor}`}>
-              {partyName}
-            </span>
-            {mp.faction && (
-              <span className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
-                {getFactionName(mp.faction)}
-              </span>
-            )}
-          </div>
-
-          {/* Constituency */}
-          <div className="text-sm text-gray-600 mb-2">
-            {mp.constituency.name}
-            {mp.constituency.marginality > 60 && (
-              <span className="ml-2 text-orange-600 font-semibold">
-                (Marginal {mp.constituency.marginality}%)
-              </span>
-            )}
-          </div>
-
-          {/* Stats Row */}
-          <div className="flex items-center gap-4 text-xs text-gray-600">
-            <span>Loyalty: {votingRecord?.loyaltyScore || 100}%</span>
-            <span>Rebellions: {votingRecord?.rebellionCount || 0}</span>
-            {brokenPromisesCount > 0 && (
-              <span className="text-red-600 font-bold flex items-center gap-1">
-                {brokenPromisesCount} broken {brokenPromisesCount === 1 ? 'promise' : 'promises'}
-              </span>
-            )}
-          </div>
-
-          {/* Stance Reason (New) */}
-          {detailedStance && (
-            <div className="mt-2 text-xs text-gray-500 italic">
-              &quot;{detailedStance.reason}&quot;
-            </div>
-          )}
-        </div>
-
-        {/* Stance Badge and Actions */}
-        <div className="flex flex-col items-end gap-2">
-          {getStanceBadge()}
-          <div className="flex gap-2">
-            {onLobby && (
-              <button
-                onClick={() => onLobby(mp.id)}
-                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded font-semibold"
-              >
-                Lobby
-              </button>
-            )}
-            {onViewDetails && (
-              <button
-                onClick={() => onViewDetails(mp.id)}
-                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded font-semibold"
-              >
-                Details
-              </button>
-            )}
-          </div>
-        </div>
+    <div className="border-b border-border-custom py-3 px-4 flex items-center justify-between hover:bg-bg-surface transition-colors">
+      {/* Left: Name, Party, Constituency */}
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="font-semibold text-primary truncate w-40">{mp.name}</div>
+        <span className={`px-2 py-0.5 text-xs ${getPartyBadgeColor()}`}>
+          {partyName}
+        </span>
+        {mp.faction && (
+          <span className="text-xs text-muted">
+            {getFactionName(mp.faction)}
+          </span>
+        )}
+        <div className="text-sm text-secondary truncate w-48">{mp.constituency.name}</div>
       </div>
 
-      {/* Minister Badge */}
-      {mp.isMinister && (
-        <div className="mt-2 pt-2 border-t border-gray-100">
-          <span className="text-xs text-purple-700 font-semibold">{mp.ministerialRole}</span>
+      {/* Middle: Stats */}
+      <div className="flex items-center gap-6 text-sm">
+        <div className="w-20 text-right">
+          <span className="text-muted">Loyalty:</span>{' '}
+          <span className="font-mono font-semibold text-primary">{votingRecord?.loyaltyScore || 100}%</span>
         </div>
-      )}
+        <div className="w-24 text-right">
+          <span className="text-muted">Rebellions:</span>{' '}
+          <span className="font-mono font-semibold text-primary">{votingRecord?.rebellionCount || 0}</span>
+        </div>
+        {brokenPromisesCount > 0 && (
+          <span className="text-status-bad font-semibold text-xs w-24 text-right">
+            {brokenPromisesCount} broken
+          </span>
+        )}
+      </div>
+
+      {/* Right: Stance and Actions */}
+      <div className="flex items-center gap-3 ml-4">
+        {getStanceBadge()}
+        <div className="flex gap-2">
+          {onLobby && (
+            <button
+              onClick={() => onLobby(mp.id)}
+              className="px-3 py-1 bg-accent hover:bg-accent/90 text-accent-text text-xs font-semibold"
+            >
+              Lobby
+            </button>
+          )}
+          {onViewDetails && (
+            <button
+              onClick={() => onViewDetails(mp.id)}
+              className="px-3 py-1 border border-border-custom hover:bg-bg-elevated text-primary text-xs font-semibold"
+            >
+              Details
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -1879,43 +1862,43 @@ export const MPManagementScreen: React.FC<{
   }, [mpSystem.allMPs]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-default">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-6">
+      <div className="bg-bg-surface border-b border-border-custom p-6">
         <div className="max-w-7xl mx-auto">
           {onBack && (
             <button
               onClick={onBack}
-              className="mb-4 text-red-900 hover:text-red-700 font-semibold flex items-center gap-2"
+              className="mb-4 text-primary hover:text-accent font-semibold flex items-center gap-2"
             >
-              ← Back to Dashboard
+              Back to Dashboard
             </button>
           )}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">MPs & Parliament</h1>
-          <p className="text-gray-600">
+          <h1 className="font-display text-3xl font-semibold text-primary mb-2">MPs & Parliament</h1>
+          <p className="text-secondary">
             650 MPs · {partyCounts['labour'] || 0} Labour · {Object.values(partyCounts).reduce((a, b) => a + b, 0) - (partyCounts['labour'] || 0)} Opposition
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
-        {/* Filters and Search */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        {/* Compact Filter Toolbar */}
+        <div className="bg-bg-surface border-b border-border-custom px-6 py-3 mb-6">
+          <div className="flex items-center gap-4">
             {/* Party Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Party</label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs uppercase tracking-wide text-tertiary">Party</label>
               <select
                 value={filterSettings.party || ''}
                 onChange={(e) =>
                   setFilterSettings({ ...filterSettings, party: e.target.value as PartyAffiliation || undefined })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
               >
-                <option value="">All Parties</option>
+                <option value="">All</option>
                 <option value="labour">Labour</option>
                 <option value="conservative">Conservative</option>
-                <option value="liberal_democrat">Liberal Democrat</option>
+                <option value="liberal_democrat">Lib Dem</option>
                 <option value="snp">SNP</option>
                 <option value="green">Green</option>
                 <option value="independent">Independent</option>
@@ -1924,36 +1907,36 @@ export const MPManagementScreen: React.FC<{
 
             {/* Faction Filter (Labour only) */}
             {(filterSettings.party === 'labour' || !filterSettings.party) && (
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Faction</label>
+              <div className="flex items-center gap-2">
+                <label className="text-xs uppercase tracking-wide text-tertiary">Faction</label>
                 <select
                   value={filterSettings.faction || ''}
                   onChange={(e) =>
                     setFilterSettings({ ...filterSettings, faction: e.target.value as LabourFaction || undefined })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
                 >
-                  <option value="">All Factions</option>
-                  <option value="left">Left (SCG)</option>
+                  <option value="">All</option>
+                  <option value="left">Left</option>
                   <option value="soft_left">Soft Left</option>
-                  <option value="centre_left">Centre Left</option>
-                  <option value="blairite">Progress</option>
-                  <option value="party_loyalist">Party Loyalist</option>
+                  <option value="centre_left">Centre</option>
+                  <option value="blairite">Blairite</option>
+                  <option value="party_loyalist">Loyalist</option>
                 </select>
               </div>
             )}
 
             {/* Stance Filter */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Stance</label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs uppercase tracking-wide text-tertiary">Stance</label>
               <select
                 value={filterSettings.stance || ''}
                 onChange={(e) =>
                   setFilterSettings({ ...filterSettings, stance: e.target.value as 'support' | 'oppose' | 'undecided' || undefined })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
               >
-                <option value="">All Stances</option>
+                <option value="">All</option>
                 <option value="support">Support</option>
                 <option value="oppose">Oppose</option>
                 <option value="undecided">Undecided</option>
@@ -1961,62 +1944,61 @@ export const MPManagementScreen: React.FC<{
             </div>
 
             {/* Search */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Search</label>
+            <div className="flex items-center gap-2 flex-1">
+              <label className="text-xs uppercase tracking-wide text-tertiary">Search</label>
               <input
                 type="text"
                 placeholder="MP name or constituency..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                className="flex-1 px-3 py-1.5 border border-border-custom text-sm bg-bg-elevated text-primary"
               />
             </div>
           </div>
 
-          {/* Support Summary */}
-          <div className="flex items-center gap-6 pt-4 border-t border-gray-200">
-            <div className="text-sm">
-              <span className="font-semibold text-gray-700">Current Budget Support:</span>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                <span className="font-semibold">Support: {stanceCounts.support}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 bg-red-500 rounded-full"></span>
-                <span className="font-semibold">Oppose: {stanceCounts.oppose}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 bg-yellow-500 rounded-full"></span>
-                <span className="font-semibold">Undecided: {stanceCounts.undecided}</span>
-              </span>
-            </div>
+          {/* Support Summary Strip */}
+          <div className="flex items-center gap-6 mt-3 pt-3 border-t border-border-subtle text-sm">
+            <span className="text-tertiary">Current Budget Support:</span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 bg-status-good"></span>
+              <span className="font-semibold text-primary">Support: {stanceCounts.support}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 bg-status-bad"></span>
+              <span className="font-semibold text-primary">Oppose: {stanceCounts.oppose}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 bg-muted"></span>
+              <span className="font-semibold text-primary">Undecided: {stanceCounts.undecided}</span>
+            </span>
           </div>
+        </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Deals and Promises - Compact Section */}
+        <div className="mb-6 border-t border-border-custom pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Active deals and promises</h3>
+              <h3 className="text-xs uppercase tracking-wide text-tertiary mb-2">Active deals and promises</h3>
               <div className="space-y-2">
                 {promiseRows.length === 0 ? (
-                  <div className="text-xs text-gray-500">No active or recent deals recorded.</div>
+                  <div className="text-xs text-muted">No active or recent deals recorded.</div>
                 ) : promiseRows.map((row) => (
-                  <div key={row.id} className="border border-gray-200 rounded-sm p-2 text-xs">
-                    <div className="font-semibold text-gray-800">{row.mpName}</div>
-                    <div className="text-gray-600">{row.description}</div>
-                    <div className="text-gray-500 mt-1">Status: {row.status}{row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}</div>
+                  <div key={row.id} className="border border-border-custom p-2 text-xs bg-bg-surface">
+                    <div className="font-semibold text-primary">{row.mpName}</div>
+                    <div className="text-secondary">{row.description}</div>
+                    <div className="text-muted mt-1">Status: {row.status}{row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}</div>
                   </div>
                 ))}
               </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-800 mb-2">Parliamentary narrative summary</h3>
+              <h3 className="text-xs uppercase tracking-wide text-tertiary mb-2">Parliamentary narrative summary</h3>
               <div className="space-y-2">
                 {narrativeRows.length === 0 ? (
-                  <div className="text-xs text-gray-500">Narrative updates appear after stance calculations complete.</div>
+                  <div className="text-xs text-muted">Narrative updates appear after stance calculations complete.</div>
                 ) : narrativeRows.map((row, index) => (
-                  <div key={`${index}-${row}`} className="border border-gray-200 rounded-sm p-2 text-xs text-gray-700">
+                  <div key={`${index}-${row}`} className="border border-border-custom p-2 text-xs text-secondary bg-bg-surface">
                     {row}
                   </div>
                 ))}
@@ -2025,10 +2007,25 @@ export const MPManagementScreen: React.FC<{
           </div>
         </div>
 
-        {/* MP List */}
-        <div className="space-y-3">
+        {/* MP List - Table Header */}
+        <div className="border border-border-custom bg-bg-elevated">
+          <div className="border-b border-border-custom py-2 px-4 flex items-center justify-between text-xs uppercase tracking-wide text-tertiary bg-bg-surface">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="w-40">Name</div>
+              <div>Party</div>
+              <div className="w-48">Constituency</div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="w-20 text-right">Loyalty</div>
+              <div className="w-24 text-right">Rebellions</div>
+              <div className="w-24 text-right">Status</div>
+              <div className="w-24"></div>
+            </div>
+          </div>
+
+          {/* MP Rows */}
           {filteredMPs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-sm p-8 text-center text-gray-600">
+            <div className="p-8 text-center text-secondary">
               No MPs found matching your filters.
             </div>
           ) : (
@@ -2055,7 +2052,7 @@ export const MPManagementScreen: React.FC<{
         </div>
 
         {/* Results count */}
-        <div className="mt-4 text-center text-sm text-gray-600">
+        <div className="mt-4 text-center text-sm text-muted">
           Showing {filteredMPs.length} of {mpSystem.allMPs.size} MPs
         </div>
       </div>
@@ -2106,17 +2103,17 @@ export const LobbyingModal: React.FC<{
 
   if (result) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+        <div className="bg-bg-surface border border-border-custom shadow-2xl max-w-md w-full p-6">
+          <h2 className="font-display text-2xl font-semibold text-primary mb-4">
             {result.success ? 'Lobbying Successful' : 'Lobbying Failed'}
           </h2>
-          <p className={`text-lg mb-6 ${result.success ? 'text-green-700' : 'text-red-700'}`}>
+          <p className={`text-base mb-6 ${result.success ? 'text-status-good' : 'text-status-bad'}`}>
             {result.message}
           </p>
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-sm"
+            className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-text font-semibold"
           >
             Close
           </button>
@@ -2126,12 +2123,12 @@ export const LobbyingModal: React.FC<{
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-bg-surface border border-border-custom shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-red-700 text-white p-6">
-          <h2 className="text-2xl font-bold">Lobby {mp.name}</h2>
-          <p className="text-red-100 mt-1">
+        <div className="bg-accent text-accent-text p-6">
+          <h2 className="font-display text-2xl font-semibold">Lobby {mp.name}</h2>
+          <p className="text-accent-text/80 mt-1 font-mono">
             {mp.constituency.name} · {getPartyName(mp.party)}
             {mp.faction && ` · ${getFactionName(mp.faction)}`}
           </p>
@@ -2139,14 +2136,14 @@ export const LobbyingModal: React.FC<{
 
         <div className="p-6 space-y-6">
           {/* MP Concerns */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="font-bold text-gray-900 mb-2">Current Concerns</h3>
-            <ul className="space-y-1 text-sm text-gray-700">
+          <div className="bg-warning-subtle border-l-4 border-warning p-4">
+            <h3 className="font-display font-semibold text-primary mb-2">Current Concerns</h3>
+            <ul className="space-y-1 text-sm text-secondary">
               <li>• Rebelliousness: {mp.traits.rebelliousness.toFixed(1)}/10</li>
               {mp.traits.principled > 6 && <li>• Highly principled - difficult to pressure</li>}
               {mp.constituency.marginality > 60 && <li>• Marginal seat - worried about constituents</li>}
               {brokenPromisesCount > 0 && (
-                <li className="text-red-600 font-bold">
+                <li className="text-status-bad font-semibold">
                   • You have broken {brokenPromisesCount} {brokenPromisesCount === 1 ? 'promise' : 'promises'} to this MP
                 </li>
               )}
@@ -2155,20 +2152,20 @@ export const LobbyingModal: React.FC<{
 
           {/* Approach Selection */}
           <div>
-            <h3 className="font-bold text-gray-900 mb-3">Choose Your Approach</h3>
+            <h3 className="font-display font-semibold text-primary mb-3">Choose Your Approach</h3>
             <div className="space-y-3">
               {/* Promise Approach */}
               <button
                 onClick={() => setSelectedApproach('promise')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'promise'
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'promise'
+                  ? 'border-accent bg-accent-subtle'
+                  : 'border-border-custom hover:border-accent'
                   }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="font-bold text-gray-900">Make a Promise</div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="font-semibold text-primary">Make a Promise</div>
+                    <div className="text-sm text-secondary mt-1">
                       Commit to a specific policy action in the next budget
                     </div>
                     {selectedApproach === 'promise' && (
@@ -2176,7 +2173,7 @@ export const LobbyingModal: React.FC<{
                         <select
                           value={selectedPromiseCategory}
                           onChange={(e) => setSelectedPromiseCategory(e.target.value as PromiseCategory)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          className="w-full px-3 py-2 border border-border-custom text-sm bg-bg-elevated text-primary"
                         >
                           <option value="nhs_spending">NHS Spending Increase</option>
                           <option value="education_spending">Education Spending Increase</option>
@@ -2195,7 +2192,7 @@ export const LobbyingModal: React.FC<{
                             min="0.5"
                             max="10"
                             step="0.5"
-                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            className="w-full px-3 py-2 border border-border-custom text-sm bg-bg-elevated text-primary"
                             placeholder="Amount (£bn)"
                           />
                         )}
@@ -2203,8 +2200,8 @@ export const LobbyingModal: React.FC<{
                     )}
                   </div>
                   <div className="ml-4 text-right">
-                    <div className="text-xs text-gray-500">Success Rate</div>
-                    <div className="text-lg font-bold text-blue-600">
+                    <div className="text-xs text-muted">Success Rate</div>
+                    <div className="font-mono font-semibold text-primary">
                       {displayedSuccessRate}%
                     </div>
                   </div>
@@ -2214,21 +2211,21 @@ export const LobbyingModal: React.FC<{
               {/* Persuade Approach */}
               <button
                 onClick={() => setSelectedApproach('persuade')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'persuade'
-                  ? 'border-green-600 bg-green-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'persuade'
+                  ? 'border-status-good bg-status-good-subtle'
+                  : 'border-border-custom hover:border-status-good'
                   }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="font-bold text-gray-900">Private Persuasion</div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="font-semibold text-primary">Private Persuasion</div>
+                    <div className="text-sm text-secondary mt-1">
                       Meet privately to discuss their concerns (no long-term consequences)
                     </div>
                   </div>
                   <div className="ml-4 text-right">
-                    <div className="text-xs text-gray-500">Success Rate</div>
-                    <div className="text-lg font-bold text-green-600">
+                    <div className="text-xs text-muted">Success Rate</div>
+                    <div className="font-mono font-semibold text-status-good">
                       {displayedSuccessRate}%
                     </div>
                   </div>
@@ -2238,27 +2235,27 @@ export const LobbyingModal: React.FC<{
               {/* Threaten Approach */}
               <button
                 onClick={() => setSelectedApproach('threaten')}
-                className={`w-full text-left p-4 border-2 rounded-lg transition-all ${selectedApproach === 'threaten'
-                  ? 'border-orange-600 bg-orange-50'
-                  : 'border-gray-300 hover:border-gray-400'
+                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'threaten'
+                  ? 'border-status-bad bg-status-bad-subtle'
+                  : 'border-border-custom hover:border-status-bad'
                   }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="font-bold text-gray-900 flex items-center gap-2">
+                    <div className="font-semibold text-primary flex items-center gap-2">
                       Use Whips (Threaten)
-                      <span className="text-xs text-orange-600 font-normal">Risky</span>
+                      <span className="text-xs text-status-bad font-normal">Risky</span>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-secondary mt-1">
                       Apply pressure through party whips (may backfire and reduce backbench satisfaction)
                     </div>
                   </div>
                   <div className="ml-4 text-right">
-                    <div className="text-xs text-gray-500">Success Rate</div>
-                    <div className="text-lg font-bold text-orange-600">
+                    <div className="text-xs text-muted">Success Rate</div>
+                    <div className="font-mono font-semibold text-status-bad">
                       {displayedSuccessRate}%
                     </div>
-                    <div className="text-xs text-orange-600 mt-1">30% backfire risk</div>
+                    <div className="text-xs text-status-bad mt-1">30% backfire risk</div>
                   </div>
                 </div>
               </button>
@@ -2267,8 +2264,8 @@ export const LobbyingModal: React.FC<{
 
           {/* Consequences Warning */}
           {selectedApproach === 'promise' && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm text-red-800">
+            <div className="bg-status-bad-subtle border-l-4 border-status-bad p-4">
+              <p className="text-sm text-status-bad">
                 <strong>Warning:</strong> If you break this promise, this MP will become hostile and future
                 lobbying will become much harder. All MPs who receive broken promises will remember.
               </p>
@@ -2280,7 +2277,7 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={handleLobby}
               disabled={isLobbying}
-              className={`flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-sm transition-all ${isLobbying ? 'opacity-50 cursor-not-allowed' : ''
+              className={`flex-1 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-text font-semibold ${isLobbying ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
             >
               {isLobbying ? 'Lobbying...' : `Lobby MP (${displayedSuccessRate}% chance)`}
@@ -2288,7 +2285,7 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={onClose}
               disabled={isLobbying}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-sm"
+              className="px-6 py-3 border border-border-custom hover:bg-bg-elevated text-primary font-semibold"
             >
               Cancel
             </button>
@@ -2328,19 +2325,19 @@ export const MPDetailModal: React.FC<{
   const brokenPromises = mpPromises.filter(p => p.broken);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl rounded-lg">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-bg-surface max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-border-custom">
         {/* Header */}
-        <div className={`${partyColor} text-white p-6`}>
+        <div className="bg-accent text-accent-text p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-3xl font-bold">{mp.name}</h2>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-lg">{partyName}</span>
+              <h2 className="font-display text-3xl font-semibold">{mp.name}</h2>
+              <div className="flex items-center gap-2 mt-2 font-mono text-sm">
+                <span>{partyName}</span>
                 {mp.faction && (
                   <>
                     <span>·</span>
-                    <span className="text-lg">{getFactionName(mp.faction)}</span>
+                    <span>{getFactionName(mp.faction)}</span>
                   </>
                 )}
               </div>
@@ -2348,7 +2345,7 @@ export const MPDetailModal: React.FC<{
             </div>
             <button
               onClick={onClose}
-              className="text-white hover:text-gray-200 text-2xl font-bold"
+              className="text-accent-text hover:text-accent-text/70 text-2xl font-bold"
             >
               ×
             </button>
@@ -2356,7 +2353,7 @@ export const MPDetailModal: React.FC<{
 
           {/* Minister badge */}
           {mp.isMinister && (
-            <div className="mt-3 inline-block bg-white bg-opacity-20 px-3 py-1 rounded text-sm">
+            <div className="mt-3 inline-block bg-accent-text/20 px-3 py-1 text-sm">
               {mp.ministerialRole}
             </div>
           )}
@@ -2366,9 +2363,9 @@ export const MPDetailModal: React.FC<{
             <div className="mt-2 flex items-center gap-3">
               {(() => {
                 const colors = {
-                  support: 'bg-green-500',
-                  oppose: 'bg-red-500',
-                  undecided: 'bg-yellow-500',
+                  support: 'bg-status-good text-white',
+                  oppose: 'bg-status-bad text-white',
+                  undecided: 'bg-muted text-white',
                 };
                 const labels = {
                   support: 'Supporting Budget',
@@ -2376,14 +2373,14 @@ export const MPDetailModal: React.FC<{
                   undecided: 'Undecided on Budget',
                 };
                 return (
-                  <span className={`inline-block ${colors[stanceLabel]} px-3 py-1 rounded-full text-sm font-semibold shadow-sm`}>
+                  <span className={`inline-block ${colors[stanceLabel]} px-3 py-1 text-xs font-semibold`}>
                     {labels[stanceLabel]}
                   </span>
                 );
               })()}
 
               {detailedStance && (
-                <div className="text-xs bg-white bg-opacity-10 px-2 py-1 rounded">
+                <div className="text-xs bg-accent-text/10 px-2 py-1">
                   Support Score: {detailedStance.score.toFixed(1)}
                 </div>
               )}
@@ -2391,14 +2388,14 @@ export const MPDetailModal: React.FC<{
           )}
 
           {detailedStance && (
-            <div className="mt-3 text-sm italic opacity-90 border-l-2 border-white pl-3">
+            <div className="mt-3 text-sm italic opacity-90 border-l-2 border-accent-text pl-3">
               &quot;{detailedStance.reason}&quot;
             </div>
           )}
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 bg-gray-50">
+        {/* Tabs - Underline Style */}
+        <div className="flex border-b border-border-custom bg-bg-elevated">
           {[
             { id: 'profile', label: 'Profile' },
             { id: 'ideology', label: 'Ideology' },
@@ -2409,9 +2406,9 @@ export const MPDetailModal: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 px-4 py-3 font-semibold transition-colors ${activeTab === tab.id
-                ? 'bg-white text-blue-600 border-b-2 border-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+              className={`flex-1 px-4 py-3 font-semibold transition-colors border-b-2 ${activeTab === tab.id
+                ? 'text-accent border-accent bg-bg-surface'
+                : 'text-tertiary border-transparent hover:text-primary'
                 }`}
             >
               {tab.label}
@@ -2425,27 +2422,27 @@ export const MPDetailModal: React.FC<{
           {activeTab === 'profile' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Background</h3>
-                <p className="text-gray-700">{mp.background}</p>
+                <h3 className="font-display font-semibold text-primary mb-2">Background</h3>
+                <p className="text-secondary">{mp.background}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded p-3">
-                  <div className="text-sm text-gray-600">Entered Parliament</div>
-                  <div className="text-xl font-bold text-gray-900">{mp.enteredParliament}</div>
+                <div className="bg-bg-elevated border border-border-custom p-3">
+                  <div className="text-sm text-tertiary">Entered Parliament</div>
+                  <div className="text-xl font-mono font-semibold text-primary">{mp.enteredParliament}</div>
                 </div>
-                <div className="bg-gray-50 rounded p-3">
-                  <div className="text-sm text-gray-600">Years in Office</div>
-                  <div className="text-xl font-bold text-gray-900">{new Date().getFullYear() - mp.enteredParliament}</div>
+                <div className="bg-bg-elevated border border-border-custom p-3">
+                  <div className="text-sm text-tertiary">Years in Office</div>
+                  <div className="text-xl font-mono font-semibold text-primary">{new Date().getFullYear() - mp.enteredParliament}</div>
                 </div>
               </div>
 
               {mp.committees.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg text-gray-900 mb-2">Committee Memberships</h3>
+                  <h3 className="font-display font-semibold text-primary mb-2">Committee Memberships</h3>
                   <div className="flex flex-wrap gap-2">
                     {mp.committees.map((committee, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm">
+                      <span key={idx} className="px-3 py-1 bg-accent-subtle text-accent text-sm border border-accent">
                         {committee}
                       </span>
                     ))}
@@ -2454,42 +2451,42 @@ export const MPDetailModal: React.FC<{
               )}
 
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-2">Traits</h3>
+                <h3 className="font-display font-semibold text-primary mb-2">Traits</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Rebelliousness</span>
+                    <span className="text-secondary">Rebelliousness</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div className="w-32 bg-bg-elevated h-2">
                         <div
-                          className="bg-red-500 h-2 rounded-full"
+                          className="bg-status-bad h-2"
                           style={{ width: `${(mp.traits.rebelliousness / 10) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">{mp.traits.rebelliousness.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.rebelliousness.toFixed(1)}/10</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Principled</span>
+                    <span className="text-secondary">Principled</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div className="w-32 bg-bg-elevated h-2">
                         <div
-                          className="bg-blue-500 h-2 rounded-full"
+                          className="bg-accent h-2"
                           style={{ width: `${(mp.traits.principled / 10) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">{mp.traits.principled.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.principled.toFixed(1)}/10</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Ambition</span>
+                    <span className="text-secondary">Ambition</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
+                      <div className="w-32 bg-bg-elevated h-2">
                         <div
-                          className="bg-purple-500 h-2 rounded-full"
+                          className="bg-secondary h-2"
                           style={{ width: `${(mp.traits.ambition / 10) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900">{mp.traits.ambition.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.ambition.toFixed(1)}/10</span>
                     </div>
                   </div>
                 </div>
@@ -2501,22 +2498,22 @@ export const MPDetailModal: React.FC<{
           {activeTab === 'ideology' && (
             <div className="space-y-6">
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-3">Political Compass</h3>
-                <div className="bg-gray-50 p-6 rounded-lg">
-                  <div className="relative w-full h-64 border-2 border-gray-300">
+                <h3 className="font-display font-semibold text-primary mb-3">Political Compass</h3>
+                <div className="bg-bg-elevated p-6 border border-border-custom">
+                  <div className="relative w-full h-64 border-2 border-border-custom">
                     {/* Axes */}
-                    <div className="absolute top-1/2 left-0 w-full h-px bg-gray-400"></div>
-                    <div className="absolute top-0 left-1/2 w-px h-full bg-gray-400"></div>
+                    <div className="absolute top-1/2 left-0 w-full h-px bg-border"></div>
+                    <div className="absolute top-0 left-1/2 w-px h-full bg-border"></div>
 
                     {/* Labels */}
-                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-gray-600">Authoritarian</div>
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-gray-600">Libertarian</div>
-                    <div className="absolute top-1/2 -translate-y-1/2 left-2 text-xs text-gray-600">Left</div>
-                    <div className="absolute top-1/2 -translate-y-1/2 right-2 text-xs text-gray-600">Right</div>
+                    <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-tertiary">Authoritarian</div>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-tertiary">Libertarian</div>
+                    <div className="absolute top-1/2 -translate-y-1/2 left-2 text-xs text-tertiary">Left</div>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-2 text-xs text-tertiary">Right</div>
 
                     {/* MP Position */}
                     <div
-                      className="absolute w-4 h-4 bg-red-600 rounded-full border-2 border-white shadow-lg -translate-x-1/2 -translate-y-1/2"
+                      className="absolute w-4 h-4 bg-status-bad border-2 border-white shadow-lg -translate-x-1/2 -translate-y-1/2"
                       style={{
                         left: `${((mp.ideology.economicAxis + 10) / 20) * 100}%`,
                         top: `${((mp.ideology.socialAxis + 10) / 20) * 100}%`,
@@ -2525,31 +2522,31 @@ export const MPDetailModal: React.FC<{
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">Economic: </span>
-                      <span className="font-semibold">{mp.ideology.economicAxis.toFixed(1)}</span>
-                      <span className="text-gray-600"> ({mp.ideology.economicAxis < -2 ? 'Left-wing' : mp.ideology.economicAxis > 2 ? 'Right-wing' : 'Centrist'})</span>
+                      <span className="text-tertiary">Economic: </span>
+                      <span className="font-semibold font-mono">{mp.ideology.economicAxis.toFixed(1)}</span>
+                      <span className="text-tertiary"> ({mp.ideology.economicAxis < -2 ? 'Left-wing' : mp.ideology.economicAxis > 2 ? 'Right-wing' : 'Centrist'})</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Social: </span>
-                      <span className="font-semibold">{mp.ideology.socialAxis.toFixed(1)}</span>
-                      <span className="text-gray-600"> ({mp.ideology.socialAxis < -2 ? 'Libertarian' : mp.ideology.socialAxis > 2 ? 'Authoritarian' : 'Moderate'})</span>
+                      <span className="text-tertiary">Social: </span>
+                      <span className="font-semibold font-mono">{mp.ideology.socialAxis.toFixed(1)}</span>
+                      <span className="text-tertiary"> ({mp.ideology.socialAxis < -2 ? 'Libertarian' : mp.ideology.socialAxis > 2 ? 'Authoritarian' : 'Moderate'})</span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-3">Fiscal Position</h3>
+                <h3 className="font-display font-semibold text-primary mb-3">Fiscal Position</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-gray-200 rounded-full h-4">
+                  <div className="flex-1 bg-bg-elevated h-4">
                     <div
-                      className="bg-amber-500 h-4 rounded-full"
+                      className="bg-warning h-4"
                       style={{ width: `${(mp.ideology.fiscalConservatism / 10) * 100}%` }}
                     ></div>
                   </div>
-                  <span className="font-bold text-gray-900">{mp.ideology.fiscalConservatism.toFixed(1)}/10</span>
+                  <span className="font-bold font-mono text-primary">{mp.ideology.fiscalConservatism.toFixed(1)}/10</span>
                 </div>
-                <div className="mt-2 text-sm text-gray-600">
+                <div className="mt-2 text-sm text-secondary">
                   {mp.ideology.fiscalConservatism > 7 ? 'Fiscal Hawk (Austerity advocate)' :
                     mp.ideology.fiscalConservatism > 4 ? 'Moderate (Cautious about deficit)' :
                       'Fiscal Dove (Supports borrowing for investment)'}
@@ -2562,39 +2559,39 @@ export const MPDetailModal: React.FC<{
           {activeTab === 'voting' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50 border border-green-200 rounded p-4">
-                  <div className="text-sm text-green-700">Loyalty Score</div>
-                  <div className="text-3xl font-bold text-green-900">{votingRecord?.loyaltyScore || 100}%</div>
+                <div className="bg-status-good-subtle border border-status-good p-4">
+                  <div className="text-sm text-status-good">Loyalty Score</div>
+                  <div className="text-3xl font-mono font-semibold text-status-good">{votingRecord?.loyaltyScore || 100}%</div>
                 </div>
-                <div className="bg-red-50 border border-red-200 rounded p-4">
-                  <div className="text-sm text-red-700">Rebellions</div>
-                  <div className="text-3xl font-bold text-red-900">{votingRecord?.rebellionCount || 0}</div>
+                <div className="bg-status-bad-subtle border border-status-bad p-4">
+                  <div className="text-sm text-status-bad">Rebellions</div>
+                  <div className="text-3xl font-mono font-semibold text-status-bad">{votingRecord?.rebellionCount || 0}</div>
                 </div>
               </div>
 
               {votingRecord && votingRecord.budgetVotes.length > 0 ? (
                 <div>
-                  <h3 className="font-bold text-lg text-gray-900 mb-3">Recent Budget Votes</h3>
+                  <h3 className="font-display font-semibold text-primary mb-3">Recent Budget Votes</h3>
                   <div className="space-y-2">
                     {votingRecord.budgetVotes.slice(-10).reverse().map((vote, idx) => (
-                      <div key={idx} className="bg-gray-50 border border-gray-200 rounded p-3">
+                      <div key={idx} className="bg-bg-elevated border border-border-custom p-3">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${vote.choice === 'aye' ? 'bg-green-100 text-green-800' :
-                                vote.choice === 'noe' ? 'bg-red-100 text-red-800' :
-                                  'bg-yellow-100 text-yellow-800'
+                              <span className={`px-2 py-0.5 text-xs font-semibold ${vote.choice === 'aye' ? 'bg-status-good-subtle text-status-good' :
+                                vote.choice === 'noe' ? 'bg-status-bad-subtle text-status-bad' :
+                                  'bg-muted text-white'
                                 }`}>
                                 {vote.choice.toUpperCase()}
                               </span>
                               {vote.coerced && (
-                                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800">
+                                <span className="px-2 py-0.5 text-xs font-semibold bg-warning-subtle text-warning">
                                   COERCED
                                 </span>
                               )}
-                              <span className="text-xs text-gray-500">Month {vote.month}</span>
+                              <span className="text-xs text-muted font-mono">Month {vote.month}</span>
                             </div>
-                            <div className="text-sm text-gray-700 mt-1">{vote.reasoning}</div>
+                            <div className="text-sm text-secondary mt-1">{vote.reasoning}</div>
                           </div>
                         </div>
                       </div>
@@ -2602,7 +2599,7 @@ export const MPDetailModal: React.FC<{
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-gray-500 py-8">
+                <div className="text-center text-muted py-8">
                   No voting history yet
                 </div>
               )}
@@ -2614,19 +2611,19 @@ export const MPDetailModal: React.FC<{
             <div className="space-y-6">
               {brokenPromises.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg text-red-900 mb-3 flex items-center gap-2">
+                  <h3 className="font-display font-semibold text-status-bad mb-3 flex items-center gap-2">
                     <span>Broken Promises</span>
-                    <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{brokenPromises.length}</span>
+                    <span className="bg-status-bad text-white text-xs px-2 py-1">{brokenPromises.length}</span>
                   </h3>
                   <div className="space-y-2">
                     {brokenPromises.map((promise) => (
-                      <div key={promise.id} className="bg-red-50 border-2 border-red-300 rounded p-4">
+                      <div key={promise.id} className="bg-status-bad-subtle border-2 border-status-bad p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-2xl font-bold text-red-900">X</div>
+                          <div className="text-lg font-bold text-status-bad">X</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-red-900">{getPromiseCategoryName(promise.category)}</div>
-                            <div className="text-sm text-red-700 mt-1">{promise.description}</div>
-                            <div className="text-xs text-red-600 mt-2">
+                            <div className="font-semibold text-status-bad">{getPromiseCategoryName(promise.category)}</div>
+                            <div className="text-sm text-secondary mt-1">{promise.description}</div>
+                            <div className="text-xs text-muted mt-2 font-mono">
                               Made in month {promise.madeInMonth} · Broken in month {promise.brokenInMonth}
                             </div>
                           </div>
@@ -2639,16 +2636,16 @@ export const MPDetailModal: React.FC<{
 
               {activePromises.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg text-gray-900 mb-3">Active Promises</h3>
+                  <h3 className="font-display font-semibold text-primary mb-3">Active Promises</h3>
                   <div className="space-y-2">
                     {activePromises.map((promise) => (
-                      <div key={promise.id} className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                      <div key={promise.id} className="bg-warning-subtle border border-warning p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-2xl">⏳</div>
+                          <div className="text-sm font-mono text-warning">[Pending]</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-gray-900">{getPromiseCategoryName(promise.category)}</div>
-                            <div className="text-sm text-gray-700 mt-1">{promise.description}</div>
-                            <div className="text-xs text-gray-500 mt-2">Made in month {promise.madeInMonth}</div>
+                            <div className="font-semibold text-primary">{getPromiseCategoryName(promise.category)}</div>
+                            <div className="text-sm text-secondary mt-1">{promise.description}</div>
+                            <div className="text-xs text-muted mt-2 font-mono">Made in month {promise.madeInMonth}</div>
                           </div>
                         </div>
                       </div>
@@ -2659,18 +2656,18 @@ export const MPDetailModal: React.FC<{
 
               {fulfilledPromises.length > 0 && (
                 <div>
-                  <h3 className="font-bold text-lg text-green-900 mb-3">Fulfilled Promises</h3>
+                  <h3 className="font-display font-semibold text-status-good mb-3">Fulfilled Promises</h3>
                   <div className="space-y-2">
                     {fulfilledPromises.map((promise) => (
-                      <div key={promise.id} className="bg-green-50 border border-green-200 rounded p-4">
+                      <div key={promise.id} className="bg-status-good-subtle border border-status-good p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-sm font-bold text-white bg-green-600 px-2 py-1 rounded">
+                          <div className="text-xs font-bold text-white bg-status-good px-2 py-1">
                             KEPT
                           </div>
                           <div className="flex-1">
-                            <div className="font-semibold text-green-900">{getPromiseCategoryName(promise.category)}</div>
-                            <div className="text-sm text-green-700 mt-1">{promise.description}</div>
-                            <div className="text-xs text-green-600 mt-2">Made in month {promise.madeInMonth}</div>
+                            <div className="font-semibold text-status-good">{getPromiseCategoryName(promise.category)}</div>
+                            <div className="text-sm text-secondary mt-1">{promise.description}</div>
+                            <div className="text-xs text-muted mt-2 font-mono">Made in month {promise.madeInMonth}</div>
                           </div>
                         </div>
                       </div>
@@ -2680,7 +2677,7 @@ export const MPDetailModal: React.FC<{
               )}
 
               {mpPromises.length === 0 && (
-                <div className="text-center text-gray-500 py-8">
+                <div className="text-center text-muted py-8">
                   No promises have been made to this MP yet
                 </div>
               )}
@@ -2691,20 +2688,20 @@ export const MPDetailModal: React.FC<{
           {activeTab === 'constituency' && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-3">{mp.constituency.name}</h3>
+                <h3 className="font-display font-semibold text-primary mb-3">{mp.constituency.name}</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded p-3">
-                    <div className="text-sm text-gray-600">Region</div>
-                    <div className="text-lg font-bold text-gray-900 capitalize">{mp.constituency.region}</div>
+                  <div className="bg-bg-elevated border border-border-custom p-3">
+                    <div className="text-sm text-tertiary">Region</div>
+                    <div className="text-lg font-semibold text-primary capitalize">{mp.constituency.region}</div>
                   </div>
-                  <div className={`rounded p-3 ${mp.constituency.marginality > 70 ? 'bg-red-50' :
-                    mp.constituency.marginality > 50 ? 'bg-amber-50' :
-                      'bg-green-50'
+                  <div className={`border p-3 ${mp.constituency.marginality > 70 ? 'bg-status-bad-subtle border-status-bad' :
+                    mp.constituency.marginality > 50 ? 'bg-warning-subtle border-warning' :
+                      'bg-status-good-subtle border-status-good'
                     }`}>
-                    <div className="text-sm text-gray-600">Marginality</div>
-                    <div className={`text-lg font-bold ${mp.constituency.marginality > 70 ? 'text-red-900' :
-                      mp.constituency.marginality > 50 ? 'text-amber-900' :
-                        'text-green-900'
+                    <div className="text-sm text-tertiary">Marginality</div>
+                    <div className={`text-lg font-semibold font-mono ${mp.constituency.marginality > 70 ? 'text-status-bad' :
+                      mp.constituency.marginality > 50 ? 'text-warning' :
+                        'text-status-good'
                       }`}>
                       {mp.constituency.marginality.toFixed(0)}%
                       {mp.constituency.marginality > 70 ? ' (Highly Marginal)' :
@@ -2716,29 +2713,29 @@ export const MPDetailModal: React.FC<{
               </div>
 
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-3">Demographics</h3>
+                <h3 className="font-display font-semibold text-primary mb-3">Demographics</h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Median Income</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-secondary">Median Income</span>
+                    <span className="font-semibold font-mono text-primary">
                       £{mp.constituency.demographics.medianIncome.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Unemployment Rate</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-secondary">Unemployment Rate</span>
+                    <span className="font-semibold font-mono text-primary">
                       {mp.constituency.demographics.unemploymentRate.toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Public Sector Jobs</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-secondary">Public Sector Jobs</span>
+                    <span className="font-semibold font-mono text-primary">
                       {mp.constituency.demographics.publicSectorDependency.toFixed(0)}%
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Age Profile</span>
-                    <span className="font-semibold text-gray-900 capitalize">
+                    <span className="text-secondary">Age Profile</span>
+                    <span className="font-semibold text-primary capitalize">
                       {mp.constituency.demographics.ageProfile}
                     </span>
                   </div>
@@ -2746,15 +2743,15 @@ export const MPDetailModal: React.FC<{
               </div>
 
               <div>
-                <h3 className="font-bold text-lg text-gray-900 mb-3">Electoral Position</h3>
+                <h3 className="font-display font-semibold text-primary mb-3">Electoral Position</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Previous Election Margin</span>
-                    <span className="font-semibold text-gray-900">{mp.constituency.previousMargin.toFixed(1)}%</span>
+                    <span className="text-secondary">Previous Election Margin</span>
+                    <span className="font-semibold font-mono text-primary">{mp.constituency.previousMargin.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Swing Required to Lose</span>
-                    <span className="font-semibold text-gray-900">{mp.constituency.swingRequired.toFixed(1)}%</span>
+                    <span className="text-secondary">Swing Required to Lose</span>
+                    <span className="font-semibold font-mono text-primary">{mp.constituency.swingRequired.toFixed(1)}%</span>
                   </div>
                 </div>
               </div>
@@ -2763,10 +2760,10 @@ export const MPDetailModal: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50">
+        <div className="border-t border-border-custom p-4 bg-bg-elevated">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded"
+            className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-text font-semibold"
           >
             Close
           </button>
