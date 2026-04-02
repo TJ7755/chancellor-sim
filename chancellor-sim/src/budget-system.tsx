@@ -3445,7 +3445,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {canApply && (
               <button
                 onClick={() => applyManifestoCommitment(constraint.id)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colours"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
                 title="Automatically adjust values to the minimum required to satisfy this commitment"
               >
                 Apply
@@ -4209,7 +4209,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     <div key={department} className="bg-white   border border-grey-200">
                       <button
                         onClick={() => toggleDepartment(department)}
-                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colours"
+                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <svg
@@ -4461,19 +4461,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="mt-8 flex gap-4 justify-end">
               <button
                 onClick={resetBudget}
-                className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold  hover:bg-grey-50 transition-colours"
+                className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold  hover:bg-grey-50 transition-colors"
               >
                 Reset to Baseline
               </button>
               <button
                 onClick={() => setShowPMInterventionModal(true)}
-                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold  transition-colours "
+                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold  transition-colors "
               >
                 Force PM Intervention
               </button>
               <button
                 onClick={submitBudget}
-                className="px-6 py-3 bg-red-900 text-white font-semibold  hover:bg-red-800 transition-colours "
+                className="px-6 py-3 bg-red-900 text-white font-semibold  hover:bg-red-800 transition-colors "
               >
                 Submit Budget for Parliamentary Approval
               </button>
@@ -4607,7 +4607,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setFiscalRuleMessage(null)}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold  transition-colours"
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold  transition-colors"
                 >
                   Understood
                 </button>
@@ -4648,7 +4648,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setBrokenPromisesAlert(null)}
-                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold  transition-colours"
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold  transition-colors"
                 >
                   Understood
                 </button>
@@ -4689,7 +4689,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setPMInterventionSuccess(false)}
-                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold  transition-colours"
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold  transition-colors"
                 >
                   Understood
                 </button>

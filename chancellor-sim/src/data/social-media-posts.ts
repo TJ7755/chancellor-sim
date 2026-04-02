@@ -142,9 +142,9 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
         sentiment: 'neutral',
         templates: [
             "Magic Money Tree found in Downing Street garden. #Budget",
-            "Chancellor paying the national debt with IOUs written on napkins. 📉",
-            "Live scenes from the Treasury: 🔥",
-            "Me looking at the national debt like... 😅",
+            "Chancellor paying the national debt with IOUs written on napkins.",
+            "Live scenes from the Treasury.",
+            "Me looking at the national debt like...",
             "Thread: How many gilts can fit under one very expensive carpet?",
             "Economy update: vibes up, spreadsheets down.",
             "Breaking: Treasury calculator now powered by crossed fingers."
@@ -158,7 +158,7 @@ export const SOCIAL_MEDIA_POSTS: SocialPostTemplate[] = [
         templates: [
             "Freddo prices up again. The economy is officially broken.",
             "Just took out a mortgage to buy a pint of milk. #CostOfLiving",
-            "My bank account seeing the energy bill: 😱",
+            "My bank account seeing the energy bill.",
             "Chancellor to solving inflation: 'Have you tried skipping meals?'",
             "Inflation chart looks like a ski slope in reverse.",
             "At this rate, beans on toast is becoming a luxury good.",

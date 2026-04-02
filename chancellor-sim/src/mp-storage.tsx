@@ -190,10 +190,21 @@ export async function saveMP(mp: MPProfile): Promise<void> {
       };
     });
   } catch (error) {
-    console.error('Failed to save MP to IndexedDB:', error);
-    // Note: For single MP updates, we'd need to load all, update one, and save all for localStorage
-    // For now, we'll skip localStorage fallback for single MP updates
-    throw error;
+    console.error('Failed to save MP to IndexedDB, falling back to localStorage:', error);
+    try {
+      const localStorageData = localStorage.getItem('chancellor-mps');
+      const mpArray: MPProfile[] = localStorageData ? JSON.parse(localStorageData) : [];
+      const existingIndex = mpArray.findIndex((m) => m.id === mp.id);
+      if (existingIndex >= 0) {
+        mpArray[existingIndex] = mp;
+      } else {
+        mpArray.push(mp);
+      }
+      localStorage.setItem('chancellor-mps', JSON.stringify(mpArray));
+    } catch (localStorageError) {
+      console.error('Failed to save MP to localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
@@ -370,8 +381,22 @@ export async function recordBudgetVote(
       };
     });
   } catch (error) {
-    console.error('Failed to record budget vote to IndexedDB:', error);
-    throw error;
+    console.error('Failed to record budget vote to IndexedDB, falling back to localStorage:', error);
+    try {
+      const data = localStorage.getItem('chancellor-voting-records');
+      const records: VotingRecord[] = data ? JSON.parse(data) : [];
+      let record = records.find((r) => r.mpId === mpId);
+      if (!record) {
+        record = { mpId, budgetVotes: [], rebellionCount: 0, loyaltyScore: 100 };
+        records.push(record);
+      }
+      record.budgetVotes.push({ budgetId, month, choice, reasoning, coerced });
+      record.loyaltyScore = Math.max(0, 100 - record.rebellionCount * 2);
+      localStorage.setItem('chancellor-voting-records', JSON.stringify(records));
+    } catch (localStorageError) {
+      console.error('Failed to record budget vote to localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
@@ -434,8 +459,27 @@ export async function batchRecordBudgetVotes(
     await Promise.all(promises);
     db.close();
   } catch (error) {
-    console.error('Failed to batch record budget votes to IndexedDB:', error);
-    throw error;
+    console.error('Failed to batch record budget votes to IndexedDB, falling back to localStorage:', error);
+    try {
+      const data = localStorage.getItem('chancellor-voting-records');
+      const records: VotingRecord[] = data ? JSON.parse(data) : [];
+      for (const vote of votes) {
+        let record = records.find((r) => r.mpId === vote.mpId);
+        if (!record) {
+          record = { mpId: vote.mpId, budgetVotes: [], rebellionCount: 0, loyaltyScore: 100 };
+          records.push(record);
+        }
+        record.budgetVotes.push({ budgetId: vote.budgetId, month: vote.month, choice: vote.choice, reasoning: vote.reasoning, coerced: vote.coerced });
+        if (record.budgetVotes.length > 20) {
+          record.budgetVotes = record.budgetVotes.slice(-20);
+        }
+        record.loyaltyScore = Math.max(0, 100 - record.rebellionCount * 2);
+      }
+      localStorage.setItem('chancellor-voting-records', JSON.stringify(records));
+    } catch (localStorageError) {
+      console.error('Failed to batch record budget votes to localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
@@ -565,8 +609,16 @@ export async function savePromise(promise: MPPromise): Promise<void> {
       };
     });
   } catch (error) {
-    console.error('Failed to save promise to IndexedDB:', error);
-    throw error;
+    console.error('Failed to save promise to IndexedDB, falling back to localStorage:', error);
+    try {
+      const data = localStorage.getItem('chancellor-promises');
+      const promiseArray: MPPromise[] = data ? JSON.parse(data) : [];
+      promiseArray.push(promise);
+      localStorage.setItem('chancellor-promises', JSON.stringify(promiseArray));
+    } catch (localStorageError) {
+      console.error('Failed to save promise to localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
@@ -613,8 +665,22 @@ export async function markPromiseBroken(
       };
     });
   } catch (error) {
-    console.error('Failed to mark promise as broken in IndexedDB:', error);
-    throw error;
+    console.error('Failed to mark promise as broken in IndexedDB, falling back to localStorage:', error);
+    try {
+      const data = localStorage.getItem('chancellor-promises');
+      const promiseArray: MPPromise[] = data ? JSON.parse(data) : [];
+      const idx = promiseArray.findIndex((p) => p.id === promiseId);
+      if (idx >= 0) {
+        promiseArray[idx].broken = true;
+        promiseArray[idx].brokenInMonth = month;
+        localStorage.setItem('chancellor-promises', JSON.stringify(promiseArray));
+      } else {
+        throw new Error('Promise not found in localStorage');
+      }
+    } catch (localStorageError) {
+      console.error('Failed to mark promise as broken in localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
@@ -657,8 +723,21 @@ export async function markPromiseFulfilled(promiseId: string): Promise<void> {
       };
     });
   } catch (error) {
-    console.error('Failed to mark promise as fulfilled in IndexedDB:', error);
-    throw error;
+    console.error('Failed to mark promise as fulfilled in IndexedDB, falling back to localStorage:', error);
+    try {
+      const data = localStorage.getItem('chancellor-promises');
+      const promiseArray: MPPromise[] = data ? JSON.parse(data) : [];
+      const idx = promiseArray.findIndex((p) => p.id === promiseId);
+      if (idx >= 0) {
+        promiseArray[idx].fulfilled = true;
+        localStorage.setItem('chancellor-promises', JSON.stringify(promiseArray));
+      } else {
+        throw new Error('Promise not found in localStorage');
+      }
+    } catch (localStorageError) {
+      console.error('Failed to mark promise as fulfilled in localStorage:', localStorageError);
+      throw error;
+    }
   }
 }
 
