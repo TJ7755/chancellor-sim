@@ -18,15 +18,15 @@ export type OpinionSeverity = 'critical' | 'warning' | 'caution' | 'neutral' | '
 export type PolicyArea = 'taxation' | 'spending' | 'deficit' | 'debt' | 'growth' | 'services' | 'political';
 
 export interface AdviserBiasParameters {
-  deficitTolerance: number;         // % of GDP where they start warning (e.g., 3.0 = 3%)
-  debtTolerance: number;            // % of GDP debt ceiling (e.g., 100.0 = 100%)
-  taxRiseAversion: number;          // 0-1 (0 = loves tax rises, 1 = hates them)
-  spendingCutAversion: number;      // 0-1 (0 = loves cuts, 1 = hates them)
-  growthPriority: number;           // 0-1 weight on growth vs stability
-  politicalSensitivity: number;     // 0-1 how much they care about electoral consequences
-  manifestoRigidity: number;        // 0-1 how much manifesto breaches matter
-  fiscalRuleRigidity: number;       // 0-1 how much fiscal rule breaches matter
-  marketSensitivity: number;        // 0-1 concern about gilt yields/market reactions
+  deficitTolerance: number; // % of GDP where they start warning (e.g., 3.0 = 3%)
+  debtTolerance: number; // % of GDP debt ceiling (e.g., 100.0 = 100%)
+  taxRiseAversion: number; // 0-1 (0 = loves tax rises, 1 = hates them)
+  spendingCutAversion: number; // 0-1 (0 = loves cuts, 1 = hates them)
+  growthPriority: number; // 0-1 weight on growth vs stability
+  politicalSensitivity: number; // 0-1 how much they care about electoral consequences
+  manifestoRigidity: number; // 0-1 how much manifesto breaches matter
+  fiscalRuleRigidity: number; // 0-1 how much fiscal rule breaches matter
+  marketSensitivity: number; // 0-1 concern about gilt yields/market reactions
 }
 
 export interface AdviserProfile {
@@ -181,19 +181,21 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
     type: 'treasury_mandarin',
     name: 'Sir Humphrey Cavendish',
     title: 'Permanent Secretary to HM Treasury',
-    description: 'A career Treasury official with 30 years of experience. Deeply orthodox, risk-averse, and committed to sound money principles.',
-    background: 'Oxbridge PPE, rose through the Treasury ranks advising Chancellors of all parties. Commanded respect in Whitehall for rigorous analysis.',
+    description:
+      'A career Treasury official with 30 years of experience. Deeply orthodox, risk-averse, and committed to sound money principles.',
+    background:
+      'Oxbridge PPE, rose through the Treasury ranks advising Chancellors of all parties. Commanded respect in Whitehall for rigorous analysis.',
     strengths: [
       'Encyclopaedic knowledge of Treasury procedures',
       'Excellent at identifying fiscal risks',
       'Strong relationships with Bank of England and OBR',
-      'Prevents reckless policy mistakes'
+      'Prevents reckless policy mistakes',
     ],
     weaknesses: [
       'Excessively risk-averse, may miss opportunities',
       'Resistant to unconventional policies',
       'Bias towards inaction and status quo',
-      'Can be dismissive of political realities'
+      'Can be dismissive of political realities',
     ],
     biasParameters: {
       deficitTolerance: 2.5,
@@ -204,27 +206,29 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.1,
       manifestoRigidity: 0.4,
       fiscalRuleRigidity: 0.95,
-      marketSensitivity: 0.9
+      marketSensitivity: 0.9,
     },
-    narrativeStyle: 'formal'
+    narrativeStyle: 'formal',
   },
   {
     type: 'political_operator',
     name: 'Sarah Chen',
     title: 'Chief Political Adviser',
-    description: 'Former Chief Whip special adviser. Ruthlessly focused on electoral survival and party management. Knows every marginal seat intimately.',
-    background: 'Worked on four general election campaigns. Notorious for predicting backbench rebellions with uncanny accuracy.',
+    description:
+      'Former Chief Whip special adviser. Ruthlessly focused on electoral survival and party management. Knows every marginal seat intimately.',
+    background:
+      'Worked on four general election campaigns. Notorious for predicting backbench rebellions with uncanny accuracy.',
     strengths: [
       'Acute political instincts',
       'Can predict backbencher and PM reactions',
       'Understands voter psychology in key seats',
-      'Prevents politically suicidal decisions'
+      'Prevents politically suicidal decisions',
     ],
     weaknesses: [
       'May sacrifice long-term economic health for short-term polling',
       'Sometimes dismisses economically necessary but unpopular policies',
       'Focus on optics over substance',
-      'Can amplify populist pressures'
+      'Can amplify populist pressures',
     ],
     biasParameters: {
       deficitTolerance: 5.0,
@@ -235,27 +239,29 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.95,
       manifestoRigidity: 0.9,
       fiscalRuleRigidity: 0.3,
-      marketSensitivity: 0.4
+      marketSensitivity: 0.4,
     },
-    narrativeStyle: 'political'
+    narrativeStyle: 'political',
   },
   {
     type: 'heterodox_economist',
     name: 'Dr Maya Okonkwo',
     title: 'Chief Economic Adviser (Heterodox)',
-    description: 'Academic economist with post-Keynesian and MMT influences. Believes fiscal space is larger than orthodox economists claim.',
-    background: 'PhD from SOAS, previously advised Labour leadership. Published research on fiscal multipliers and sectoral balances.',
+    description:
+      'Academic economist with post-Keynesian and MMT influences. Believes fiscal space is larger than orthodox economists claim.',
+    background:
+      'PhD from SOAS, previously advised Labour leadership. Published research on fiscal multipliers and sectoral balances.',
     strengths: [
       'Challenges groupthink and conventional wisdom',
       'Strong on growth-focused policies',
       'Understands fiscal multipliers and demand dynamics',
-      'Can identify opportunities others miss'
+      'Can identify opportunities others miss',
     ],
     weaknesses: [
       'May underestimate market reactions and inflation risks',
       'Sometimes overly optimistic about fiscal space',
       'Can be dismissive of debt sustainability concerns',
-      'Theoretical brilliance not always politically feasible'
+      'Theoretical brilliance not always politically feasible',
     ],
     biasParameters: {
       deficitTolerance: 8.0,
@@ -266,27 +272,29 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.3,
       manifestoRigidity: 0.2,
       fiscalRuleRigidity: 0.15,
-      marketSensitivity: 0.3
+      marketSensitivity: 0.3,
     },
-    narrativeStyle: 'academic'
+    narrativeStyle: 'academic',
   },
   {
     type: 'fiscal_hawk',
     name: 'Lord Michael Braithwaite',
     title: 'Senior Economic Adviser (Fiscal Conservative)',
-    description: 'Former IMF economist and merchant banker. Obsessed with debt reduction and market credibility. Sees fiscal profligacy everywhere.',
-    background: 'Advised governments through sovereign debt crises. Believes unsustainable debt is the greatest threat to prosperity.',
+    description:
+      'Former IMF economist and merchant banker. Obsessed with debt reduction and market credibility. Sees fiscal profligacy everywhere.',
+    background:
+      'Advised governments through sovereign debt crises. Believes unsustainable debt is the greatest threat to prosperity.',
     strengths: [
       'Excellent at anticipating market reactions',
       'Strong understanding of debt dynamics',
       'Prevents loss of market confidence',
-      'Rigorous about long-term sustainability'
+      'Rigorous about long-term sustainability',
     ],
     weaknesses: [
       'May advocate austerity even during recessions',
       'Can underestimate costs of spending cuts',
       'Sometimes alarmist about debt levels',
-      'May prioritise credibility over growth'
+      'May prioritise credibility over growth',
     ],
     biasParameters: {
       deficitTolerance: 1.5,
@@ -297,27 +305,29 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.2,
       manifestoRigidity: 0.3,
       fiscalRuleRigidity: 0.98,
-      marketSensitivity: 0.95
+      marketSensitivity: 0.95,
     },
-    narrativeStyle: 'urgent'
+    narrativeStyle: 'urgent',
   },
   {
     type: 'social_democrat',
     name: 'Rebecca Thornton',
     title: 'Social Policy Adviser',
-    description: 'Former NHS trust chief executive and social policy researcher. Passionate about public services and believes austerity was disastrous.',
-    background: 'Witnessed first-hand the impact of cuts on health and social care. Argues investment in people pays for itself.',
+    description:
+      'Former NHS trust chief executive and social policy researcher. Passionate about public services and believes austerity was disastrous.',
+    background:
+      'Witnessed first-hand the impact of cuts on health and social care. Argues investment in people pays for itself.',
     strengths: [
       'Deep understanding of public service delivery',
       'Can predict service quality consequences',
       'Strong on equity and regional disparities',
-      'Prevents penny-wise, pound-foolish cuts'
+      'Prevents penny-wise, pound-foolish cuts',
     ],
     weaknesses: [
       'May resist any cuts even when fiscally necessary',
       'Can underestimate deadweight costs of taxation',
       'Sometimes dismissive of fiscal constraints',
-      'May prioritise spending over efficiency'
+      'May prioritise spending over efficiency',
     ],
     biasParameters: {
       deficitTolerance: 6.0,
@@ -328,27 +338,29 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.4,
       manifestoRigidity: 0.5,
       fiscalRuleRigidity: 0.25,
-      marketSensitivity: 0.35
+      marketSensitivity: 0.35,
     },
-    narrativeStyle: 'urgent'
+    narrativeStyle: 'urgent',
   },
   {
     type: 'technocratic_centrist',
     name: 'James Ashworth',
     title: 'Chief Economic Adviser (Centrist)',
-    description: 'Former Treasury economist and think tank director. Pragmatic, evidence-focused, and ideologically flexible. Values what works.',
-    background: 'Worked at Institute for Fiscal Studies and Resolution Foundation. Advises based on empirical evidence rather than ideology.',
+    description:
+      'Former Treasury economist and think tank director. Pragmatic, evidence-focused, and ideologically flexible. Values what works.',
+    background:
+      'Worked at Institute for Fiscal Studies and Resolution Foundation. Advises based on empirical evidence rather than ideology.',
     strengths: [
       'Balanced and pragmatic advice',
       'Strong empirical grounding',
       'Can synthesise conflicting perspectives',
-      'Respected across political spectrum'
+      'Respected across political spectrum',
     ],
     weaknesses: [
       'Can be indecisive or fence-sitting',
       'May lack strong convictions when needed',
       'Sometimes too cautious and risk-averse',
-      'Can be seen as lacking political savvy'
+      'Can be seen as lacking political savvy',
     ],
     biasParameters: {
       deficitTolerance: 4.0,
@@ -359,10 +371,10 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       politicalSensitivity: 0.5,
       manifestoRigidity: 0.6,
       fiscalRuleRigidity: 0.75,
-      marketSensitivity: 0.7
+      marketSensitivity: 0.7,
     },
-    narrativeStyle: 'pragmatic'
-  }
+    narrativeStyle: 'pragmatic',
+  },
 ];
 
 // ============================================================================
@@ -394,7 +406,7 @@ export function generateAdviserOpinions(
         const opinion = generateSingleAdviserOpinion(state, hired, proposedChanges);
         opinions.set(hired.profile.type, opinion);
       } catch (err) {
-        console.error("Error generating opinion for adviser:", hired.profile.type, err);
+        console.error('Error generating opinion for adviser:', hired.profile.type, err);
       }
     };
 
@@ -428,8 +440,8 @@ function checkOpinionTrigger(
   switch (trigger.metric) {
     case 'deficit':
       currentValue = proposedChanges
-        ? (proposedChanges.projectedDeficit / state.economy.gdpNominal * 100)
-        : (state.fiscal.deficit / state.economy.gdpNominal * 100);
+        ? (proposedChanges.projectedDeficit / state.economy.gdpNominal) * 100
+        : (state.fiscal.deficit / state.economy.gdpNominal) * 100;
       break;
     case 'debt':
       currentValue = state.fiscal.debtToGdpPercent;
@@ -486,8 +498,8 @@ function generateSingleAdviserOpinion(
 
   // Calculate handy metrics for headline generation
   const deficitPercent = proposedChanges
-    ? (proposedChanges.projectedDeficit / state.economy.gdpNominal * 100)
-    : (state.fiscal.deficit / state.economy.gdpNominal * 100);
+    ? (proposedChanges.projectedDeficit / state.economy.gdpNominal) * 100
+    : (state.fiscal.deficit / state.economy.gdpNominal) * 100;
   const growthRate = state.economy.gdpGrowthAnnual;
   const publicApproval = state.political.publicApproval;
 
@@ -497,15 +509,14 @@ function generateSingleAdviserOpinion(
   let severityScore = 0;
 
   // 1. Filter relevant templates
-  const relevantTemplates = ADVISER_OPINIONS.filter(t =>
-    t.adviserType === profile.type &&
-    checkOpinionTrigger(t.trigger, state, proposedChanges)
+  const relevantTemplates = ADVISER_OPINIONS.filter(
+    (t) => t.adviserType === profile.type && checkOpinionTrigger(t.trigger, state, proposedChanges)
   );
 
   // 2. Map templates to AdviserOpinion objects
-  relevantTemplates.forEach(template => {
+  relevantTemplates.forEach((template) => {
     // Add to score (simple weighting)
-    const severityMap = { 'critical': 3, 'warning': 2, 'caution': 1, 'neutral': 0, 'supportive': -1 };
+    const severityMap = { critical: 3, warning: 2, caution: 1, neutral: 0, supportive: -1 };
     if (template.severity) {
       severityScore += severityMap[template.severity] || 0;
     }
@@ -524,23 +535,28 @@ function generateSingleAdviserOpinion(
         severity: template.severity || 'warning',
         title: template.title,
         description: template.description,
-        consequences: template.consequences
+        consequences: template.consequences,
       });
     } else if (template.itemType === 'recommendation') {
       recommendations.push({
         priority: template.priority || 'consider',
         action: template.recommendationAction || template.title,
-        rationale: template.recommendationRationale || template.description
+        rationale: template.recommendationRationale || template.description,
       });
     }
   });
 
   // OVERALL ASSESSMENT
   const overallSeverity: OpinionSeverity =
-    severityScore > 5 ? 'critical' :
-      severityScore > 2.5 ? 'warning' :
-        severityScore > 0.5 ? 'caution' :
-          analyses.length === 0 && warnings.length === 0 ? 'supportive' : 'neutral';
+    severityScore > 5
+      ? 'critical'
+      : severityScore > 2.5
+        ? 'warning'
+        : severityScore > 0.5
+          ? 'caution'
+          : analyses.length === 0 && warnings.length === 0
+            ? 'supportive'
+            : 'neutral';
 
   const headline = generateHeadline(profile, overallSeverity, deficitPercent, growthRate, publicApproval);
   const summary = generateSummary(profile, analyses, warnings);
@@ -557,7 +573,7 @@ function generateSingleAdviserOpinion(
     detailedAnalysis: analyses,
     recommendations,
     warnings,
-    prediction
+    prediction,
   };
 }
 
@@ -565,13 +581,17 @@ function generateSingleAdviserOpinion(
 // NARRATIVE GENERATION FUNCTIONS
 // ============================================================================
 
-
-
 function pickVariant(variants: string[]): string {
   return variants[Math.floor(Math.random() * variants.length)];
 }
 
-function generateHeadline(profile: AdviserProfile, severity: OpinionSeverity, deficit: number, growth: number, approval: number): string {
+function generateHeadline(
+  profile: AdviserProfile,
+  severity: OpinionSeverity,
+  deficit: number,
+  growth: number,
+  approval: number
+): string {
   if (severity === 'critical') {
     switch (profile.type) {
       case 'treasury_mandarin':
@@ -755,15 +775,13 @@ function generateSummary(profile: AdviserProfile, analyses: PolicyAnalysis[], wa
     }
   }
 
-  const topConcerns = analyses
-    .filter(a => a.severity === 'critical' || a.severity === 'warning')
-    .slice(0, 2);
+  const topConcerns = analyses.filter((a) => a.severity === 'critical' || a.severity === 'warning').slice(0, 2);
 
   if (topConcerns.length === 0) {
     return 'Some areas warrant attention, but no critical issues identified.';
   }
 
-  const concerns = topConcerns.map(a => a.area).join(' and ');
+  const concerns = topConcerns.map((a) => a.area).join(' and ');
 
   switch (profile.type) {
     case 'treasury_mandarin':
@@ -807,9 +825,10 @@ function generatePrediction(
   proposedChanges?: any
 ): Prediction | undefined {
   const bias = profile.biasParameters;
-  const projectedDeficitPct = proposedChanges?.projectedDeficit && state.economy?.gdpNominal
-    ? (proposedChanges.projectedDeficit / state.economy.gdpNominal) * 100
-    : undefined;
+  const projectedDeficitPct =
+    proposedChanges?.projectedDeficit && state.economy?.gdpNominal
+      ? (proposedChanges.projectedDeficit / state.economy.gdpNominal) * 100
+      : undefined;
 
   // Each adviser type makes predictions based on their worldview
   if (profile.type === 'fiscal_hawk' && state.fiscal.debtToGdpPercent > bias.debtTolerance + 10) {
@@ -820,7 +839,7 @@ function generatePrediction(
         'Without fiscal consolidation, gilt yields will exceed 7% and we will face a market crisis requiring emergency measures.',
         'Debt dynamics imply a materially higher risk premium over the next year unless consolidation starts quickly.',
         'Absent a credible adjustment path, markets are likely to reprice UK risk and tighten financing conditions further.',
-      ])
+      ]),
     };
   }
 
@@ -832,7 +851,7 @@ function generatePrediction(
         'Polling will continue deteriorating. We will lose marginal seats in any election held this year.',
         'Current trajectory implies concentrated losses in commuter and suburban marginals within two quarters.',
         'Without a visible reset, approval erosion is likely to accelerate in key battleground constituencies.',
-      ])
+      ]),
     };
   }
 
@@ -844,7 +863,7 @@ function generatePrediction(
         'Continued weak growth will become structural without fiscal stimulus. Tax revenues will disappoint, worsening deficit paradoxically.',
         'Persistently weak demand risks entrenching low productivity and depressing the revenue base.',
         'Without countercyclical support, sub-trend growth is likely to become self-reinforcing over the medium term.',
-      ])
+      ]),
     };
   }
 
@@ -856,11 +875,15 @@ function generatePrediction(
         'NHS will face winter crisis with record waiting lists. Public anger will force policy U-turn, but damage to health outcomes will be lasting.',
         'Service pressure is likely to intensify into winter, with delayed care translating into measurable outcome deterioration.',
         'Without intervention, NHS strain is likely to trigger emergency measures and politically costly reversals.',
-      ])
+      ]),
     };
   }
 
-  if (profile.type === 'treasury_mandarin' && projectedDeficitPct !== undefined && projectedDeficitPct > bias.deficitTolerance + 1) {
+  if (
+    profile.type === 'treasury_mandarin' &&
+    projectedDeficitPct !== undefined &&
+    projectedDeficitPct > bias.deficitTolerance + 1
+  ) {
     return {
       timeframe: '6 months',
       likelihood: 'possible',
@@ -868,7 +891,7 @@ function generatePrediction(
         'If this package is implemented as drafted, fiscal headroom is likely to narrow materially by the next review window.',
         'Current proposals imply reduced resilience to adverse shocks unless offsetting measures are identified.',
         'Treasury flexibility is likely to tighten over the next two quarters under this projected deficit path.',
-      ])
+      ]),
     };
   }
 
@@ -879,10 +902,7 @@ function generatePrediction(
 // ADVISER RELATIONSHIP & ACCURACY TRACKING
 // ============================================================================
 
-export function updateAdviserRelationship(
-  hired: HiredAdviser,
-  adviceFollowed: boolean
-): HiredAdviser {
+export function updateAdviserRelationship(hired: HiredAdviser, adviceFollowed: boolean): HiredAdviser {
   const updated = { ...hired };
 
   if (adviceFollowed) {
@@ -916,10 +936,7 @@ export function checkAdviserResignation(hired: HiredAdviser): boolean {
   return false;
 }
 
-export function updateAdviserAccuracy(
-  hired: HiredAdviser,
-  predictionAccurate: boolean
-): HiredAdviser {
+export function updateAdviserAccuracy(hired: HiredAdviser, predictionAccurate: boolean): HiredAdviser {
   const updated = { ...hired };
 
   if (predictionAccurate) {
@@ -965,7 +982,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
   }
 
   // Filter out any potential invalid entries
-  advisersList = advisersList.filter(h => h && h.profile);
+  advisersList = advisersList.filter((h) => h && h.profile);
 
   if (advisersList.length === 0) {
     return (
@@ -994,7 +1011,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
   };
 
   return (
-    <div className="bg-white border border-slate-200  p-4 mb-4">
+    <div className="bg-bg-surface border border-border-strong p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
         <Brain className="w-5 h-5 text-slate-700" />
         <h3 className="font-semibold text-slate-900">Adviser Assessment</h3>
@@ -1008,7 +1025,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
           return (
             <div
               key={hired.profile.type}
-              className="border border-slate-200 rounded-md p-3 hover:bg-slate-50 cursor-pointer transition-colors"
+              className="border border-border-strong p-3 hover:bg-bg-subtle cursor-pointer transition-colors"
               onClick={() => onShowDetail(hired.profile.type)}
             >
               <div className="flex items-start justify-between mb-1">
@@ -1024,20 +1041,18 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
                 </span>
               </div>
 
-              <p className="text-sm text-slate-700 mt-2 line-clamp-2">
-                {opinion.summary}
-              </p>
+              <p className="text-sm text-slate-700 mt-2 line-clamp-2">{opinion.summary}</p>
 
               {opinion.warnings.length > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-amber-700">
                   <AlertTriangle className="w-3 h-3" />
-                  <span>{opinion.warnings.length} warning{opinion.warnings.length !== 1 ? 's' : ''}</span>
+                  <span>
+                    {opinion.warnings.length} warning{opinion.warnings.length !== 1 ? 's' : ''}
+                  </span>
                 </div>
               )}
 
-              <div className="mt-2 text-xs text-blue-600 font-medium">
-                Click for detailed analysis →
-              </div>
+              <div className="mt-2 text-xs text-blue-600 font-medium">Click for detailed analysis →</div>
             </div>
           );
         })}
@@ -1078,10 +1093,7 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
                 </span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
-            >
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -1092,28 +1104,31 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('analysis')}
-              className={`py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'analysis'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-                }`}
+              className={`py-3 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'analysis'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
             >
               Analysis & Warnings
             </button>
             <button
               onClick={() => setActiveTab('recommendations')}
-              className={`py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'recommendations'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-                }`}
+              className={`py-3 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'recommendations'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
             >
               Recommendations
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === 'profile'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-slate-600 hover:text-slate-900'
-                }`}
+              className={`py-3 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'profile'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-slate-600 hover:text-slate-900'
+              }`}
             >
               Adviser Profile
             </button>
@@ -1159,10 +1174,7 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
                   <h3 className="text-lg font-semibold text-slate-900 mb-3">Detailed Analysis</h3>
                   <div className="space-y-4">
                     {opinion.detailedAnalysis.map((analysis, idx) => (
-                      <div
-                        key={idx}
-                        className="border border-slate-200 rounded-md p-4"
-                      >
+                      <div key={idx} className="border border-border-strong p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
                             {getSeverityIcon(analysis.severity, 'w-5 h-5')}
@@ -1183,12 +1195,14 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
               )}
 
               {opinion.prediction && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                <div className="bg-bg-subtle border border-border-subtle p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">Prediction</h4>
                   <div className="flex items-center gap-2 text-sm text-blue-800 mb-2">
                     <span className="font-medium">Timeframe: {opinion.prediction.timeframe}</span>
                     <span>•</span>
-                    <span className={`px-2 py-0.5 rounded text-xs ${getLikelihoodBadgeClass(opinion.prediction.likelihood)}`}>
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs ${getLikelihoodBadgeClass(opinion.prediction.likelihood)}`}
+                    >
                       {opinion.prediction.likelihood.replace('_', ' ')}
                     </span>
                   </div>
@@ -1201,7 +1215,9 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
           {activeTab === 'recommendations' && (
             <div className="space-y-4">
               {opinion.recommendations.length === 0 ? (
-                <p className="text-slate-600">No specific recommendations at this time. Continue monitoring the situation.</p>
+                <p className="text-slate-600">
+                  No specific recommendations at this time. Continue monitoring the situation.
+                </p>
               ) : (
                 opinion.recommendations.map((rec, idx) => (
                   <div
@@ -1263,7 +1279,7 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 rounded-md p-4">
+              <div className="bg-slate-50 border border-border-strong p-4">
                 <h3 className="text-lg font-semibold text-slate-900 mb-3">Track Record</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -1325,7 +1341,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
   adviserSystem,
   onHire,
   onFire,
-  onBack
+  onBack,
 }) => {
   const [selectedAdviser, setSelectedAdviser] = useState<AdviserProfile | null>(null);
   const [confirmFire, setConfirmFire] = useState<AdviserType | null>(null);
@@ -1352,7 +1368,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
   }
 
   // Filter out any potential invalid entries
-  hiredAdvisersList = hiredAdvisersList.filter(h => h && h.profile);
+  hiredAdvisersList = hiredAdvisersList.filter((h) => h && h.profile);
   // Recalculate size after filtering
   hiredAdvisersSize = hiredAdvisersList.length;
 
@@ -1363,10 +1379,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
     <div className="min-h-screen bg-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <button
-            onClick={onBack}
-            className="text-slate-600 hover:text-slate-900 font-medium flex items-center gap-2"
-          >
+          <button onClick={onBack} className="text-slate-600 hover:text-slate-900 font-medium flex items-center gap-2">
             ← Back to Game
           </button>
         </div>
@@ -1374,8 +1387,8 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
         <div className="bg-white   p-6 mb-6">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Economic Adviser Management</h1>
           <p className="text-slate-600">
-            Appoint up to {maxAdvisers} economic advisers to provide guidance on policy decisions.
-            Currently appointed: {hiredAdvisersSize}/{maxAdvisers}
+            Appoint up to {maxAdvisers} economic advisers to provide guidance on policy decisions. Currently appointed:{' '}
+            {hiredAdvisersSize}/{maxAdvisers}
           </p>
         </div>
 
@@ -1385,10 +1398,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
             <h2 className="text-xl font-bold text-slate-900 mb-4">Current Advisory Team</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {hiredAdvisersList.map((hired) => (
-                <div
-                  key={hired.profile.type}
-                  className="border border-slate-200  p-4"
-                >
+                <div key={hired.profile.type} className="border border-slate-200  p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h3 className="font-bold text-slate-900">{hired.profile.name}</h3>
@@ -1456,9 +1466,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
           </h2>
 
           {!canHireMore && (
-            <p className="text-slate-600 mb-4">
-              You must dismiss an existing adviser before hiring a new one.
-            </p>
+            <p className="text-slate-600 mb-4">You must dismiss an existing adviser before hiring a new one.</p>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1473,10 +1481,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
               }
               return true;
             }).map((profile) => (
-              <div
-                key={profile.type}
-                className="border border-slate-200  p-4 hover:border-slate-300 transition-colors"
-              >
+              <div key={profile.type} className="border border-slate-200  p-4 hover:border-slate-300 transition-colors">
                 <h3 className="font-bold text-slate-900 mb-1">{profile.name}</h3>
                 <p className="text-sm text-slate-600 mb-3">{profile.title}</p>
                 <p className="text-sm text-slate-700 mb-4 line-clamp-3">{profile.description}</p>
@@ -1491,10 +1496,11 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
                   <button
                     onClick={() => onHire(profile.type)}
                     disabled={!canHireMore}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${canHireMore
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                      }`}
+                    className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
+                      canHireMore
+                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                    }`}
                   >
                     Appoint
                   </button>
@@ -1573,10 +1579,11 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
                   setSelectedAdviser(null);
                 }}
                 disabled={!canHireMore}
-                className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${canHireMore
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                  }`}
+                className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+                  canHireMore
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                }`}
               >
                 Appoint {selectedAdviser.name}
               </button>
@@ -1707,10 +1714,10 @@ function getPriorityBorderClass(priority: 'immediate' | 'important' | 'consider'
 export function createInitialAdviserSystem(): AdviserSystemState {
   return {
     hiredAdvisers: new Map(),
-    availableAdvisers: new Set(ADVISER_PROFILES.map(p => p.type)),
+    availableAdvisers: new Set(ADVISER_PROFILES.map((p) => p.type)),
     currentOpinions: new Map(),
     showDetailedView: null,
-    adviserEvents: []
+    adviserEvents: [],
   };
 }
 
@@ -1719,7 +1726,7 @@ export function hireAdviser(
   adviserType: AdviserType,
   currentMonth: number
 ): AdviserSystemState {
-  const profile = ADVISER_PROFILES.find(p => p.type === adviserType);
+  const profile = ADVISER_PROFILES.find((p) => p.type === adviserType);
   if (!profile) return system;
 
   const hired: HiredAdviser = {
@@ -1729,7 +1736,7 @@ export function hireAdviser(
     adviceIgnoredCount: 0,
     accuratePredictions: 0,
     inaccuratePredictions: 0,
-    relationship: 'good'
+    relationship: 'good',
   };
 
   const newHiredAdvisers = new Map(system.hiredAdvisers);
@@ -1741,14 +1748,11 @@ export function hireAdviser(
   return {
     ...system,
     hiredAdvisers: newHiredAdvisers,
-    availableAdvisers: newAvailableAdvisers
+    availableAdvisers: newAvailableAdvisers,
   };
 }
 
-export function fireAdviser(
-  system: AdviserSystemState,
-  adviserType: AdviserType
-): AdviserSystemState {
+export function fireAdviser(system: AdviserSystemState, adviserType: AdviserType): AdviserSystemState {
   const newHiredAdvisers = new Map(system.hiredAdvisers);
   newHiredAdvisers.delete(adviserType);
 
@@ -1762,6 +1766,6 @@ export function fireAdviser(
     ...system,
     hiredAdvisers: newHiredAdvisers,
     availableAdvisers: newAvailableAdvisers,
-    currentOpinions: newCurrentOpinions
+    currentOpinions: newCurrentOpinions,
   };
 }

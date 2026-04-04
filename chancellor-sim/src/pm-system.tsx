@@ -33,9 +33,11 @@ export function shouldSendScheduledMessage(pmRelationship: PMRelationshipState, 
 /**
  * Determine if PM should send an event-triggered message based on current game state
  */
-export function shouldSendEventTriggeredMessage(
-  gameState: GameState
-): { shouldSend: boolean; messageType: PMMessageType | null; reason: string } {
+export function shouldSendEventTriggeredMessage(gameState: GameState): {
+  shouldSend: boolean;
+  messageType: PMMessageType | null;
+  reason: string;
+} {
   const { political, pmRelationship, fiscal, markets, services, economic } = gameState;
   const obrHeadroom = gameState.obr?.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
 
@@ -54,7 +56,10 @@ export function shouldSendEventTriggeredMessage(
   }
 
   // Priority: fiscal rule breach, then market stress, then service deterioration.
-  if (!gameState.political.fiscalRuleCompliance.overallCompliant && gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
+  if (
+    !gameState.political.fiscalRuleCompliance.overallCompliant &&
+    gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2
+  ) {
     return { shouldSend: true, messageType: 'concern', reason: 'fiscal_rule_breach' };
   }
 
@@ -81,7 +86,12 @@ export function shouldSendEventTriggeredMessage(
     return { shouldSend: true, messageType: 'concern', reason: 'low_approval' };
   }
 
-  if (gameState.services.nhsQuality < 55 || gameState.services.educationQuality < 60 || gameState.services.policingEffectiveness < 50 || gameState.services.courtBacklogPerformance < 50) {
+  if (
+    gameState.services.nhsQuality < 55 ||
+    gameState.services.educationQuality < 60 ||
+    gameState.services.policingEffectiveness < 50 ||
+    gameState.services.courtBacklogPerformance < 50
+  ) {
     if (gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 2) {
       return { shouldSend: true, messageType: 'concern', reason: 'service_deterioration' };
     }
@@ -100,22 +110,30 @@ export function shouldSendEventTriggeredMessage(
     const [threeAgo, twoAgo, oneAgo] = snapshots.slice(-3);
     const macroImproving =
       threeAgo && twoAgo && oneAgo
-        ? (oneAgo.inflation < threeAgo.inflation && oneAgo.unemployment <= threeAgo.unemployment)
+        ? oneAgo.inflation < threeAgo.inflation && oneAgo.unemployment <= threeAgo.unemployment
         : false;
-    const headroomImproving = threeAgo && oneAgo && (gameState.obr?.fiscalHeadroomForecast_bn ?? 0) > 0 && (oneAgo.deficit < threeAgo.deficit);
+    const headroomImproving =
+      threeAgo && oneAgo && (gameState.obr?.fiscalHeadroomForecast_bn ?? 0) > 0 && oneAgo.deficit < threeAgo.deficit;
     if (macroImproving || headroomImproving) {
       return { shouldSend: true, messageType: 'praise', reason: 'progress_acknowledged' };
     }
   }
 
   // Positive: Praise for good performance
-  if (political.pmTrust > 75 && political.governmentApproval > 50 &&
+  if (
+    political.pmTrust > 75 &&
+    political.governmentApproval > 50 &&
     gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 4 &&
-    pmRelationship.consecutivePoorPerformance === 0) {
+    pmRelationship.consecutivePoorPerformance === 0
+  ) {
     return { shouldSend: true, messageType: 'praise', reason: 'good_performance' };
   }
-  if (fiscal.fiscalHeadroom_bn > 18 && markets.giltYield10y < 4.2 && economic.gdpGrowthAnnual > 1.2 &&
-      gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 4) {
+  if (
+    fiscal.fiscalHeadroom_bn > 18 &&
+    markets.giltYield10y < 4.2 &&
+    economic.gdpGrowthAnnual > 1.2 &&
+    gameState.metadata.currentTurn - pmRelationship.lastContactTurn >= 4
+  ) {
     return { shouldSend: true, messageType: 'praise', reason: 'headroom_rebuilt' };
   }
 
@@ -139,9 +157,8 @@ function calculateDeficitThreatTarget(gameState: GameState): {
 
   const reductionShare = 0.15 + Math.random() * 0.1;
   const proportionalTarget = currentDeficit * (1 - reductionShare);
-  const ruleConstrainedTarget = limitFromRule !== undefined
-    ? Math.min(proportionalTarget, limitFromRule)
-    : proportionalTarget;
+  const ruleConstrainedTarget =
+    limitFromRule !== undefined ? Math.min(proportionalTarget, limitFromRule) : proportionalTarget;
 
   const deadlineMonths = 2 + Math.floor(Math.random() * 3);
 
@@ -154,16 +171,12 @@ function calculateDeficitThreatTarget(gameState: GameState): {
 /**
  * Generate message content based on type and game state
  */
-export function generatePMMessage(
-  gameState: GameState,
-  messageType: PMMessageType,
-  reason: string
-): PMMessage {
+export function generatePMMessage(gameState: GameState, messageType: PMMessageType, reason: string): PMMessage {
   const { political, economic, fiscal, pmRelationship, metadata } = gameState;
   const turn = metadata.currentTurn;
 
   // 1. Filter messages by type
-  const potentialMessages = PM_MESSAGES.filter(m => m.type === messageType);
+  const potentialMessages = PM_MESSAGES.filter((m) => m.type === messageType);
   const cooldownMap = gameState.pmRelationship.messageTemplateLastFiredTurn || {};
   const currentTurn = gameState.metadata.currentTurn;
 
@@ -191,14 +204,19 @@ export function generatePMMessage(
     const obrHeadroom = gameState.obr?.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
     if (c.minHeadroom !== undefined && obrHeadroom < c.minHeadroom) return false;
     if (c.maxHeadroom !== undefined && obrHeadroom > c.maxHeadroom) return false;
-    if (c.fiscalRuleCompliant !== undefined && gameState.political.fiscalRuleCompliance.overallCompliant !== c.fiscalRuleCompliant) return false;
+    if (
+      c.fiscalRuleCompliant !== undefined &&
+      gameState.political.fiscalRuleCompliance.overallCompliant !== c.fiscalRuleCompliant
+    )
+      return false;
     if (c.reshuffleRisk !== undefined && pmRelationship.reshuffleRisk < c.reshuffleRisk) return false;
     if (c.minGrowth !== undefined && economic.gdpGrowthAnnual < c.minGrowth) return false;
     if (c.maxGrowth !== undefined && economic.gdpGrowthAnnual > c.maxGrowth) return false;
     if (c.serviceMetric) {
-      const metricValue = c.serviceMetric === 'localGovServices'
-        ? (gameState.devolution?.localGov?.localServicesQuality ?? 50)
-        : (gameState.services as any)[c.serviceMetric];
+      const metricValue =
+        c.serviceMetric === 'localGovServices'
+          ? (gameState.devolution?.localGov?.localServicesQuality ?? 50)
+          : (gameState.services as any)[c.serviceMetric];
       if (typeof metricValue !== 'number') return false;
       if (c.maxServiceQuality !== undefined && metricValue > c.maxServiceQuality) return false;
       if (c.minServiceQuality !== undefined && metricValue < c.minServiceQuality) return false;
@@ -226,7 +244,7 @@ export function generatePMMessage(
 
     if (c.spendingCuts) {
       // Assume cuts if deficit is low and services struggling
-      const isAusterity = fiscal.deficit_bn < 40 && (gameState.services.nhsQuality < 55);
+      const isAusterity = fiscal.deficit_bn < 40 && gameState.services.nhsQuality < 55;
       if (!isAusterity) return false;
     }
 
@@ -255,7 +273,7 @@ export function generatePMMessage(
       content: 'Chancellor, we need to speak about the economy.',
       tone: 'neutral',
       read: false,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -272,24 +290,27 @@ export function generatePMMessage(
     { serviceName: 'prisons', qualityScore: gameState.services.prisonSafety },
     { serviceName: 'mental health', qualityScore: gameState.services.mentalHealthAccess },
     { serviceName: 'housing', qualityScore: gameState.services.affordableHousingDelivery },
-    { serviceName: 'local government services', qualityScore: gameState.devolution?.localGov?.localServicesQuality ?? 50 },
+    {
+      serviceName: 'local government services',
+      qualityScore: gameState.devolution?.localGov?.localServicesQuality ?? 50,
+    },
   ];
   const lowestService = [...serviceEntries].sort((a, b) => a.qualityScore - b.qualityScore)[0];
   const targetedMetric = selectedTemplate.conditions.serviceMetric as string | undefined;
   const targetedService = targetedMetric
     ? serviceEntries.find((entry) => {
-      const metricName = targetedMetric.toLowerCase();
-      if (metricName === 'nhsquality') return entry.serviceName === 'NHS quality';
-      if (metricName === 'educationquality') return entry.serviceName === 'education quality';
-      if (metricName === 'infrastructurequality') return entry.serviceName === 'infrastructure quality';
-      if (metricName === 'policingeffectiveness') return entry.serviceName === 'policing';
-      if (metricName === 'courtbacklogperformance') return entry.serviceName === 'courts';
-      if (metricName === 'prisonsafety') return entry.serviceName === 'prisons';
-      if (metricName === 'mentalhealthaccess') return entry.serviceName === 'mental health';
-      if (metricName === 'affordablehousingdelivery') return entry.serviceName === 'housing';
-      if (metricName === 'localgovservices') return entry.serviceName === 'local government services';
-      return false;
-    })
+        const metricName = targetedMetric.toLowerCase();
+        if (metricName === 'nhsquality') return entry.serviceName === 'NHS quality';
+        if (metricName === 'educationquality') return entry.serviceName === 'education quality';
+        if (metricName === 'infrastructurequality') return entry.serviceName === 'infrastructure quality';
+        if (metricName === 'policingeffectiveness') return entry.serviceName === 'policing';
+        if (metricName === 'courtbacklogperformance') return entry.serviceName === 'courts';
+        if (metricName === 'prisonsafety') return entry.serviceName === 'prisons';
+        if (metricName === 'mentalhealthaccess') return entry.serviceName === 'mental health';
+        if (metricName === 'affordablehousingdelivery') return entry.serviceName === 'housing';
+        if (metricName === 'localgovservices') return entry.serviceName === 'local government services';
+        return false;
+      })
     : null;
   const serviceForTemplate = targetedService || lowestService;
   if (messageType === 'demand' && reason === 'high_deficit') {
@@ -315,8 +336,8 @@ export function generatePMMessage(
     .replace('{backbench}', Math.round(political.backbenchSatisfaction).toString())
     .replace('{month}', monthName)
     .replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
-    .replace('{deadlineMonths}', String((threatDeadlineTurn ?? (turn + 3)) - turn))
-    .replace('{deadlineTurn}', String(threatDeadlineTurn ?? (turn + 3)));
+    .replace('{deadlineMonths}', String((threatDeadlineTurn ?? turn + 3) - turn))
+    .replace('{deadlineTurn}', String(threatDeadlineTurn ?? turn + 3));
 
   let subject = selectedTemplate.subject.replace('{month}', monthName);
 
@@ -331,14 +352,14 @@ export function generatePMMessage(
     demandCategory: selectedTemplate.demandCategory,
     demandDetails: selectedTemplate.demandDetails
       ?.replace('{targetDeficit}', Math.round(threatTargetDeficit_bn ?? 50).toString())
-      ?.replace('{deadlineMonths}', String((threatDeadlineTurn ?? (turn + 3)) - turn))
-      ?.replace('{deadlineTurn}', String(threatDeadlineTurn ?? (turn + 3))),
+      ?.replace('{deadlineMonths}', String((threatDeadlineTurn ?? turn + 3) - turn))
+      ?.replace('{deadlineTurn}', String(threatDeadlineTurn ?? turn + 3)),
     consequenceWarning: selectedTemplate.consequenceWarning,
     threatTargetDeficit_bn,
     threatDeadlineTurn,
     threatBaselineDeficit_bn,
     read: false,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
 }
 
@@ -445,7 +466,7 @@ export function updatePMRelationship(gameState: GameState): Partial<PMRelationsh
   }
 
   // Unmet demands
-  const unmetDemands = pmRelationship.activeDemands.filter(d => !d.met && metadata.currentTurn > d.deadline).length;
+  const unmetDemands = pmRelationship.activeDemands.filter((d) => !d.met && metadata.currentTurn > d.deadline).length;
   reshuffleRisk += unmetDemands * 15;
 
   updates.reshuffleRisk = Math.min(100, reshuffleRisk);
@@ -510,8 +531,20 @@ export function processPMCommunications(gameState: GameState): {
  * Helper function to get month name
  */
 function getMonthName(month: number): string {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'];
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   return months[month - 1] || 'Unknown';
 }
 
@@ -519,11 +552,9 @@ function getMonthName(month: number): string {
  * Mark a message as read
  */
 export function markMessageAsRead(pmRelationship: PMRelationshipState, messageId: string): PMRelationshipState {
-  const updatedMessages = pmRelationship.messages.map(msg =>
-    msg.id === messageId ? { ...msg, read: true } : msg
-  );
+  const updatedMessages = pmRelationship.messages.map((msg) => (msg.id === messageId ? { ...msg, read: true } : msg));
 
-  const unreadCount = updatedMessages.filter(msg => !msg.read).length;
+  const unreadCount = updatedMessages.filter((msg) => !msg.read).length;
 
   return {
     ...pmRelationship,

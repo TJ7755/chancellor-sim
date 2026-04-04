@@ -108,7 +108,10 @@ function getDetailedTaxRate(state: MinimalStateForSocialMedia, id: string, fallb
   return found?.currentRate ?? fallback;
 }
 
-function checkSocialPostConditions(conditions: SocialPostTemplate['conditions'], state: MinimalStateForSocialMedia): boolean {
+function checkSocialPostConditions(
+  conditions: SocialPostTemplate['conditions'],
+  state: MinimalStateForSocialMedia
+): boolean {
   if (!conditions) return true;
   const gdpGrowth = state.economy?.gdpGrowthAnnual ?? state.economy?.growthRate ?? 0;
   const inflation = state.economy?.inflationCPI ?? state.economy?.inflation ?? 2;
@@ -128,7 +131,7 @@ function checkSocialPostConditions(conditions: SocialPostTemplate['conditions'],
   const hasWealthTax = getDetailedTaxRate(state, 'wealthTax', 0) > 0;
   if (conditions.wealthTax && !hasWealthTax) return false;
 
-  const isAusterity = (deficit < 30) && ((state.services?.nhsQuality ?? 60) < 55);
+  const isAusterity = deficit < 30 && (state.services?.nhsQuality ?? 60) < 55;
   if (conditions.spendingCuts && !isAusterity) return false;
   if (conditions.pensionCuts && approval > 30) return false;
 
@@ -164,7 +167,7 @@ export function calculateSocialMediaSentiment(state: MinimalStateForSocialMedia)
   if (positive > 50) trending = 'improving';
   else if (negative > 50) trending = 'worsening';
 
-  const volume = Math.min(100, 50 + (Math.abs(50 - approval)) * 0.8);
+  const volume = Math.min(100, 50 + Math.abs(50 - approval) * 0.8);
 
   return {
     positive: Math.round(positive),
@@ -188,17 +191,58 @@ export function generateTrendingHashtags(state: MinimalStateForSocialMedia): Tre
     trending: 'stable',
   });
 
-  if (approval < 35) hashtags.push({ tag: '#ToriesInDisguise', posts: Math.floor(8000 + Math.random() * 5000), sentiment: 'negative', trending: 'rising' });
-  if (approval > 60) hashtags.push({ tag: '#LabourDelivering', posts: Math.floor(6000 + Math.random() * 4000), sentiment: 'positive', trending: 'stable' });
-  if (growth < 1) hashtags.push({ tag: '#RecessionUK', posts: Math.floor(12000 + Math.random() * 8000), sentiment: 'negative', trending: 'rising' });
-  if (growth > 2.5) hashtags.push({ tag: '#EconomicRecovery', posts: Math.floor(5000 + Math.random() * 3000), sentiment: 'positive', trending: 'stable' });
-  if (backbenchSatisfaction < 40) hashtags.push({ tag: '#LabourCivilWar', posts: Math.floor(7000 + Math.random() * 4000), sentiment: 'negative', trending: 'rising' });
-  if (state.economy?.inflation && state.economy.inflation > 3) hashtags.push({ tag: '#CostOfLiving', posts: Math.floor(10000 + Math.random() * 5000), sentiment: 'negative', trending: 'rising' });
+  if (approval < 35)
+    hashtags.push({
+      tag: '#ToriesInDisguise',
+      posts: Math.floor(8000 + Math.random() * 5000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  if (approval > 60)
+    hashtags.push({
+      tag: '#LabourDelivering',
+      posts: Math.floor(6000 + Math.random() * 4000),
+      sentiment: 'positive',
+      trending: 'stable',
+    });
+  if (growth < 1)
+    hashtags.push({
+      tag: '#RecessionUK',
+      posts: Math.floor(12000 + Math.random() * 8000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  if (growth > 2.5)
+    hashtags.push({
+      tag: '#EconomicRecovery',
+      posts: Math.floor(5000 + Math.random() * 3000),
+      sentiment: 'positive',
+      trending: 'stable',
+    });
+  if (backbenchSatisfaction < 40)
+    hashtags.push({
+      tag: '#LabourCivilWar',
+      posts: Math.floor(7000 + Math.random() * 4000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
+  if (state.economy?.inflation && state.economy.inflation > 3)
+    hashtags.push({
+      tag: '#CostOfLiving',
+      posts: Math.floor(10000 + Math.random() * 5000),
+      sentiment: 'negative',
+      trending: 'rising',
+    });
 
   return hashtags.slice(0, 4);
 }
 
-function resolveAuthor(persona: SocialPersona): { name: string; handle: string; type: SocialMediaPost['authorType']; verified: boolean } {
+function resolveAuthor(persona: SocialPersona): {
+  name: string;
+  handle: string;
+  type: SocialMediaPost['authorType'];
+  verified: boolean;
+} {
   switch (persona) {
     case 'journalist_serious':
     case 'journalist_tabloid': {
@@ -220,7 +264,12 @@ function resolveAuthor(persona: SocialPersona): { name: string; handle: string; 
       const names = ['James', 'Sarah', 'Mohammed', 'Emma', 'Priya', 'Tom', 'Olivia', 'Fatima', 'Daniel', 'Nadia'];
       const cities = ['London', 'Manchester', 'Birmingham', 'Leeds', 'Glasgow', 'Cardiff', 'Bristol'];
       const name = names[Math.floor(Math.random() * names.length)];
-      return { name: `${name} from ${cities[Math.floor(Math.random() * cities.length)]}`, handle: `@${name.toLowerCase()}${Math.floor(Math.random() * 9999)}`, type: 'citizen', verified: false };
+      return {
+        name: `${name} from ${cities[Math.floor(Math.random() * cities.length)]}`,
+        handle: `@${name.toLowerCase()}${Math.floor(Math.random() * 9999)}`,
+        type: 'citizen',
+        verified: false,
+      };
     }
   }
 }
@@ -230,7 +279,7 @@ export function generateSocialMediaPosts(
   sentiment: SocialMediaSentiment,
   hashtags: TrendingHashtag[]
 ): { posts: SocialMediaPost[]; usedTemplateIds: string[] } {
-  const currentTurn = (state.metadata?.currentTurn ?? state.turn ?? 0);
+  const currentTurn = state.metadata?.currentTurn ?? state.turn ?? 0;
   const recent = state.socialMedia?.recentlyUsedPostIds || [];
   const blockedWithinWindow = new Set(
     recent
@@ -242,7 +291,7 @@ export function generateSocialMediaPosts(
       .filter((value): value is string => !!value)
   );
 
-  const validTemplates = SOCIAL_MEDIA_POSTS.filter(t => checkSocialPostConditions(t.conditions, state));
+  const validTemplates = SOCIAL_MEDIA_POSTS.filter((t) => checkSocialPostConditions(t.conditions, state));
   if (validTemplates.length === 0) return { posts: [], usedTemplateIds: [] };
 
   const eligibleTemplates = validTemplates.filter((template) => !blockedWithinWindow.has(template.id));
@@ -259,8 +308,8 @@ export function generateSocialMediaPosts(
     usedTemplateIds.push(template.id);
 
     const content = contentTemplate
-      .replace('{growth}', ((state.economy?.gdpGrowthAnnual ?? 0)).toFixed(1))
-      .replace('{inflation}', ((state.economy?.inflationCPI ?? 0)).toFixed(1));
+      .replace('{growth}', (state.economy?.gdpGrowthAnnual ?? 0).toFixed(1))
+      .replace('{inflation}', (state.economy?.inflationCPI ?? 0).toFixed(1));
 
     posts.push({
       id: `post-${Date.now()}-${i}`,
@@ -271,12 +320,15 @@ export function generateSocialMediaPosts(
       sentiment: template.sentiment,
       likes: Math.floor(Math.random() * 5000) + 10,
       retweets: Math.floor(Math.random() * 1000) + 1,
-      timestamp: new Date(Date.now() - (i * 300000)),
+      timestamp: new Date(Date.now() - i * 300000),
       verified: authorInfo.verified,
     });
   }
 
-  return { posts: posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()), usedTemplateIds: Array.from(new Set(usedTemplateIds)) };
+  return {
+    posts: posts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()),
+    usedTemplateIds: Array.from(new Set(usedTemplateIds)),
+  };
 }
 
 export function calculateSocialMediaImpact(sentiment: SocialMediaSentiment): number {
@@ -299,7 +351,9 @@ export const SocialMediaPulseStrip: React.FC<{ state: MinimalStateForSocialMedia
     setSocialMedia({ posts: generated.posts, hashtags, sentiment, lastUpdate: new Date() });
   }, [state]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   if (!socialMedia) return null;
 
@@ -321,7 +375,11 @@ export const SocialMediaPulseStrip: React.FC<{ state: MinimalStateForSocialMedia
           <span className="text-bad">−{sentiment.negative}</span>
         </div>
         <div className="mt-1 text-xs text-muted">
-          {sentiment.trending === 'improving' ? 'Improving' : sentiment.trending === 'worsening' ? 'Worsening' : 'Stable'}
+          {sentiment.trending === 'improving'
+            ? 'Improving'
+            : sentiment.trending === 'worsening'
+              ? 'Worsening'
+              : 'Stable'}
           {sentiment.volume > 70 ? ' · High volume' : ''}
         </div>
       </div>

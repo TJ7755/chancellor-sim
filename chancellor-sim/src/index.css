@@ -69,60 +69,60 @@
   --shadow-lg: none;
 
   /* Light Mode Colours */
-  --color-bg: #F5F2ED;
-  --color-bg-surface: #FAF8F5;
-  --color-bg-elevated: #FFFFFF;
-  --color-bg-subdued: #EDEAE4;
+  --color-bg: #f5f2ed;
+  --color-bg-surface: #faf8f5;
+  --color-bg-elevated: #ffffff;
+  --color-bg-subdued: #edeae4;
 
   /* Text */
-  --color-text-primary: #1A1814;
-  --color-text-secondary: #4A4640;
-  --color-text-tertiary: #6B665E;
-  --color-text-muted: #8A847C;
-  --color-text-inverse: #FFFFFF;
+  --color-text-primary: #1a1814;
+  --color-text-secondary: #4a4640;
+  --color-text-tertiary: #6b665e;
+  --color-text-muted: #8a847c;
+  --color-text-inverse: #ffffff;
 
   /* Primary — Deep Treasury Red */
-  --color-primary: #8B0000;
-  --color-primary-hover: #6B0000;
-  --color-primary-active: #4A0000;
+  --color-primary: #8b0000;
+  --color-primary-hover: #6b0000;
+  --color-primary-active: #4a0000;
   --color-primary-subtle: rgba(139, 0, 0, 0.06);
   --color-primary-muted: rgba(139, 0, 0, 0.12);
 
   /* Secondary — Ink Blue */
-  --color-secondary: #1E3A5F;
+  --color-secondary: #1e3a5f;
   --color-secondary-hover: #152942;
   --color-secondary-subtle: rgba(30, 58, 95, 0.06);
 
   /* Status */
-  --color-good: #1B5E20;
+  --color-good: #1b5e20;
   --color-good-subtle: rgba(27, 94, 32, 0.08);
-  --color-warning: #8B6914;
+  --color-warning: #8b6914;
   --color-warning-subtle: rgba(139, 105, 20, 0.08);
-  --color-bad: #8B0000;
+  --color-bad: #8b0000;
   --color-bad-subtle: rgba(139, 0, 0, 0.08);
-  --color-neutral: #5A5A5A;
+  --color-neutral: #5a5a5a;
   --color-neutral-subtle: rgba(90, 90, 90, 0.08);
 
   /* Borders */
-  --color-border: #D4CFC6;
-  --color-border-subtle: #E8E3DA;
-  --color-border-strong: #B5AEA2;
+  --color-border: #d4cfc6;
+  --color-border-subtle: #e8e3da;
+  --color-border-strong: #b5aea2;
 
   /* Financial Data */
-  --color-financial: #2B4F7C;
-  --color-financial-hover: #1E3A5F;
-  --color-yield: #B45309;
-  --color-sterling: #2563EB;
+  --color-financial: #2b4f7c;
+  --color-financial-hover: #1e3a5f;
+  --color-yield: #b45309;
+  --color-sterling: #2563eb;
 
   /* Charts */
-  --color-chart-1: #8B0000;
-  --color-chart-2: #1E3A5F;
-  --color-chart-3: #1B5E20;
-  --color-chart-4: #8B6914;
-  --color-chart-5: #6B4C7A;
+  --color-chart-1: #8b0000;
+  --color-chart-2: #1e3a5f;
+  --color-chart-3: #1b5e20;
+  --color-chart-4: #8b6914;
+  --color-chart-5: #6b4c7a;
 
   /* Focus */
-  --color-focus: #8B0000;
+  --color-focus: #8b0000;
   --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-focus);
 
   /* Shell */
@@ -133,52 +133,52 @@
 
 /* Dark Mode */
 .dark {
-  --color-bg: #0F0E0C;
-  --color-bg-surface: #1A1814;
+  --color-bg: #0f0e0c;
+  --color-bg-surface: #1a1814;
   --color-bg-elevated: #242119;
   --color-bg-subdued: #151310;
 
-  --color-text-primary: #F0EBE3;
-  --color-text-secondary: #C9C2B8;
-  --color-text-tertiary: #9A9286;
-  --color-text-muted: #6B665E;
-  --color-text-inverse: #0F0E0C;
+  --color-text-primary: #f0ebe3;
+  --color-text-secondary: #c9c2b8;
+  --color-text-tertiary: #9a9286;
+  --color-text-muted: #6b665e;
+  --color-text-inverse: #0f0e0c;
 
-  --color-primary: #C42020;
-  --color-primary-hover: #E03030;
-  --color-primary-active: #FF4444;
+  --color-primary: #c42020;
+  --color-primary-hover: #e03030;
+  --color-primary-active: #ff4444;
   --color-primary-subtle: rgba(196, 32, 32, 0.15);
   --color-primary-muted: rgba(196, 32, 32, 0.25);
 
-  --color-secondary: #4A7CB5;
-  --color-secondary-hover: #6A9CD5;
+  --color-secondary: #4a7cb5;
+  --color-secondary-hover: #6a9cd5;
   --color-secondary-subtle: rgba(74, 124, 181, 0.15);
 
-  --color-good: #4A9A65;
+  --color-good: #4a9a65;
   --color-good-subtle: rgba(74, 154, 101, 0.15);
-  --color-warning: #C4A035;
+  --color-warning: #c4a035;
   --color-warning-subtle: rgba(196, 160, 53, 0.15);
-  --color-bad: #D84040;
+  --color-bad: #d84040;
   --color-bad-subtle: rgba(216, 64, 64, 0.15);
-  --color-neutral: #8A847C;
+  --color-neutral: #8a847c;
   --color-neutral-subtle: rgba(138, 132, 124, 0.15);
 
-  --color-border: #3A3631;
-  --color-border-subtle: #2A2621;
-  --color-border-strong: #4A4640;
+  --color-border: #3a3631;
+  --color-border-subtle: #2a2621;
+  --color-border-strong: #4a4640;
 
-  --color-financial: #6A9CD5;
-  --color-financial-hover: #8ABCF5;
-  --color-yield: #F59E0B;
-  --color-sterling: #60A5FA;
+  --color-financial: #6a9cd5;
+  --color-financial-hover: #8abcf5;
+  --color-yield: #f59e0b;
+  --color-sterling: #60a5fa;
 
-  --color-chart-1: #D84040;
-  --color-chart-2: #6A9CD5;
-  --color-chart-3: #4A9A65;
-  --color-chart-4: #C4A035;
-  --color-chart-5: #A78BFA;
+  --color-chart-1: #d84040;
+  --color-chart-2: #6a9cd5;
+  --color-chart-3: #4a9a65;
+  --color-chart-4: #c4a035;
+  --color-chart-5: #a78bfa;
 
-  --color-focus: #C42020;
+  --color-focus: #c42020;
   --texture-line: rgba(255, 244, 230, 0.04);
   --hero-wash: var(--color-bg);
 }
@@ -288,39 +288,89 @@ body::before {
 }
 
 /* Background Colours */
-.bg-default { background-color: var(--color-bg); }
-.bg-surface { background-color: var(--color-bg-surface); }
-.bg-elevated { background-color: var(--color-bg-elevated); }
-.bg-subdued { background-color: var(--color-bg-subdued); }
-.bg-primary { background-color: var(--color-primary); }
-.bg-primary-subtle { background-color: var(--color-primary-subtle); }
-.bg-secondary-subtle { background-color: var(--color-secondary-subtle); }
+.bg-default {
+  background-color: var(--color-bg);
+}
+.bg-surface {
+  background-color: var(--color-bg-surface);
+}
+.bg-elevated {
+  background-color: var(--color-bg-elevated);
+}
+.bg-subdued {
+  background-color: var(--color-bg-subdued);
+}
+.bg-primary {
+  background-color: var(--color-primary);
+}
+.bg-primary-subtle {
+  background-color: var(--color-primary-subtle);
+}
+.bg-secondary-subtle {
+  background-color: var(--color-secondary-subtle);
+}
 
 /* Text Colours */
-.text-primary-color { color: var(--color-text-primary); }
-.text-secondary-color { color: var(--color-text-secondary); }
-.text-tertiary-color { color: var(--color-text-tertiary); }
-.text-muted-color { color: var(--color-text-muted); }
-.text-primary-accent { color: var(--color-primary); }
-.text-financial { color: var(--color-financial); }
+.text-primary-color {
+  color: var(--color-text-primary);
+}
+.text-secondary-color {
+  color: var(--color-text-secondary);
+}
+.text-tertiary-color {
+  color: var(--color-text-tertiary);
+}
+.text-muted-color {
+  color: var(--color-text-muted);
+}
+.text-primary-accent {
+  color: var(--color-primary);
+}
+.text-financial {
+  color: var(--color-financial);
+}
 
 /* Status */
-.text-good { color: var(--color-good); }
-.text-warning { color: var(--color-warning); }
-.text-bad { color: var(--color-bad); }
-.text-neutral { color: var(--color-neutral); }
+.text-good {
+  color: var(--color-good);
+}
+.text-warning {
+  color: var(--color-warning);
+}
+.text-bad {
+  color: var(--color-bad);
+}
+.text-neutral {
+  color: var(--color-neutral);
+}
 
 /* Borders */
-.border-default { border-color: var(--color-border); }
-.border-subtle { border-color: var(--color-border-subtle); }
-.border-strong { border-color: var(--color-border-strong); }
-.border-primary { border-color: var(--color-primary); }
+.border-default {
+  border-color: var(--color-border);
+}
+.border-subtle {
+  border-color: var(--color-border-subtle);
+}
+.border-strong {
+  border-color: var(--color-border-strong);
+}
+.border-primary {
+  border-color: var(--color-primary);
+}
 
 /* Status Backgrounds */
-.bg-good-subtle { background-color: var(--color-good-subtle); }
-.bg-warning-subtle { background-color: var(--color-warning-subtle); }
-.bg-bad-subtle { background-color: var(--color-bad-subtle); }
-.bg-neutral-subtle { background-color: var(--color-neutral-subtle); }
+.bg-good-subtle {
+  background-color: var(--color-good-subtle);
+}
+.bg-warning-subtle {
+  background-color: var(--color-warning-subtle);
+}
+.bg-bad-subtle {
+  background-color: var(--color-bad-subtle);
+}
+.bg-neutral-subtle {
+  background-color: var(--color-neutral-subtle);
+}
 
 /* Buttons */
 .btn {
@@ -482,7 +532,9 @@ body::before {
   text-align: left;
   border-left: 3px solid transparent;
   color: var(--color-text-secondary);
-  transition: background-color 120ms ease, border-color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -677,8 +729,12 @@ body::before {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {

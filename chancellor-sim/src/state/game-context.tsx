@@ -8,17 +8,13 @@
 //   - utils/helpers.ts (turn metadata calculation)
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { VotingRecord } from '../mp-system';
 import {
   EconomicState,
   FiscalState,
-  MarketState,
-  ServicesState,
   PoliticalState,
   AdviserSystem,
-  EventState,
-  SimulationState,
   FiscalRuleId,
-  PolicyRiskModifier,
   createInitialEconomicState,
   createInitialFiscalState,
   createInitialMarketState,
@@ -35,15 +31,8 @@ import {
   createInitialDistributionalState,
   calculateInitialFiscalRuleMetrics,
 } from '../game-integration';
-import {
-  hireAdviser as hireAdviserHelper,
-  fireAdviser as fireAdviserHelper,
-  AdviserType,
-} from '../adviser-system';
-import {
-  ManifestoState,
-  initializeManifestoState,
-} from '../manifesto-system';
+import { hireAdviser as hireAdviserHelper, fireAdviser as fireAdviserHelper, AdviserType } from '../adviser-system';
+import { ManifestoState, initializeManifestoState } from '../manifesto-system';
 import processTurn from '../turn-processor';
 import {
   MPSystemState,
@@ -57,13 +46,7 @@ import {
 } from '../mp-system';
 import { generateAllMPs } from '../mp-data';
 import { identifyMPGroups, shouldRecalculateGroups } from '../mp-groups';
-import {
-  loadMPs,
-  saveMPs,
-  loadVotingRecords,
-  loadPromises,
-  savePromises,
-} from '../mp-storage';
+import { loadMPs, saveMPs, loadVotingRecords, loadPromises, savePromises } from '../mp-storage';
 import { markMessageAsRead } from '../pm-system';
 import { BudgetDraft, clearBudgetDraft, readBudgetDraft, writeBudgetDraft } from './budget-draft';
 import { normalizeLoadedState } from './normalisation';
@@ -223,11 +206,7 @@ function createInitialGameState(): import('../types').GameState {
   const legislativePipeline = createInitialLegislativePipelineState();
   const manifesto = initializeManifestoState();
   const mpSystem = createInitialMPSystem();
-  const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
-    fiscal,
-    economic,
-    political.chosenFiscalRule,
-  );
+  const initialRuleMetrics = calculateInitialFiscalRuleMetrics(fiscal, economic, political.chosenFiscalRule);
 
   return {
     metadata: {
@@ -297,9 +276,7 @@ function createInitialGameState(): import('../types').GameState {
 // Game State Provider
 // ===========================
 
-export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [gameState, setGameState] = useState<import('../types').GameState>(createInitialGameState());
   const [budgetDraft, setBudgetDraftState] = useState<BudgetDraft | null>(() => readBudgetDraft());
 
@@ -336,7 +313,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         mpSystem: {
           ...normalised.mpSystem,
           allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalised.mpSystem.allMPs,
-          votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalised.mpSystem.votingRecords,
+          votingRecords:
+            prevState.mpSystem.votingRecords.size > 0
+              ? prevState.mpSystem.votingRecords
+              : normalised.mpSystem.votingRecords,
           promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalised.mpSystem.promises,
         },
       };
@@ -355,7 +335,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log('[MP System] Loaded from IndexedDB:', {
           mpsLoaded: mps?.size || 0,
           votingRecordsCount: votingRecords.size,
-          promisesCount: promises.size
+          promisesCount: promises.size,
         });
 
         if (!mps || mps.size === 0) {
@@ -417,8 +397,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Calculate initial MP stances when MPs are loaded
   useEffect(() => {
-    if (gameState.mpSystem.allMPs.size > 0 &&
-      gameState.mpSystem.currentBudgetSupport.size === 0) {
+    if (gameState.mpSystem.allMPs.size > 0 && gameState.mpSystem.currentBudgetSupport.size === 0) {
       console.log('[MP System] Calculating initial stances for', gameState.mpSystem.allMPs.size, 'MPs...');
       const emptyBudgetChanges: import('../types').BudgetChanges = {};
       const noViolations: string[] = [];
@@ -436,9 +415,9 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
 
       console.log('[MP System] Initial stances calculated:', {
         total: initialStances.size,
-        support: Array.from(initialStances.values()).filter(s => s.stance === 'support').length,
-        oppose: Array.from(initialStances.values()).filter(s => s.stance === 'oppose').length,
-        undecided: Array.from(initialStances.values()).filter(s => s.stance === 'undecided').length
+        support: Array.from(initialStances.values()).filter((s) => s.stance === 'support').length,
+        oppose: Array.from(initialStances.values()).filter((s) => s.stance === 'oppose').length,
+        undecided: Array.from(initialStances.values()).filter((s) => s.stance === 'undecided').length,
       });
 
       setGameState((prev) => ({
@@ -468,11 +447,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     ) => {
       setGameState((prevState) => {
         const newState = createInitialGameState();
-        const initialRuleMetrics = calculateInitialFiscalRuleMetrics(
-          newState.fiscal,
-          newState.economic,
-          fiscalRuleId,
-        );
+        const initialRuleMetrics = calculateInitialFiscalRuleMetrics(newState.fiscal, newState.economic, fiscalRuleId);
 
         let workingMPs = prevState.mpSystem.allMPs;
         if (workingMPs.size === 0) {
@@ -545,8 +520,25 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       };
 
-      const processedState = processTurn(stateWithUpdatedMetadata);
-      return processedState;
+      try {
+        const processedState = processTurn(stateWithUpdatedMetadata);
+        return processedState;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[Turn Processor] Fatal error during turn processing:', message);
+        console.error('[Turn Processor] Turn:', newTurn, 'Month:', month, 'Year:', year);
+        return {
+          ...prevState,
+          metadata: {
+            ...prevState.metadata,
+            currentTurn: newTurn,
+            currentMonth: month,
+            currentYear: year,
+            gameOver: true,
+            gameOverReason: `A critical error occurred during turn processing: ${message}. Your chancellorship has ended.`,
+          },
+        };
+      }
     });
     setBudgetDraftState(null);
     clearBudgetDraft();
@@ -583,7 +575,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         mpSystem: {
           ...normalised.mpSystem,
           allMPs: prevState.mpSystem.allMPs.size > 0 ? prevState.mpSystem.allMPs : normalised.mpSystem.allMPs,
-          votingRecords: prevState.mpSystem.votingRecords.size > 0 ? prevState.mpSystem.votingRecords : normalised.mpSystem.votingRecords,
+          votingRecords:
+            prevState.mpSystem.votingRecords.size > 0
+              ? prevState.mpSystem.votingRecords
+              : normalised.mpSystem.votingRecords,
           promises: prevState.mpSystem.promises.size > 0 ? prevState.mpSystem.promises : normalised.mpSystem.promises,
         },
       };
@@ -604,11 +599,15 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   const respondToEvent = useCallback((eventId: string, responseIndex: number) => {
     setGameState((prevState) => {
       const pendingEvents = prevState.events.pendingEvents || [];
-      const eventIndex = pendingEvents.findIndex((e: import('../types').EmergencyProgramme & { id?: string }) => e.id === eventId);
+      const eventIndex = pendingEvents.findIndex(
+        (e: import('../types').EmergencyProgramme & { id?: string }) => e.id === eventId
+      );
       if (eventIndex === -1) return prevState;
 
       const event = pendingEvents[eventIndex];
-      const responseOptions = (event as unknown as Record<string, unknown>).responseOptions as import('../events-media').EventResponseOption[] | undefined;
+      const responseOptions = (event as unknown as Record<string, unknown>).responseOptions as
+        | import('../events-media').EventResponseOption[]
+        | undefined;
       if (!responseOptions || responseIndex < 0 || responseIndex >= responseOptions.length) return prevState;
 
       const chosenResponse = responseOptions[responseIndex];
@@ -631,19 +630,31 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         if (impact.unemployment) {
           newState = {
             ...newState,
-            economic: { ...newState.economic, unemploymentRate: newState.economic.unemploymentRate + impact.unemployment },
+            economic: {
+              ...newState.economic,
+              unemploymentRate: newState.economic.unemploymentRate + impact.unemployment,
+            },
           };
         }
         if (impact.approvalRating) {
           newState = {
             ...newState,
-            political: { ...newState.political, governmentApproval: Math.max(10, Math.min(80, newState.political.governmentApproval + impact.approvalRating)) },
+            political: {
+              ...newState.political,
+              governmentApproval: Math.max(
+                10,
+                Math.min(80, newState.political.governmentApproval + impact.approvalRating)
+              ),
+            },
           };
         }
         if (impact.pmTrust) {
           newState = {
             ...newState,
-            political: { ...newState.political, pmTrust: Math.max(0, Math.min(100, newState.political.pmTrust + impact.pmTrust)) },
+            political: {
+              ...newState.political,
+              pmTrust: Math.max(0, Math.min(100, newState.political.pmTrust + impact.pmTrust)),
+            },
           };
         }
         if (impact.giltYieldBps) {
@@ -655,7 +666,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         if (impact.sterlingPercent) {
           newState = {
             ...newState,
-            markets: { ...newState.markets, sterlingIndex: newState.markets.sterlingIndex * (1 + impact.sterlingPercent / 100) },
+            markets: {
+              ...newState.markets,
+              sterlingIndex: newState.markets.sterlingIndex * (1 + impact.sterlingPercent / 100),
+            },
           };
         }
       }
@@ -673,7 +687,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
               spending: {
                 ...newState.fiscal.spending,
                 nhsCurrent: newState.fiscal.spending.nhsCurrent + annualisedCost,
-                nhs: (newState.fiscal.spending.nhsCurrent + annualisedCost) + newState.fiscal.spending.nhsCapital,
+                nhs: newState.fiscal.spending.nhsCurrent + annualisedCost + newState.fiscal.spending.nhsCapital,
               },
             },
             services: { ...newState.services, nhsStrikeMonthsRemaining: 0 },
@@ -704,7 +718,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
               spending: {
                 ...newState.fiscal.spending,
                 educationCurrent: newState.fiscal.spending.educationCurrent + annualisedCost,
-                education: (newState.fiscal.spending.educationCurrent + annualisedCost) + newState.fiscal.spending.educationCapital,
+                education:
+                  newState.fiscal.spending.educationCurrent +
+                  annualisedCost +
+                  newState.fiscal.spending.educationCapital,
               },
             },
             services: { ...newState.services, educationStrikeMonthsRemaining: 0 },
@@ -750,7 +767,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           rebuildingMonths: chosenResponse.rebuildingMonths,
           rebuildingCostPerMonth_bn: chosenResponse.rebuildingCostPerMonth || 0,
           remainingMonths: chosenResponse.rebuildingMonths,
-          description: 'Emergency response to ' + (event as unknown as Record<string, unknown>).title
+          description: 'Emergency response to ' + (event as unknown as Record<string, unknown>).title,
         };
         newEmergencyProgrammes.push(programme);
       }
@@ -835,16 +852,21 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
             .sort((a, b) => (b.turnViolated || 0) - (a.turnViolated || 0))[0];
           if (recent) {
             if (recent.id.includes('income-tax')) {
-              budgetChanges.incomeTaxBasicChange = -(fiscal.incomeTaxBasicRate - fiscal.startingTaxRates.incomeTaxBasic) * 0.5;
-              budgetChanges.incomeTaxHigherChange = -(fiscal.incomeTaxHigherRate - fiscal.startingTaxRates.incomeTaxHigher) * 0.5;
-              budgetChanges.incomeTaxAdditionalChange = -(fiscal.incomeTaxAdditionalRate - fiscal.startingTaxRates.incomeTaxAdditional) * 0.5;
+              budgetChanges.incomeTaxBasicChange =
+                -(fiscal.incomeTaxBasicRate - fiscal.startingTaxRates.incomeTaxBasic) * 0.5;
+              budgetChanges.incomeTaxHigherChange =
+                -(fiscal.incomeTaxHigherRate - fiscal.startingTaxRates.incomeTaxHigher) * 0.5;
+              budgetChanges.incomeTaxAdditionalChange =
+                -(fiscal.incomeTaxAdditionalRate - fiscal.startingTaxRates.incomeTaxAdditional) * 0.5;
             } else if (recent.id.includes('ni')) {
-              budgetChanges.niEmployeeChange = -(fiscal.nationalInsuranceRate - fiscal.startingTaxRates.niEmployee) * 0.5;
+              budgetChanges.niEmployeeChange =
+                -(fiscal.nationalInsuranceRate - fiscal.startingTaxRates.niEmployee) * 0.5;
               budgetChanges.niEmployerChange = -(fiscal.employerNIRate - fiscal.startingTaxRates.niEmployer) * 0.5;
             } else if (recent.id.includes('vat')) {
               budgetChanges.vatChange = -(fiscal.vatRate - fiscal.startingTaxRates.vat) * 0.5;
             } else if (recent.id.includes('corp')) {
-              budgetChanges.corporationTaxChange = -(fiscal.corporationTaxRate - fiscal.startingTaxRates.corporationTax) * 0.5;
+              budgetChanges.corporationTaxChange =
+                -(fiscal.corporationTaxRate - fiscal.startingTaxRates.corporationTax) * 0.5;
             } else if (recent.targetDepartment === 'nhs') {
               const target = fiscal.fiscalYearStartSpending.nhs * 1.02;
               const delta = (target - fiscal.spending.nhs) * 0.5;
@@ -876,21 +898,33 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           budgetChanges.otherCurrentChange = -departmentalCut * 2;
         }
 
-        if (budgetChanges.incomeTaxBasicChange !== undefined) fiscal.incomeTaxBasicRate += budgetChanges.incomeTaxBasicChange;
-        if (budgetChanges.incomeTaxHigherChange !== undefined) fiscal.incomeTaxHigherRate += budgetChanges.incomeTaxHigherChange;
-        if (budgetChanges.incomeTaxAdditionalChange !== undefined) fiscal.incomeTaxAdditionalRate += budgetChanges.incomeTaxAdditionalChange;
-        if (budgetChanges.niEmployeeChange !== undefined) fiscal.nationalInsuranceRate += budgetChanges.niEmployeeChange;
+        if (budgetChanges.incomeTaxBasicChange !== undefined)
+          fiscal.incomeTaxBasicRate += budgetChanges.incomeTaxBasicChange;
+        if (budgetChanges.incomeTaxHigherChange !== undefined)
+          fiscal.incomeTaxHigherRate += budgetChanges.incomeTaxHigherChange;
+        if (budgetChanges.incomeTaxAdditionalChange !== undefined)
+          fiscal.incomeTaxAdditionalRate += budgetChanges.incomeTaxAdditionalChange;
+        if (budgetChanges.niEmployeeChange !== undefined)
+          fiscal.nationalInsuranceRate += budgetChanges.niEmployeeChange;
         if (budgetChanges.niEmployerChange !== undefined) fiscal.employerNIRate += budgetChanges.niEmployerChange;
         if (budgetChanges.vatChange !== undefined) fiscal.vatRate += budgetChanges.vatChange;
-        if (budgetChanges.corporationTaxChange !== undefined) fiscal.corporationTaxRate += budgetChanges.corporationTaxChange;
+        if (budgetChanges.corporationTaxChange !== undefined)
+          fiscal.corporationTaxRate += budgetChanges.corporationTaxChange;
         if (budgetChanges.nhsCurrentChange !== undefined) fiscal.spending.nhsCurrent += budgetChanges.nhsCurrentChange;
-        if (budgetChanges.educationCurrentChange !== undefined) fiscal.spending.educationCurrent += budgetChanges.educationCurrentChange;
-        if (budgetChanges.defenceCurrentChange !== undefined) fiscal.spending.defenceCurrent += budgetChanges.defenceCurrentChange;
-        if (budgetChanges.welfareCurrentChange !== undefined) fiscal.spending.welfareCurrent += budgetChanges.welfareCurrentChange;
-        if (budgetChanges.infrastructureCurrentChange !== undefined) fiscal.spending.infrastructureCurrent += budgetChanges.infrastructureCurrentChange;
-        if (budgetChanges.policeCurrentChange !== undefined) fiscal.spending.policeCurrent += budgetChanges.policeCurrentChange;
-        if (budgetChanges.justiceCurrentChange !== undefined) fiscal.spending.justiceCurrent += budgetChanges.justiceCurrentChange;
-        if (budgetChanges.otherCurrentChange !== undefined) fiscal.spending.otherCurrent += budgetChanges.otherCurrentChange;
+        if (budgetChanges.educationCurrentChange !== undefined)
+          fiscal.spending.educationCurrent += budgetChanges.educationCurrentChange;
+        if (budgetChanges.defenceCurrentChange !== undefined)
+          fiscal.spending.defenceCurrent += budgetChanges.defenceCurrentChange;
+        if (budgetChanges.welfareCurrentChange !== undefined)
+          fiscal.spending.welfareCurrent += budgetChanges.welfareCurrentChange;
+        if (budgetChanges.infrastructureCurrentChange !== undefined)
+          fiscal.spending.infrastructureCurrent += budgetChanges.infrastructureCurrentChange;
+        if (budgetChanges.policeCurrentChange !== undefined)
+          fiscal.spending.policeCurrent += budgetChanges.policeCurrentChange;
+        if (budgetChanges.justiceCurrentChange !== undefined)
+          fiscal.spending.justiceCurrent += budgetChanges.justiceCurrentChange;
+        if (budgetChanges.otherCurrentChange !== undefined)
+          fiscal.spending.otherCurrent += budgetChanges.otherCurrentChange;
 
         fiscal.spending.nhs = fiscal.spending.nhsCurrent + fiscal.spending.nhsCapital;
         fiscal.spending.education = fiscal.spending.educationCurrent + fiscal.spending.educationCapital;
@@ -901,15 +935,31 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         fiscal.spending.justice = fiscal.spending.justiceCurrent + fiscal.spending.justiceCapital;
         fiscal.spending.other = fiscal.spending.otherCurrent + fiscal.spending.otherCapital;
         fiscal.totalSpending_bn =
-          fiscal.spending.nhs + fiscal.spending.education + fiscal.spending.defence +
-          fiscal.spending.welfare + fiscal.spending.infrastructure + fiscal.spending.police +
-          fiscal.spending.justice + fiscal.spending.other;
+          fiscal.spending.nhs +
+          fiscal.spending.education +
+          fiscal.spending.defence +
+          fiscal.spending.welfare +
+          fiscal.spending.infrastructure +
+          fiscal.spending.police +
+          fiscal.spending.justice +
+          fiscal.spending.other;
 
         newState.political = {
           ...newState.political,
           pmTrust: Math.max(0, Math.min(100, newState.political.pmTrust + (consequences.pmTrustChange || 0))),
-          governmentApproval: Math.max(0, Math.min(100, newState.political.governmentApproval + (consequences.publicApprovalChange || 0) + (event.triggerReason === 'approval_collapse' ? 1.5 : 0))),
-          backbenchSatisfaction: Math.max(0, Math.min(100, newState.political.backbenchSatisfaction + (consequences.backbenchSentimentChange || 0))),
+          governmentApproval: Math.max(
+            0,
+            Math.min(
+              100,
+              newState.political.governmentApproval +
+                (consequences.publicApprovalChange || 0) +
+                (event.triggerReason === 'approval_collapse' ? 1.5 : 0)
+            )
+          ),
+          backbenchSatisfaction: Math.max(
+            0,
+            Math.min(100, newState.political.backbenchSatisfaction + (consequences.backbenchSentimentChange || 0))
+          ),
           pmInterventionsPending: remainingInterventions,
         };
         newState.fiscal = fiscal;
@@ -918,7 +968,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         newState.political = {
           ...newState.political,
           pmTrust: Math.max(0, Math.min(100, newState.political.pmTrust + (consequences.pmTrustChange || 0))),
-          backbenchSatisfaction: Math.max(0, Math.min(100, newState.political.backbenchSatisfaction + (consequences.backbenchSentimentChange || 0))),
+          backbenchSatisfaction: Math.max(
+            0,
+            Math.min(100, newState.political.backbenchSatisfaction + (consequences.backbenchSentimentChange || 0))
+          ),
           pmInterventionsPending: remainingInterventions,
         };
         if (consequences.reshuffleRisk && Math.random() * 100 < consequences.reshuffleRisk) {
@@ -927,7 +980,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
             metadata: {
               ...newState.metadata,
               gameOver: true,
-              gameOverReason: 'You defied the Prime Minister one too many times. You have been reshuffled out of the Treasury.',
+              gameOverReason:
+                'You defied the Prime Minister one too many times. You have been reshuffled out of the Treasury.',
             },
           };
         }
@@ -954,7 +1008,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           }
 
           const brokenPromisesCount = Array.from(prevState.mpSystem.promises.values()).filter(
-            (p) => p.promisedToMPs.includes(mpId) && p.broken
+            (p: { promisedToMPs: string[]; broken: boolean }) => p.promisedToMPs.includes(mpId) && p.broken
           ).length;
 
           const result = attemptLobbying(mp, approach, undefined, brokenPromisesCount);
@@ -971,7 +1025,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
                 prevState.metadata.currentTurn,
                 specificValue
               );
-              const updatedPromises = new Map(prevState.mpSystem.promises);
+              const updatedPromises = new Map<string, import('../mp-system').MPPromise>(prevState.mpSystem.promises);
               updatedPromises.set(newPromise.id, newPromise);
               newState.mpSystem = { ...newState.mpSystem, promises: updatedPromises };
               savePromises(updatedPromises);
@@ -1018,8 +1072,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
         governmentApproval: Math.max(0, prevState.political.governmentApproval - 8),
       };
 
-      const updatedMPs = new Map(prevState.mpSystem.allMPs);
-      updatedMPs.forEach((mp, mpId) => {
+      const updatedMPs = new Map<string, import('../mp-system').MPProfile>(prevState.mpSystem.allMPs);
+      updatedMPs.forEach((mp: import('../mp-system').MPProfile, mpId: string) => {
         if (mp.party === 'labour') {
           updatedMPs.set(mpId, {
             ...mp,
@@ -1054,8 +1108,8 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         );
 
-        const updatedConcernProfiles = new Map(prevState.mpSystem.concernProfiles);
-        prevState.mpSystem.allMPs.forEach((mp, mpId) => {
+        const updatedConcernProfiles = new Map<string, import('../mp-system').MPConcernProfile>(prevState.mpSystem.concernProfiles);
+        prevState.mpSystem.allMPs.forEach((mp: import('../mp-system').MPProfile, mpId: string) => {
           if (mp.party === 'labour' && !updatedConcernProfiles.has(mpId)) {
             updatedConcernProfiles.set(mpId, generateMPConcernProfile(mp));
           }
@@ -1096,7 +1150,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   const executeManifestoOneClick = useCallback((pledgeId: string) => {
     setGameState((prevState) => {
       const { executeOneClickAction } = require('../manifesto-system');
-      const pledge = prevState.manifesto.pledges.find((p) => p.id === pledgeId);
+      const pledge = prevState.manifesto.pledges.find((p: import('../manifesto-system').ManifestoPledge) => p.id === pledgeId);
       if (!pledge) {
         console.error(`Pledge ${pledgeId} not found`);
         return prevState;
@@ -1125,28 +1179,36 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       let newFiscal = { ...prevState.fiscal };
       if (changes.incomeTaxBasicChange !== undefined) newFiscal.incomeTaxBasicRate += changes.incomeTaxBasicChange;
       if (changes.incomeTaxHigherChange !== undefined) newFiscal.incomeTaxHigherRate += changes.incomeTaxHigherChange;
-      if (changes.incomeTaxAdditionalChange !== undefined) newFiscal.incomeTaxAdditionalRate += changes.incomeTaxAdditionalChange;
+      if (changes.incomeTaxAdditionalChange !== undefined)
+        newFiscal.incomeTaxAdditionalRate += changes.incomeTaxAdditionalChange;
       if (changes.niEmployeeChange !== undefined) newFiscal.nationalInsuranceRate += changes.niEmployeeChange;
       if (changes.niEmployerChange !== undefined) newFiscal.employerNIRate += changes.niEmployerChange;
       if (changes.vatChange !== undefined) newFiscal.vatRate += changes.vatChange;
       if (changes.corporationTaxChange !== undefined) newFiscal.corporationTaxRate += changes.corporationTaxChange;
 
       if (changes.nhsSpendingChange !== undefined) newFiscal.spending.nhs += changes.nhsSpendingChange;
-      if (changes.educationSpendingChange !== undefined) newFiscal.spending.education += changes.educationSpendingChange;
+      if (changes.educationSpendingChange !== undefined)
+        newFiscal.spending.education += changes.educationSpendingChange;
       if (changes.defenceSpendingChange !== undefined) newFiscal.spending.defence += changes.defenceSpendingChange;
       if (changes.welfareSpendingChange !== undefined) newFiscal.spending.welfare += changes.welfareSpendingChange;
-      if (changes.infrastructureSpendingChange !== undefined) newFiscal.spending.infrastructure += changes.infrastructureSpendingChange;
+      if (changes.infrastructureSpendingChange !== undefined)
+        newFiscal.spending.infrastructure += changes.infrastructureSpendingChange;
       if (changes.policeSpendingChange !== undefined) newFiscal.spending.police += changes.policeSpendingChange;
       if (changes.otherSpendingChange !== undefined) newFiscal.spending.other += changes.otherSpendingChange;
 
       newFiscal.totalSpending_bn =
-        newFiscal.spending.nhs + newFiscal.spending.education + newFiscal.spending.defence +
-        newFiscal.spending.welfare + newFiscal.spending.infrastructure + newFiscal.spending.police +
-        newFiscal.spending.justice + newFiscal.spending.other;
+        newFiscal.spending.nhs +
+        newFiscal.spending.education +
+        newFiscal.spending.defence +
+        newFiscal.spending.welfare +
+        newFiscal.spending.infrastructure +
+        newFiscal.spending.police +
+        newFiscal.spending.justice +
+        newFiscal.spending.other;
 
       console.log(result.message);
 
-      const updatedPledges = prevState.manifesto.pledges.map((p) => {
+      const updatedPledges = prevState.manifesto.pledges.map((p: import('../manifesto-system').ManifestoPledge) => {
         if (p.id === pledgeId) {
           return { ...p, oneClickExecuted: true, currentValue: p.targetValue || p.currentValue, violated: false };
         }
@@ -1158,45 +1220,56 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // Record budget votes
-  const recordBudgetVotes = useCallback((votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => {
-    setGameState((prevState) => {
-      const updatedVotingRecords = new Map(prevState.mpSystem.votingRecords);
-      const budgetId = `budget_${prevState.metadata.currentTurn}`;
-      const month = prevState.metadata.currentTurn;
+  const recordBudgetVotes = useCallback(
+    (votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => {
+      setGameState((prevState) => {
+        const updatedVotingRecords = new Map(prevState.mpSystem.votingRecords) as Map<string, VotingRecord>;
+        const budgetId = `budget_${prevState.metadata.currentTurn}`;
+        const month = prevState.metadata.currentTurn;
 
-      votes.forEach(vote => {
-        let record = updatedVotingRecords.get(vote.mpId);
-        if (!record) {
-          record = { mpId: vote.mpId, budgetVotes: [], rebellionCount: 0, loyaltyScore: 100 };
-        }
-        const updatedBudgetVotes = [...record.budgetVotes, {
-          budgetId, month, choice: vote.choice, reasoning: vote.reasoning, coerced: vote.coerced,
-        }];
-        updatedVotingRecords.set(vote.mpId, { ...record, budgetVotes: updatedBudgetVotes.slice(-20) });
+        votes.forEach((vote) => {
+          let record = updatedVotingRecords.get(vote.mpId);
+          if (!record) {
+            record = { mpId: vote.mpId, budgetVotes: [], rebellionCount: 0, loyaltyScore: 100 };
+          }
+          const updatedBudgetVotes = [
+            ...record.budgetVotes,
+            {
+              budgetId,
+              month,
+              choice: vote.choice,
+              reasoning: vote.reasoning,
+              coerced: vote.coerced,
+            },
+          ];
+          updatedVotingRecords.set(vote.mpId, { ...record, budgetVotes: updatedBudgetVotes.slice(-20) });
+        });
+
+        return {
+          ...prevState,
+          mpSystem: {
+            ...prevState.mpSystem,
+            votingRecords: updatedVotingRecords,
+            currentBudgetSupport: new Map<string, DetailedMPStance>(
+              Array.from(prevState.mpSystem.currentBudgetSupport.entries()).map(([id, stance]) => [
+                id,
+                { ...stance, isManualOverride: false },
+              ])
+            ),
+          },
+        };
       });
-
-      return {
-        ...prevState,
-        mpSystem: {
-          ...prevState.mpSystem,
-          votingRecords: updatedVotingRecords,
-          currentBudgetSupport: new Map(
-            Array.from(prevState.mpSystem.currentBudgetSupport.entries()).map(([id, stance]) => [
-              id, { ...stance, isManualOverride: false }
-            ])
-          ),
-        },
-      };
-    });
-  }, []);
+    },
+    []
+  );
 
   // Update promises
   const updatePromises = useCallback((brokenPromiseIds: string[]) => {
     setGameState((prevState) => {
-      const updatedPromises = new Map(prevState.mpSystem.promises);
+      const updatedPromises = new Map<string, import('../mp-system').MPPromise>(prevState.mpSystem.promises);
       let changed = false;
 
-      brokenPromiseIds.forEach(id => {
+      brokenPromiseIds.forEach((id) => {
         const promise = updatedPromises.get(id);
         if (promise && !promise.broken) {
           updatedPromises.set(id, { ...promise, broken: true, brokenInMonth: prevState.metadata.currentTurn });
@@ -1214,11 +1287,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     setGameState((prevState) => {
       if (prevState.political.chosenFiscalRule === nextRule) return prevState;
 
-      const recomputed = calculateInitialFiscalRuleMetrics(
-        prevState.fiscal,
-        prevState.economic,
-        nextRule,
-      );
+      const recomputed = calculateInitialFiscalRuleMetrics(prevState.fiscal, prevState.economic, nextRule);
 
       return {
         ...prevState,
@@ -1263,8 +1332,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
       const merged = [...(prevState.socialMedia?.recentlyUsedPostIds || []), ...encoded];
       const trimmed = Array.from(new Set(merged)).slice(-15);
 
-      if (trimmed.length === (prevState.socialMedia?.recentlyUsedPostIds || []).length &&
-        trimmed.every((value, index) => value === (prevState.socialMedia?.recentlyUsedPostIds || [])[index])) {
+      if (
+        trimmed.length === (prevState.socialMedia?.recentlyUsedPostIds || []).length &&
+        trimmed.every((value, index) => value === (prevState.socialMedia?.recentlyUsedPostIds || [])[index])
+      ) {
         return prevState;
       }
 
@@ -1293,12 +1364,15 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
   }, []);
 
-  const setDebtIssuanceStrategy = useCallback((strategy: import('../types').DebtManagementState['issuanceStrategy']) => {
-    setGameState((prevState) => ({
-      ...prevState,
-      debtManagement: { ...prevState.debtManagement, issuanceStrategy: strategy },
-    }));
-  }, []);
+  const setDebtIssuanceStrategy = useCallback(
+    (strategy: import('../types').DebtManagementState['issuanceStrategy']) => {
+      setGameState((prevState) => ({
+        ...prevState,
+        debtManagement: { ...prevState.debtManagement, issuanceStrategy: strategy },
+      }));
+    },
+    []
+  );
 
   const actions: import('../types').GameActions = {
     startNewGame,
@@ -1329,9 +1403,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <GameStateContext.Provider value={gameState}>
       <GameActionsContext.Provider value={actions}>
-        <BudgetDraftContext.Provider value={budgetDraft}>
-          {children}
-        </BudgetDraftContext.Provider>
+        <BudgetDraftContext.Provider value={budgetDraft}>{children}</BudgetDraftContext.Provider>
       </GameActionsContext.Provider>
     </GameStateContext.Provider>
   );

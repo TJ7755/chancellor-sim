@@ -59,7 +59,9 @@ export const PMMessagesScreen: React.FC = () => {
         <div className="treasury-panel px-6 py-6 mb-6">
           <div className="treasury-kicker">Number 10</div>
           <h1 className="mt-1 font-display text-3xl font-semibold text-primary">Prime Minister&apos;s Office</h1>
-          <p className="mt-1 max-w-2xl text-secondary text-sm">Communications, demands and warnings from Downing Street.</p>
+          <p className="mt-1 max-w-2xl text-secondary text-sm">
+            Communications, demands and warnings from Downing Street.
+          </p>
         </div>
 
         <div className="grid grid-cols-12 gap-6">
@@ -75,20 +77,18 @@ export const PMMessagesScreen: React.FC = () => {
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-secondary">PM Patience</span>
-                  <span className={`font-mono text-lg font-semibold ${
-                    patience >= 70 ? 'text-good' :
-                    patience >= 40 ? 'text-warning' :
-                    'text-bad'
-                  }`}>
+                  <span
+                    className={`font-mono text-lg font-semibold ${
+                      patience >= 70 ? 'text-good' : patience >= 40 ? 'text-warning' : 'text-bad'
+                    }`}
+                  >
                     {patience}/100
                   </span>
                 </div>
                 <div className="progress-bar">
                   <div
                     className={`progress-bar-fill ${
-                      patience >= 70 ? 'bg-good' :
-                      patience >= 40 ? 'bg-warning' :
-                      'bg-bad'
+                      patience >= 70 ? 'bg-good' : patience >= 40 ? 'bg-warning' : 'bg-bad'
                     }`}
                     style={{ width: `${patience}%` }}
                   />
@@ -99,20 +99,18 @@ export const PMMessagesScreen: React.FC = () => {
               <div className="mb-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-secondary">Reshuffle Risk</span>
-                  <span className={`font-mono text-lg font-semibold ${
-                    reshuffleRisk < 30 ? 'text-good' :
-                    reshuffleRisk < 60 ? 'text-warning' :
-                    'text-bad'
-                  }`}>
+                  <span
+                    className={`font-mono text-lg font-semibold ${
+                      reshuffleRisk < 30 ? 'text-good' : reshuffleRisk < 60 ? 'text-warning' : 'text-bad'
+                    }`}
+                  >
                     {reshuffleRisk}/100
                   </span>
                 </div>
                 <div className="progress-bar">
                   <div
                     className={`progress-bar-fill ${
-                      reshuffleRisk < 30 ? 'bg-good' :
-                      reshuffleRisk < 60 ? 'bg-warning' :
-                      'bg-bad'
+                      reshuffleRisk < 30 ? 'bg-good' : reshuffleRisk < 60 ? 'bg-warning' : 'bg-bad'
                     }`}
                     style={{ width: `${reshuffleRisk}%` }}
                   />
@@ -172,9 +170,13 @@ export const PMMessagesScreen: React.FC = () => {
               <div className="treasury-panel overflow-hidden">
                 <div className="border-b border-border-subtle bg-primary px-6 py-5">
                   <div className="treasury-kicker text-white/60">Inbox</div>
-                  <h2 className="mt-1 font-display text-xl font-semibold text-white">Messages from the Prime Minister</h2>
+                  <h2 className="mt-1 font-display text-xl font-semibold text-white">
+                    Messages from the Prime Minister
+                  </h2>
                   <p className="mt-1 text-sm text-white/80">
-                    {sortedMessages.length === 0 ? 'No messages yet' : `${sortedMessages.length} message${sortedMessages.length !== 1 ? 's' : ''}`}
+                    {sortedMessages.length === 0
+                      ? 'No messages yet'
+                      : `${sortedMessages.length} message${sortedMessages.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
 
@@ -186,44 +188,45 @@ export const PMMessagesScreen: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border-subtle" tabIndex={0} onKeyDown={handleListKeyDown} aria-label="PM message list">
+                  <div
+                    className="divide-y divide-border-subtle"
+                    tabIndex={0}
+                    onKeyDown={handleListKeyDown}
+                    aria-label="PM message list"
+                  >
                     {sortedMessages.map((message, index) => (
                       <div
                         key={message.id}
                         onClick={() => handleMessageClick(message)}
                         className={`p-6 cursor-pointer transition-colors hover:bg-bg-subdued focus:outline-none focus:ring-2 focus:ring-primary ${
                           index === highlightedIndex ? 'ring-2 ring-primary ring-inset' : ''
-                        } ${
-                          !message.read ? 'bg-secondary-subtle' : ''
-                        }`}
+                        } ${!message.read ? 'bg-secondary-subtle' : ''}`}
                         tabIndex={-1}
                         role="button"
                         aria-pressed={index === highlightedIndex}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-3">
-                            {!message.read && (
-                              <span className="w-2 h-2 bg-primary"></span>
-                            )}
+                            {!message.read && <span className="w-2 h-2 bg-primary"></span>}
                             <div>
                               <h3 className="text-base font-semibold text-primary">{message.subject}</h3>
                               <div className="flex items-center gap-4 mt-1">
-                                <span className="text-xs text-muted">
-                                  Turn {message.turn}
-                                </span>
-                                <span className={`text-xs px-2 py-0.5 font-semibold ${getMessageTypeBadgeColor(message.type)}`}>
+                                <span className="text-xs text-muted">Turn {message.turn}</span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 font-semibold ${getMessageTypeBadgeColor(message.type)}`}
+                                >
                                   {getMessageTypeLabel(message.type)}
                                 </span>
-                                <span className={`text-xs px-2 py-0.5 font-semibold ${getToneBadgeColor(message.tone)}`}>
+                                <span
+                                  className={`text-xs px-2 py-0.5 font-semibold ${getToneBadgeColor(message.tone)}`}
+                                >
                                   {message.tone}
                                 </span>
                               </div>
                             </div>
                           </div>
                         </div>
-                        <p className="text-secondary text-sm line-clamp-2 mt-2">
-                          {message.content.split('\n')[0]}
-                        </p>
+                        <p className="text-secondary text-sm line-clamp-2 mt-2">{message.content.split('\n')[0]}</p>
                         {message.consequenceWarning && (
                           <div className="mt-3 p-2 bg-bad-subtle border border-bad">
                             <p className="text-xs text-bad font-semibold">[Warning] {message.consequenceWarning}</p>
@@ -249,9 +252,7 @@ export const PMMessagesScreen: React.FC = () => {
                   </button>
                   <h2 className="font-display text-xl font-semibold text-white mb-2">{selectedMessage.subject}</h2>
                   <div className="flex items-center gap-4">
-                    <span className="text-white/90 text-sm">
-                      Turn {selectedMessage.turn}
-                    </span>
+                    <span className="text-white/90 text-sm">Turn {selectedMessage.turn}</span>
                     <span className="text-xs px-3 py-1 font-semibold bg-white/20 text-white">
                       {getMessageTypeLabel(selectedMessage.type)}
                     </span>
@@ -288,7 +289,9 @@ export const PMMessagesScreen: React.FC = () => {
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-xs text-muted mb-1">Message Type</p>
-                        <p className="text-sm font-semibold text-primary">{getMessageTypeLabel(selectedMessage.type)}</p>
+                        <p className="text-sm font-semibold text-primary">
+                          {getMessageTypeLabel(selectedMessage.type)}
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted mb-1">Tone</p>
@@ -296,9 +299,7 @@ export const PMMessagesScreen: React.FC = () => {
                       </div>
                       <div>
                         <p className="text-xs text-muted mb-1">Received</p>
-                        <p className="text-sm font-semibold text-primary">
-                          Turn {selectedMessage.turn}
-                        </p>
+                        <p className="text-sm font-semibold text-primary">Turn {selectedMessage.turn}</p>
                       </div>
                     </div>
                   </div>

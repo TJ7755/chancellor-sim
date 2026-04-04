@@ -27,7 +27,7 @@ export const INDUSTRIAL_INTERVENTION_CATALOGUE: IndustrialInterventionTemplate[]
     annualCost_bn: 0.8,
     turnsToEffect: 18,
     successProbability: 0.6,
-    productivityGain_pp: 0.10,
+    productivityGain_pp: 0.1,
   },
   {
     id: 'advanced_manufacturing_subsidy',

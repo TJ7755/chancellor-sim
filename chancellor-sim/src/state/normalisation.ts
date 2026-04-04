@@ -28,7 +28,6 @@ import {
 import {
   GameState,
   GameMetadata,
-  EmergencyProgrammesState,
   PMRelationshipState,
   SocialMediaGameState,
   SpendingReviewState,
@@ -48,7 +47,9 @@ import {
   ForecastError,
   CapitalProject,
   PipelineItem,
+  DifficultyMode,
 } from '../types';
+import type { PolicyRiskModifier } from '../game-integration';
 import { createInitialMPSystem, DetailedMPStance, MPStanceLabel } from '../mp-system';
 
 type MPStance = DetailedMPStance | MPStanceLabel;
@@ -76,9 +77,7 @@ export function robustNormalizeMap<K, V>(raw: unknown): Map<K, V> {
   return map;
 }
 
-export function normalizeCurrentBudgetSupport(
-  raw: unknown
-): Map<string, DetailedMPStance> {
+export function normalizeCurrentBudgetSupport(raw: unknown): Map<string, DetailedMPStance> {
   const finalMap = new Map<string, DetailedMPStance>();
 
   if (!raw) return finalMap;
@@ -99,7 +98,7 @@ export function normalizeCurrentBudgetSupport(
     if (typeof value === 'string') {
       finalMap.set(key, {
         stance: value as MPStanceLabel,
-        score: value === 'support' ? 70 : (value === 'oppose' ? 30 : 50),
+        score: value === 'support' ? 70 : value === 'oppose' ? 30 : 50,
         reason: 'Legacy stance data.',
         concerns: [],
         ideologicalAlignment: 0,
@@ -116,7 +115,14 @@ export function normalizeCurrentBudgetSupport(
 }
 
 export function normalizeAdviserSystem(system: AdviserSystem): AdviserSystem {
-  if (!system) return { advisers: [], maxAdvisers: 3, hiredAdvisers: new Map(), availableAdvisers: new Set(), currentOpinions: new Map() };
+  if (!system)
+    return {
+      advisers: [],
+      maxAdvisers: 3,
+      hiredAdvisers: new Map(),
+      availableAdvisers: new Set(),
+      currentOpinions: new Map(),
+    };
 
   const hiredAdvisersInner = system.hiredAdvisers as unknown;
   const availableAdvisersInner = system.availableAdvisers as unknown;
@@ -134,12 +140,22 @@ export function normalizeAdviserSystem(system: AdviserSystem): AdviserSystem {
   }
 
   let normalisedAvailable = new Set<string>();
-  if (availableAdvisersInner instanceof Set || (availableAdvisersInner && typeof (availableAdvisersInner as Set<string>).has === 'function')) {
+  if (
+    availableAdvisersInner instanceof Set ||
+    (availableAdvisersInner && typeof (availableAdvisersInner as Set<string>).has === 'function')
+  ) {
     (availableAdvisersInner as Set<string>).forEach((item: string) => normalisedAvailable.add(item));
   } else if (Array.isArray(availableAdvisersInner)) {
     (availableAdvisersInner as unknown[]).forEach((item: unknown) => normalisedAvailable.add(String(item)));
   } else {
-    normalisedAvailable = new Set(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']);
+    normalisedAvailable = new Set([
+      'treasury_mandarin',
+      'political_operator',
+      'heterodox_economist',
+      'fiscal_hawk',
+      'social_democrat',
+      'technocratic_centrist',
+    ]);
   }
 
   let normalisedOpinions = new Map<string, unknown>();
@@ -222,7 +238,7 @@ export function normalizeLoadedState(state: GameState): GameState {
   const advisers = state.advisers ?? createInitialAdviserSystem();
   const metadata: GameMetadata = {
     ...state.metadata,
-    difficultyMode: ((state.metadata as Record<string, unknown>)?.difficultyMode as string) || 'realistic',
+    difficultyMode: ((state.metadata as unknown as Record<string, unknown>)?.difficultyMode as DifficultyMode) || 'realistic',
   };
   const pmRelationship: PMRelationshipState = state.pmRelationship ?? {
     patience: 70,
@@ -245,7 +261,7 @@ export function normalizeLoadedState(state: GameState): GameState {
   };
   const spendingReview: SpendingReviewState = {
     ...createInitialSpendingReviewState(),
-    ...((state as unknown as Record<string, unknown>).spendingReview as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).spendingReview as Record<string, unknown>) || {}),
   } as SpendingReviewState;
   const debtManagement: DebtManagementState = {
     ...createInitialDebtManagementState(
@@ -253,19 +269,19 @@ export function normalizeLoadedState(state: GameState): GameState {
       state?.markets?.bankRate ?? createInitialMarketState().bankRate,
       state?.economic?.inflationCPI ?? createInitialEconomicState().inflationCPI
     ),
-    ...((state as unknown as Record<string, unknown>).debtManagement as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).debtManagement as Record<string, unknown>) || {}),
   } as DebtManagementState;
   const parliamentary: ParliamentaryState = {
     ...createInitialParliamentaryState(),
-    ...((state as unknown as Record<string, unknown>).parliamentary as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).parliamentary as Record<string, unknown>) || {}),
   } as ParliamentaryState;
   const externalSector: ExternalSectorState = {
     ...createInitialExternalSectorState(),
-    ...((state as unknown as Record<string, unknown>).externalSector as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).externalSector as Record<string, unknown>) || {}),
   };
   const financialStability: FinancialStabilityState = {
     ...createInitialFinancialStabilityState(),
-    ...((state as unknown as Record<string, unknown>).financialStability as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).financialStability as Record<string, unknown>) || {}),
   };
   const initialDevolution = createInitialDevolutionState() as DevolutionState;
   const loadedDevolution = ((state as unknown as Record<string, unknown>).devolution || {}) as Partial<DevolutionState>;
@@ -278,57 +294,68 @@ export function normalizeLoadedState(state: GameState): GameState {
     },
     localGov: {
       ...initialDevolution.localGov,
-      ...((loadedDevolution as Record<string, unknown>).localGov as Record<string, unknown> || {}),
+      ...(((loadedDevolution as Record<string, unknown>).localGov as Record<string, unknown>) || {}),
     },
   } as DevolutionState;
   const distributional: DistributionalState = {
     ...createInitialDistributionalState(),
-    ...((state as unknown as Record<string, unknown>).distributional as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).distributional as Record<string, unknown>) || {}),
   };
   const obr: ObrState = {
     ...createInitialObrState(),
-    ...((state as unknown as Record<string, unknown>).obr as Record<string, unknown> || {}),
-    forecastVintages: ((state as unknown as Record<string, unknown>).obr?.forecastVintages || []) as ObrForecast[],
-    cumulativeForecastErrors: ((state as unknown as Record<string, unknown>).obr?.cumulativeForecastErrors || []) as ForecastError[],
-    latestForecast: (state as unknown as Record<string, unknown>).obr?.latestForecast ?? null,
+    ...(((state as unknown as Record<string, unknown>).obr as Record<string, unknown>) || {}),
+    forecastVintages: ((((state as unknown as Record<string, unknown>).obr as Record<string, unknown>)?.forecastVintages) || []) as ObrForecast[],
+    cumulativeForecastErrors: ((((state as unknown as Record<string, unknown>).obr as Record<string, unknown>)?.cumulativeForecastErrors) ||
+      []) as ForecastError[],
+    latestForecast: (((state as unknown as Record<string, unknown>).obr as Record<string, unknown>)?.latestForecast as ObrForecast | null) ?? null,
   };
   const capitalDelivery: CapitalDeliveryState = {
     ...createInitialCapitalDeliveryState(),
-    ...((state as unknown as Record<string, unknown>).capitalDelivery as Record<string, unknown> || {}),
-    projectQueue: ((state as unknown as Record<string, unknown>).capitalDelivery?.projectQueue || []) as CapitalProject[],
+    ...(((state as unknown as Record<string, unknown>).capitalDelivery as Record<string, unknown>) || {}),
+    projectQueue: ((((state as unknown as Record<string, unknown>).capitalDelivery as Record<string, unknown>)?.projectQueue) ||
+      []) as CapitalProject[],
   };
   const housing: HousingState = {
     ...createInitialHousingState(),
-    ...((state as unknown as Record<string, unknown>).housing as Record<string, unknown> || {}),
+    ...(((state as unknown as Record<string, unknown>).housing as Record<string, unknown>) || {}),
   };
   const industrialStrategy: IndustrialStrategyState = {
     ...createInitialIndustrialStrategyState(),
-    ...((state as unknown as Record<string, unknown>).industrialStrategy as Record<string, unknown> || {}),
-    activeInterventions: ((state as unknown as Record<string, unknown>).industrialStrategy?.activeInterventions || []) as IndustrialIntervention[],
+    ...(((state as unknown as Record<string, unknown>).industrialStrategy as Record<string, unknown>) || {}),
+    activeInterventions: ((((state as unknown as Record<string, unknown>).industrialStrategy as Record<string, unknown>)?.activeInterventions) ||
+      []) as IndustrialIntervention[],
   };
   const legislativePipeline: LegislativePipelineState = {
     ...createInitialLegislativePipelineState(),
-    ...((state as unknown as Record<string, unknown>).legislativePipeline as Record<string, unknown> || {}),
-    queue: ((state as unknown as Record<string, unknown>).legislativePipeline?.queue || []) as PipelineItem[],
+    ...(((state as unknown as Record<string, unknown>).legislativePipeline as Record<string, unknown>) || {}),
+    queue: ((((state as unknown as Record<string, unknown>).legislativePipeline as Record<string, unknown>)?.queue) || []) as PipelineItem[],
   };
 
   const economic: EconomicState = {
     ...createInitialEconomicState(),
     ...(state.economic || {}),
   };
-  const fiscal: FiscalState = state.fiscal ? {
-    ...createInitialFiscalState(),
-    ...state.fiscal,
-  } : createInitialFiscalState();
+  const fiscal: FiscalState = state.fiscal
+    ? {
+        ...createInitialFiscalState(),
+        ...state.fiscal,
+      }
+    : createInitialFiscalState();
   fiscal.personalAllowance = state.fiscal?.personalAllowance ?? createInitialFiscalState().personalAllowance;
-  fiscal.basicRateUpperThreshold = state.fiscal?.basicRateUpperThreshold ?? createInitialFiscalState().basicRateUpperThreshold;
-  fiscal.higherRateUpperThreshold = state.fiscal?.higherRateUpperThreshold ?? createInitialFiscalState().higherRateUpperThreshold;
+  fiscal.basicRateUpperThreshold =
+    state.fiscal?.basicRateUpperThreshold ?? createInitialFiscalState().basicRateUpperThreshold;
+  fiscal.higherRateUpperThreshold =
+    state.fiscal?.higherRateUpperThreshold ?? createInitialFiscalState().higherRateUpperThreshold;
   fiscal.thresholdUprating = state.fiscal?.thresholdUprating ?? createInitialFiscalState().thresholdUprating;
-  fiscal.thresholdFreezeMonths = state.fiscal?.thresholdFreezeMonths ?? createInitialFiscalState().thresholdFreezeMonths;
+  fiscal.thresholdFreezeMonths =
+    state.fiscal?.thresholdFreezeMonths ?? createInitialFiscalState().thresholdFreezeMonths;
   fiscal.fullExpensing = state.fiscal?.fullExpensing ?? createInitialFiscalState().fullExpensing;
-  fiscal.antiAvoidanceInvestment_bn = state.fiscal?.antiAvoidanceInvestment_bn ?? createInitialFiscalState().antiAvoidanceInvestment_bn;
-  fiscal.hmrcSystemsInvestment_bn = state.fiscal?.hmrcSystemsInvestment_bn ?? createInitialFiscalState().hmrcSystemsInvestment_bn;
-  fiscal.sdltAdditionalDwellingsSurcharge = state.fiscal?.sdltAdditionalDwellingsSurcharge ?? createInitialFiscalState().sdltAdditionalDwellingsSurcharge;
+  fiscal.antiAvoidanceInvestment_bn =
+    state.fiscal?.antiAvoidanceInvestment_bn ?? createInitialFiscalState().antiAvoidanceInvestment_bn;
+  fiscal.hmrcSystemsInvestment_bn =
+    state.fiscal?.hmrcSystemsInvestment_bn ?? createInitialFiscalState().hmrcSystemsInvestment_bn;
+  fiscal.sdltAdditionalDwellingsSurcharge =
+    state.fiscal?.sdltAdditionalDwellingsSurcharge ?? createInitialFiscalState().sdltAdditionalDwellingsSurcharge;
   const markets: MarketState = {
     ...createInitialMarketState(),
     ...(state.markets || {}),
@@ -356,7 +383,7 @@ export function normalizeLoadedState(state: GameState): GameState {
     : [];
 
   // Migrate old save games to new capital/current spending structure
-  if (fiscal && fiscal.spending && !(fiscal.spending as Record<string, unknown>).nhsCurrent) {
+  if (fiscal && fiscal.spending && !((fiscal.spending as unknown) as Record<string, unknown>).nhsCurrent) {
     const capitalRatios = {
       nhs: 12.0 / 180.4,
       education: 12.0 / 116,
@@ -404,16 +431,14 @@ export function normalizeLoadedState(state: GameState): GameState {
     services,
     events,
     simulation,
-    policyRiskModifiers,
+    policyRiskModifiers: policyRiskModifiers as PolicyRiskModifier[],
     mpSystem: {
       ...mpSystem,
       allMPs: robustNormalizeMap(mpSystem.allMPs),
       votingRecords: robustNormalizeMap(mpSystem.votingRecords),
       promises: robustNormalizeMap(mpSystem.promises),
       concernProfiles: robustNormalizeMap(mpSystem.concernProfiles),
-      currentBudgetSupport: normalizeCurrentBudgetSupport(
-        mpSystem.currentBudgetSupport
-      ),
+      currentBudgetSupport: normalizeCurrentBudgetSupport(mpSystem.currentBudgetSupport),
     },
     advisers: normalizeAdviserSystem(advisers),
     emergencyProgrammes: {
@@ -423,11 +448,12 @@ export function normalizeLoadedState(state: GameState): GameState {
     pmRelationship: {
       ...pmRelationship,
       activeThreats: Array.isArray((pmRelationship as unknown as Record<string, unknown>).activeThreats)
-        ? (pmRelationship as unknown as Record<string, unknown>).activeThreats
+        ? (pmRelationship as unknown as Record<string, unknown>).activeThreats as PMRelationshipState['activeThreats']
         : [],
       messageTemplateLastFiredTurn:
-        (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn && typeof (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn === 'object'
-          ? (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn
+        (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn &&
+        typeof (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn === 'object'
+          ? (pmRelationship as unknown as Record<string, unknown>).messageTemplateLastFiredTurn as Record<string, number>
           : {},
     },
     socialMedia,

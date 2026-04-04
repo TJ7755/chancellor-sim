@@ -32,7 +32,8 @@ export function detectPolicyConflicts(
   const conflicts: PolicyConflict[] = [];
 
   const vatRise = (taxes.get('vat')?.proposedRate || 20) - (taxes.get('vat')?.currentRate || 20);
-  const incomeTaxRise = (taxes.get('incomeTaxBasic')?.proposedRate || 20) - (taxes.get('incomeTaxBasic')?.currentRate || 20);
+  const incomeTaxRise =
+    (taxes.get('incomeTaxBasic')?.proposedRate || 20) - (taxes.get('incomeTaxBasic')?.currentRate || 20);
 
   const departments = Array.from(new Set(Array.from(spending.values()).map((item) => item.department)));
   const departmentCutCount = departments.filter((department) => {
@@ -66,7 +67,8 @@ export function detectPolicyConflicts(
     conflicts.push({
       id: 'innovation_deterrent',
       title: 'Innovation deterrent',
-      description: 'High corporation tax combined with weaker R&D credits may suppress investment and productivity growth.',
+      description:
+        'High corporation tax combined with weaker R&D credits may suppress investment and productivity growth.',
       modifiers: [
         {
           id: `risk_productivity_${Date.now()}`,
@@ -81,7 +83,9 @@ export function detectPolicyConflicts(
 
   const frontlineDepartments = ['Health and Social Care', 'Education', 'Home Office', 'Justice'];
   const payCut = frontlineDepartments.some((department) => {
-    const items = Array.from(spending.values()).filter((item) => item.department === department && item.proposedBudget !== undefined);
+    const items = Array.from(spending.values()).filter(
+      (item) => item.department === department && item.proposedBudget !== undefined
+    );
     const current = items.reduce((sum, item) => sum + item.currentBudget, 0);
     const proposed = items.reduce((sum, item) => sum + item.proposedBudget, 0);
     return current > 0 && (proposed - current) / current < -0.02;

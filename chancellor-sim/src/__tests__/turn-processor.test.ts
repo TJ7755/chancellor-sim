@@ -28,7 +28,11 @@ function makeTestGameState(): any {
   const advisers = createInitialAdviserSystem();
   const events = createInitialEventState();
   const spendingReview = createInitialSpendingReviewState();
-  const debtManagement = createInitialDebtManagementState(fiscal.debtNominal_bn, markets.bankRate, economic.inflationCPI);
+  const debtManagement = createInitialDebtManagementState(
+    fiscal.debtNominal_bn,
+    markets.bankRate,
+    economic.inflationCPI
+  );
   const parliamentary = createInitialParliamentaryState();
   const externalSector = createInitialExternalSectorState();
   const financialStability = createInitialFinancialStabilityState();
@@ -60,9 +64,19 @@ function makeTestGameState(): any {
     mpSystem,
     emergencyProgrammes: { active: [] },
     pmRelationship: {
-      patience: 70, warningsIssued: 0, demandsIssued: 0, demandsMet: 0, lastContactTurn: -1,
-      messages: [], unreadCount: 0, consecutivePoorPerformance: 0, reshuffleRisk: 0,
-      supportWithdrawn: false, finalWarningGiven: false, activeDemands: [], activeThreats: [],
+      patience: 70,
+      warningsIssued: 0,
+      demandsIssued: 0,
+      demandsMet: 0,
+      lastContactTurn: -1,
+      messages: [],
+      unreadCount: 0,
+      consecutivePoorPerformance: 0,
+      reshuffleRisk: 0,
+      supportWithdrawn: false,
+      finalWarningGiven: false,
+      activeDemands: [],
+      activeThreats: [],
       messageTemplateLastFiredTurn: {},
     },
     socialMedia: { recentlyUsedPostIds: [] },
@@ -73,10 +87,41 @@ function makeTestGameState(): any {
     financialStability,
     devolution,
     distributional,
-    obr: { forecastVintages: [], latestForecast: null, obrCredibilityScore: 62, cumulativeForecastErrors: [], fiscalHeadroomForecast_bn: 9.9, forecastRiskStatement: 'balanced' },
-    capitalDelivery: { pipelineCapacity_bn: 80, deliveryRiskMultiplier: 0.9, projectQueue: [], shovelReadyReserve_bn: 8, overCapacityTurns: 0, deferredCapital_bn: 0, procurementPrepCost_bn: 0.2 },
-    housing: { houseBuilding_annualStarts: 240000, housingAffordabilityIndex: 45, rentInflation_pct: 6, planningBottleneck: 65, htbAndSharedOwnership_bn: 1.5, infrastructureGuarantees_bn: 2.0, planningReformPackage: false, councilHouseBuildingGrant_bn: 0.6 },
-    industrialStrategy: { activeInterventions: [], totalAnnualCost_bn: 0, productivityBoostAccumulated: 0, failedInterventionCount: 0, stateAidRisk: 15, exportShockTurnsRemaining: 0 },
+    obr: {
+      forecastVintages: [],
+      latestForecast: null,
+      obrCredibilityScore: 62,
+      cumulativeForecastErrors: [],
+      fiscalHeadroomForecast_bn: 9.9,
+      forecastRiskStatement: 'balanced',
+    },
+    capitalDelivery: {
+      pipelineCapacity_bn: 80,
+      deliveryRiskMultiplier: 0.9,
+      projectQueue: [],
+      shovelReadyReserve_bn: 8,
+      overCapacityTurns: 0,
+      deferredCapital_bn: 0,
+      procurementPrepCost_bn: 0.2,
+    },
+    housing: {
+      houseBuilding_annualStarts: 240000,
+      housingAffordabilityIndex: 45,
+      rentInflation_pct: 6,
+      planningBottleneck: 65,
+      htbAndSharedOwnership_bn: 1.5,
+      infrastructureGuarantees_bn: 2.0,
+      planningReformPackage: false,
+      councilHouseBuildingGrant_bn: 0.6,
+    },
+    industrialStrategy: {
+      activeInterventions: [],
+      totalAnnualCost_bn: 0,
+      productivityBoostAccumulated: 0,
+      failedInterventionCount: 0,
+      stateAidRisk: 15,
+      exportShockTurnsRemaining: 0,
+    },
     legislativePipeline: { queue: [], hmrcSystemsCapacity: 100, consultationLoad: 25 },
   };
 }

@@ -8,7 +8,7 @@ import {
   RegionUK,
   BudgetChanges,
   generateMPConcernProfile,
-  DetailedMPStance
+  DetailedMPStance,
 } from './mp-system';
 
 // ===========================
@@ -18,15 +18,15 @@ import {
 export interface MPGroup {
   id: string;
   name: string;
-  spokespersonId: string;                    // Leader MP ID
-  memberIds: string[];                       // All member MP IDs
-  commonConcerns: MPConcern[];              // Shared issues
-  formationReason: string;                   // Why group formed
-  cohesion: number;                          // 0-100 (how unified)
-  votingPower: number;                       // Number of votes
-  demandDescription: string;                 // What they want
-  demandThreshold?: number;                  // Specific value needed (e.g., £10bn)
-  isActive: boolean;                         // Currently pressing demands
+  spokespersonId: string; // Leader MP ID
+  memberIds: string[]; // All member MP IDs
+  commonConcerns: MPConcern[]; // Shared issues
+  formationReason: string; // Why group formed
+  cohesion: number; // 0-100 (how unified)
+  votingPower: number; // Number of votes
+  demandDescription: string; // What they want
+  demandThreshold?: number; // Specific value needed (e.g., £10bn)
+  isActive: boolean; // Currently pressing demands
   formedInMonth: number;
 }
 
@@ -39,7 +39,7 @@ export interface MPGroup {
  */
 function mostCommon<T>(arr: T[]): T {
   const counts = new Map<T, number>();
-  arr.forEach(item => counts.set(item, (counts.get(item) || 0) + 1));
+  arr.forEach((item) => counts.set(item, (counts.get(item) || 0) + 1));
   let maxCount = 0;
   let mostCommonItem = arr[0];
   counts.forEach((count, item) => {
@@ -57,11 +57,13 @@ function mostCommon<T>(arr: T[]): T {
  */
 function selectSpokesperson(members: MPProfile[]): MPProfile {
   return members.sort((a, b) => {
-    const scoreA = a.traits.principled * 2 +
+    const scoreA =
+      a.traits.principled * 2 +
       (a.traits.rebelliousness >= 5 && a.traits.rebelliousness <= 8 ? 10 : 0) -
       a.traits.ambition +
       (a.isMinister ? -5 : 0); // Ministers less likely to lead rebellions
-    const scoreB = b.traits.principled * 2 +
+    const scoreB =
+      b.traits.principled * 2 +
       (b.traits.rebelliousness >= 5 && b.traits.rebelliousness <= 8 ? 10 : 0) -
       b.traits.ambition +
       (b.isMinister ? -5 : 0);
@@ -79,22 +81,22 @@ function generateGroupName(concerns: MPConcern[], members: MPProfile[]): string 
 
   // Map budget parameters to readable group names
   const nameMap: Record<string, string> = {
-    'nhsEngland': 'NHS Protection Group',
-    'nhsPrimaryCare': 'Primary Care Defence Group',
-    'nhsMentalHealth': 'Mental Health Campaign Group',
-    'socialCare': 'Social Care Crisis Group',
-    'universalCredit': 'Welfare Defence Coalition',
-    'housingBenefit': 'Housing Support Group',
-    'childBenefit': 'Family Support Group',
-    'corporationTaxMain': 'Progressive Tax Group',
-    'energyProfitsLevy': 'Windfall Tax Campaign',
-    'bankSurcharge': 'Financial Sector Reform Group',
-    'schools': 'Education First Group',
-    'policing': 'Law & Order Group',
-    'statePension': 'Pensioner Protection Group',
-    'farmSubsidies': 'Rural Britain Group',
-    'localGovernment': 'Local Services Coalition',
-    'transport': 'Infrastructure Investment Group'
+    nhsEngland: 'NHS Protection Group',
+    nhsPrimaryCare: 'Primary Care Defence Group',
+    nhsMentalHealth: 'Mental Health Campaign Group',
+    socialCare: 'Social Care Crisis Group',
+    universalCredit: 'Welfare Defence Coalition',
+    housingBenefit: 'Housing Support Group',
+    childBenefit: 'Family Support Group',
+    corporationTaxMain: 'Progressive Tax Group',
+    energyProfitsLevy: 'Windfall Tax Campaign',
+    bankSurcharge: 'Financial Sector Reform Group',
+    schools: 'Education First Group',
+    policing: 'Law & Order Group',
+    statePension: 'Pensioner Protection Group',
+    farmSubsidies: 'Rural Britain Group',
+    localGovernment: 'Local Services Coalition',
+    transport: 'Infrastructure Investment Group',
   };
 
   if (nameMap[topConcern.budgetParameter]) {
@@ -102,35 +104,35 @@ function generateGroupName(concerns: MPConcern[], members: MPProfile[]): string 
   }
 
   // Check if group is faction-based (>70% same faction)
-  const leftMPs = members.filter(m => m.faction === 'left').length;
+  const leftMPs = members.filter((m) => m.faction === 'left').length;
   if (leftMPs / members.length > 0.7) {
     return 'Socialist Campaign Group Coalition';
   }
 
-  const softLeftMPs = members.filter(m => m.faction === 'soft_left').length;
+  const softLeftMPs = members.filter((m) => m.faction === 'soft_left').length;
   if (softLeftMPs / members.length > 0.7) {
     return 'Soft Left Group';
   }
 
   // Check if group is region-based (>60% same region)
-  const regions = members.map(m => m.constituency.region);
+  const regions = members.map((m) => m.constituency.region);
   const dominantRegion = mostCommon(regions);
-  const regionCount = regions.filter(r => r === dominantRegion).length;
+  const regionCount = regions.filter((r) => r === dominantRegion).length;
 
   if (regionCount / regions.length > 0.6) {
     const regionNames: Record<RegionUK, string> = {
-      'northeast': 'Red Wall MPs',
-      'northwest': 'Northern Labour Group',
-      'yorkshire': 'Yorkshire Labour Group',
-      'eastmidlands': 'East Midlands Group',
-      'westmidlands': 'West Midlands Group',
-      'eastengland': 'East of England Group',
-      'london': 'London Labour Group',
-      'southeast': 'South East Group',
-      'southwest': 'South West Group',
-      'wales': 'Welsh Labour Group',
-      'scotland': 'Scottish Labour Group',
-      'northernireland': 'Northern Ireland Group'
+      northeast: 'Red Wall MPs',
+      northwest: 'Northern Labour Group',
+      yorkshire: 'Yorkshire Labour Group',
+      eastmidlands: 'East Midlands Group',
+      westmidlands: 'West Midlands Group',
+      eastengland: 'East of England Group',
+      london: 'London Labour Group',
+      southeast: 'South East Group',
+      southwest: 'South West Group',
+      wales: 'Welsh Labour Group',
+      scotland: 'Scottish Labour Group',
+      northernireland: 'Northern Ireland Group',
     };
     return regionNames[dominantRegion] || 'Regional Labour Group';
   }
@@ -141,12 +143,9 @@ function generateGroupName(concerns: MPConcern[], members: MPProfile[]): string 
 /**
  * Find common concerns shared by group members
  */
-function findCommonConcerns(
-  members: MPProfile[],
-  concernProfiles: Map<string, MPConcernProfile>
-): MPConcern[] {
+function findCommonConcerns(members: MPProfile[], concernProfiles: Map<string, MPConcernProfile>): MPConcern[] {
   // Count how many MPs share each concern
-  const concernCounts = new Map<string, { count: number, concern: MPConcern }>();
+  const concernCounts = new Map<string, { count: number; concern: MPConcern }>();
 
   for (const mp of members) {
     const profile = concernProfiles.get(mp.id);
@@ -190,13 +189,14 @@ function calculateCohesion(members: MPProfile[], commonConcerns: MPConcern[]): n
 
   // Ideological similarity
   const avgEconomicAxis = members.reduce((sum, m) => sum + m.ideology.economicAxis, 0) / members.length;
-  const economicVariance = members.reduce((sum, m) => sum + Math.abs(m.ideology.economicAxis - avgEconomicAxis), 0) / members.length;
+  const economicVariance =
+    members.reduce((sum, m) => sum + Math.abs(m.ideology.economicAxis - avgEconomicAxis), 0) / members.length;
   cohesion += Math.max(0, 20 - economicVariance * 2);
 
   // Regional clustering
-  const regions = members.map(m => m.constituency.region);
+  const regions = members.map((m) => m.constituency.region);
   const dominantRegion = mostCommon(regions);
-  const regionPercentage = regions.filter(r => r === dominantRegion).length / regions.length;
+  const regionPercentage = regions.filter((r) => r === dominantRegion).length / regions.length;
   if (regionPercentage > 0.7) cohesion += 10;
 
   return Math.min(100, Math.max(0, cohesion));
@@ -209,21 +209,21 @@ function generateDemandDescription(concerns: MPConcern[]): string {
   if (concerns.length === 0) return 'Various policy changes';
 
   const topConcern = concerns[0];
-  const actionWord = topConcern.direction === 'increase' ? 'increase' :
-    topConcern.direction === 'decrease' ? 'reduce' : 'maintain';
+  const actionWord =
+    topConcern.direction === 'increase' ? 'increase' : topConcern.direction === 'decrease' ? 'reduce' : 'maintain';
 
   const concernNames: Record<string, string> = {
-    'nhsEngland': 'NHS England funding',
-    'nhsPrimaryCare': 'primary care funding',
-    'nhsMentalHealth': 'mental health services funding',
-    'socialCare': 'social care funding',
-    'universalCredit': 'Universal Credit payments',
-    'corporationTaxMain': 'corporation tax rate',
-    'energyProfitsLevy': 'energy windfall tax',
-    'schools': 'schools funding',
-    'statePension': 'state pension',
-    'policing': 'police funding',
-    'transport': 'transport infrastructure investment'
+    nhsEngland: 'NHS England funding',
+    nhsPrimaryCare: 'primary care funding',
+    nhsMentalHealth: 'mental health services funding',
+    socialCare: 'social care funding',
+    universalCredit: 'Universal Credit payments',
+    corporationTaxMain: 'corporation tax rate',
+    energyProfitsLevy: 'energy windfall tax',
+    schools: 'schools funding',
+    statePension: 'state pension',
+    policing: 'police funding',
+    transport: 'transport infrastructure investment',
   };
 
   const concernName = concernNames[topConcern.budgetParameter] || topConcern.budgetParameter;
@@ -233,8 +233,12 @@ function generateDemandDescription(concerns: MPConcern[]): string {
   } else if (concerns.length === 2) {
     const secondConcern = concerns[1];
     const secondName = concernNames[secondConcern.budgetParameter] || secondConcern.budgetParameter;
-    const secondAction = secondConcern.direction === 'increase' ? 'increase' :
-      secondConcern.direction === 'decrease' ? 'reduce' : 'maintain';
+    const secondAction =
+      secondConcern.direction === 'increase'
+        ? 'increase'
+        : secondConcern.direction === 'decrease'
+          ? 'reduce'
+          : 'maintain';
     return `Demands to ${actionWord} ${concernName} and ${secondAction} ${secondName}`;
   } else {
     return `Demands to ${actionWord} ${concernName} and address ${concerns.length - 1} other concerns`;
@@ -270,11 +274,12 @@ export function identifyMPGroups(
   const assignedMPs = new Set<string>();
 
   // Only consider Labour MPs who oppose or are undecided
-  const concernedLabourMPs = Array.from(allMPs.values()).filter(mp =>
-    mp.party === 'labour' &&
-    (currentBudgetSupport.get(mp.id)?.stance === 'oppose' ||
-      currentBudgetSupport.get(mp.id)?.stance === 'undecided') &&
-    !assignedMPs.has(mp.id)
+  const concernedLabourMPs = Array.from(allMPs.values()).filter(
+    (mp) =>
+      mp.party === 'labour' &&
+      (currentBudgetSupport.get(mp.id)?.stance === 'oppose' ||
+        currentBudgetSupport.get(mp.id)?.stance === 'undecided') &&
+      !assignedMPs.has(mp.id)
   );
 
   console.log(`[MP Groups] Identifying groups from ${concernedLabourMPs.length} concerned Labour MPs`);
@@ -327,10 +332,12 @@ export function identifyMPGroups(
         demandDescription: generateDemandDescription(commonConcerns),
         demandThreshold: undefined, // Set by specific concern logic if needed
         isActive: true,
-        formedInMonth: currentMonth
+        formedInMonth: currentMonth,
       };
 
-      console.log(`[MP Groups] Formed "${group.name}" with ${group.memberIds.length} members, spokesperson: ${spokesperson.name}`);
+      console.log(
+        `[MP Groups] Formed "${group.name}" with ${group.memberIds.length} members, spokesperson: ${spokesperson.name}`
+      );
       groups.push(group);
       mpIds.forEach((id: string) => assignedMPs.add(id));
     }
@@ -367,10 +374,7 @@ export function shouldRecalculateGroups(
     if (!previous || !current) return;
 
     // Significant shift: support -> oppose/undecided OR oppose/undecided -> support
-    if (
-      (previous === 'support' && current !== 'support') ||
-      (previous !== 'support' && current === 'support')
-    ) {
+    if ((previous === 'support' && current !== 'support') || (previous !== 'support' && current === 'support')) {
       significantShifts++;
     }
   });

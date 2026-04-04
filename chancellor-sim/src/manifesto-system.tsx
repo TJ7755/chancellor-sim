@@ -63,7 +63,8 @@ export const MANIFESTO_TEMPLATES: ManifestoTemplate[] = [
         id: 'income-tax-lock',
         category: 'tax',
         description: 'No increase in income tax rates',
-        detail: 'Basic, higher, and additional rate income tax will not be increased during this parliament. Protects working people.',
+        detail:
+          'Basic, higher, and additional rate income tax will not be increased during this parliament. Protects working people.',
         breakCost_approval: -7,
         breakCost_pmTrust: -8,
         backbenchConcern: 8,
@@ -77,7 +78,8 @@ export const MANIFESTO_TEMPLATES: ManifestoTemplate[] = [
         id: 'ni-lock',
         category: 'tax',
         description: 'No increase in National Insurance rates',
-        detail: 'No increase in employee or employer National Insurance contributions. Working people will not pay more.',
+        detail:
+          'No increase in employee or employer National Insurance contributions. Working people will not pay more.',
         breakCost_approval: -7,
         breakCost_pmTrust: -8,
         backbenchConcern: 8,
@@ -680,9 +682,7 @@ export function getManifestoById(id: string): ManifestoTemplate | undefined {
 }
 
 export function initializeManifestoState(templateId?: string): ManifestoState {
-  const template = templateId
-    ? getManifestoById(templateId) || getRandomManifesto()
-    : getRandomManifesto();
+  const template = templateId ? getManifestoById(templateId) || getRandomManifesto() : getRandomManifesto();
 
   const pledges: ManifestoPledge[] = template.pledges.map((pledge) => ({
     ...pledge,
@@ -790,7 +790,8 @@ export function executeOneClickAction(
         revertedTaxes.push('higher rate income tax');
       }
       if (currentTaxRates.incomeTaxAdditional !== startingTaxRates.incomeTaxAdditional) {
-        budgetChanges.incomeTaxAdditionalChange = startingTaxRates.incomeTaxAdditional - currentTaxRates.incomeTaxAdditional;
+        budgetChanges.incomeTaxAdditionalChange =
+          startingTaxRates.incomeTaxAdditional - currentTaxRates.incomeTaxAdditional;
         revertedTaxes.push('additional rate income tax');
       }
     } else if (pledge.id === 'ni-lock' || pledge.id === 'ni-employee-lock') {
@@ -844,7 +845,12 @@ export function executeOneClickAction(
       budgetChanges.policeSpendingChange = cost;
     } else if (pledge.id === 'welfare-to-work' || pledge.id === 'child-poverty') {
       budgetChanges.welfareSpendingChange = cost;
-    } else if (pledge.id.includes('green') || pledge.id === 'climate-investment' || pledge.id === 'capital-investment' || pledge.id === 'housing-revolution') {
+    } else if (
+      pledge.id.includes('green') ||
+      pledge.id === 'climate-investment' ||
+      pledge.id === 'capital-investment' ||
+      pledge.id === 'housing-revolution'
+    ) {
       budgetChanges.infrastructureSpendingChange = cost;
     } else if (pledge.id === 'skills-training' || pledge.id === 'social-care') {
       budgetChanges.otherSpendingChange = cost;
@@ -901,9 +907,10 @@ export function calculatePledgeProgress(
     let isCompliant = true;
 
     if (pledge.id === 'income-tax-lock') {
-      isCompliant = gameState.currentTaxRates.incomeTaxBasic <= gameState.startingTaxRates.incomeTaxBasic &&
-                    gameState.currentTaxRates.incomeTaxHigher <= gameState.startingTaxRates.incomeTaxHigher &&
-                    gameState.currentTaxRates.incomeTaxAdditional <= gameState.startingTaxRates.incomeTaxAdditional;
+      isCompliant =
+        gameState.currentTaxRates.incomeTaxBasic <= gameState.startingTaxRates.incomeTaxBasic &&
+        gameState.currentTaxRates.incomeTaxHigher <= gameState.startingTaxRates.incomeTaxHigher &&
+        gameState.currentTaxRates.incomeTaxAdditional <= gameState.startingTaxRates.incomeTaxAdditional;
     } else if (pledge.id === 'ni-lock' || pledge.id === 'ni-employee-lock') {
       isCompliant = gameState.currentTaxRates.niEmployee <= gameState.startingTaxRates.niEmployee;
       if (pledge.id === 'ni-lock') {
@@ -1004,9 +1011,7 @@ export function checkPolicyForViolations(
           policyChange.incomeTaxAdditionalChange! > 0
         ) {
           isViolated = true;
-          warnings.push(
-            `Increasing income tax violates manifesto pledge: "${pledge.description}"`
-          );
+          warnings.push(`Increasing income tax violates manifesto pledge: "${pledge.description}"`);
         }
         break;
 
@@ -1014,9 +1019,7 @@ export function checkPolicyForViolations(
       case 'ni-employee-lock':
         if (policyChange.niEmployeeChange! > 0 || policyChange.niEmployerChange! > 0) {
           isViolated = true;
-          warnings.push(
-            `Increasing National Insurance violates manifesto pledge: "${pledge.description}"`
-          );
+          warnings.push(`Increasing National Insurance violates manifesto pledge: "${pledge.description}"`);
         }
         break;
 
@@ -1031,9 +1034,7 @@ export function checkPolicyForViolations(
       case 'corp-tax-cap':
         if (policyChange.corporationTaxChange! > 0) {
           isViolated = true;
-          warnings.push(
-            `Increasing corporation tax violates manifesto pledge: "${pledge.description}"`
-          );
+          warnings.push(`Increasing corporation tax violates manifesto pledge: "${pledge.description}"`);
         }
         break;
 
@@ -1053,9 +1054,7 @@ export function checkPolicyForViolations(
       case 'nhs-waiting-times':
         if (policyChange.nhsSpendingCutReal) {
           isViolated = true;
-          warnings.push(
-            `Real terms NHS spending cuts violate manifesto pledge: "${pledge.description}"`
-          );
+          warnings.push(`Real terms NHS spending cuts violate manifesto pledge: "${pledge.description}"`);
         }
         break;
 
@@ -1065,9 +1064,7 @@ export function checkPolicyForViolations(
       case 'education-standards':
         if (policyChange.educationSpendingCutReal) {
           isViolated = true;
-          warnings.push(
-            `Education spending cuts violate manifesto pledge: "${pledge.description}"`
-          );
+          warnings.push(`Education spending cuts violate manifesto pledge: "${pledge.description}"`);
         }
         break;
     }
@@ -1077,14 +1074,8 @@ export function checkPolicyForViolations(
     }
   });
 
-  const totalApprovalCost = violatedPledges.reduce(
-    (sum, p) => sum + p.breakCost_approval,
-    0
-  );
-  const totalPmTrustCost = violatedPledges.reduce(
-    (sum, p) => sum + p.breakCost_pmTrust,
-    0
-  );
+  const totalApprovalCost = violatedPledges.reduce((sum, p) => sum + p.breakCost_approval, 0);
+  const totalPmTrustCost = violatedPledges.reduce((sum, p) => sum + p.breakCost_pmTrust, 0);
 
   return {
     violatedPledges,
@@ -1108,21 +1099,14 @@ export function applyManifestoViolations(
     return pledge;
   });
 
-  const totalApprovalCost = violatedPledges.reduce(
-    (sum, p) => sum + p.breakCost_approval,
-    0
-  );
-  const totalPmTrustCost = violatedPledges.reduce(
-    (sum, p) => sum + p.breakCost_pmTrust,
-    0
-  );
+  const totalApprovalCost = violatedPledges.reduce((sum, p) => sum + p.breakCost_approval, 0);
+  const totalPmTrustCost = violatedPledges.reduce((sum, p) => sum + p.breakCost_pmTrust, 0);
 
   return {
     ...manifestoState,
     pledges: updatedPledges,
     totalViolations: manifestoState.totalViolations + violatedPledges.length,
-    approvalCostFromViolations:
-      manifestoState.approvalCostFromViolations + totalApprovalCost,
+    approvalCostFromViolations: manifestoState.approvalCostFromViolations + totalApprovalCost,
     pmTrustCostFromViolations: manifestoState.pmTrustCostFromViolations + totalPmTrustCost,
   };
 }
@@ -1160,9 +1144,7 @@ export const ManifestoDisplay: React.FC<{
   const template = getManifestoById(manifestoState.selectedTemplate);
   if (!template) return null;
 
-  const displayPledges = showViolationsOnly
-    ? manifestoState.pledges.filter((p) => p.violated)
-    : manifestoState.pledges;
+  const displayPledges = showViolationsOnly ? manifestoState.pledges.filter((p) => p.violated) : manifestoState.pledges;
 
   const pledgesByCategory = {
     tax: displayPledges.filter((p) => p.category === 'tax'),
@@ -1174,24 +1156,16 @@ export const ManifestoDisplay: React.FC<{
   const handleOneClick = (pledge: ManifestoPledge) => {
     if (!gameState || !onExecuteOneClick) return;
 
-    const result = executeOneClickAction(
-      pledge,
-      gameState.currentTaxRates,
-      gameState.startingTaxRates
-    );
+    const result = executeOneClickAction(pledge, gameState.currentTaxRates, gameState.startingTaxRates);
 
     onExecuteOneClick(result);
   };
 
   return (
-    <div className="bg-white border-2 border-red-700 p-6 rounded-sm">
+    <div className="bg-bg-surface border-2 border-primary p-6">
       <div className="border-b-2 border-red-700 pb-3 mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">
-          Labour Manifesto 2024
-        </h2>
-        <h3 className="text-lg font-semibold text-red-700 mt-1">
-          {template.name}
-        </h3>
+        <h2 className="text-2xl font-bold text-gray-900">Labour Manifesto 2024</h2>
+        <h3 className="text-lg font-semibold text-red-700 mt-1">{template.name}</h3>
         <p className="text-sm text-gray-600 mt-2">{template.theme}</p>
       </div>
 
@@ -1225,9 +1199,7 @@ export const ManifestoDisplay: React.FC<{
             <div className="space-y-3">
               {pledges.map((pledge) => {
                 // Calculate progress if game state is available
-                const progressData = gameState
-                  ? calculatePledgeProgress(pledge, gameState)
-                  : null;
+                const progressData = gameState ? calculatePledgeProgress(pledge, gameState) : null;
 
                 return (
                   <div
@@ -1236,10 +1208,10 @@ export const ManifestoDisplay: React.FC<{
                       pledge.violated
                         ? 'border-red-600 bg-red-50'
                         : progressData?.statusColor === 'green'
-                        ? 'border-green-600 bg-green-50'
-                        : progressData?.statusColor === 'amber'
-                        ? 'border-amber-500 bg-amber-50'
-                        : 'border-gray-300 bg-gray-50'
+                          ? 'border-green-600 bg-green-50'
+                          : progressData?.statusColor === 'amber'
+                            ? 'border-amber-500 bg-amber-50'
+                            : 'border-gray-300 bg-gray-50'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -1257,9 +1229,7 @@ export const ManifestoDisplay: React.FC<{
                               <p className="text-xs text-red-700 font-semibold">
                                 -{Math.abs(pledge.breakCost_approval)} approval
                               </p>
-                              <p className="text-xs text-red-600">
-                                -{Math.abs(pledge.breakCost_pmTrust)} PM trust
-                              </p>
+                              <p className="text-xs text-red-600">-{Math.abs(pledge.breakCost_pmTrust)} PM trust</p>
                             </div>
                           )}
                         </div>
@@ -1268,12 +1238,8 @@ export const ManifestoDisplay: React.FC<{
                         {progressData && (
                           <div className="mt-2">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-gray-700">
-                                {progressData.status}
-                              </span>
-                              <span className="text-xs font-medium text-gray-700">
-                                {progressData.progress}%
-                              </span>
+                              <span className="text-xs font-medium text-gray-700">{progressData.status}</span>
+                              <span className="text-xs font-medium text-gray-700">{progressData.progress}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
@@ -1281,8 +1247,8 @@ export const ManifestoDisplay: React.FC<{
                                   progressData.statusColor === 'green'
                                     ? 'bg-green-600'
                                     : progressData.statusColor === 'amber'
-                                    ? 'bg-amber-500'
-                                    : 'bg-red-600'
+                                      ? 'bg-amber-500'
+                                      : 'bg-red-600'
                                 }`}
                                 style={{ width: `${progressData.progress}%` }}
                               />
@@ -1291,9 +1257,7 @@ export const ManifestoDisplay: React.FC<{
                         )}
 
                         {pledge.violated && pledge.turnViolated && (
-                          <p className="text-xs text-red-700 mt-2 font-medium">
-                            Broken in month {pledge.turnViolated}
-                          </p>
+                          <p className="text-xs text-red-700 mt-2 font-medium">Broken in month {pledge.turnViolated}</p>
                         )}
 
                         {/* One-Click Action Button */}
@@ -1304,24 +1268,20 @@ export const ManifestoDisplay: React.FC<{
                                 Spending allocated -- pledge fulfilled
                               </p>
                             ) : (
-                            <button
-                              onClick={() => handleOneClick(pledge)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded ${
-                                pledge.violated
-                                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              } transition-colors`}
-                              title={pledge.oneClickDescription}
-                            >
-                              {pledge.violated ? 'Quick Fix' : 'Fulfil Pledge'}
-                              {pledge.oneClickCost && pledge.oneClickCost > 0
-                                ? ` (£${pledge.oneClickCost}bn)`
-                                : ''}
-                            </button>
+                              <button
+                                onClick={() => handleOneClick(pledge)}
+                                className={`text-xs font-medium px-3 py-1.5 rounded ${
+                                  pledge.violated
+                                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                } transition-colors`}
+                                title={pledge.oneClickDescription}
+                              >
+                                {pledge.violated ? 'Quick Fix' : 'Fulfil Pledge'}
+                                {pledge.oneClickCost && pledge.oneClickCost > 0 ? ` (£${pledge.oneClickCost}bn)` : ''}
+                              </button>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">
-                              {pledge.oneClickDescription}
-                            </p>
+                            <p className="text-xs text-gray-500 mt-1">{pledge.oneClickDescription}</p>
                           </div>
                         )}
                       </div>
@@ -1350,9 +1310,7 @@ export const ManifestoWarnings: React.FC<{
           <span className="text-xl font-bold text-red-800">!</span>
         </div>
         <div className="ml-3 flex-1">
-          <h3 className="text-sm font-bold text-red-800">
-            Manifesto Violation Warning
-          </h3>
+          <h3 className="text-sm font-bold text-red-800">Manifesto Violation Warning</h3>
           <ul className="mt-2 text-sm text-red-700 space-y-1">
             {warnings.map((warning, index) => (
               <li key={index}>• {warning}</li>
@@ -1428,7 +1386,10 @@ export function generateManifestoAdvice(
         actionable: pledge.oneClickAvailable,
         action: pledge.oneClickAvailable
           ? {
-              label: pledge.oneClickCost && pledge.oneClickCost > 0 ? `Allocate £${pledge.oneClickCost}bn` : 'Revert tax rates',
+              label:
+                pledge.oneClickCost && pledge.oneClickCost > 0
+                  ? `Allocate £${pledge.oneClickCost}bn`
+                  : 'Revert tax rates',
               oneClickAvailable: true,
               cost: pledge.oneClickCost,
             }
@@ -1531,9 +1492,7 @@ export function generateTradeOffAnalysis(
     return null;
   }
 
-  const pledgeDescriptions = violationCheck.violatedPledges
-    .map((p) => `"${p.description}"`)
-    .join(', ');
+  const pledgeDescriptions = violationCheck.violatedPledges.map((p) => `"${p.description}"`).join(', ');
 
   let tradeOffMessage = `${policyChange.description} would violate ${violationCheck.violatedPledges.length} manifesto pledge${violationCheck.violatedPledges.length > 1 ? 's' : ''}: ${pledgeDescriptions}.\n\n`;
 
@@ -1684,7 +1643,8 @@ export function checkAnnualGrowthPledges(
     const realGrowth = nominalGrowth - inflationCPI;
 
     // Check if growth target was met
-    if (realGrowth < pledge.requiredAnnualGrowth - 0.1) {  // Allow 0.1% tolerance
+    if (realGrowth < pledge.requiredAnnualGrowth - 0.1) {
+      // Allow 0.1% tolerance
       violatedPledges.push(pledge);
     }
   });

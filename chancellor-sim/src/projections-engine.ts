@@ -9,6 +9,7 @@
  */
 
 import type { GameState } from './game-state';
+import type { DetailedTaxItem, DetailedSpendingItem } from './game-integration';
 import { processTurn } from './turn-processor';
 import type { BudgetDraft as ProjectionBudgetDraft } from './state/budget-draft';
 export type { ProjectionBudgetDraft };
@@ -30,15 +31,26 @@ function deepCloneForSimulation(state: GameState): GameState {
     allMPs: state.mpSystem?.allMPs instanceof Map ? new Map(state.mpSystem.allMPs) : new Map(),
     votingRecords: state.mpSystem?.votingRecords instanceof Map ? new Map(state.mpSystem.votingRecords) : new Map(),
     promises: state.mpSystem?.promises instanceof Map ? new Map(state.mpSystem.promises) : new Map(),
-    concernProfiles: state.mpSystem?.concernProfiles instanceof Map ? new Map(state.mpSystem.concernProfiles) : new Map(),
-    currentBudgetSupport: state.mpSystem?.currentBudgetSupport instanceof Map ? new Map(state.mpSystem.currentBudgetSupport) : new Map(),
+    concernProfiles:
+      state.mpSystem?.concernProfiles instanceof Map ? new Map(state.mpSystem.concernProfiles) : new Map(),
+    currentBudgetSupport:
+      state.mpSystem?.currentBudgetSupport instanceof Map ? new Map(state.mpSystem.currentBudgetSupport) : new Map(),
   } as any;
 
   cloned.advisers = {
     ...cloned.advisers,
-    hiredAdvisers: state.advisers?.hiredAdvisers instanceof Map ? new Map(state.advisers.hiredAdvisers) : cloned.advisers?.hiredAdvisers,
-    availableAdvisers: state.advisers?.availableAdvisers instanceof Set ? new Set(state.advisers.availableAdvisers) : cloned.advisers?.availableAdvisers,
-    currentOpinions: state.advisers?.currentOpinions instanceof Map ? new Map(state.advisers.currentOpinions) : cloned.advisers?.currentOpinions,
+    hiredAdvisers:
+      state.advisers?.hiredAdvisers instanceof Map
+        ? new Map(state.advisers.hiredAdvisers)
+        : cloned.advisers?.hiredAdvisers,
+    availableAdvisers:
+      state.advisers?.availableAdvisers instanceof Set
+        ? new Set(state.advisers.availableAdvisers)
+        : cloned.advisers?.availableAdvisers,
+    currentOpinions:
+      state.advisers?.currentOpinions instanceof Map
+        ? new Map(state.advisers.currentOpinions)
+        : cloned.advisers?.currentOpinions,
   } as any;
 
   return cloned;
@@ -123,7 +135,7 @@ export function generateProjections(
   state: GameState,
   months: number = 24,
   includePendingBudget: boolean = true,
-  pendingBudgetDraft?: ProjectionBudgetDraft | null,
+  pendingBudgetDraft?: ProjectionBudgetDraft | null
 ): ProjectionsResult {
   const startDate = `${state.metadata.currentYear}-${String(state.metadata.currentMonth).padStart(2, '0')}`;
   const hasPending = hasPendingBudgetChanges(state, pendingBudgetDraft || undefined);
@@ -161,7 +173,7 @@ function simulateForward(
   initialState: GameState,
   months: number,
   applyPendingBudget: boolean,
-  pendingBudgetDraft?: ProjectionBudgetDraft,
+  pendingBudgetDraft?: ProjectionBudgetDraft
 ): ProjectionPoint[] {
   // Deep clone the state to avoid mutations
   let simulationState = deepCloneForSimulation(initialState);
@@ -328,7 +340,7 @@ function applyPendingBudgetToState(state: GameState, providedDraft?: ProjectionB
         default:
           // Try granular tax ID mapping
           if (Array.isArray(newState.fiscal.detailedTaxes)) {
-            newState.fiscal.detailedTaxes = newState.fiscal.detailedTaxes.map((item) => {
+            newState.fiscal.detailedTaxes = newState.fiscal.detailedTaxes.map((item: DetailedTaxItem) => {
               if (item.id !== id) return item;
               return { ...item, currentRate: tax.proposedRate };
             });
@@ -345,7 +357,7 @@ function applyPendingBudgetToState(state: GameState, providedDraft?: ProjectionB
       }
 
       if (Array.isArray(newState.fiscal.detailedSpending)) {
-        newState.fiscal.detailedSpending = newState.fiscal.detailedSpending.map((item) => {
+        newState.fiscal.detailedSpending = newState.fiscal.detailedSpending.map((item: DetailedSpendingItem) => {
           if (item.id !== id) return item;
 
           if (item.type === 'capital') {
@@ -387,7 +399,15 @@ function applyPendingBudgetToState(state: GameState, providedDraft?: ProjectionB
   }
 }
 
-type SpendingDepartmentKey = 'nhs' | 'education' | 'defence' | 'welfare' | 'infrastructure' | 'police' | 'justice' | 'other';
+type SpendingDepartmentKey =
+  | 'nhs'
+  | 'education'
+  | 'defence'
+  | 'welfare'
+  | 'infrastructure'
+  | 'police'
+  | 'justice'
+  | 'other';
 
 function mapDepartmentToSpendingKey(department: string): SpendingDepartmentKey | null {
   const dept = department.toLowerCase();
@@ -502,7 +522,9 @@ export function calculateProjectionDifference(
     deficitDiff: baseline.slice(0, length).map((b, i) => alternative[i].deficit - b.deficit),
     debtDiff: baseline.slice(0, length).map((b, i) => alternative[i].debt - b.debt),
     productivityDiff: baseline.slice(0, length).map((b, i) => alternative[i].productivity - b.productivity),
-    avgServiceQualityDiff: baseline.slice(0, length).map((b, i) => alternative[i].averageServiceQuality - b.averageServiceQuality),
+    avgServiceQualityDiff: baseline
+      .slice(0, length)
+      .map((b, i) => alternative[i].averageServiceQuality - b.averageServiceQuality),
   };
 }
 

@@ -49,8 +49,12 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
       <div className="bg-white w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-sm">
         <div className="p-5 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Spending Review</h2>
-          <p className="text-sm text-gray-600 mt-1">Set three-year DEL plans. Fiscal headroom: £{fiscalHeadroom_bn.toFixed(1)}bn.</p>
-          <p className="text-xs text-gray-600 mt-1">Spending Review plans are indicative guidelines and may be revised.</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Set three-year DEL plans. Fiscal headroom: £{fiscalHeadroom_bn.toFixed(1)}bn.
+          </p>
+          <p className="text-xs text-gray-600 mt-1">
+            Spending Review plans are indicative guidelines and may be revised.
+          </p>
           {totalPlanned > indicativeEnvelope && (
             <div className="mt-2 text-sm text-amber-700 bg-amber-50 border border-amber-300 p-2 rounded-sm">
               Proposed DEL plan is £{(totalPlanned - indicativeEnvelope).toFixed(1)}bn above the indicative envelope.
@@ -61,10 +65,12 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
           {departmentOrder.map((key) => {
             const dept = departments[key];
             return (
-              <div key={key} className="border border-gray-200 rounded-sm p-3">
+              <div key={key} className="border border-border-subtle p-3">
                 <div className="flex justify-between text-sm mb-2">
                   <div className="font-semibold">{dept.name}</div>
-                  <div className="text-gray-600">Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}</div>
+                  <div className="text-gray-600">
+                    Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}
+                  </div>
                 </div>
                 <div className="grid grid-cols-6 gap-2 text-sm">
                   {[0, 1, 2].map((yearIdx) => (

@@ -11,7 +11,17 @@ export type { BudgetChanges };
 // Type Definitions
 // ===========================
 
-export type PartyAffiliation = 'labour' | 'conservative' | 'liberal_democrat' | 'snp' | 'green' | 'reform_uk' | 'plaid_cymru' | 'dup' | 'sinn_fein' | 'independent';
+export type PartyAffiliation =
+  | 'labour'
+  | 'conservative'
+  | 'liberal_democrat'
+  | 'snp'
+  | 'green'
+  | 'reform_uk'
+  | 'plaid_cymru'
+  | 'dup'
+  | 'sinn_fein'
+  | 'independent';
 
 export type LabourFaction = 'left' | 'soft_left' | 'centre_left' | 'blairite' | 'party_loyalist';
 
@@ -43,22 +53,22 @@ export type RegionUK =
 export type AgeProfile = 'young' | 'mixed' | 'elderly';
 
 export interface IdeologicalPosition {
-  economicAxis: number;        // -10 (far left) to +10 (far right)
-  socialAxis: number;           // -10 (libertarian) to +10 (authoritarian)
-  fiscalConservatism: number;   // 0-10 (0 = MMT/expansive, 10 = austerity hawk)
+  economicAxis: number; // -10 (far left) to +10 (far right)
+  socialAxis: number; // -10 (libertarian) to +10 (authoritarian)
+  fiscalConservatism: number; // 0-10 (0 = MMT/expansive, 10 = austerity hawk)
 }
 
 export interface MPTraits {
-  rebelliousness: number;       // 0-10 (0 = always loyal, 10 = serial rebel)
-  ambition: number;             // 0-10 (affects desire for promotion)
-  principled: number;           // 0-10 (how much ideology matters)
-  careerist: number;            // 0-10 (how much career advancement matters)
-  popularityFocused: number;    // 0-10 (local constituency vs party line)
+  rebelliousness: number; // 0-10 (0 = always loyal, 10 = serial rebel)
+  ambition: number; // 0-10 (affects desire for promotion)
+  principled: number; // 0-10 (how much ideology matters)
+  careerist: number; // 0-10 (how much career advancement matters)
+  popularityFocused: number; // 0-10 (local constituency vs party line)
 }
 
 export interface ConstituencyDemographics {
-  medianIncome: number;         // £ per year
-  unemploymentRate: number;     // Percentage
+  medianIncome: number; // £ per year
+  unemploymentRate: number; // Percentage
   publicSectorDependency: number; // Percentage of jobs in public sector
   ageProfile: AgeProfile;
 }
@@ -67,10 +77,10 @@ export interface Constituency {
   id: string;
   name: string;
   region: RegionUK;
-  marginality: number;          // 0-100 (0 = ultra-safe, 100 = knife-edge marginal)
+  marginality: number; // 0-100 (0 = ultra-safe, 100 = knife-edge marginal)
   demographics: ConstituencyDemographics;
-  previousMargin: number;       // % vote margin from last election
-  swingRequired: number;        // % swing needed to lose seat
+  previousMargin: number; // % vote margin from last election
+  swingRequired: number; // % swing needed to lose seat
 }
 
 export interface MPProfile {
@@ -82,7 +92,7 @@ export interface MPProfile {
   ideology: IdeologicalPosition;
   traits: MPTraits;
   background: string;
-  enteredParliament: number;    // Year
+  enteredParliament: number; // Year
   isMinister: boolean;
   dealComplianceProbability?: number;
   ministerialRole?: string;
@@ -91,11 +101,11 @@ export interface MPProfile {
 
 export interface MPPromise {
   id: string;
-  promisedToMPs: string[];      // Array of MP IDs
+  promisedToMPs: string[]; // Array of MP IDs
   mpId?: string;
   category: PromiseCategory;
   description: string;
-  specificValue?: number;       // e.g., £2bn for NHS spending
+  specificValue?: number; // e.g., £2bn for NHS spending
   turnMade?: number;
   madeInMonth: number;
   deadline?: number;
@@ -106,31 +116,31 @@ export interface MPPromise {
 }
 
 export interface MPConcern {
-  budgetParameter: string;          // e.g., 'nhsMentalHealth', 'corporationTaxMain'
-  priority: number;                 // 0-10 (how much MP cares)
+  budgetParameter: string; // e.g., 'nhsMentalHealth', 'corporationTaxMain'
+  priority: number; // 0-10 (how much MP cares)
   direction: 'increase' | 'decrease' | 'maintain';
-  reason: string;                   // e.g., 'Constituency has high elderly population'
-  thresholdValue?: number;          // Optional: specific value MP wants
+  reason: string; // e.g., 'Constituency has high elderly population'
+  thresholdValue?: number; // Optional: specific value MP wants
 }
 
 export interface MPConcernProfile {
   mpId: string;
-  concerns: MPConcern[];            // Dynamic list based on ideology + constituency
-  primaryIssues: string[];          // Top 3-5 concerns for this MP
+  concerns: MPConcern[]; // Dynamic list based on ideology + constituency
+  primaryIssues: string[]; // Top 3-5 concerns for this MP
 }
 
 export interface MPGroup {
   id: string;
   name: string;
-  spokespersonId: string;                    // Leader MP ID
-  memberIds: string[];                       // All member MP IDs
-  commonConcerns: MPConcern[];              // Shared issues
-  formationReason: string;                   // Why group formed
-  cohesion: number;                          // 0-100 (how unified)
-  votingPower: number;                       // Number of votes
-  demandDescription: string;                 // What they want
-  demandThreshold?: number;                  // Specific value needed
-  isActive: boolean;                         // Currently pressing demands
+  spokespersonId: string; // Leader MP ID
+  memberIds: string[]; // All member MP IDs
+  commonConcerns: MPConcern[]; // Shared issues
+  formationReason: string; // Why group formed
+  cohesion: number; // 0-100 (how unified)
+  votingPower: number; // Number of votes
+  demandDescription: string; // What they want
+  demandThreshold?: number; // Specific value needed
+  isActive: boolean; // Currently pressing demands
   formedInMonth: number;
 }
 
@@ -139,23 +149,22 @@ export interface BudgetVote {
   month: number;
   choice: 'aye' | 'noe' | 'abstain';
   reasoning: string;
-  coerced?: boolean;            // True if PM intervention forced vote
+  coerced?: boolean; // True if PM intervention forced vote
 }
 
 export interface VotingRecord {
   mpId: string;
   budgetVotes: BudgetVote[];
   rebellionCount: number;
-  loyaltyScore: number;         // 0-100
+  loyaltyScore: number; // 0-100
 }
 
 export interface MPSystemState {
   allMPs: Map<string, MPProfile>;
   votingRecords: Map<string, VotingRecord>;
   promises: Map<string, MPPromise>;
-  concernProfiles: Map<string, MPConcernProfile>;  // Granular MP concerns
-  activeGroups: MPGroup[];                         // MP groups with common concerns
-  lobbyingInProgress: boolean;
+  concernProfiles: Map<string, MPConcernProfile>;
+  activeGroups: MPGroup[];
   selectedMPForDetail: string | null;
   filterSettings: MPFilterSettings;
   currentBudgetSupport: Map<string, DetailedMPStance>;
@@ -215,74 +224,74 @@ export function generateIdeology(party: PartyAffiliation, faction?: LabourFactio
       switch (faction) {
         case 'left':
           economicAxis = -7 + Math.random() * 2; // -7 to -5
-          socialAxis = -3 + Math.random() * 2;   // -3 to -1
+          socialAxis = -3 + Math.random() * 2; // -3 to -1
           fiscalConservatism = 2 + Math.random() * 2; // 2-4
           break;
         case 'soft_left':
           economicAxis = -5 + Math.random() * 2; // -5 to -3
-          socialAxis = -2 + Math.random() * 2;   // -2 to 0
+          socialAxis = -2 + Math.random() * 2; // -2 to 0
           fiscalConservatism = 3 + Math.random() * 2; // 3-5
           break;
         case 'centre_left':
           economicAxis = -3 + Math.random() * 2; // -3 to -1
-          socialAxis = -1 + Math.random() * 2;   // -1 to 1
+          socialAxis = -1 + Math.random() * 2; // -1 to 1
           fiscalConservatism = 4 + Math.random() * 2; // 4-6
           break;
         case 'blairite':
           economicAxis = -1 + Math.random() * 2; // -1 to 1
-          socialAxis = 0 + Math.random() * 2;    // 0 to 2
+          socialAxis = 0 + Math.random() * 2; // 0 to 2
           fiscalConservatism = 6 + Math.random() * 2; // 6-8
           break;
         case 'party_loyalist':
           economicAxis = -2 + Math.random() * 2; // -2 to 0
-          socialAxis = 0 + Math.random() * 2;    // 0 to 2
+          socialAxis = 0 + Math.random() * 2; // 0 to 2
           fiscalConservatism = 5 + Math.random() * 2; // 5-7
           break;
       }
       break;
     case 'conservative':
-      economicAxis = 4 + Math.random() * 4;      // 4 to 8
-      socialAxis = 2 + Math.random() * 4;        // 2 to 6
+      economicAxis = 4 + Math.random() * 4; // 4 to 8
+      socialAxis = 2 + Math.random() * 4; // 2 to 6
       fiscalConservatism = 7 + Math.random() * 3; // 7-10
       break;
     case 'liberal_democrat':
-      economicAxis = -1 + Math.random() * 2;     // -1 to 1
-      socialAxis = -3 + Math.random() * 2;       // -3 to -1
+      economicAxis = -1 + Math.random() * 2; // -1 to 1
+      socialAxis = -3 + Math.random() * 2; // -3 to -1
       fiscalConservatism = 6 + Math.random() * 2; // 6-8
       break;
     case 'snp':
-      economicAxis = -3 + Math.random() * 2;     // -3 to -1
-      socialAxis = -2 + Math.random() * 2;       // -2 to 0
+      economicAxis = -3 + Math.random() * 2; // -3 to -1
+      socialAxis = -2 + Math.random() * 2; // -2 to 0
       fiscalConservatism = 4 + Math.random() * 2; // 4-6
       break;
     case 'green':
-      economicAxis = -6 + Math.random() * 2;     // -6 to -4
-      socialAxis = -4 + Math.random() * 2;       // -4 to -2
+      economicAxis = -6 + Math.random() * 2; // -6 to -4
+      socialAxis = -4 + Math.random() * 2; // -4 to -2
       fiscalConservatism = 3 + Math.random() * 2; // 3-5
       break;
     case 'reform_uk':
-      economicAxis = 5 + Math.random() * 4;      // 5 to 9 (right-wing populist)
-      socialAxis = 5 + Math.random() * 4;        // 5 to 9 (socially conservative)
+      economicAxis = 5 + Math.random() * 4; // 5 to 9 (right-wing populist)
+      socialAxis = 5 + Math.random() * 4; // 5 to 9 (socially conservative)
       fiscalConservatism = 4 + Math.random() * 3; // 4-7 (anti-tax, but also anti-cuts)
       break;
     case 'plaid_cymru':
-      economicAxis = -4 + Math.random() * 2;     // -4 to -2 (centre-left)
-      socialAxis = -2 + Math.random() * 2;       // -2 to 0
+      economicAxis = -4 + Math.random() * 2; // -4 to -2 (centre-left)
+      socialAxis = -2 + Math.random() * 2; // -2 to 0
       fiscalConservatism = 4 + Math.random() * 2; // 4-6
       break;
     case 'dup':
-      economicAxis = 2 + Math.random() * 3;      // 2 to 5 (centre-right)
-      socialAxis = 6 + Math.random() * 3;        // 6 to 9 (socially conservative)
+      economicAxis = 2 + Math.random() * 3; // 2 to 5 (centre-right)
+      socialAxis = 6 + Math.random() * 3; // 6 to 9 (socially conservative)
       fiscalConservatism = 5 + Math.random() * 3; // 5-8
       break;
     case 'sinn_fein':
-      economicAxis = -5 + Math.random() * 2;     // -5 to -3 (left)
-      socialAxis = -1 + Math.random() * 2;       // -1 to 1
+      economicAxis = -5 + Math.random() * 2; // -5 to -3 (left)
+      socialAxis = -1 + Math.random() * 2; // -1 to 1
       fiscalConservatism = 3 + Math.random() * 2; // 3-5
       break;
     case 'independent':
-      economicAxis = -5 + Math.random() * 10;    // -5 to 5
-      socialAxis = -5 + Math.random() * 10;      // -5 to 5
+      economicAxis = -5 + Math.random() * 10; // -5 to 5
+      socialAxis = -5 + Math.random() * 10; // -5 to 5
       fiscalConservatism = 2 + Math.random() * 6; // 2-8
       break;
   }
@@ -316,7 +325,6 @@ export function createInitialMPSystem(): MPSystemState {
     promises: new Map(),
     concernProfiles: new Map(),
     activeGroups: [],
-    lobbyingInProgress: false,
     selectedMPForDetail: null,
     filterSettings: {},
     currentBudgetSupport: new Map(),
@@ -428,10 +436,12 @@ export function calculateBudgetIdeology(budgetChanges: BudgetChanges): Ideologic
   economicAxis -= spendingIncreases * 0.3;
 
   // Deficit increase → less fiscally conservative
-  const totalTaxChange = (budgetChanges.incomeTaxBasicChange || 0) * 7 +
+  const totalTaxChange =
+    (budgetChanges.incomeTaxBasicChange || 0) * 7 +
     (budgetChanges.incomeTaxHigherChange || 0) * 3.5 +
     (budgetChanges.vatChange || 0) * 5;
-  const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
+  const totalSpendingChange =
+    (budgetChanges.nhsSpendingChange || 0) +
     (budgetChanges.educationSpendingChange || 0) +
     (budgetChanges.welfareSpendingChange || 0);
   const deficitChange = totalSpendingChange - totalTaxChange;
@@ -458,7 +468,8 @@ function getBudgetPlausibilityPenalty(budgetChanges: BudgetChanges): number {
   let penalty = 0;
 
   // Extreme headline rates are politically toxic regardless of loyalty.
-  if (basicTaxDelta >= 70) penalty += 90; // e.g. 20% -> 90%+
+  if (basicTaxDelta >= 70)
+    penalty += 90; // e.g. 20% -> 90%+
   else if (basicTaxDelta >= 50) penalty += 70;
   else if (basicTaxDelta >= 30) penalty += 45;
   else if (basicTaxDelta >= 10) penalty += 20;
@@ -493,10 +504,7 @@ export function calculateIdeologicalAlignment(
 /**
  * Calculate how budget affects MP's constituency
  */
-export function calculateConstituencyImpact(
-  constituency: Constituency,
-  budgetChanges: BudgetChanges
-): number {
+export function calculateConstituencyImpact(constituency: Constituency, budgetChanges: BudgetChanges): number {
   let impact = 0;
   const granularSpending = budgetChanges.detailedSpendingBudgets || {};
   const granularTax = budgetChanges.detailedTaxRates || {};
@@ -512,7 +520,8 @@ export function calculateConstituencyImpact(
 
   // High public sector dependency areas care about public spending
   if (constituency.demographics.publicSectorDependency > 30) {
-    const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
+    const totalSpendingChange =
+      (budgetChanges.nhsSpendingChange || 0) +
       (budgetChanges.educationSpendingChange || 0) +
       (budgetChanges.policeSpendingChange || 0);
     if (totalSpendingChange > 0) impact += 1;
@@ -587,7 +596,7 @@ function evaluateConcern(concern: MPConcern, changeAmount: number): number {
  */
 export function calculateGranularBudgetImpact(
   mp: MPProfile,
-  detailedTaxRates: Map<string, number>,      // 52 tax parameters with changes from baseline
+  detailedTaxRates: Map<string, number>, // 52 tax parameters with changes from baseline
   detailedSpendingBudgets: Map<string, number> // 36 spending parameters with changes from baseline
 ): number {
   let totalImpact = 0;
@@ -598,7 +607,7 @@ export function calculateGranularBudgetImpact(
 
   // Evaluate each tax parameter change
   detailedTaxRates.forEach((changeAmount, taxId) => {
-    const concern = concernProfile.concerns.find(c => c.budgetParameter === taxId);
+    const concern = concernProfile.concerns.find((c) => c.budgetParameter === taxId);
     if (concern) {
       const score = evaluateConcern(concern, changeAmount);
       totalImpact += score * concern.priority;
@@ -608,7 +617,7 @@ export function calculateGranularBudgetImpact(
 
   // Evaluate each spending parameter change
   detailedSpendingBudgets.forEach((changeAmount, spendingId) => {
-    const concern = concernProfile.concerns.find(c => c.budgetParameter === spendingId);
+    const concern = concernProfile.concerns.find((c) => c.budgetParameter === spendingId);
     if (concern) {
       const score = evaluateConcern(concern, changeAmount);
       totalImpact += score * concern.priority;
@@ -635,48 +644,70 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.ideology.economicAxis < -3) {
     concerns.push(
       {
-        budgetParameter: 'corporationTaxMain', priority: 9, direction: 'increase',
-        reason: 'Believes corporations should pay their fair share'
+        budgetParameter: 'corporationTaxMain',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Believes corporations should pay their fair share',
       },
       {
-        budgetParameter: 'corporationTaxSmallProfits', priority: 7, direction: 'maintain',
-        reason: 'Protects small businesses whilst raising revenue from large firms'
+        budgetParameter: 'corporationTaxSmallProfits',
+        priority: 7,
+        direction: 'maintain',
+        reason: 'Protects small businesses whilst raising revenue from large firms',
       },
       {
-        budgetParameter: 'bankSurcharge', priority: 8, direction: 'increase',
-        reason: 'Banks should contribute more after 2008 financial crisis'
+        budgetParameter: 'bankSurcharge',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Banks should contribute more after 2008 financial crisis',
       },
       {
-        budgetParameter: 'incomeTaxAdditional', priority: 8, direction: 'increase',
-        reason: 'The wealthy should pay progressively more'
+        budgetParameter: 'incomeTaxAdditional',
+        priority: 8,
+        direction: 'increase',
+        reason: 'The wealthy should pay progressively more',
       },
       {
-        budgetParameter: 'capitalGainsBasic', priority: 7, direction: 'increase',
-        reason: 'Capital income should be taxed like labour income'
+        budgetParameter: 'capitalGainsBasic',
+        priority: 7,
+        direction: 'increase',
+        reason: 'Capital income should be taxed like labour income',
       },
       {
-        budgetParameter: 'capitalGainsHigher', priority: 7, direction: 'increase',
-        reason: 'Higher earners benefit most from capital gains'
+        budgetParameter: 'capitalGainsHigher',
+        priority: 7,
+        direction: 'increase',
+        reason: 'Higher earners benefit most from capital gains',
       },
       {
-        budgetParameter: 'energyProfitsLevy', priority: 10, direction: 'increase',
-        reason: 'Windfall tax on energy companies making excess profits'
+        budgetParameter: 'energyProfitsLevy',
+        priority: 10,
+        direction: 'increase',
+        reason: 'Windfall tax on energy companies making excess profits',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 10, direction: 'increase',
-        reason: 'Protect and expand the NHS'
+        budgetParameter: 'nhsEngland',
+        priority: 10,
+        direction: 'increase',
+        reason: 'Protect and expand the NHS',
       },
       {
-        budgetParameter: 'socialCare', priority: 9, direction: 'increase',
-        reason: 'Social care crisis requires urgent funding'
+        budgetParameter: 'socialCare',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Social care crisis requires urgent funding',
       },
       {
-        budgetParameter: 'universalCredit', priority: 9, direction: 'increase',
-        reason: 'Strengthen the social safety net'
+        budgetParameter: 'universalCredit',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Strengthen the social safety net',
       },
       {
-        budgetParameter: 'housingBenefit', priority: 8, direction: 'increase',
-        reason: 'Housing benefit caps hit vulnerable families'
+        budgetParameter: 'housingBenefit',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Housing benefit caps hit vulnerable families',
       }
     );
   }
@@ -685,24 +716,34 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.ideology.economicAxis >= -3 && mp.ideology.economicAxis < 0) {
     concerns.push(
       {
-        budgetParameter: 'corporationTaxMain', priority: 6, direction: 'maintain',
-        reason: 'Balance competitiveness with revenue needs'
+        budgetParameter: 'corporationTaxMain',
+        priority: 6,
+        direction: 'maintain',
+        reason: 'Balance competitiveness with revenue needs',
       },
       {
-        budgetParameter: 'incomeTaxHigher', priority: 7, direction: 'increase',
-        reason: 'High earners can afford to contribute more'
+        budgetParameter: 'incomeTaxHigher',
+        priority: 7,
+        direction: 'increase',
+        reason: 'High earners can afford to contribute more',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 9, direction: 'increase',
-        reason: 'NHS wait times are unacceptable'
+        budgetParameter: 'nhsEngland',
+        priority: 9,
+        direction: 'increase',
+        reason: 'NHS wait times are unacceptable',
       },
       {
-        budgetParameter: 'schools', priority: 8, direction: 'increase',
-        reason: 'Education is an economic investment'
+        budgetParameter: 'schools',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Education is an economic investment',
       },
       {
-        budgetParameter: 'rdTaxCredit', priority: 7, direction: 'increase',
-        reason: 'R&D investment drives productivity'
+        budgetParameter: 'rdTaxCredit',
+        priority: 7,
+        direction: 'increase',
+        reason: 'R&D investment drives productivity',
       }
     );
   }
@@ -711,24 +752,34 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.faction === 'blairite') {
     concerns.push(
       {
-        budgetParameter: 'corporationTaxMain', priority: 8, direction: 'decrease',
-        reason: 'Business-friendly environment attracts investment'
+        budgetParameter: 'corporationTaxMain',
+        priority: 8,
+        direction: 'decrease',
+        reason: 'Business-friendly environment attracts investment',
       },
       {
-        budgetParameter: 'rdTaxCredit', priority: 9, direction: 'increase',
-        reason: 'Innovation and R&D are key to growth'
+        budgetParameter: 'rdTaxCredit',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Innovation and R&D are key to growth',
       },
       {
-        budgetParameter: 'pensionAllowance', priority: 7, direction: 'increase',
-        reason: 'Incentivise private pension savings'
+        budgetParameter: 'pensionAllowance',
+        priority: 7,
+        direction: 'increase',
+        reason: 'Incentivise private pension savings',
       },
       {
-        budgetParameter: 'annualInvestmentAllowance', priority: 8, direction: 'increase',
-        reason: 'Support business investment'
+        budgetParameter: 'annualInvestmentAllowance',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Support business investment',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 7, direction: 'increase',
-        reason: 'Modernise NHS delivery, not just more funding'
+        budgetParameter: 'nhsEngland',
+        priority: 7,
+        direction: 'increase',
+        reason: 'Modernise NHS delivery, not just more funding',
       }
     );
   }
@@ -737,28 +788,38 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.ideology.fiscalConservatism > 7) {
     concerns.push(
       {
-        budgetParameter: 'debtInterest', priority: 10, direction: 'decrease',
-        reason: 'Debt servicing costs crowd out productive investment'
+        budgetParameter: 'debtInterest',
+        priority: 10,
+        direction: 'decrease',
+        reason: 'Debt servicing costs crowd out productive investment',
       },
       {
-        budgetParameter: 'statePension', priority: 6, direction: 'decrease',
-        reason: 'Spiralling pension costs require reform'
+        budgetParameter: 'statePension',
+        priority: 6,
+        direction: 'decrease',
+        reason: 'Spiralling pension costs require reform',
       },
       {
-        budgetParameter: 'universalCredit', priority: 5, direction: 'decrease',
-        reason: 'Welfare bill is unsustainable'
+        budgetParameter: 'universalCredit',
+        priority: 5,
+        direction: 'decrease',
+        reason: 'Welfare bill is unsustainable',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 5, direction: 'maintain',
-        reason: 'NHS requires efficiency savings, not boundless increases'
+        budgetParameter: 'nhsEngland',
+        priority: 5,
+        direction: 'maintain',
+        reason: 'NHS requires efficiency savings, not boundless increases',
       }
     );
     // Fiscal hawks care about all spending increases negatively
     const spendingIds = ['schools', 'nhsMentalHealth', 'defence', 'policing', 'transport'];
-    spendingIds.forEach(id => {
+    spendingIds.forEach((id) => {
       concerns.push({
-        budgetParameter: id, priority: 6, direction: 'decrease',
-        reason: 'Fiscal discipline requires spending restraint'
+        budgetParameter: id,
+        priority: 6,
+        direction: 'decrease',
+        reason: 'Fiscal discipline requires spending restraint',
       });
     });
   }
@@ -769,28 +830,40 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.constituency.demographics.medianIncome < 30000) {
     concerns.push(
       {
-        budgetParameter: 'universalCredit', priority: 10, direction: 'increase',
-        reason: `Many constituents in ${mp.constituency.name} rely on Universal Credit`
+        budgetParameter: 'universalCredit',
+        priority: 10,
+        direction: 'increase',
+        reason: `Many constituents in ${mp.constituency.name} rely on Universal Credit`,
       },
       {
-        budgetParameter: 'housingBenefit', priority: 9, direction: 'increase',
-        reason: 'High rent burden in constituency'
+        budgetParameter: 'housingBenefit',
+        priority: 9,
+        direction: 'increase',
+        reason: 'High rent burden in constituency',
       },
       {
-        budgetParameter: 'vatDomesticEnergy', priority: 9, direction: 'decrease',
-        reason: 'Constituents struggle with energy bills'
+        budgetParameter: 'vatDomesticEnergy',
+        priority: 9,
+        direction: 'decrease',
+        reason: 'Constituents struggle with energy bills',
       },
       {
-        budgetParameter: 'vat', priority: 7, direction: 'decrease',
-        reason: 'VAT increases hit low-income families hardest'
+        budgetParameter: 'vat',
+        priority: 7,
+        direction: 'decrease',
+        reason: 'VAT increases hit low-income families hardest',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 9, direction: 'increase',
-        reason: 'NHS is lifeline for constituents who cannot afford private care'
+        budgetParameter: 'nhsEngland',
+        priority: 9,
+        direction: 'increase',
+        reason: 'NHS is lifeline for constituents who cannot afford private care',
       },
       {
-        budgetParameter: 'childBenefit', priority: 8, direction: 'increase',
-        reason: 'Child poverty rates in constituency are concerning'
+        budgetParameter: 'childBenefit',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Child poverty rates in constituency are concerning',
       }
     );
   }
@@ -799,20 +872,28 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.constituency.demographics.publicSectorDependency > 30) {
     concerns.push(
       {
-        budgetParameter: 'policing', priority: 8, direction: 'increase',
-        reason: 'Local police force is major employer in constituency'
+        budgetParameter: 'policing',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Local police force is major employer in constituency',
       },
       {
-        budgetParameter: 'schools', priority: 9, direction: 'increase',
-        reason: 'Teachers and education staff are major local employers'
+        budgetParameter: 'schools',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Teachers and education staff are major local employers',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 8, direction: 'increase',
-        reason: 'Hospital employs many constituents'
+        budgetParameter: 'nhsEngland',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Hospital employs many constituents',
       },
       {
-        budgetParameter: 'nhsPrimaryCare', priority: 7, direction: 'increase',
-        reason: 'GP practices employ local staff'
+        budgetParameter: 'nhsPrimaryCare',
+        priority: 7,
+        direction: 'increase',
+        reason: 'GP practices employ local staff',
       }
     );
   }
@@ -821,24 +902,34 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.constituency.demographics.ageProfile === 'elderly') {
     concerns.push(
       {
-        budgetParameter: 'statePension', priority: 10, direction: 'increase',
-        reason: 'Pensioners are core voters in constituency'
+        budgetParameter: 'statePension',
+        priority: 10,
+        direction: 'increase',
+        reason: 'Pensioners are core voters in constituency',
       },
       {
-        budgetParameter: 'socialCare', priority: 10, direction: 'increase',
-        reason: 'Care home crisis affects many families in constituency'
+        budgetParameter: 'socialCare',
+        priority: 10,
+        direction: 'increase',
+        reason: 'Care home crisis affects many families in constituency',
       },
       {
-        budgetParameter: 'nhsPrimaryCare', priority: 9, direction: 'increase',
-        reason: 'GP waiting times unacceptable for elderly constituents'
+        budgetParameter: 'nhsPrimaryCare',
+        priority: 9,
+        direction: 'increase',
+        reason: 'GP waiting times unacceptable for elderly constituents',
       },
       {
-        budgetParameter: 'nhsEngland', priority: 9, direction: 'increase',
-        reason: 'Older constituents rely heavily on NHS'
+        budgetParameter: 'nhsEngland',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Older constituents rely heavily on NHS',
       },
       {
-        budgetParameter: 'insurancePremiumTax', priority: 7, direction: 'decrease',
-        reason: 'Older constituents hit hardest by insurance costs'
+        budgetParameter: 'insurancePremiumTax',
+        priority: 7,
+        direction: 'decrease',
+        reason: 'Older constituents hit hardest by insurance costs',
       }
     );
   }
@@ -848,16 +939,22 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (ruralRegions.includes(mp.constituency.region)) {
     concerns.push(
       {
-        budgetParameter: 'farmSubsidies', priority: 9, direction: 'increase',
-        reason: 'Agriculture is economic backbone of constituency'
+        budgetParameter: 'farmSubsidies',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Agriculture is economic backbone of constituency',
       },
       {
-        budgetParameter: 'localRoads', priority: 8, direction: 'increase',
-        reason: 'Rural roads in poor condition, vital for local economy'
+        budgetParameter: 'localRoads',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Rural roads in poor condition, vital for local economy',
       },
       {
-        budgetParameter: 'fuelDuty', priority: 8, direction: 'decrease',
-        reason: 'No public transport alternative for rural constituents'
+        budgetParameter: 'fuelDuty',
+        priority: 8,
+        direction: 'decrease',
+        reason: 'No public transport alternative for rural constituents',
       }
     );
   }
@@ -866,47 +963,57 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.party === 'labour' && ['northeast', 'yorkshire', 'northwest'].includes(mp.constituency.region)) {
     concerns.push(
       {
-        budgetParameter: 'localGovernment', priority: 9, direction: 'increase',
-        reason: 'Levelling up requires investment in local services'
+        budgetParameter: 'localGovernment',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Levelling up requires investment in local services',
       },
       {
-        budgetParameter: 'transport', priority: 8, direction: 'increase',
-        reason: 'Northern transport infrastructure lagging behind London'
+        budgetParameter: 'transport',
+        priority: 8,
+        direction: 'increase',
+        reason: 'Northern transport infrastructure lagging behind London',
       },
       {
-        budgetParameter: 'localRoads', priority: 7, direction: 'increase',
-        reason: 'Local infrastructure investment key to levelling up promise'
+        budgetParameter: 'localRoads',
+        priority: 7,
+        direction: 'increase',
+        reason: 'Local infrastructure investment key to levelling up promise',
       }
     );
   }
 
   // Scottish constituencies
   if (mp.constituency.region === 'scotland') {
-    concerns.push(
-      {
-        budgetParameter: 'localGovernment', priority: 8, direction: 'increase',
-        reason: 'Scottish local authorities facing funding crisis'
-      }
-    );
+    concerns.push({
+      budgetParameter: 'localGovernment',
+      priority: 8,
+      direction: 'increase',
+      reason: 'Scottish local authorities facing funding crisis',
+    });
   }
 
   // London constituencies
   if (mp.constituency.region === 'london') {
     concerns.push(
       {
-        budgetParameter: 'transport', priority: 8, direction: 'increase',
-        reason: 'TfL funding and public transport investment needed'
+        budgetParameter: 'transport',
+        priority: 8,
+        direction: 'increase',
+        reason: 'TfL funding and public transport investment needed',
       },
       {
-        budgetParameter: 'housingAffordable', priority: 9, direction: 'increase',
-        reason: 'Housing affordability crisis in London'
+        budgetParameter: 'housingAffordable',
+        priority: 9,
+        direction: 'increase',
+        reason: 'Housing affordability crisis in London',
       }
     );
   }
 
   // Marginal constituencies (> 70 marginality) - double weighting on all concerns
   if (mp.constituency.marginality > 70) {
-    concerns.forEach(c => {
+    concerns.forEach((c) => {
       c.priority = Math.min(10, c.priority * 1.5); // Cap at 10
       c.reason += ' (Marginal seat - voters will punish broken promises)';
     });
@@ -918,12 +1025,16 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
   if (mp.isMinister) {
     concerns.push(
       {
-        budgetParameter: 'debtInterest', priority: 8, direction: 'decrease',
-        reason: 'As a minister, worried about gilt market reaction'
+        budgetParameter: 'debtInterest',
+        priority: 8,
+        direction: 'decrease',
+        reason: 'As a minister, worried about gilt market reaction',
       },
       {
-        budgetParameter: 'incomeTaxBasic', priority: 7, direction: 'maintain',
-        reason: 'Manifesto commitment weighs heavily on Cabinet'
+        budgetParameter: 'incomeTaxBasic',
+        priority: 7,
+        direction: 'maintain',
+        reason: 'Manifesto commitment weighs heavily on Cabinet',
       }
     );
   }
@@ -932,17 +1043,16 @@ export function generateMPConcernProfile(mp: MPProfile): MPConcernProfile {
 
   // Sort by priority (highest first) and deduplicate
   const uniqueConcerns = new Map<string, MPConcern>();
-  concerns.forEach(concern => {
+  concerns.forEach((concern) => {
     const existing = uniqueConcerns.get(concern.budgetParameter);
     if (!existing || existing.priority < concern.priority) {
       uniqueConcerns.set(concern.budgetParameter, concern);
     }
   });
 
-  const sortedConcerns = Array.from(uniqueConcerns.values())
-    .sort((a, b) => b.priority - a.priority);
+  const sortedConcerns = Array.from(uniqueConcerns.values()).sort((a, b) => b.priority - a.priority);
 
-  const primaryIssues = sortedConcerns.slice(0, 5).map(c => c.budgetParameter);
+  const primaryIssues = sortedConcerns.slice(0, 5).map((c) => c.budgetParameter);
 
   return { mpId: mp.id, concerns: sortedConcerns, primaryIssues };
 }
@@ -959,10 +1069,10 @@ export function calculateMPStance(
   manifestoViolations: string[],
   promises: Map<string, MPPromise>,
   currentMonth: number = 0,
-  context?: { whipStrength?: number; taxDistribution?: 'regressive' | 'neutral' | 'progressive' | null },
+  context?: { whipStrength?: number; taxDistribution?: 'regressive' | 'neutral' | 'progressive' | null }
 ): DetailedMPStance {
   let supportScore = 50; // Start neutral
-  let reason = "Neutral starting point.";
+  let reason = 'Neutral starting point.';
   const plausibilityPenalty = getBudgetPlausibilityPenalty(budgetChanges);
 
   // 1. Ideological alignment
@@ -976,9 +1086,7 @@ export function calculateMPStance(
   }
 
   // 3. Broken promises (MAJOR penalty)
-  const brokenPromisesToMP = Array.from(promises.values()).filter(
-    (p) => p.promisedToMPs.includes(mp.id) && p.broken
-  );
+  const brokenPromisesToMP = Array.from(promises.values()).filter((p) => p.promisedToMPs.includes(mp.id) && p.broken);
   supportScore -= brokenPromisesToMP.length * 20;
 
   // 4. Active promises (positive boost if relevant)
@@ -986,8 +1094,12 @@ export function calculateMPStance(
     (p) => p.promisedToMPs.includes(mp.id) && !p.broken && p.fulfilled !== true
   );
 
-  const inferredCompliance = mp.dealComplianceProbability
-    ?? Math.max(0.55, Math.min(0.9, 0.8 - (mp.traits.rebelliousness * 0.02) + (mp.constituency.marginality > 70 ? 0.05 : 0)));
+  const inferredCompliance =
+    mp.dealComplianceProbability ??
+    Math.max(
+      0.55,
+      Math.min(0.9, 0.8 - mp.traits.rebelliousness * 0.02 + (mp.constituency.marginality > 70 ? 0.05 : 0))
+    );
 
   const deterministicRoll = (seed: string): number => {
     let hash = 0;
@@ -1011,13 +1123,19 @@ export function calculateMPStance(
   supportScore += constituencyImpact * 3;
 
   // 5.5. Granular budget dial impact (NEW: evaluates all 88 parameters individually)
-  const taxRatesMap = budgetChanges.detailedTaxRates instanceof Map
-    ? budgetChanges.detailedTaxRates
-    : (budgetChanges.detailedTaxRates ? new Map(Object.entries(budgetChanges.detailedTaxRates)) : new Map());
+  const taxRatesMap =
+    budgetChanges.detailedTaxRates instanceof Map
+      ? budgetChanges.detailedTaxRates
+      : budgetChanges.detailedTaxRates
+        ? new Map(Object.entries(budgetChanges.detailedTaxRates))
+        : new Map();
 
-  const spendingBudgetsMap = budgetChanges.detailedSpendingBudgets instanceof Map
-    ? budgetChanges.detailedSpendingBudgets
-    : (budgetChanges.detailedSpendingBudgets ? new Map(Object.entries(budgetChanges.detailedSpendingBudgets)) : new Map());
+  const spendingBudgetsMap =
+    budgetChanges.detailedSpendingBudgets instanceof Map
+      ? budgetChanges.detailedSpendingBudgets
+      : budgetChanges.detailedSpendingBudgets
+        ? new Map(Object.entries(budgetChanges.detailedSpendingBudgets))
+        : new Map();
 
   const granularImpact = calculateGranularBudgetImpact(
     mp,
@@ -1033,7 +1151,7 @@ export function calculateMPStance(
 
   // 6.5. Budget plausibility guardrail (caps support for absurd packages)
   if (plausibilityPenalty > 0) {
-    const principledWeight = 0.7 + (mp.traits.principled / 20);
+    const principledWeight = 0.7 + mp.traits.principled / 20;
     supportScore -= plausibilityPenalty * principledWeight;
 
     if (mp.constituency.marginality > 70) {
@@ -1050,24 +1168,34 @@ export function calculateMPStance(
 
   // Determine final stance
   let adjustedScore = supportScore;
-  if (context?.taxDistribution === 'regressive' && mp.party === 'labour' && (mp.faction === 'left' || mp.faction === 'soft_left' || mp.faction === 'centre_left')) {
+  if (
+    context?.taxDistribution === 'regressive' &&
+    mp.party === 'labour' &&
+    (mp.faction === 'left' || mp.faction === 'soft_left' || mp.faction === 'centre_left')
+  ) {
     adjustedScore -= 2;
-  } else if (context?.taxDistribution === 'progressive' && mp.party === 'labour' && (mp.faction === 'blairite' || mp.faction === 'party_loyalist')) {
+  } else if (
+    context?.taxDistribution === 'progressive' &&
+    mp.party === 'labour' &&
+    (mp.faction === 'blairite' || mp.faction === 'party_loyalist')
+  ) {
     adjustedScore -= 2;
   }
-  const stance: MPStanceLabel = adjustedScore > 62 ? 'support' : (adjustedScore < 42 ? 'oppose' : 'undecided');
+  const stance: MPStanceLabel = adjustedScore > 62 ? 'support' : adjustedScore < 42 ? 'oppose' : 'undecided';
 
   // Formulate reason
   if (stance === 'support') {
-    reason = mp.party === 'labour'
-      ? "Broadly supports the government's direction and local impact."
-      : "A rare cross-party supporter, influenced by local benefits or specific policies.";
+    reason =
+      mp.party === 'labour'
+        ? "Broadly supports the government's direction and local impact."
+        : 'A rare cross-party supporter, influenced by local benefits or specific policies.';
   } else if (stance === 'oppose') {
-    reason = mp.party === 'labour'
-      ? "Opposing the government due to ideological differences or negative constituency impact."
-      : "Standard opposition to the government's fiscal plan.";
+    reason =
+      mp.party === 'labour'
+        ? 'Opposing the government due to ideological differences or negative constituency impact.'
+        : "Standard opposition to the government's fiscal plan.";
   } else {
-    reason = "Hesitant and awaiting further concessions or clarity on key impacts.";
+    reason = 'Hesitant and awaiting further concessions or clarity on key impacts.';
   }
 
   // Add specific concern-based details to concerns array in future if needed
@@ -1129,7 +1257,9 @@ export function calculateAllMPStances(
       // This ensures that successfully lobbied MPs stay supportive during the drafting phase
       // Overrides only last until the next budget submission OR next month
       const existingStance = mpSystem.currentBudgetSupport.get(mpId);
-      const isStillValid = existingStance?.isManualOverride && (currentMonth === undefined || existingStance.overrideTurn === currentMonth);
+      const isStillValid =
+        existingStance?.isManualOverride &&
+        (currentMonth === undefined || existingStance.overrideTurn === currentMonth);
 
       if (isStillValid) {
         stances.set(mpId, existingStance!);
@@ -1140,7 +1270,7 @@ export function calculateAllMPStances(
           manifestoViolations,
           mpSystem.promises,
           currentMonth ?? 0,
-          context,
+          context
         );
         let finalStance = stance;
         const whipStrength = context?.whipStrength;
@@ -1148,10 +1278,20 @@ export function calculateAllMPStances(
           if (finalStance.stance === 'undecided') {
             const supportProb = Math.max(0, Math.min(1, whipStrength / 100));
             if (Math.random() < supportProb) {
-              finalStance = { ...finalStance, stance: 'support', score: Math.max(finalStance.score, 63), reason: 'Persuaded by the whip operation to support the government.' };
+              finalStance = {
+                ...finalStance,
+                stance: 'support',
+                score: Math.max(finalStance.score, 63),
+                reason: 'Persuaded by the whip operation to support the government.',
+              };
             }
           } else if (whipStrength < 40 && finalStance.stance === 'support' && Math.random() < 0.15) {
-            finalStance = { ...finalStance, stance: 'undecided', score: 52, reason: 'With weak whipping, this MP abstains despite nominal support.' };
+            finalStance = {
+              ...finalStance,
+              stance: 'undecided',
+              score: 52,
+              reason: 'With weak whipping, this MP abstains despite nominal support.',
+            };
           }
         }
         stances.set(mpId, finalStance);
@@ -1211,10 +1351,7 @@ export function createPromise(
 /**
  * Check if promise is fulfilled by budget
  */
-export function checkPromiseFulfillment(
-  promise: MPPromise,
-  budgetChanges: BudgetChanges
-): boolean {
+export function checkPromiseFulfillment(promise: MPPromise, budgetChanges: BudgetChanges): boolean {
   switch (promise.category) {
     case 'nhs_spending':
       if (promise.specificValue) {
@@ -1248,10 +1385,8 @@ export function checkPromiseFulfillment(
 
     case 'fiscal_discipline':
       // Check if deficit is reduced
-      const totalTaxChange = (budgetChanges.incomeTaxBasicChange || 0) * 7 +
-        (budgetChanges.vatChange || 0) * 5;
-      const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) +
-        (budgetChanges.educationSpendingChange || 0);
+      const totalTaxChange = (budgetChanges.incomeTaxBasicChange || 0) * 7 + (budgetChanges.vatChange || 0) * 5;
+      const totalSpendingChange = (budgetChanges.nhsSpendingChange || 0) + (budgetChanges.educationSpendingChange || 0);
       const deficitChange = totalSpendingChange - totalTaxChange;
       return deficitChange < 0; // Deficit reduced
 
@@ -1311,10 +1446,10 @@ export function calculateLobbyingSuccessProbability(
   let successProbability = 0;
   switch (approach) {
     case 'promise':
-      successProbability = 0.70;
+      successProbability = 0.7;
       break;
     case 'persuade':
-      successProbability = 0.40;
+      successProbability = 0.4;
       break;
     case 'threaten':
       successProbability = 0.55;
@@ -1371,7 +1506,7 @@ export function attemptLobbying(
   }
 
   // Generate message using data-driven system
-  const outcome = success ? 'success' : (backfired ? 'backfire' : 'failure');
+  const outcome = success ? 'success' : backfired ? 'backfire' : 'failure';
   const message = getInteractionResponse(mp, approach, outcome);
 
   return { success, message, backfired };
@@ -1424,7 +1559,7 @@ export function lobbyGroup(
       success: true,
       promise,
       spokespersonResponse: response,
-      bindingMembers: group.memberIds.length
+      bindingMembers: group.memberIds.length,
     };
   } else {
     // Failure: Spokesperson rejects on behalf of group
@@ -1435,7 +1570,7 @@ export function lobbyGroup(
       success: false,
       spokespersonResponse: response,
       bindingMembers: 0,
-      counterDemand
+      counterDemand,
     };
   }
 }
@@ -1443,29 +1578,25 @@ export function lobbyGroup(
 /**
  * Check if promise category and value meet group demands
  */
-function checkGroupDemandsSatisfied(
-  group: MPGroup,
-  promiseCategory: PromiseCategory,
-  specificValue: number
-): boolean {
+function checkGroupDemandsSatisfied(group: MPGroup, promiseCategory: PromiseCategory, specificValue: number): boolean {
   // Map budget parameter concerns to promise categories
   const concernToCategory: Record<string, PromiseCategory> = {
-    'nhsEngland': 'nhs_spending',
-    'nhsPrimaryCare': 'nhs_spending',
-    'nhsMentalHealth': 'nhs_spending',
-    'socialCare': 'nhs_spending',
-    'schools': 'education_spending',
-    'pupilPremium': 'education_spending',
-    'universalCredit': 'welfare_protection',
-    'housingBenefit': 'welfare_protection',
-    'childBenefit': 'welfare_protection',
-    'statePension': 'welfare_protection',
-    'corporationTaxMain': 'tax_rises_avoid', // Left wants corp tax raised, not cut
-    'energyProfitsLevy': 'fiscal_discipline', // Windfall tax = fiscal responsibility
-    'defence': 'defence_spending',
-    'transport': 'regional_investment',
-    'localGovernment': 'regional_investment',
-    'farmSubsidies': 'regional_investment',
+    nhsEngland: 'nhs_spending',
+    nhsPrimaryCare: 'nhs_spending',
+    nhsMentalHealth: 'nhs_spending',
+    socialCare: 'nhs_spending',
+    schools: 'education_spending',
+    pupilPremium: 'education_spending',
+    universalCredit: 'welfare_protection',
+    housingBenefit: 'welfare_protection',
+    childBenefit: 'welfare_protection',
+    statePension: 'welfare_protection',
+    corporationTaxMain: 'tax_rises_avoid', // Left wants corp tax raised, not cut
+    energyProfitsLevy: 'fiscal_discipline', // Windfall tax = fiscal responsibility
+    defence: 'defence_spending',
+    transport: 'regional_investment',
+    localGovernment: 'regional_investment',
+    farmSubsidies: 'regional_investment',
   };
 
   if (group.commonConcerns.length === 0) return false;
@@ -1481,7 +1612,7 @@ function checkGroupDemandsSatisfied(
   if (specificValue < minimumThreshold) return false;
 
   // Cohesion matters - higher cohesion groups are harder to satisfy
-  const cohesionMultiplier = 1 + (group.cohesion / 200); // 1.0 to 1.5x
+  const cohesionMultiplier = 1 + group.cohesion / 200; // 1.0 to 1.5x
   return specificValue >= minimumThreshold * cohesionMultiplier;
 }
 
@@ -1496,7 +1627,7 @@ function calculateCounterDemand(
     return {
       category: 'nhs_spending',
       minimumValue: 10,
-      reason: 'We need substantial investment to address our concerns'
+      reason: 'We need substantial investment to address our concerns',
     };
   }
 
@@ -1504,22 +1635,22 @@ function calculateCounterDemand(
 
   // Map to category
   const concernToCategory: Record<string, PromiseCategory> = {
-    'nhsEngland': 'nhs_spending',
-    'schools': 'education_spending',
-    'universalCredit': 'welfare_protection',
-    'policing': 'regional_investment',
-    'transport': 'regional_investment',
+    nhsEngland: 'nhs_spending',
+    schools: 'education_spending',
+    universalCredit: 'welfare_protection',
+    policing: 'regional_investment',
+    transport: 'regional_investment',
   };
 
   const category = concernToCategory[topConcern.budgetParameter] || 'nhs_spending';
   const baseMinimum = topConcern.budgetParameter.includes('nhs') ? 10 : 5;
-  const cohesionMultiplier = 1 + (group.cohesion / 200);
+  const cohesionMultiplier = 1 + group.cohesion / 200;
   const minimumValue = Math.ceil(baseMinimum * cohesionMultiplier);
 
   return {
     category,
     minimumValue,
-    reason: topConcern.reason
+    reason: topConcern.reason,
   };
 }
 
@@ -1644,7 +1775,6 @@ export function filterMPs(
   let filtered = Array.from(allMPs.values());
   // ... (rest should be updated to handle DetailedMPStance)
 
-
   if (filterSettings.party) {
     filtered = filtered.filter((mp) => mp.party === filterSettings.party);
   }
@@ -1668,9 +1798,7 @@ export function filterMPs(
   if (filterSettings.searchQuery) {
     const query = filterSettings.searchQuery.toLowerCase();
     filtered = filtered.filter(
-      (mp) =>
-        mp.name.toLowerCase().includes(query) ||
-        mp.constituency.name.toLowerCase().includes(query)
+      (mp) => mp.name.toLowerCase().includes(query) || mp.constituency.name.toLowerCase().includes(query)
     );
   }
 
@@ -1708,11 +1836,7 @@ export const MPCard: React.FC<{
       oppose: 'Oppose',
       undecided: 'Undecided',
     };
-    return (
-      <span className={`px-2 py-0.5 text-xs font-semibold ${colors[stanceLabel]}`}>
-        {labels[stanceLabel]}
-      </span>
-    );
+    return <span className={`px-2 py-0.5 text-xs font-semibold ${colors[stanceLabel]}`}>{labels[stanceLabel]}</span>;
   };
 
   const getPartyBadgeColor = () => {
@@ -1725,14 +1849,8 @@ export const MPCard: React.FC<{
       {/* Left: Name, Party, Constituency */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="font-semibold text-primary truncate w-40">{mp.name}</div>
-        <span className={`px-2 py-0.5 text-xs ${getPartyBadgeColor()}`}>
-          {partyName}
-        </span>
-        {mp.faction && (
-          <span className="text-xs text-muted">
-            {getFactionName(mp.faction)}
-          </span>
-        )}
+        <span className={`px-2 py-0.5 text-xs ${getPartyBadgeColor()}`}>{partyName}</span>
+        {mp.faction && <span className="text-xs text-muted">{getFactionName(mp.faction)}</span>}
         <div className="text-sm text-secondary truncate w-48">{mp.constituency.name}</div>
       </div>
 
@@ -1747,9 +1865,7 @@ export const MPCard: React.FC<{
           <span className="font-mono font-semibold text-primary">{votingRecord?.rebellionCount || 0}</span>
         </div>
         {brokenPromisesCount > 0 && (
-          <span className="text-status-bad font-semibold text-xs w-24 text-right">
-            {brokenPromisesCount} broken
-          </span>
+          <span className="text-status-bad font-semibold text-xs w-24 text-right">{brokenPromisesCount} broken</span>
         )}
       </div>
 
@@ -1791,10 +1907,13 @@ export const MPManagementScreen: React.FC<{
   const [filterSettings, setFilterSettings] = useState<MPFilterSettings>({});
   const [searchQuery, setSearchQuery] = useState('');
 
-  const activeFilters = useMemo<MPFilterSettings>(() => ({
-    ...filterSettings,
-    searchQuery: searchQuery || undefined,
-  }), [filterSettings, searchQuery]);
+  const activeFilters = useMemo<MPFilterSettings>(
+    () => ({
+      ...filterSettings,
+      searchQuery: searchQuery || undefined,
+    }),
+    [filterSettings, searchQuery]
+  );
 
   const normalizedStances = useMemo(() => {
     return normalizeStances(mpSystem.currentBudgetSupport);
@@ -1825,7 +1944,8 @@ export const MPManagementScreen: React.FC<{
 
         return {
           id: promise.id,
-          mpName: sampleMP?.name || `${promise.promisedToMPs.length} MP${promise.promisedToMPs.length === 1 ? '' : 's'}`,
+          mpName:
+            sampleMP?.name || `${promise.promisedToMPs.length} MP${promise.promisedToMPs.length === 1 ? '' : 's'}`,
           description: promise.description,
           deadline: promise.deadline,
           status,
@@ -1848,7 +1968,10 @@ export const MPManagementScreen: React.FC<{
       .filter((entry): entry is { mp: MPProfile; stance: DetailedMPStance; swing: number } => !!entry)
       .sort((a, b) => a.swing - b.swing)
       .slice(0, 5)
-      .map(({ mp, stance }) => `${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided'}: ${stance.reason}`);
+      .map(
+        ({ mp, stance }) =>
+          `${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided'}: ${stance.reason}`
+      );
   }, [normalizedStances, mpSystem.allMPs]);
 
   // Count by party
@@ -1875,7 +1998,8 @@ export const MPManagementScreen: React.FC<{
           )}
           <h1 className="font-display text-3xl font-semibold text-primary mb-2">MPs & Parliament</h1>
           <p className="text-secondary">
-            650 MPs · {partyCounts['labour'] || 0} Labour · {Object.values(partyCounts).reduce((a, b) => a + b, 0) - (partyCounts['labour'] || 0)} Opposition
+            650 MPs · {partyCounts['labour'] || 0} Labour ·{' '}
+            {Object.values(partyCounts).reduce((a, b) => a + b, 0) - (partyCounts['labour'] || 0)} Opposition
           </p>
         </div>
       </div>
@@ -1890,7 +2014,7 @@ export const MPManagementScreen: React.FC<{
               <select
                 value={filterSettings.party || ''}
                 onChange={(e) =>
-                  setFilterSettings({ ...filterSettings, party: e.target.value as PartyAffiliation || undefined })
+                  setFilterSettings({ ...filterSettings, party: (e.target.value as PartyAffiliation) || undefined })
                 }
                 className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
               >
@@ -1911,7 +2035,7 @@ export const MPManagementScreen: React.FC<{
                 <select
                   value={filterSettings.faction || ''}
                   onChange={(e) =>
-                    setFilterSettings({ ...filterSettings, faction: e.target.value as LabourFaction || undefined })
+                    setFilterSettings({ ...filterSettings, faction: (e.target.value as LabourFaction) || undefined })
                   }
                   className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
                 >
@@ -1931,7 +2055,10 @@ export const MPManagementScreen: React.FC<{
               <select
                 value={filterSettings.stance || ''}
                 onChange={(e) =>
-                  setFilterSettings({ ...filterSettings, stance: e.target.value as 'support' | 'oppose' | 'undecided' || undefined })
+                  setFilterSettings({
+                    ...filterSettings,
+                    stance: (e.target.value as 'support' | 'oppose' | 'undecided') || undefined,
+                  })
                 }
                 className="px-3 py-1.5 border-b border-border-strong text-sm bg-transparent text-primary"
               >
@@ -1981,13 +2108,18 @@ export const MPManagementScreen: React.FC<{
               <div className="space-y-2">
                 {promiseRows.length === 0 ? (
                   <div className="text-xs text-muted">No active or recent deals recorded.</div>
-                ) : promiseRows.map((row) => (
-                  <div key={row.id} className="border-b border-border-strong p-2 text-xs bg-transparent">
-                    <div className="font-semibold text-primary">{row.mpName}</div>
-                    <div className="text-secondary">{row.description}</div>
-                    <div className="text-muted mt-1">Status: {row.status}{row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}</div>
-                  </div>
-                ))}
+                ) : (
+                  promiseRows.map((row) => (
+                    <div key={row.id} className="border-b border-border-strong p-2 text-xs bg-transparent">
+                      <div className="font-semibold text-primary">{row.mpName}</div>
+                      <div className="text-secondary">{row.description}</div>
+                      <div className="text-muted mt-1">
+                        Status: {row.status}
+                        {row.deadline !== undefined ? ` · Deadline turn ${row.deadline}` : ''}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -1996,11 +2128,16 @@ export const MPManagementScreen: React.FC<{
               <div className="space-y-2">
                 {narrativeRows.length === 0 ? (
                   <div className="text-xs text-muted">Narrative updates appear after stance calculations complete.</div>
-                ) : narrativeRows.map((row, index) => (
-                  <div key={`${index}-${row}`} className="border-b border-border-strong p-2 text-xs text-secondary bg-transparent">
-                    {row}
-                  </div>
-                ))}
+                ) : (
+                  narrativeRows.map((row, index) => (
+                    <div
+                      key={`${index}-${row}`}
+                      className="border-b border-border-strong p-2 text-xs text-secondary bg-transparent"
+                    >
+                      {row}
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
@@ -2024,9 +2161,7 @@ export const MPManagementScreen: React.FC<{
 
           {/* MP Rows */}
           {filteredMPs.length === 0 ? (
-            <div className="p-8 text-center text-secondary">
-              No MPs found matching your filters.
-            </div>
+            <div className="p-8 text-center text-secondary">No MPs found matching your filters.</div>
           ) : (
             filteredMPs.map((mp) => {
               const stance = normalizedStances.get(mp.id);
@@ -2072,7 +2207,11 @@ export const LobbyingModal: React.FC<{
   mp: MPProfile;
   brokenPromisesCount: number;
   onClose: () => void;
-  onLobby: (approach: LobbyingApproach, promiseCategory?: PromiseCategory, specificValue?: number) => Promise<{ success: boolean; message: string }>;
+  onLobby: (
+    approach: LobbyingApproach,
+    promiseCategory?: PromiseCategory,
+    specificValue?: number
+  ) => Promise<{ success: boolean; message: string }>;
 }> = ({ mp, brokenPromisesCount, onClose, onLobby }) => {
   const [selectedApproach, setSelectedApproach] = useState<LobbyingApproach>('promise');
   const [selectedPromiseCategory, setSelectedPromiseCategory] = useState<PromiseCategory>('nhs_spending');
@@ -2143,7 +2282,8 @@ export const LobbyingModal: React.FC<{
               {mp.constituency.marginality > 60 && <li>• Marginal seat - worried about constituents</li>}
               {brokenPromisesCount > 0 && (
                 <li className="text-status-bad font-semibold">
-                  • You have broken {brokenPromisesCount} {brokenPromisesCount === 1 ? 'promise' : 'promises'} to this MP
+                  • You have broken {brokenPromisesCount} {brokenPromisesCount === 1 ? 'promise' : 'promises'} to this
+                  MP
                 </li>
               )}
             </ul>
@@ -2156,10 +2296,11 @@ export const LobbyingModal: React.FC<{
               {/* Promise Approach */}
               <button
                 onClick={() => setSelectedApproach('promise')}
-                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'promise'
-                  ? 'border-accent bg-accent-subtle'
-                  : 'border-border-custom hover:border-accent'
-                  }`}
+                className={`w-full text-left p-4 border transition-all ${
+                  selectedApproach === 'promise'
+                    ? 'border-accent bg-accent-subtle'
+                    : 'border-border-custom hover:border-accent'
+                }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -2200,9 +2341,7 @@ export const LobbyingModal: React.FC<{
                   </div>
                   <div className="ml-4 text-right">
                     <div className="text-xs text-muted">Success Rate</div>
-                    <div className="font-mono font-semibold text-primary">
-                      {displayedSuccessRate}%
-                    </div>
+                    <div className="font-mono font-semibold text-primary">{displayedSuccessRate}%</div>
                   </div>
                 </div>
               </button>
@@ -2210,10 +2349,11 @@ export const LobbyingModal: React.FC<{
               {/* Persuade Approach */}
               <button
                 onClick={() => setSelectedApproach('persuade')}
-                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'persuade'
-                  ? 'border-status-good bg-status-good-subtle'
-                  : 'border-border-custom hover:border-status-good'
-                  }`}
+                className={`w-full text-left p-4 border transition-all ${
+                  selectedApproach === 'persuade'
+                    ? 'border-status-good bg-status-good-subtle'
+                    : 'border-border-custom hover:border-status-good'
+                }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -2224,9 +2364,7 @@ export const LobbyingModal: React.FC<{
                   </div>
                   <div className="ml-4 text-right">
                     <div className="text-xs text-muted">Success Rate</div>
-                    <div className="font-mono font-semibold text-status-good">
-                      {displayedSuccessRate}%
-                    </div>
+                    <div className="font-mono font-semibold text-status-good">{displayedSuccessRate}%</div>
                   </div>
                 </div>
               </button>
@@ -2234,10 +2372,11 @@ export const LobbyingModal: React.FC<{
               {/* Threaten Approach */}
               <button
                 onClick={() => setSelectedApproach('threaten')}
-                className={`w-full text-left p-4 border transition-all ${selectedApproach === 'threaten'
-                  ? 'border-status-bad bg-status-bad-subtle'
-                  : 'border-border-custom hover:border-status-bad'
-                  }`}
+                className={`w-full text-left p-4 border transition-all ${
+                  selectedApproach === 'threaten'
+                    ? 'border-status-bad bg-status-bad-subtle'
+                    : 'border-border-custom hover:border-status-bad'
+                }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -2251,9 +2390,7 @@ export const LobbyingModal: React.FC<{
                   </div>
                   <div className="ml-4 text-right">
                     <div className="text-xs text-muted">Success Rate</div>
-                    <div className="font-mono font-semibold text-status-bad">
-                      {displayedSuccessRate}%
-                    </div>
+                    <div className="font-mono font-semibold text-status-bad">{displayedSuccessRate}%</div>
                     <div className="text-xs text-status-bad mt-1">30% backfire risk</div>
                   </div>
                 </div>
@@ -2265,8 +2402,8 @@ export const LobbyingModal: React.FC<{
           {selectedApproach === 'promise' && (
             <div className="bg-status-bad-subtle border-l-4 border-status-bad p-4">
               <p className="text-sm text-status-bad">
-                <strong>Warning:</strong> If you break this promise, this MP will become hostile and future
-                lobbying will become much harder. All MPs who receive broken promises will remember.
+                <strong>Warning:</strong> If you break this promise, this MP will become hostile and future lobbying
+                will become much harder. All MPs who receive broken promises will remember.
               </p>
             </div>
           )}
@@ -2276,8 +2413,9 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={handleLobby}
               disabled={isLobbying}
-              className={`flex-1 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-text font-semibold ${isLobbying ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+              className={`flex-1 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-text font-semibold ${
+                isLobbying ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {isLobbying ? 'Lobbying...' : `Lobby MP (${displayedSuccessRate}% chance)`}
             </button>
@@ -2309,7 +2447,9 @@ export const MPDetailModal: React.FC<{
   stance?: DetailedMPStance | MPStanceLabel;
   onClose: () => void;
 }> = ({ mp, votingRecord, promises, stance, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'ideology' | 'voting' | 'promises' | 'constituency'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'ideology' | 'voting' | 'promises' | 'constituency'>(
+    'profile'
+  );
 
   const detailedStance = typeof stance === 'string' ? null : stance;
   const stanceLabel = typeof stance === 'string' ? stance : stance?.stance;
@@ -2317,10 +2457,10 @@ export const MPDetailModal: React.FC<{
   const partyName = getPartyName(mp.party);
 
   // Filter promises for this MP
-  const mpPromises = Array.from(promises.values()).filter(p => p.promisedToMPs.includes(mp.id));
-  const activePromises = mpPromises.filter(p => !p.fulfilled && !p.broken);
-  const fulfilledPromises = mpPromises.filter(p => p.fulfilled);
-  const brokenPromises = mpPromises.filter(p => p.broken);
+  const mpPromises = Array.from(promises.values()).filter((p) => p.promisedToMPs.includes(mp.id));
+  const activePromises = mpPromises.filter((p) => !p.fulfilled && !p.broken);
+  const fulfilledPromises = mpPromises.filter((p) => p.fulfilled);
+  const brokenPromises = mpPromises.filter((p) => p.broken);
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -2341,19 +2481,14 @@ export const MPDetailModal: React.FC<{
               </div>
               <div className="text-sm opacity-90 mt-1">{mp.constituency.name}</div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-accent-text hover:text-accent-text/70 text-2xl font-bold"
-            >
+            <button onClick={onClose} className="text-accent-text hover:text-accent-text/70 text-2xl font-bold">
               ×
             </button>
           </div>
 
           {/* Minister badge */}
           {mp.isMinister && (
-            <div className="mt-3 inline-block bg-accent-text/20 px-3 py-1 text-sm">
-              {mp.ministerialRole}
-            </div>
+            <div className="mt-3 inline-block bg-accent-text/20 px-3 py-1 text-sm">{mp.ministerialRole}</div>
           )}
 
           {/* Stance badge */}
@@ -2404,10 +2539,11 @@ export const MPDetailModal: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 px-4 py-3 font-semibold transition-colors border-b-2 ${activeTab === tab.id
-                ? 'text-accent border-accent bg-transparent'
-                : 'text-tertiary border-transparent hover:text-primary'
-                }`}
+              className={`flex-1 px-4 py-3 font-semibold transition-colors border-b-2 ${
+                activeTab === tab.id
+                  ? 'text-accent border-accent bg-transparent'
+                  : 'text-tertiary border-transparent hover:text-primary'
+              }`}
             >
               {tab.label}
             </button>
@@ -2431,7 +2567,9 @@ export const MPDetailModal: React.FC<{
                 </div>
                 <div className="bg-transparent border-b border-border-strong p-3">
                   <div className="text-sm text-tertiary">Years in Office</div>
-                  <div className="text-xl font-mono font-semibold text-primary">{new Date().getFullYear() - mp.enteredParliament}</div>
+                  <div className="text-xl font-mono font-semibold text-primary">
+                    {new Date().getFullYear() - mp.enteredParliament}
+                  </div>
                 </div>
               </div>
 
@@ -2460,19 +2598,20 @@ export const MPDetailModal: React.FC<{
                           style={{ width: `${(mp.traits.rebelliousness / 10) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.rebelliousness.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">
+                        {mp.traits.rebelliousness.toFixed(1)}/10
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Principled</span>
                     <div className="flex items-center gap-2">
                       <div className="w-32 bg-transparent h-2">
-                        <div
-                          className="bg-accent h-2"
-                          style={{ width: `${(mp.traits.principled / 10) * 100}%` }}
-                        ></div>
+                        <div className="bg-accent h-2" style={{ width: `${(mp.traits.principled / 10) * 100}%` }}></div>
                       </div>
-                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.principled.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">
+                        {mp.traits.principled.toFixed(1)}/10
+                      </span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
@@ -2484,7 +2623,9 @@ export const MPDetailModal: React.FC<{
                           style={{ width: `${(mp.traits.ambition / 10) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-semibold text-primary font-mono">{mp.traits.ambition.toFixed(1)}/10</span>
+                      <span className="text-sm font-semibold text-primary font-mono">
+                        {mp.traits.ambition.toFixed(1)}/10
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2522,12 +2663,30 @@ export const MPDetailModal: React.FC<{
                     <div>
                       <span className="text-tertiary">Economic: </span>
                       <span className="font-semibold font-mono">{mp.ideology.economicAxis.toFixed(1)}</span>
-                      <span className="text-tertiary"> ({mp.ideology.economicAxis < -2 ? 'Left-wing' : mp.ideology.economicAxis > 2 ? 'Right-wing' : 'Centrist'})</span>
+                      <span className="text-tertiary">
+                        {' '}
+                        (
+                        {mp.ideology.economicAxis < -2
+                          ? 'Left-wing'
+                          : mp.ideology.economicAxis > 2
+                            ? 'Right-wing'
+                            : 'Centrist'}
+                        )
+                      </span>
                     </div>
                     <div>
                       <span className="text-tertiary">Social: </span>
                       <span className="font-semibold font-mono">{mp.ideology.socialAxis.toFixed(1)}</span>
-                      <span className="text-tertiary"> ({mp.ideology.socialAxis < -2 ? 'Libertarian' : mp.ideology.socialAxis > 2 ? 'Authoritarian' : 'Moderate'})</span>
+                      <span className="text-tertiary">
+                        {' '}
+                        (
+                        {mp.ideology.socialAxis < -2
+                          ? 'Libertarian'
+                          : mp.ideology.socialAxis > 2
+                            ? 'Authoritarian'
+                            : 'Moderate'}
+                        )
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2542,12 +2701,16 @@ export const MPDetailModal: React.FC<{
                       style={{ width: `${(mp.ideology.fiscalConservatism / 10) * 100}%` }}
                     ></div>
                   </div>
-                  <span className="font-bold font-mono text-primary">{mp.ideology.fiscalConservatism.toFixed(1)}/10</span>
+                  <span className="font-bold font-mono text-primary">
+                    {mp.ideology.fiscalConservatism.toFixed(1)}/10
+                  </span>
                 </div>
                 <div className="mt-2 text-sm text-secondary">
-                  {mp.ideology.fiscalConservatism > 7 ? 'Fiscal Hawk (Austerity advocate)' :
-                    mp.ideology.fiscalConservatism > 4 ? 'Moderate (Cautious about deficit)' :
-                      'Fiscal Dove (Supports borrowing for investment)'}
+                  {mp.ideology.fiscalConservatism > 7
+                    ? 'Fiscal Hawk (Austerity advocate)'
+                    : mp.ideology.fiscalConservatism > 4
+                      ? 'Moderate (Cautious about deficit)'
+                      : 'Fiscal Dove (Supports borrowing for investment)'}
                 </div>
               </div>
             </div>
@@ -2559,11 +2722,15 @@ export const MPDetailModal: React.FC<{
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-status-good-subtle border border-status-good p-4">
                   <div className="text-sm text-status-good">Loyalty Score</div>
-                  <div className="text-3xl font-mono font-semibold text-status-good">{votingRecord?.loyaltyScore || 100}%</div>
+                  <div className="text-3xl font-mono font-semibold text-status-good">
+                    {votingRecord?.loyaltyScore || 100}%
+                  </div>
                 </div>
                 <div className="bg-status-bad-subtle border border-status-bad p-4">
                   <div className="text-sm text-status-bad">Rebellions</div>
-                  <div className="text-3xl font-mono font-semibold text-status-bad">{votingRecord?.rebellionCount || 0}</div>
+                  <div className="text-3xl font-mono font-semibold text-status-bad">
+                    {votingRecord?.rebellionCount || 0}
+                  </div>
                 </div>
               </div>
 
@@ -2571,35 +2738,41 @@ export const MPDetailModal: React.FC<{
                 <div>
                   <h3 className="font-display font-semibold text-primary mb-3">Recent Budget Votes</h3>
                   <div className="space-y-2">
-                    {votingRecord.budgetVotes.slice(-10).reverse().map((vote, idx) => (
-                      <div key={idx} className="bg-transparent border-b border-border-strong p-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-0.5 text-xs font-semibold ${vote.choice === 'aye' ? 'bg-status-good-subtle text-status-good' :
-                                vote.choice === 'noe' ? 'bg-status-bad-subtle text-status-bad' :
-                                  'bg-muted text-white'
-                                }`}>
-                                {vote.choice.toUpperCase()}
-                              </span>
-                              {vote.coerced && (
-                                <span className="px-2 py-0.5 text-xs font-semibold bg-warning-subtle text-warning">
-                                  COERCED
+                    {votingRecord.budgetVotes
+                      .slice(-10)
+                      .reverse()
+                      .map((vote, idx) => (
+                        <div key={idx} className="bg-transparent border-b border-border-strong p-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-semibold ${
+                                    vote.choice === 'aye'
+                                      ? 'bg-status-good-subtle text-status-good'
+                                      : vote.choice === 'noe'
+                                        ? 'bg-status-bad-subtle text-status-bad'
+                                        : 'bg-muted text-white'
+                                  }`}
+                                >
+                                  {vote.choice.toUpperCase()}
                                 </span>
-                              )}
-                              <span className="text-xs text-muted font-mono">Month {vote.month}</span>
+                                {vote.coerced && (
+                                  <span className="px-2 py-0.5 text-xs font-semibold bg-warning-subtle text-warning">
+                                    COERCED
+                                  </span>
+                                )}
+                                <span className="text-xs text-muted font-mono">Month {vote.month}</span>
+                              </div>
+                              <div className="text-sm text-secondary mt-1">{vote.reasoning}</div>
                             </div>
-                            <div className="text-sm text-secondary mt-1">{vote.reasoning}</div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-muted py-8">
-                  No voting history yet
-                </div>
+                <div className="text-center text-muted py-8">No voting history yet</div>
               )}
             </div>
           )}
@@ -2619,7 +2792,9 @@ export const MPDetailModal: React.FC<{
                         <div className="flex items-start gap-3">
                           <div className="text-lg font-bold text-status-bad">X</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-status-bad">{getPromiseCategoryName(promise.category)}</div>
+                            <div className="font-semibold text-status-bad">
+                              {getPromiseCategoryName(promise.category)}
+                            </div>
                             <div className="text-sm text-secondary mt-1">{promise.description}</div>
                             <div className="text-xs text-muted mt-2 font-mono">
                               Made in month {promise.madeInMonth} · Broken in month {promise.brokenInMonth}
@@ -2659,11 +2834,11 @@ export const MPDetailModal: React.FC<{
                     {fulfilledPromises.map((promise) => (
                       <div key={promise.id} className="bg-status-good-subtle border border-status-good p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-xs font-bold text-white bg-status-good px-2 py-1">
-                            KEPT
-                          </div>
+                          <div className="text-xs font-bold text-white bg-status-good px-2 py-1">KEPT</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-status-good">{getPromiseCategoryName(promise.category)}</div>
+                            <div className="font-semibold text-status-good">
+                              {getPromiseCategoryName(promise.category)}
+                            </div>
                             <div className="text-sm text-secondary mt-1">{promise.description}</div>
                             <div className="text-xs text-muted mt-2 font-mono">Made in month {promise.madeInMonth}</div>
                           </div>
@@ -2675,9 +2850,7 @@ export const MPDetailModal: React.FC<{
               )}
 
               {mpPromises.length === 0 && (
-                <div className="text-center text-muted py-8">
-                  No promises have been made to this MP yet
-                </div>
+                <div className="text-center text-muted py-8">No promises have been made to this MP yet</div>
               )}
             </div>
           )}
@@ -2692,19 +2865,31 @@ export const MPDetailModal: React.FC<{
                     <div className="text-sm text-tertiary">Region</div>
                     <div className="text-lg font-semibold text-primary capitalize">{mp.constituency.region}</div>
                   </div>
-                  <div className={`border p-3 ${mp.constituency.marginality > 70 ? 'bg-status-bad-subtle border-status-bad' :
-                    mp.constituency.marginality > 50 ? 'bg-warning-subtle border-warning' :
-                      'bg-status-good-subtle border-status-good'
-                    }`}>
+                  <div
+                    className={`border p-3 ${
+                      mp.constituency.marginality > 70
+                        ? 'bg-status-bad-subtle border-status-bad'
+                        : mp.constituency.marginality > 50
+                          ? 'bg-warning-subtle border-warning'
+                          : 'bg-status-good-subtle border-status-good'
+                    }`}
+                  >
                     <div className="text-sm text-tertiary">Marginality</div>
-                    <div className={`text-lg font-semibold font-mono ${mp.constituency.marginality > 70 ? 'text-status-bad' :
-                      mp.constituency.marginality > 50 ? 'text-warning' :
-                        'text-status-good'
-                      }`}>
+                    <div
+                      className={`text-lg font-semibold font-mono ${
+                        mp.constituency.marginality > 70
+                          ? 'text-status-bad'
+                          : mp.constituency.marginality > 50
+                            ? 'text-warning'
+                            : 'text-status-good'
+                      }`}
+                    >
                       {mp.constituency.marginality.toFixed(0)}%
-                      {mp.constituency.marginality > 70 ? ' (Highly Marginal)' :
-                        mp.constituency.marginality > 50 ? ' (Marginal)' :
-                          ' (Safe)'}
+                      {mp.constituency.marginality > 70
+                        ? ' (Highly Marginal)'
+                        : mp.constituency.marginality > 50
+                          ? ' (Marginal)'
+                          : ' (Safe)'}
                     </div>
                   </div>
                 </div>
@@ -2745,11 +2930,15 @@ export const MPDetailModal: React.FC<{
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Previous Election Margin</span>
-                    <span className="font-semibold font-mono text-primary">{mp.constituency.previousMargin.toFixed(1)}%</span>
+                    <span className="font-semibold font-mono text-primary">
+                      {mp.constituency.previousMargin.toFixed(1)}%
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Swing Required to Lose</span>
-                    <span className="font-semibold font-mono text-primary">{mp.constituency.swingRequired.toFixed(1)}%</span>
+                    <span className="font-semibold font-mono text-primary">
+                      {mp.constituency.swingRequired.toFixed(1)}%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2815,12 +3004,18 @@ export function simulateEnhancedParliamentaryVote(
         const hasDeal = Array.from(mpSystem.promises.values()).some(
           (promise) => promise.promisedToMPs.includes(mpId) && !promise.broken
         );
-        const dealComplianceProbability = mp.dealComplianceProbability
-          ?? Math.max(0.55, Math.min(0.9, 0.8 - (mp.traits.rebelliousness * 0.02) + (mp.constituency.marginality > 70 ? 0.05 : 0)));
+        const dealComplianceProbability =
+          mp.dealComplianceProbability ??
+          Math.max(
+            0.55,
+            Math.min(0.9, 0.8 - mp.traits.rebelliousness * 0.02 + (mp.constituency.marginality > 70 ? 0.05 : 0))
+          );
 
         const ayeChance = hasDeal
           ? dealComplianceProbability
-          : (mp.isMinister ? 0.995 : (0.9 - mp.traits.rebelliousness * 0.01));
+          : mp.isMinister
+            ? 0.995
+            : 0.9 - mp.traits.rebelliousness * 0.01;
         if (Math.random() < ayeChance) {
           voteChoices.set(mpId, 'aye');
           ayesCount++;
@@ -2891,12 +3086,15 @@ export function simulateEnhancedParliamentaryVote(
     budgetChanges.detailedTaxRates?.vatDomesticEnergy ?? 0,
   ].filter((value) => value > 0).length;
 
-  const spendingCutSignals = Object.values(budgetChanges.detailedSpendingBudgets || {})
-    .filter((value) => typeof value === 'number' && value < -0.25).length;
+  const spendingCutSignals = Object.values(budgetChanges.detailedSpendingBudgets || {}).filter(
+    (value) => typeof value === 'number' && value < -0.25
+  ).length;
 
   const pressurePoints: string[] = [];
   if (manifestoViolations.length > 0) {
-    pressurePoints.push(`${manifestoViolations.length} manifesto breach${manifestoViolations.length === 1 ? '' : 'es'}`);
+    pressurePoints.push(
+      `${manifestoViolations.length} manifesto breach${manifestoViolations.length === 1 ? '' : 'es'}`
+    );
   }
   if (taxPressureSignals >= 2) {
     pressurePoints.push('tax package backlash');
@@ -2908,29 +3106,27 @@ export function simulateEnhancedParliamentaryVote(
     pressurePoints.push('soft dissent via abstentions');
   }
 
-  const pressureSummary = pressurePoints.length > 0
-    ? ` Pressure points: ${pressurePoints.join(', ')}.`
-    : '';
+  const pressureSummary = pressurePoints.length > 0 ? ` Pressure points: ${pressurePoints.join(', ')}.` : '';
 
   if (!passed) {
     const defeatLeads = [
       `The Budget is defeated by ${Math.abs(governmentMajority)} votes after support collapsed across Labour backbenches.`,
       `The Commons rejects the Budget by ${Math.abs(governmentMajority)} votes, exposing a failed whipping operation.`,
-      `The government loses the division by ${Math.abs(governmentMajority)} votes in a major parliamentary reverse.`
+      `The government loses the division by ${Math.abs(governmentMajority)} votes in a major parliamentary reverse.`,
     ];
     narrativeSummary = `${defeatLeads[profileIndex]} ${labourNoes} Labour MP${labourNoes === 1 ? '' : 's'} voted against${abstentionsCount > 0 ? ` and ${abstentionsCount} abstained` : ''}.${pressureSummary} No.10 now expects an immediate revised package.`;
   } else if (governmentMajority < 20) {
     const narrowWinLeads = [
       `The Budget scrapes through by ${governmentMajority} votes.`,
       `The government survives by only ${governmentMajority} votes.`,
-      `The Budget passes on a thin margin of ${governmentMajority}.`
+      `The Budget passes on a thin margin of ${governmentMajority}.`,
     ];
     narrativeSummary = `${narrowWinLeads[profileIndex]} ${labourNoes} Labour MP${labourNoes === 1 ? '' : 's'} voted against${abstentionsCount > 0 ? ` with ${abstentionsCount} abstentions` : ''}.${pressureSummary}`;
   } else if (labourNoes > 20) {
     const largeDissentLeads = [
       `The Budget passes with a majority of ${governmentMajority}, but a major backbench split (${labourNoes} Labour MPs) dominates the aftermath.`,
       `The division is won by ${governmentMajority}, yet ${labourNoes} Labour MPs break the whip in a major display of dissent.`,
-      `The government carries the vote by ${governmentMajority}, but ${labourNoes} Labour noes point to a deep internal fracture.`
+      `The government carries the vote by ${governmentMajority}, but ${labourNoes} Labour noes point to a deep internal fracture.`,
     ];
     narrativeSummary = `${largeDissentLeads[profileIndex]}${pressureSummary}`;
   } else if (labourNoes > 5 || abstentionsCount > 12) {
@@ -2939,7 +3135,7 @@ export function simulateEnhancedParliamentaryVote(
     const unityLeads = [
       `The Budget passes with a commanding majority of ${governmentMajority} and strong party discipline.`,
       `A majority of ${governmentMajority} delivers the Budget with only limited Labour defections.`,
-      `The government secures a clear majority of ${governmentMajority}; the whips contain resistance effectively.`
+      `The government secures a clear majority of ${governmentMajority}; the whips contain resistance effectively.`,
     ];
     narrativeSummary = `${unityLeads[profileIndex]}${pressureSummary}`;
   }
@@ -2953,16 +3149,27 @@ export function simulateEnhancedParliamentaryVote(
     keyRebelsNarrative.push('Several MPs in marginal seats rebelled over tax increases affecting their constituents');
   }
   if (labourNoes > 8 && (budgetChanges.detailedSpendingBudgets?.nhsMentalHealth || 0) < -0.3) {
-    keyRebelsNarrative.push('MPs from areas with high mental health caseloads rebelled over cuts to mental health budgets');
+    keyRebelsNarrative.push(
+      'MPs from areas with high mental health caseloads rebelled over cuts to mental health budgets'
+    );
   }
   if (labourNoes > 8 && (budgetChanges.detailedSpendingBudgets?.prisonsAndProbation || 0) < -0.2) {
-    keyRebelsNarrative.push('Justice-focused MPs warned that reducing prisons funding would worsen overcrowding and voted against');
+    keyRebelsNarrative.push(
+      'Justice-focused MPs warned that reducing prisons funding would worsen overcrowding and voted against'
+    );
   }
-  if (labourNoes > 10 && ((budgetChanges.detailedTaxRates?.vatDomesticEnergy || 0) > 0 || (budgetChanges.vatChange || 0) > 0)) {
-    keyRebelsNarrative.push('Cost-of-living MPs cited higher VAT burdens on household essentials and opposed the Budget');
+  if (
+    labourNoes > 10 &&
+    ((budgetChanges.detailedTaxRates?.vatDomesticEnergy || 0) > 0 || (budgetChanges.vatChange || 0) > 0)
+  ) {
+    keyRebelsNarrative.push(
+      'Cost-of-living MPs cited higher VAT burdens on household essentials and opposed the Budget'
+    );
   }
   if (abstentionsCount > 10) {
-    keyRebelsNarrative.push('A significant number of MPs abstained, signalling deep unease within the parliamentary party');
+    keyRebelsNarrative.push(
+      'A significant number of MPs abstained, signalling deep unease within the parliamentary party'
+    );
   }
   if (manifestoViolations.length > 0) {
     keyRebelsNarrative.push('Fiscal hawks within the party voted against after manifesto violations');
@@ -2984,8 +3191,11 @@ export function simulateEnhancedParliamentaryVote(
     .slice(0, 5);
 
   candidateNarratives.forEach(({ mp, stance }) => {
-    const stanceText = stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided';
-    namedNarratives.push(`${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stanceText}: ${stance.reason}`);
+    const stanceText =
+      stance.stance === 'support' ? 'Supporting' : stance.stance === 'oppose' ? 'Opposing' : 'Undecided';
+    namedNarratives.push(
+      `${mp.name} (${getPartyName(mp.party)}, ${mp.constituency.name}) — ${stanceText}: ${stance.reason}`
+    );
   });
 
   keyRebelsNarrative.push(...namedNarratives);
@@ -2995,13 +3205,16 @@ export function simulateEnhancedParliamentaryVote(
   if (labourNoes === 0 && abstentionsCount <= 3) {
     whipAssessment = 'Chief Whip: clean operation. Discipline held and caucus management is currently stable.';
   } else if (labourNoes <= 8) {
-    whipAssessment = 'Chief Whip: low-level dissent only. Manageable, but we should pre-negotiate with soft critics before the next vote.';
+    whipAssessment =
+      'Chief Whip: low-level dissent only. Manageable, but we should pre-negotiate with soft critics before the next vote.';
   } else if (labourNoes <= 25) {
     whipAssessment = 'Chief Whip: meaningful dissent. A concessions package is advisable to prevent further drift.';
   } else if (labourNoes <= 50) {
-    whipAssessment = 'Chief Whip: serious discipline failure. Backbench blocs are coordinating and need direct political engagement.';
+    whipAssessment =
+      'Chief Whip: serious discipline failure. Backbench blocs are coordinating and need direct political engagement.';
   } else {
-    whipAssessment = 'Chief Whip: open revolt conditions. Without a strategic reset, future fiscal votes are unlikely to be secure.';
+    whipAssessment =
+      'Chief Whip: open revolt conditions. Without a strategic reset, future fiscal votes are unlikely to be secure.';
   }
 
   return {

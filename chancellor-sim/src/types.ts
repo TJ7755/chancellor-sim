@@ -12,10 +12,10 @@ import {
   SimulationState,
   FiscalRuleId,
   PolicyRiskModifier,
-} from '../game-integration';
-import { ManifestoState } from '../manifesto-system';
-import { MPSystemState, LobbyingApproach, PromiseCategory } from '../mp-system';
-import { BudgetDraft } from './budget-draft';
+} from './game-integration';
+import { ManifestoState } from './manifesto-system';
+import { MPSystemState, LobbyingApproach, PromiseCategory } from './mp-system';
+import { BudgetDraft } from './state/budget-draft';
 
 // ===========================
 // Metadata
@@ -224,7 +224,13 @@ export interface ExternalSectorState {
   exportGrowth: number;
   importGrowth: number;
   externalShockActive: boolean;
-  externalShockType: 'energy_spike' | 'trade_war' | 'partner_recession' | 'tariff_shock' | 'banking_sector_stress' | null;
+  externalShockType:
+    | 'energy_spike'
+    | 'trade_war'
+    | 'partner_recession'
+    | 'tariff_shock'
+    | 'banking_sector_stress'
+    | null;
   externalShockTurnsRemaining: number;
   externalShockMagnitude: number;
 }
@@ -275,7 +281,7 @@ export interface LocalGovState {
 }
 
 export interface DevolutionState {
-  nations: { scotland: DevolvdNation; wales: DevolvdNation; northernIreland: DevolvdNation; };
+  nations: { scotland: DevolvdNation; wales: DevolvdNation; northernIreland: DevolvdNation };
   localGov: LocalGovState;
   barnettConsequentialMultiplier: number;
   section114Timer: number;
@@ -541,11 +547,18 @@ export interface GameActions {
   hireAdviser: (adviserType: string) => void;
   fireAdviser: (adviserId: string) => void;
   respondToPMIntervention: (choice: 'comply' | 'defy') => void;
-  lobbyMP: (mpId: string, approach: LobbyingApproach, promiseCategory?: PromiseCategory, specificValue?: number) => Promise<{ success: boolean; message: string }>;
+  lobbyMP: (
+    mpId: string,
+    approach: LobbyingApproach,
+    promiseCategory?: PromiseCategory,
+    specificValue?: number
+  ) => Promise<{ success: boolean; message: string }>;
   forcePMIntervention: () => void;
   updateMPStances: (budgetChanges: BudgetChanges, manifestoViolations: string[]) => void;
   executeManifestoOneClick: (pledgeId: string) => void;
-  recordBudgetVotes: (votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>) => void;
+  recordBudgetVotes: (
+    votes: Array<{ mpId: string; choice: 'aye' | 'noe' | 'abstain'; reasoning: string; coerced?: boolean }>
+  ) => void;
   updatePromises: (brokenPromiseIds: string[]) => void;
   changeFiscalFramework: (nextRule: FiscalRuleId) => void;
   markPMMessageAsRead: (messageId: string) => void;

@@ -8,13 +8,13 @@
 // ===========================
 
 export type FiscalRuleId =
-  | 'starmer-reeves'       // Labour 2024: current budget balance + debt falling in 5th year
-  | 'jeremy-hunt'          // Conservative 2022–24: deficit <3% GDP + debt falling as % GDP by 5th year; no capex exemption
-  | 'golden-rule'          // Brown-style: borrow only for investment, current budget balanced over cycle
-  | 'maastricht'           // EU-style: deficit <3% GDP, debt <60% GDP
-  | 'balanced-budget'      // Swabian housewife: balanced overall budget every year
-  | 'debt-anchor'          // Swedish-style: debt target with operational surplus rule
-  | 'mmt-inspired';        // Modern Monetary Theory inspired: focus on inflation/employment, no deficit target
+  | 'starmer-reeves' // Labour 2024: current budget balance + debt falling in 5th year
+  | 'jeremy-hunt' // Conservative 2022–24: deficit <3% GDP + debt falling as % GDP by 5th year; no capex exemption
+  | 'golden-rule' // Brown-style: borrow only for investment, current budget balanced over cycle
+  | 'maastricht' // EU-style: deficit <3% GDP, debt <60% GDP
+  | 'balanced-budget' // Swabian housewife: balanced overall budget every year
+  | 'debt-anchor' // Swedish-style: debt target with operational surplus rule
+  | 'mmt-inspired'; // Modern Monetary Theory inspired: focus on inflation/employment, no deficit target
 
 export interface FiscalRule {
   id: FiscalRuleId;
@@ -23,18 +23,18 @@ export interface FiscalRule {
   detailedDescription: string;
   historicalPrecedent: string;
   rules: {
-    currentBudgetBalance: boolean;   // Must balance current (non-investment) budget
-    overallBalance: boolean;         // Must balance entire budget
-    deficitCeiling?: number;         // Maximum deficit as % GDP (if applicable)
-    debtTarget?: number;             // Debt/GDP target (if applicable)
-    debtFalling: boolean;            // Debt must be on falling path
-    investmentExempt: boolean;       // Can borrow for investment
-    timeHorizon: number;             // Years over which rules must be met (rolling)
+    currentBudgetBalance: boolean; // Must balance current (non-investment) budget
+    overallBalance: boolean; // Must balance entire budget
+    deficitCeiling?: number; // Maximum deficit as % GDP (if applicable)
+    debtTarget?: number; // Debt/GDP target (if applicable)
+    debtFalling: boolean; // Debt must be on falling path
+    investmentExempt: boolean; // Can borrow for investment
+    timeHorizon: number; // Years over which rules must be met (rolling)
   };
   marketReaction: {
-    giltYieldBps: number;            // Basis point impact on initial gilt yields
-    sterlingPercent: number;         // Percentage impact on sterling
-    credibilityChange: number;       // Impact on credibility index
+    giltYieldBps: number; // Basis point impact on initial gilt yields
+    sterlingPercent: number; // Percentage impact on sterling
+    credibilityChange: number; // Impact on credibility index
   };
   politicalReaction: {
     pmTrustChange: number;
@@ -48,8 +48,10 @@ export const FISCAL_RULES: FiscalRule[] = [
     id: 'starmer-reeves',
     name: 'Stability Rule (Starmer-Reeves)',
     shortDescription: 'Current budget balanced; debt falling by year 5 of forecast',
-    detailedDescription: 'The current budget (excluding net investment) must be in balance. Public sector net debt excluding Bank of England must be falling as a share of GDP by the fifth year of the OBR forecast period. This is the framework actually adopted by the Labour government in 2024.',
-    historicalPrecedent: 'Rachel Reeves 2024. Designed to allow investment borrowing while maintaining current spending discipline. The rolling 5-year horizon provides some flexibility.',
+    detailedDescription:
+      'The current budget (excluding net investment) must be in balance. Public sector net debt excluding Bank of England must be falling as a share of GDP by the fifth year of the OBR forecast period. This is the framework actually adopted by the Labour government in 2024.',
+    historicalPrecedent:
+      'Rachel Reeves 2024. Designed to allow investment borrowing while maintaining current spending discipline. The rolling 5-year horizon provides some flexibility.',
     rules: {
       currentBudgetBalance: true,
       overallBalance: false,
@@ -58,7 +60,7 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 5,
     },
     marketReaction: {
-      giltYieldBps: 0,           // Baseline - this is the default expectation
+      giltYieldBps: 0, // Baseline - this is the default expectation
       sterlingPercent: 0,
       credibilityChange: 0,
     },
@@ -72,8 +74,10 @@ export const FISCAL_RULES: FiscalRule[] = [
     id: 'jeremy-hunt',
     name: 'Consolidated Mandate (Jeremy Hunt)',
     shortDescription: 'Deficit below 3% of GDP by year 5; debt falling as % GDP by year 5; no investment exemption',
-    detailedDescription: 'The framework used by the Conservative government 2022–2024. Two mandates: (1) the structural deficit must be below 3% of GDP in the fifth year of the forecast; (2) public sector net debt (excluding the Bank of England) must be falling as a share of GDP in the fifth year. Unlike Labour\'s Stability Rule, there is no exemption for investment spending — all borrowing counts against the debt mandate.',
-    historicalPrecedent: 'Jeremy Hunt 2022–2024. Replaced the Sunak medium-term fiscal plan after the Truss mini-budget. Starting UK deficit (~3.2% GDP) means this rule is initially being breached; consolidation is required to meet it. Markets approve of the stricter no-capex-exemption approach but political tolerance for spending restraint is limited.',
+    detailedDescription:
+      "The framework used by the Conservative government 2022–2024. Two mandates: (1) the structural deficit must be below 3% of GDP in the fifth year of the forecast; (2) public sector net debt (excluding the Bank of England) must be falling as a share of GDP in the fifth year. Unlike Labour's Stability Rule, there is no exemption for investment spending — all borrowing counts against the debt mandate.",
+    historicalPrecedent:
+      'Jeremy Hunt 2022–2024. Replaced the Sunak medium-term fiscal plan after the Truss mini-budget. Starting UK deficit (~3.2% GDP) means this rule is initially being breached; consolidation is required to meet it. Markets approve of the stricter no-capex-exemption approach but political tolerance for spending restraint is limited.',
     rules: {
       currentBudgetBalance: false,
       overallBalance: false,
@@ -83,13 +87,13 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 5,
     },
     marketReaction: {
-      giltYieldBps: -5,          // Modest market improvement vs Starmer-Reeves baseline
+      giltYieldBps: -5, // Modest market improvement vs Starmer-Reeves baseline
       sterlingPercent: 0.3,
       credibilityChange: 2,
     },
     politicalReaction: {
-      pmTrustChange: 3,          // PM trusts financial orthodoxy
-      backbenchChange: -5,       // Labour backbenchers dislike the Conservative-era rule
+      pmTrustChange: 3, // PM trusts financial orthodoxy
+      backbenchChange: -5, // Labour backbenchers dislike the Conservative-era rule
       approvalChange: -1,
     },
   },
@@ -97,8 +101,10 @@ export const FISCAL_RULES: FiscalRule[] = [
     id: 'golden-rule',
     name: 'Golden Rule (Brownite)',
     shortDescription: 'Borrow only to invest; current budget balanced over the economic cycle',
-    detailedDescription: 'Over the economic cycle, the government will borrow only to invest and not to fund current expenditure. Net debt will be held at a stable and prudent level over the cycle. Allows significant investment borrowing but demands current spending discipline.',
-    historicalPrecedent: 'Gordon Brown 1997-2007. Widely regarded as credible initially but the definition of "the cycle" was manipulated to delay compliance. Markets view with moderate scepticism.',
+    detailedDescription:
+      'Over the economic cycle, the government will borrow only to invest and not to fund current expenditure. Net debt will be held at a stable and prudent level over the cycle. Allows significant investment borrowing but demands current spending discipline.',
+    historicalPrecedent:
+      'Gordon Brown 1997-2007. Widely regarded as credible initially but the definition of "the cycle" was manipulated to delay compliance. Markets view with moderate scepticism.',
     rules: {
       currentBudgetBalance: true,
       overallBalance: false,
@@ -107,13 +113,13 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 7, // "Over the cycle" - more flexible
     },
     marketReaction: {
-      giltYieldBps: 5,           // Slightly higher yields - less strict debt rule
+      giltYieldBps: 5, // Slightly higher yields - less strict debt rule
       sterlingPercent: -0.3,
       credibilityChange: -3,
     },
     politicalReaction: {
       pmTrustChange: -2,
-      backbenchChange: 3,       // Left wing likes investment flexibility
+      backbenchChange: 3, // Left wing likes investment flexibility
       approvalChange: 0,
     },
   },
@@ -121,8 +127,10 @@ export const FISCAL_RULES: FiscalRule[] = [
     id: 'maastricht',
     name: 'Maastricht Criteria',
     shortDescription: 'Deficit below 3% of GDP; debt target of 60% GDP',
-    detailedDescription: 'Government deficit must not exceed 3% of GDP. Government debt must not exceed 60% of GDP (or be sufficiently diminishing towards it). These are the EU convergence criteria, adapted for UK use as hard constraints.',
-    historicalPrecedent: 'EU Treaty 1992. Used across the eurozone. Criticised as arbitrary but provides clear, measurable targets that markets understand. The 60% debt target would require dramatic fiscal consolidation from UK starting position.',
+    detailedDescription:
+      'Government deficit must not exceed 3% of GDP. Government debt must not exceed 60% of GDP (or be sufficiently diminishing towards it). These are the EU convergence criteria, adapted for UK use as hard constraints.',
+    historicalPrecedent:
+      'EU Treaty 1992. Used across the eurozone. Criticised as arbitrary but provides clear, measurable targets that markets understand. The 60% debt target would require dramatic fiscal consolidation from UK starting position.',
     rules: {
       currentBudgetBalance: false,
       overallBalance: false,
@@ -133,22 +141,24 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 3,
     },
     marketReaction: {
-      giltYieldBps: -15,         // Markets love hard constraints
+      giltYieldBps: -15, // Markets love hard constraints
       sterlingPercent: 1.0,
       credibilityChange: 8,
     },
     politicalReaction: {
       pmTrustChange: 2,
-      backbenchChange: -8,       // Very unpopular with Labour backbenchers
-      approvalChange: -2,        // Public nervous about implied cuts
+      backbenchChange: -8, // Very unpopular with Labour backbenchers
+      approvalChange: -2, // Public nervous about implied cuts
     },
   },
   {
     id: 'balanced-budget',
     name: 'Balanced Budget Rule',
     shortDescription: 'Overall budget must be balanced every year; no structural borrowing',
-    detailedDescription: 'Total government expenditure including investment must not exceed total revenue in any single year. No distinction between current and capital spending. The most restrictive fiscal framework available.',
-    historicalPrecedent: 'German Schuldenbremse (debt brake) post-2009. Extremely restrictive. Would require immediate and severe fiscal consolidation from UK starting deficit. Markets would see this as highly credible but politically unsustainable.',
+    detailedDescription:
+      'Total government expenditure including investment must not exceed total revenue in any single year. No distinction between current and capital spending. The most restrictive fiscal framework available.',
+    historicalPrecedent:
+      'German Schuldenbremse (debt brake) post-2009. Extremely restrictive. Would require immediate and severe fiscal consolidation from UK starting deficit. Markets would see this as highly credible but politically unsustainable.',
     rules: {
       currentBudgetBalance: true,
       overallBalance: true,
@@ -157,22 +167,24 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 1,
     },
     marketReaction: {
-      giltYieldBps: -25,         // Maximum market confidence
+      giltYieldBps: -25, // Maximum market confidence
       sterlingPercent: 2.0,
       credibilityChange: 15,
     },
     politicalReaction: {
       pmTrustChange: -5,
-      backbenchChange: -20,      // Devastating for Labour backbenchers
-      approvalChange: -5,        // Public fears severe cuts
+      backbenchChange: -20, // Devastating for Labour backbenchers
+      approvalChange: -5, // Public fears severe cuts
     },
   },
   {
     id: 'debt-anchor',
     name: 'Debt Anchor Framework',
     shortDescription: 'Target debt/GDP of 85% with 1% structural surplus to get there',
-    detailedDescription: 'Set a medium-term debt anchor of 85% of GDP. Run a structural surplus of at least 1% of GDP to reduce debt towards the target. Automatic stabilisers allowed to operate in downturns. A Swedish-inspired approach adapted for UK conditions.',
-    historicalPrecedent: 'Sweden post-1990s crisis. Their debt anchor framework with surplus target is widely considered the gold standard of fiscal frameworks. Markets view very favourably but requires sustained fiscal restraint.',
+    detailedDescription:
+      'Set a medium-term debt anchor of 85% of GDP. Run a structural surplus of at least 1% of GDP to reduce debt towards the target. Automatic stabilisers allowed to operate in downturns. A Swedish-inspired approach adapted for UK conditions.',
+    historicalPrecedent:
+      'Sweden post-1990s crisis. Their debt anchor framework with surplus target is widely considered the gold standard of fiscal frameworks. Markets view very favourably but requires sustained fiscal restraint.',
     rules: {
       currentBudgetBalance: true,
       overallBalance: false,
@@ -196,8 +208,10 @@ export const FISCAL_RULES: FiscalRule[] = [
     id: 'mmt-inspired',
     name: 'Full Employment Framework',
     shortDescription: 'No deficit target; focus on inflation below 4% and unemployment below 4%',
-    detailedDescription: 'Abandon traditional fiscal rules. Government spending should be calibrated to achieve full employment and price stability, not arbitrary deficit or debt targets. Borrow freely when unemployment is high and inflation is low. Only tighten fiscal policy when inflation becomes a genuine threat.',
-    historicalPrecedent: 'No major economy has formally adopted this approach. Drawing on MMT and post-Keynesian economics. Markets would react extremely negatively to the abandonment of fiscal anchors. Very popular with the Labour left.',
+    detailedDescription:
+      'Abandon traditional fiscal rules. Government spending should be calibrated to achieve full employment and price stability, not arbitrary deficit or debt targets. Borrow freely when unemployment is high and inflation is low. Only tighten fiscal policy when inflation becomes a genuine threat.',
+    historicalPrecedent:
+      'No major economy has formally adopted this approach. Drawing on MMT and post-Keynesian economics. Markets would react extremely negatively to the abandonment of fiscal anchors. Very popular with the Labour left.',
     rules: {
       currentBudgetBalance: false,
       overallBalance: false,
@@ -206,20 +220,20 @@ export const FISCAL_RULES: FiscalRule[] = [
       timeHorizon: 0, // No time-based rule
     },
     marketReaction: {
-      giltYieldBps: 45,          // Markets would be alarmed
+      giltYieldBps: 45, // Markets would be alarmed
       sterlingPercent: -3.5,
       credibilityChange: -20,
     },
     politicalReaction: {
       pmTrustChange: -15,
-      backbenchChange: 12,       // Labour left would love it
-      approvalChange: 2,         // Short-term public approval for spending promises
+      backbenchChange: 12, // Labour left would love it
+      approvalChange: 2, // Short-term public approval for spending promises
     },
   },
 ];
 
 export function getFiscalRuleById(id: FiscalRuleId): FiscalRule {
-  return FISCAL_RULES.find(r => r.id === id) || FISCAL_RULES[0];
+  return FISCAL_RULES.find((r) => r.id === id) || FISCAL_RULES[0];
 }
 
 // ===========================
@@ -297,7 +311,7 @@ export interface DetailedSpendingItem {
   id: string;
   department: string;
   programme: string;
-  currentBudget: number;  // Combined if legacy, but we'll migrate
+  currentBudget: number; // Combined if legacy, but we'll migrate
   currentAllocation: number; // Day-to-day
   capitalAllocation: number; // Investment
   type: 'resource' | 'capital' | 'split';
@@ -466,60 +480,404 @@ export function createInitialFiscalState(): FiscalState {
 
     detailedSpending: [
       // NHS
-      { id: 'nhsEngland', department: 'Health and Social Care', programme: 'NHS England Revenue', currentBudget: 164.9, currentAllocation: 164.9, capitalAllocation: 0, type: 'resource' },
-      { id: 'nhsPrimaryCare', department: 'Health and Social Care', programme: 'Primary Care', currentBudget: 18.0, currentAllocation: 18.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'nhsMentalHealth', department: 'Health and Social Care', programme: 'Mental Health', currentBudget: 16.0, currentAllocation: 16.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'publicHealth', department: 'Health and Social Care', programme: 'Public Health', currentBudget: 3.5, currentAllocation: 3.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'socialCare', department: 'Health and Social Care', programme: 'Social Care Grants', currentBudget: 7.5, currentAllocation: 7.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'nhsCapital', department: 'Health and Social Care', programme: 'Capital Investment', currentBudget: 12.0, currentAllocation: 0, capitalAllocation: 12.0, type: 'capital' },
+      {
+        id: 'nhsEngland',
+        department: 'Health and Social Care',
+        programme: 'NHS England Revenue',
+        currentBudget: 164.9,
+        currentAllocation: 164.9,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nhsPrimaryCare',
+        department: 'Health and Social Care',
+        programme: 'Primary Care',
+        currentBudget: 18.0,
+        currentAllocation: 18.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nhsMentalHealth',
+        department: 'Health and Social Care',
+        programme: 'Mental Health',
+        currentBudget: 16.0,
+        currentAllocation: 16.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'publicHealth',
+        department: 'Health and Social Care',
+        programme: 'Public Health',
+        currentBudget: 3.5,
+        currentAllocation: 3.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'socialCare',
+        department: 'Health and Social Care',
+        programme: 'Social Care Grants',
+        currentBudget: 7.5,
+        currentAllocation: 7.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nhsCapital',
+        department: 'Health and Social Care',
+        programme: 'Capital Investment',
+        currentBudget: 12.0,
+        currentAllocation: 0,
+        capitalAllocation: 12.0,
+        type: 'capital',
+      },
       // Education
-      { id: 'schools', department: 'Education', programme: 'Schools Core Funding', currentBudget: 59.4, currentAllocation: 59.4, capitalAllocation: 0, type: 'resource' },
-      { id: 'pupilPremium', department: 'Education', programme: 'Pupil Premium', currentBudget: 2.9, currentAllocation: 2.9, capitalAllocation: 0, type: 'resource' },
-      { id: 'furtherEducation', department: 'Education', programme: 'Further Education and Skills', currentBudget: 7.2, currentAllocation: 7.2, capitalAllocation: 0, type: 'resource' },
-      { id: 'higherEducation', department: 'Education', programme: 'Higher Education', currentBudget: 1.8, currentAllocation: 1.8, capitalAllocation: 0, type: 'resource' },
-      { id: 'earlyYears', department: 'Education', programme: 'Early Years', currentBudget: 8.0, currentAllocation: 8.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'send', department: 'Education', programme: 'SEND Support', currentBudget: 10.5, currentAllocation: 10.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'schoolsCapital', department: 'Education', programme: 'School Buildings and Infrastructure', currentBudget: 12.0, currentAllocation: 0, capitalAllocation: 12.0, type: 'capital' },
+      {
+        id: 'schools',
+        department: 'Education',
+        programme: 'Schools Core Funding',
+        currentBudget: 59.4,
+        currentAllocation: 59.4,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'pupilPremium',
+        department: 'Education',
+        programme: 'Pupil Premium',
+        currentBudget: 2.9,
+        currentAllocation: 2.9,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'furtherEducation',
+        department: 'Education',
+        programme: 'Further Education and Skills',
+        currentBudget: 7.2,
+        currentAllocation: 7.2,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'higherEducation',
+        department: 'Education',
+        programme: 'Higher Education',
+        currentBudget: 1.8,
+        currentAllocation: 1.8,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'earlyYears',
+        department: 'Education',
+        programme: 'Early Years',
+        currentBudget: 8.0,
+        currentAllocation: 8.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'send',
+        department: 'Education',
+        programme: 'SEND Support',
+        currentBudget: 10.5,
+        currentAllocation: 10.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'schoolsCapital',
+        department: 'Education',
+        programme: 'School Buildings and Infrastructure',
+        currentBudget: 12.0,
+        currentAllocation: 0,
+        capitalAllocation: 12.0,
+        type: 'capital',
+      },
       // Defence
-      { id: 'armyRevenue', department: 'Defence', programme: 'Army', currentBudget: 11.0, currentAllocation: 11.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'navyRevenue', department: 'Defence', programme: 'Royal Navy', currentBudget: 8.5, currentAllocation: 8.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'rafRevenue', department: 'Defence', programme: 'Royal Air Force', currentBudget: 7.5, currentAllocation: 7.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'nuclearDeterrent', department: 'Defence', programme: 'Nuclear Deterrent', currentBudget: 3.5, currentAllocation: 3.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'defenceEquipment', department: 'Defence', programme: 'Equipment Plan', currentBudget: 16.6, currentAllocation: 0, capitalAllocation: 16.6, type: 'capital' },
+      {
+        id: 'armyRevenue',
+        department: 'Defence',
+        programme: 'Army',
+        currentBudget: 11.0,
+        currentAllocation: 11.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'navyRevenue',
+        department: 'Defence',
+        programme: 'Royal Navy',
+        currentBudget: 8.5,
+        currentAllocation: 8.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'rafRevenue',
+        department: 'Defence',
+        programme: 'Royal Air Force',
+        currentBudget: 7.5,
+        currentAllocation: 7.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nuclearDeterrent',
+        department: 'Defence',
+        programme: 'Nuclear Deterrent',
+        currentBudget: 3.5,
+        currentAllocation: 3.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'defenceEquipment',
+        department: 'Defence',
+        programme: 'Equipment Plan',
+        currentBudget: 16.6,
+        currentAllocation: 0,
+        capitalAllocation: 16.6,
+        type: 'capital',
+      },
       // Welfare
-      { id: 'statePension', department: 'Work and Pensions', programme: 'State Pension', currentBudget: 130.0, currentAllocation: 130.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'universalCredit', department: 'Work and Pensions', programme: 'Universal Credit', currentBudget: 38.0, currentAllocation: 38.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'pip', department: 'Work and Pensions', programme: 'Personal Independence Payment', currentBudget: 22.0, currentAllocation: 22.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'housingBenefit', department: 'Work and Pensions', programme: 'Housing Benefit', currentBudget: 18.0, currentAllocation: 18.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'childBenefit', department: 'Work and Pensions', programme: 'Child Benefit', currentBudget: 12.6, currentAllocation: 12.6, capitalAllocation: 0, type: 'resource' },
+      {
+        id: 'statePension',
+        department: 'Work and Pensions',
+        programme: 'State Pension',
+        currentBudget: 130.0,
+        currentAllocation: 130.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'universalCredit',
+        department: 'Work and Pensions',
+        programme: 'Universal Credit',
+        currentBudget: 38.0,
+        currentAllocation: 38.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'pip',
+        department: 'Work and Pensions',
+        programme: 'Personal Independence Payment',
+        currentBudget: 22.0,
+        currentAllocation: 22.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'housingBenefit',
+        department: 'Work and Pensions',
+        programme: 'Housing Benefit',
+        currentBudget: 18.0,
+        currentAllocation: 18.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'childBenefit',
+        department: 'Work and Pensions',
+        programme: 'Child Benefit',
+        currentBudget: 12.6,
+        currentAllocation: 12.6,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
       // Justice
-      { id: 'prisonsAndProbation', department: 'Justice', programme: 'Prisons and Probation', currentBudget: 5.5, currentAllocation: 5.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'courts', department: 'Justice', programme: 'Courts and Tribunals', currentBudget: 2.8, currentAllocation: 2.8, capitalAllocation: 0, type: 'resource' },
-      { id: 'legalAid', department: 'Justice', programme: 'Legal Aid', currentBudget: 1.9, currentAllocation: 1.9, capitalAllocation: 0, type: 'resource' },
+      {
+        id: 'prisonsAndProbation',
+        department: 'Justice',
+        programme: 'Prisons and Probation',
+        currentBudget: 5.5,
+        currentAllocation: 5.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'courts',
+        department: 'Justice',
+        programme: 'Courts and Tribunals',
+        currentBudget: 2.8,
+        currentAllocation: 2.8,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'legalAid',
+        department: 'Justice',
+        programme: 'Legal Aid',
+        currentBudget: 1.9,
+        currentAllocation: 1.9,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
       // Home Office
-      { id: 'policing', department: 'Home Office', programme: 'Policing', currentBudget: 11.5, currentAllocation: 11.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'immigration', department: 'Home Office', programme: 'Immigration and Borders', currentBudget: 4.5, currentAllocation: 4.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'counterTerrorism', department: 'Home Office', programme: 'Counter-Terrorism', currentBudget: 1.2, currentAllocation: 1.2, capitalAllocation: 0, type: 'resource' },
+      {
+        id: 'policing',
+        department: 'Home Office',
+        programme: 'Policing',
+        currentBudget: 11.5,
+        currentAllocation: 11.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'immigration',
+        department: 'Home Office',
+        programme: 'Immigration and Borders',
+        currentBudget: 4.5,
+        currentAllocation: 4.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'counterTerrorism',
+        department: 'Home Office',
+        programme: 'Counter-Terrorism',
+        currentBudget: 1.2,
+        currentAllocation: 1.2,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
       // Transport
-      { id: 'railSubsidy', department: 'Transport', programme: 'Rail Subsidy', currentBudget: 5.5, currentAllocation: 5.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'nationalRoads', department: 'Transport', programme: 'National Roads', currentBudget: 7.0, currentAllocation: 0, capitalAllocation: 7.0, type: 'capital' },
-      { id: 'localRoads', department: 'Transport', programme: 'Local Roads', currentBudget: 3.5, currentAllocation: 0, capitalAllocation: 3.5, type: 'capital' },
-      { id: 'hs2', department: 'Transport', programme: 'HS2 Phase 1', currentBudget: 6.0, currentAllocation: 0, capitalAllocation: 6.0, type: 'capital' },
+      {
+        id: 'railSubsidy',
+        department: 'Transport',
+        programme: 'Rail Subsidy',
+        currentBudget: 5.5,
+        currentAllocation: 5.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nationalRoads',
+        department: 'Transport',
+        programme: 'National Roads',
+        currentBudget: 7.0,
+        currentAllocation: 0,
+        capitalAllocation: 7.0,
+        type: 'capital',
+      },
+      {
+        id: 'localRoads',
+        department: 'Transport',
+        programme: 'Local Roads',
+        currentBudget: 3.5,
+        currentAllocation: 0,
+        capitalAllocation: 3.5,
+        type: 'capital',
+      },
+      {
+        id: 'hs2',
+        department: 'Transport',
+        programme: 'HS2 Phase 1',
+        currentBudget: 6.0,
+        currentAllocation: 0,
+        capitalAllocation: 6.0,
+        type: 'capital',
+      },
       // Housing
-      { id: 'localGovernmentGrants', department: 'Housing and Communities', programme: 'Local Government Grants', currentBudget: 5.5, currentAllocation: 5.5, capitalAllocation: 0, type: 'resource' },
-      { id: 'housingCapital', department: 'Housing and Communities', programme: 'Affordable Housing', currentBudget: 2.5, currentAllocation: 0, capitalAllocation: 2.5, type: 'capital' },
+      {
+        id: 'localGovernmentGrants',
+        department: 'Housing and Communities',
+        programme: 'Local Government Grants',
+        currentBudget: 5.5,
+        currentAllocation: 5.5,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'housingCapital',
+        department: 'Housing and Communities',
+        programme: 'Affordable Housing',
+        currentBudget: 2.5,
+        currentAllocation: 0,
+        capitalAllocation: 2.5,
+        type: 'capital',
+      },
       // Environment
-      { id: 'farmSubsidies', department: 'Environment and Rural Affairs', programme: 'Farm Subsidies and ELM', currentBudget: 2.4, currentAllocation: 2.4, capitalAllocation: 0, type: 'resource' },
-      { id: 'floodDefences', department: 'Environment and Rural Affairs', programme: 'Flood Defences', currentBudget: 1.2, currentAllocation: 0, capitalAllocation: 1.2, type: 'capital' },
+      {
+        id: 'farmSubsidies',
+        department: 'Environment and Rural Affairs',
+        programme: 'Farm Subsidies and ELM',
+        currentBudget: 2.4,
+        currentAllocation: 2.4,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'floodDefences',
+        department: 'Environment and Rural Affairs',
+        programme: 'Flood Defences',
+        currentBudget: 1.2,
+        currentAllocation: 0,
+        capitalAllocation: 1.2,
+        type: 'capital',
+      },
       // SciTech
-      { id: 'ukri', department: 'Science and Technology', programme: 'UK Research and Innovation', currentBudget: 7.3, currentAllocation: 7.3, capitalAllocation: 0, type: 'resource' },
-      { id: 'aiAndDigital', department: 'Science and Technology', programme: 'AI and Digital Infrastructure', currentBudget: 1.5, currentAllocation: 0, capitalAllocation: 1.5, type: 'capital' },
+      {
+        id: 'ukri',
+        department: 'Science and Technology',
+        programme: 'UK Research and Innovation',
+        currentBudget: 7.3,
+        currentAllocation: 7.3,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'aiAndDigital',
+        department: 'Science and Technology',
+        programme: 'AI and Digital Infrastructure',
+        currentBudget: 1.5,
+        currentAllocation: 0,
+        capitalAllocation: 1.5,
+        type: 'capital',
+      },
       // Energy
-      { id: 'renewablesSupport', department: 'Energy and Net Zero', programme: 'Renewables Support', currentBudget: 1.0, currentAllocation: 1.0, capitalAllocation: 0, type: 'resource' },
-      { id: 'homeInsulation', department: 'Energy and Net Zero', programme: 'Home Insulation', currentBudget: 1.2, currentAllocation: 1.2, capitalAllocation: 0, type: 'resource' },
-      { id: 'nuclearNewBuild', department: 'Energy and Net Zero', programme: 'Nuclear New Build', currentBudget: 1.0, currentAllocation: 0, capitalAllocation: 1.0, type: 'capital' },
+      {
+        id: 'renewablesSupport',
+        department: 'Energy and Net Zero',
+        programme: 'Renewables Support',
+        currentBudget: 1.0,
+        currentAllocation: 1.0,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'homeInsulation',
+        department: 'Energy and Net Zero',
+        programme: 'Home Insulation',
+        currentBudget: 1.2,
+        currentAllocation: 1.2,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
+      {
+        id: 'nuclearNewBuild',
+        department: 'Energy and Net Zero',
+        programme: 'Nuclear New Build',
+        currentBudget: 1.0,
+        currentAllocation: 0,
+        capitalAllocation: 1.0,
+        type: 'capital',
+      },
       // Other
-      { id: 'officialDevelopmentAssistance', department: 'Foreign Office', programme: 'Official Development Assistance', currentBudget: 11.4, currentAllocation: 11.4, capitalAllocation: 0, type: 'resource' },
+      {
+        id: 'officialDevelopmentAssistance',
+        department: 'Foreign Office',
+        programme: 'Official Development Assistance',
+        currentBudget: 11.4,
+        currentAllocation: 11.4,
+        capitalAllocation: 0,
+        type: 'resource',
+      },
     ],
 
     detailedTaxes: [
@@ -553,8 +911,8 @@ export function createInitialFiscalState(): FiscalState {
     // facility, which overstated the fiscal risk premium inputs by ~£194bn / ~7pp.
     deficit_bn: 87,
     deficitPctGDP: 3.2,
-    debtNominal_bn: 2540,    // was 2734; corrected to PSND ex-BoE per ONS/OBR July 2024
-    debtPctGDP: 92.4,        // was 99.4; corrected (2540 / 2750 × 100)
+    debtNominal_bn: 2540, // was 2734; corrected to PSND ex-BoE per ONS/OBR July 2024
+    debtPctGDP: 92.4, // was 99.4; corrected (2540 / 2750 × 100)
     debtInterest_bn: 95,
     // OBR October 2024 Autumn Statement certified headroom on the current budget rule: £9.9bn.
     // This initial display value is consistent with OBR_HEADROOM_CALIBRATION below.
@@ -705,11 +1063,46 @@ export function createInitialParliamentaryState() {
     confidenceVoteTurn: null,
     rebellionCount: 0,
     selectCommittees: [
-      { id: 'treasury', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
-      { id: 'health', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
-      { id: 'education', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
-      { id: 'publicAccounts', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
-      { id: 'homeAffairs', scrutinyPressure: 20, isInquiryActive: false, inquiryTurnsRemaining: 0, credibilityImpact: 0, inquiryTriggerThreshold: 70 },
+      {
+        id: 'treasury',
+        scrutinyPressure: 20,
+        isInquiryActive: false,
+        inquiryTurnsRemaining: 0,
+        credibilityImpact: 0,
+        inquiryTriggerThreshold: 70,
+      },
+      {
+        id: 'health',
+        scrutinyPressure: 20,
+        isInquiryActive: false,
+        inquiryTurnsRemaining: 0,
+        credibilityImpact: 0,
+        inquiryTriggerThreshold: 70,
+      },
+      {
+        id: 'education',
+        scrutinyPressure: 20,
+        isInquiryActive: false,
+        inquiryTurnsRemaining: 0,
+        credibilityImpact: 0,
+        inquiryTriggerThreshold: 70,
+      },
+      {
+        id: 'publicAccounts',
+        scrutinyPressure: 20,
+        isInquiryActive: false,
+        inquiryTurnsRemaining: 0,
+        credibilityImpact: 0,
+        inquiryTriggerThreshold: 70,
+      },
+      {
+        id: 'homeAffairs',
+        scrutinyPressure: 20,
+        isInquiryActive: false,
+        inquiryTurnsRemaining: 0,
+        credibilityImpact: 0,
+        inquiryTriggerThreshold: 70,
+      },
     ],
   };
 }
@@ -748,9 +1141,30 @@ export function createInitialFinancialStabilityState() {
 export function createInitialDevolutionState() {
   return {
     nations: {
-      scotland: { id: 'scotland', blockGrant_bn: 41, barnettBaseline_bn: 0.085, politicalTension: 45, grantDispute: false, grantDisputeTurnsRemaining: 0 },
-      wales: { id: 'wales', blockGrant_bn: 20, barnettBaseline_bn: 0.05, politicalTension: 30, grantDispute: false, grantDisputeTurnsRemaining: 0 },
-      northernIreland: { id: 'northernIreland', blockGrant_bn: 18, barnettBaseline_bn: 0.035, politicalTension: 35, grantDispute: false, grantDisputeTurnsRemaining: 0 },
+      scotland: {
+        id: 'scotland',
+        blockGrant_bn: 41,
+        barnettBaseline_bn: 0.085,
+        politicalTension: 45,
+        grantDispute: false,
+        grantDisputeTurnsRemaining: 0,
+      },
+      wales: {
+        id: 'wales',
+        blockGrant_bn: 20,
+        barnettBaseline_bn: 0.05,
+        politicalTension: 30,
+        grantDispute: false,
+        grantDisputeTurnsRemaining: 0,
+      },
+      northernIreland: {
+        id: 'northernIreland',
+        blockGrant_bn: 18,
+        barnettBaseline_bn: 0.035,
+        politicalTension: 35,
+        grantDispute: false,
+        grantDisputeTurnsRemaining: 0,
+      },
     },
     localGov: {
       centralGrant_bn: 30,
@@ -812,7 +1226,7 @@ export function createInitialDistributionalState() {
 // Applying OBR_HEADROOM_CALIBRATION translates the game's current-year balance
 // into an OBR-style projected headroom display:
 //   displayed headroom  = currentBudgetBalance + OBR_HEADROOM_CALIBRATION
-  //                       = 36.4 + OBR_HEADROOM_CALIBRATION  ~=  +9.9
+//                       = 36.4 + OBR_HEADROOM_CALIBRATION  ~=  +9.9
 //
 // Fiscal rules are treated as "met" when displayed headroom >= 0 (i.e., within
 // £0bn of the threshold), providing the same margin as the OBR's test.
@@ -847,7 +1261,7 @@ export function calculateRuleHeadroom(
   gdpNominal: number,
   totalRevenue: number,
   totalSpending: number,
-  debtInterest: number,
+  debtInterest: number
 ): number {
   switch (rule.id) {
     // Current-budget-balance rules: distance from balance + OBR 5-year projection offset
@@ -860,7 +1274,7 @@ export function calculateRuleHeadroom(
     // Positive = headroom below the ceiling; negative = breach above the ceiling
     case 'jeremy-hunt':
     case 'maastricht':
-      return ((rule.rules.deficitCeiling ?? 3.0) - deficitPctGDP) * gdpNominal / 100;
+      return (((rule.rules.deficitCeiling ?? 3.0) - deficitPctGDP) * gdpNominal) / 100;
 
     // Overall-balance rule: revenue must cover ALL spending including capital
     case 'balanced-budget':
@@ -898,37 +1312,37 @@ export function getRuleHeadroomLabel(rule: FiscalRule): string {
 // Per-rule ongoing market credibility bonus applied each month when the rule is being met.
 // Expressed as a gilt yield offset in basis points (negative = lower yields = better).
 export const FISCAL_RULE_GILT_EFFECT: Record<FiscalRuleId, number> = {
-  'starmer-reeves':  0.0,   // Baseline — no additional effect
-  'jeremy-hunt':    -0.05,  // Modest improvement from slightly stricter mandate
-  'golden-rule':     0.03,  // Slightly worse — perceived flexibility risk
-  'maastricht':     -0.15,  // Significant improvement — hard EU-style constraint
-  'balanced-budget':-0.15,  // Maximum credibility — strictest rule
-  'debt-anchor':    -0.10,  // Swedish gold standard — markets approve strongly
-  'mmt-inspired':    0.25,  // Markets alarmed by absence of fiscal anchor
+  'starmer-reeves': 0.0, // Baseline — no additional effect
+  'jeremy-hunt': -0.05, // Modest improvement from slightly stricter mandate
+  'golden-rule': 0.03, // Slightly worse — perceived flexibility risk
+  maastricht: -0.15, // Significant improvement — hard EU-style constraint
+  'balanced-budget': -0.15, // Maximum credibility — strictest rule
+  'debt-anchor': -0.1, // Swedish gold standard — markets approve strongly
+  'mmt-inspired': 0.25, // Markets alarmed by absence of fiscal anchor
 };
 
 // Per-rule sterling level offset (percentage points added to monthly sterling calculation).
 export const FISCAL_RULE_STERLING_EFFECT: Record<FiscalRuleId, number> = {
-  'starmer-reeves':  0.0,   // Baseline
-  'jeremy-hunt':     0.10,  // Modest sterling support
-  'golden-rule':    -0.05,  // Mild weakness from flexibility concerns
-  'maastricht':      0.25,  // Strong sterling support — hard deficit ceiling
-  'balanced-budget': 0.30,  // Strongest — zero-borrowing credibility
-  'debt-anchor':     0.20,  // Strong support — credible surplus path
-  'mmt-inspired':   -0.50,  // Sterling under significant pressure
+  'starmer-reeves': 0.0, // Baseline
+  'jeremy-hunt': 0.1, // Modest sterling support
+  'golden-rule': -0.05, // Mild weakness from flexibility concerns
+  maastricht: 0.25, // Strong sterling support — hard deficit ceiling
+  'balanced-budget': 0.3, // Strongest — zero-borrowing credibility
+  'debt-anchor': 0.2, // Strong support — credible surplus path
+  'mmt-inspired': -0.5, // Sterling under significant pressure
 };
 
 // Per-rule backbench satisfaction drift target (the equilibrium value backbench satisfaction
 // gravitates towards each month based purely on the framework choice).
 // Actual backbench satisfaction is also affected by policy decisions.
 export const FISCAL_RULE_BACKBENCH_DRIFT_TARGET: Record<FiscalRuleId, number> = {
-  'starmer-reeves':  55,    // Broadly acceptable to Labour backbenchers
-  'jeremy-hunt':     40,    // Labour backbenchers deeply uncomfortable with Conservative-era rule
-  'golden-rule':     62,    // Left of party happy — Labour tradition
-  'maastricht':      38,    // EU constraint very unpopular with the left
-  'balanced-budget': 30,    // Devastating — no investment borrowing allowed
-  'debt-anchor':     48,    // Moderate unease — tighter than Starmer-Reeves
-  'mmt-inspired':    70,    // Labour left delighted — full spending flexibility
+  'starmer-reeves': 55, // Broadly acceptable to Labour backbenchers
+  'jeremy-hunt': 40, // Labour backbenchers deeply uncomfortable with Conservative-era rule
+  'golden-rule': 62, // Left of party happy — Labour tradition
+  maastricht: 38, // EU constraint very unpopular with the left
+  'balanced-budget': 30, // Devastating — no investment borrowing allowed
+  'debt-anchor': 48, // Moderate unease — tighter than Starmer-Reeves
+  'mmt-inspired': 70, // Labour left delighted — full spending flexibility
 };
 
 // ===========================
@@ -961,17 +1375,17 @@ export function createInitialMarketState(): MarketState {
   return {
     bankRate: 5.25,
     giltYield2y: 4.15,
-    giltYield10y: 4.10,
+    giltYield10y: 4.1,
     giltYield30y: 4.45,
-    mortgageRate2y: 5.10,
+    mortgageRate2y: 5.1,
     sterlingIndex: 100,
     yieldChange10y: 0,
     ldiPanicTriggered: false,
     mpcMembers: [
       { name: 'Andrew Bailey', role: 'Governor', stance: 'neutral', inflationWeight: 0.62, vote: null },
-      { name: 'Sarah Breeden', role: 'Deputy Governor', stance: 'neutral', inflationWeight: 0.60, vote: null },
+      { name: 'Sarah Breeden', role: 'Deputy Governor', stance: 'neutral', inflationWeight: 0.6, vote: null },
       { name: 'Dave Ramsden', role: 'Deputy Governor', stance: 'neutral', inflationWeight: 0.58, vote: null },
-      { name: 'Huw Pill', role: 'Deputy Governor', stance: 'hawkish', inflationWeight: 0.70, vote: null },
+      { name: 'Huw Pill', role: 'Deputy Governor', stance: 'hawkish', inflationWeight: 0.7, vote: null },
       { name: 'Megan Greene', role: 'External Member', stance: 'hawkish', inflationWeight: 0.68, vote: null },
       { name: 'Jonathan Haskel', role: 'External Member', stance: 'hawkish', inflationWeight: 0.72, vote: null },
       { name: 'Catherine L Mann', role: 'External Member', stance: 'hawkish', inflationWeight: 0.75, vote: null },
@@ -1175,7 +1589,7 @@ export interface InitialFiscalRuleMetrics {
 export function calculateInitialFiscalRuleMetrics(
   fiscal: FiscalState,
   economic: EconomicState,
-  chosenFiscalRule: FiscalRuleId,
+  chosenFiscalRule: FiscalRuleId
 ): InitialFiscalRuleMetrics {
   const rule = getFiscalRuleById(chosenFiscalRule);
 
@@ -1189,9 +1603,7 @@ export function calculateInitialFiscalRuleMetrics(
     fiscal.spending.otherCapital;
 
   const currentBudgetBalance =
-    fiscal.totalRevenue_bn -
-    (fiscal.totalSpending_bn - totalCapitalSpending) -
-    fiscal.debtInterest_bn;
+    fiscal.totalRevenue_bn - (fiscal.totalSpending_bn - totalCapitalSpending) - fiscal.debtInterest_bn;
 
   const fiscalHeadroom_bn = calculateRuleHeadroom(
     rule,
@@ -1200,7 +1612,7 @@ export function calculateInitialFiscalRuleMetrics(
     economic.gdpNominal_bn,
     fiscal.totalRevenue_bn,
     fiscal.totalSpending_bn,
-    fiscal.debtInterest_bn,
+    fiscal.debtInterest_bn
   );
 
   const currentBudgetMet = !rule.rules.currentBudgetBalance || fiscalHeadroom_bn >= -0.5;
@@ -1208,8 +1620,7 @@ export function calculateInitialFiscalRuleMetrics(
   const overallBalanceMet = !rule.rules.overallBalance || overallBalance >= -0.5;
   const deficitCeilingMet =
     rule.rules.deficitCeiling === undefined || fiscal.deficitPctGDP <= rule.rules.deficitCeiling;
-  const debtTargetMet =
-    rule.rules.debtTarget === undefined || fiscal.debtPctGDP <= rule.rules.debtTarget;
+  const debtTargetMet = rule.rules.debtTarget === undefined || fiscal.debtPctGDP <= rule.rules.debtTarget;
 
   let debtFallingMet = true;
   if (rule.rules.debtFalling) {
@@ -1267,7 +1678,14 @@ export function createInitialAdviserSystem(): AdviserSystem {
     advisers: [],
     maxAdvisers: 3,
     hiredAdvisers: new Map(),
-    availableAdvisers: new Set(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']),
+    availableAdvisers: new Set([
+      'treasury_mandarin',
+      'political_operator',
+      'heterodox_economist',
+      'fiscal_hawk',
+      'social_democrat',
+      'technocratic_centrist',
+    ]),
     currentOpinions: new Map(),
     showDetailedView: null,
     adviserEvents: [],
@@ -1312,7 +1730,7 @@ export interface HistoricalSnapshot {
   turn: number;
   date: string;
   gdpGrowth: number;
-  gdpNominal: number;   // Nominal GDP in £bn — the base value used in all calculations
+  gdpNominal: number; // Nominal GDP in £bn — the base value used in all calculations
   inflation: number;
   unemployment: number;
   deficit: number;
@@ -1364,7 +1782,13 @@ export interface OBRForecastComparison {
 
 export interface PolicyRiskModifier {
   id: string;
-  type: 'macro_shock' | 'productivity_drag' | 'strike_accelerator' | 'market_reaction_boost' | 'tax_compliance_boost' | 'hmrc_capacity_boost';
+  type:
+    | 'macro_shock'
+    | 'productivity_drag'
+    | 'strike_accelerator'
+    | 'market_reaction_boost'
+    | 'tax_compliance_boost'
+    | 'hmrc_capacity_boost';
   turnsRemaining: number;
   macroShockScaleDelta?: number;
   productivityMonthlyPenalty_pp?: number;

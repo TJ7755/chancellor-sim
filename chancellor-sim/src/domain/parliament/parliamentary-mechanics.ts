@@ -1,6 +1,11 @@
 import type { GameState } from '../../game-state';
+import type { DetailedTaxItem, DetailedSpendingItem } from '../../game-integration';
+import type { DetailedMPStance } from '../../mp-system';
 
-export function applyPendingBudgetChange(fiscal: GameState['fiscal'], pending: Record<string, any>): GameState['fiscal'] {
+export function applyPendingBudgetChange(
+  fiscal: GameState['fiscal'],
+  pending: Record<string, any>
+): GameState['fiscal'] {
   const next = {
     ...fiscal,
     spending: { ...fiscal.spending },
@@ -16,10 +21,21 @@ export function applyPendingBudgetChange(fiscal: GameState['fiscal'], pending: R
   if (pending.corporationTaxChange) next.corporationTaxRate += pending.corporationTaxChange;
   if (pending.revenueAdjustment !== undefined) next.revenueAdjustment_bn = pending.revenueAdjustment;
   const spendingKeys = [
-    'nhsCurrentChange', 'nhsCapitalChange', 'educationCurrentChange', 'educationCapitalChange',
-    'defenceCurrentChange', 'defenceCapitalChange', 'welfareCurrentChange', 'infrastructureCurrentChange',
-    'infrastructureCapitalChange', 'policeCurrentChange', 'policeCapitalChange', 'justiceCurrentChange',
-    'justiceCapitalChange', 'otherCurrentChange', 'otherCapitalChange',
+    'nhsCurrentChange',
+    'nhsCapitalChange',
+    'educationCurrentChange',
+    'educationCapitalChange',
+    'defenceCurrentChange',
+    'defenceCapitalChange',
+    'welfareCurrentChange',
+    'infrastructureCurrentChange',
+    'infrastructureCapitalChange',
+    'policeCurrentChange',
+    'policeCapitalChange',
+    'justiceCurrentChange',
+    'justiceCapitalChange',
+    'otherCurrentChange',
+    'otherCapitalChange',
   ] as const;
   spendingKeys.forEach((key) => {
     if (pending[key] === undefined) return;
@@ -35,14 +51,26 @@ export function applyPendingBudgetChange(fiscal: GameState['fiscal'], pending: R
   next.spending.justice = next.spending.justiceCurrent + next.spending.justiceCapital;
   next.spending.other = next.spending.otherCurrent + next.spending.otherCapital;
   if (pending.detailedTaxRates) {
-    next.detailedTaxes = next.detailedTaxes.map((tax) => pending.detailedTaxRates[tax.id] !== undefined ? { ...tax, currentRate: pending.detailedTaxRates[tax.id] } : tax);
+    next.detailedTaxes = next.detailedTaxes.map((tax: DetailedTaxItem) =>
+      pending.detailedTaxRates[tax.id] !== undefined ? { ...tax, currentRate: pending.detailedTaxRates[tax.id] } : tax
+    );
   }
   if (pending.detailedSpendingBudgets) {
-    next.detailedSpending = next.detailedSpending.map((item) => pending.detailedSpendingBudgets[item.id] !== undefined ? { ...item, currentBudget: pending.detailedSpendingBudgets[item.id] } : item);
+    next.detailedSpending = next.detailedSpending.map((item: DetailedSpendingItem) =>
+      pending.detailedSpendingBudgets[item.id] !== undefined
+        ? { ...item, currentBudget: pending.detailedSpendingBudgets[item.id] }
+        : item
+    );
   }
   next.totalSpending_bn =
-    next.spending.nhs + next.spending.education + next.spending.defence + next.spending.welfare +
-    next.spending.infrastructure + next.spending.police + next.spending.justice + next.spending.other;
+    next.spending.nhs +
+    next.spending.education +
+    next.spending.defence +
+    next.spending.welfare +
+    next.spending.infrastructure +
+    next.spending.police +
+    next.spending.justice +
+    next.spending.other;
   return next;
 }
 
@@ -56,7 +84,8 @@ export function processParliamentaryMechanics(state: GameState): GameState {
     parliamentary.whipStrength = Math.max(0, parliamentary.whipStrength - 3);
   }
   if (political.pmTrust > 60) parliamentary.whipStrength = Math.min(100, parliamentary.whipStrength + 3);
-  if ((state.spendingReview.srCredibilityBonus || 0) > 0) parliamentary.whipStrength = Math.min(100, parliamentary.whipStrength + 5);
+  if ((state.spendingReview.srCredibilityBonus || 0) > 0)
+    parliamentary.whipStrength = Math.min(100, parliamentary.whipStrength + 5);
 
   if (parliamentary.lordsDelayActive) {
     parliamentary.lordsDelayTurnsRemaining = Math.max(0, parliamentary.lordsDelayTurnsRemaining - 1);
@@ -66,7 +95,11 @@ export function processParliamentaryMechanics(state: GameState): GameState {
     }
   }
 
-  if (fiscal.pendingBudgetChange && fiscal.pendingBudgetApplyTurn !== null && state.metadata.currentTurn >= fiscal.pendingBudgetApplyTurn) {
+  if (
+    fiscal.pendingBudgetChange &&
+    fiscal.pendingBudgetApplyTurn !== null &&
+    state.metadata.currentTurn >= fiscal.pendingBudgetApplyTurn
+  ) {
     fiscal = applyPendingBudgetChange(fiscal, fiscal.pendingBudgetChange);
     fiscal.pendingBudgetChange = null;
     fiscal.pendingBudgetApplyTurn = null;
@@ -77,7 +110,11 @@ export function processParliamentaryMechanics(state: GameState): GameState {
     let trigger = false;
     let pressureDelta = -2;
     if (committee.id === 'treasury') {
-      trigger = state.fiscal.deficit_bn > (state.simulation.monthlySnapshots?.[Math.max(0, (state.simulation.monthlySnapshots.length || 1) - 12)]?.deficit || state.fiscal.deficitPctGDP) + 30 || (state.fiscal.fiscalRuleBreaches || 0) > 0;
+      trigger =
+        state.fiscal.deficit_bn >
+          (state.simulation.monthlySnapshots?.[Math.max(0, (state.simulation.monthlySnapshots.length || 1) - 12)]
+            ?.deficit || state.fiscal.deficitPctGDP) +
+            30 || (state.fiscal.fiscalRuleBreaches || 0) > 0;
       pressureDelta = trigger ? 5 : -2;
     } else if (committee.id === 'health') {
       trigger = state.services.nhsQuality < 55 || (state.services.nhsStrikeMonthsRemaining || 0) > 0;
@@ -113,12 +150,15 @@ export function processParliamentaryMechanics(state: GameState): GameState {
   const activeInquiryPenalty = parliamentary.selectCommittees.filter((c) => c.isInquiryActive).length * 3;
   political.credibilityIndex = Math.max(0, Math.min(100, political.credibilityIndex - activeInquiryPenalty));
   if ((state.spendingReview.srCredibilityBonus || 0) > 0) {
-    political.credibilityIndex = Math.max(0, Math.min(100, political.credibilityIndex + (state.spendingReview.srCredibilityBonus / 8)));
+    political.credibilityIndex = Math.max(
+      0,
+      Math.min(100, political.credibilityIndex + state.spendingReview.srCredibilityBonus / 8)
+    );
   }
 
-  const labourOppositionCount = Array.from(state.mpSystem.currentBudgetSupport.entries())
-    .filter(([mpId, stance]) => state.mpSystem.allMPs.get(mpId)?.party === 'labour' && stance.stance === 'oppose')
-    .length;
+  const labourOppositionCount = Array.from(state.mpSystem.currentBudgetSupport.entries()).filter(
+    ([mpId, stance]) => state.mpSystem.allMPs.get(mpId)?.party === 'labour' && stance.stance === 'oppose'
+  ).length;
   if (labourOppositionCount >= 10) {
     parliamentary.rebellionCount += 1;
     if (labourOppositionCount > 15) {
@@ -133,8 +173,11 @@ export function processParliamentaryMechanics(state: GameState): GameState {
   }
   if (parliamentary.formalConfidenceVotePending && parliamentary.confidenceVoteTurn === state.metadata.currentTurn) {
     const labourMPs = Array.from(state.mpSystem.allMPs.values()).filter((mp) => mp.party === 'labour');
-    const supportStances = Array.from(state.mpSystem.currentBudgetSupport.values()).filter((s) => s.stance === 'support').length;
-    const supportRatio = labourMPs.length > 0 ? (supportStances / labourMPs.length) * (parliamentary.whipStrength / 100) : 1;
+    const supportStances = Array.from(state.mpSystem.currentBudgetSupport.values()).filter(
+      (s) => s.stance === 'support'
+    ).length;
+    const supportRatio =
+      labourMPs.length > 0 ? (supportStances / labourMPs.length) * (parliamentary.whipStrength / 100) : 1;
     if (supportRatio < 0.5) {
       return {
         ...state,

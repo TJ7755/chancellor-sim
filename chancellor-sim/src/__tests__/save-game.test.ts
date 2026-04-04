@@ -2,9 +2,21 @@ import { buildSaveEnvelope, SAVE_VERSION, simpleChecksum, validateSave } from '.
 
 const baseState: any = {
   metadata: { currentTurn: 4, gameStarted: true, gameOver: false, difficultyMode: 'standard' },
-  economic: { gdpNominal_bn: 2750, gdpGrowthAnnual: 1.5, inflationCPI: 2.0, unemploymentRate: 4.25, wageGrowthAnnual: 5.0 },
+  economic: {
+    gdpNominal_bn: 2750,
+    gdpGrowthAnnual: 1.5,
+    inflationCPI: 2.0,
+    unemploymentRate: 4.25,
+    wageGrowthAnnual: 5.0,
+  },
   fiscal: { deficitPctGDP: 3.0, debtPctGDP: 95, totalRevenue_bn: 1100, totalSpending_bn: 1150, fiscalHeadroom_bn: 10 },
-  political: { governmentApproval: 45, chancellorApproval: 50, backbenchSatisfaction: 60, pmTrust: 65, credibilityIndex: 55 },
+  political: {
+    governmentApproval: 45,
+    chancellorApproval: 50,
+    backbenchSatisfaction: 60,
+    pmTrust: 65,
+    credibilityIndex: 55,
+  },
 };
 
 describe('save validation', () => {

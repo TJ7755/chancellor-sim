@@ -60,11 +60,34 @@ export interface GradeResult {
 }
 
 export function calculateGrade(score: number): GradeResult {
-  const grade = score >= 85 ? 'A+' : score >= 75 ? 'A' : score >= 65 ? 'B' :
-                score >= 55 ? 'C' : score >= 45 ? 'D' : score >= 30 ? 'E' : 'F';
-  const gradeLabel = score >= 85 ? 'Outstanding Chancellor' : score >= 75 ? 'Highly Competent' :
-                     score >= 65 ? 'Capable Manager' : score >= 55 ? 'Adequate' :
-                     score >= 45 ? 'Below Expectations' : score >= 30 ? 'Poor Performance' : 'Catastrophic';
+  const grade =
+    score >= 85
+      ? 'A+'
+      : score >= 75
+        ? 'A'
+        : score >= 65
+          ? 'B'
+          : score >= 55
+            ? 'C'
+            : score >= 45
+              ? 'D'
+              : score >= 30
+                ? 'E'
+                : 'F';
+  const gradeLabel =
+    score >= 85
+      ? 'Outstanding Chancellor'
+      : score >= 75
+        ? 'Highly Competent'
+        : score >= 65
+          ? 'Capable Manager'
+          : score >= 55
+            ? 'Adequate'
+            : score >= 45
+              ? 'Below Expectations'
+              : score >= 30
+                ? 'Poor Performance'
+                : 'Catastrophic';
   const gradeColor = score >= 65 ? 'text-good' : score >= 45 ? 'text-warning' : 'text-bad';
   return { score, grade, gradeLabel, gradeColor };
 }

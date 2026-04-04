@@ -18,76 +18,496 @@ import {
 
 export const UK_CONSTITUENCIES: Omit<Constituency, 'id'>[] = [
   // London (73 seats)
-  { name: 'Bethnal Green and Stepney', region: 'london', marginality: 15, demographics: { medianIncome: 32000, unemploymentRate: 6.2, publicSectorDependency: 25, ageProfile: 'young' }, previousMargin: 35.2, swingRequired: 17.6 },
-  { name: 'Hackney North and Stoke Newington', region: 'london', marginality: 10, demographics: { medianIncome: 35000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 42.8, swingRequired: 21.4 },
-  { name: 'Islington North', region: 'london', marginality: 25, demographics: { medianIncome: 38000, unemploymentRate: 5.2, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 28.4, swingRequired: 14.2 },
-  { name: 'Westminster and Chelsea East', region: 'london', marginality: 45, demographics: { medianIncome: 55000, unemploymentRate: 3.5, publicSectorDependency: 18, ageProfile: 'mixed' }, previousMargin: 12.8, swingRequired: 6.4 },
-  { name: 'Battersea', region: 'london', marginality: 40, demographics: { medianIncome: 48000, unemploymentRate: 3.8, publicSectorDependency: 20, ageProfile: 'young' }, previousMargin: 15.2, swingRequired: 7.6 },
-  { name: 'Croydon Central', region: 'london', marginality: 50, demographics: { medianIncome: 36000, unemploymentRate: 5.5, publicSectorDependency: 24, ageProfile: 'mixed' }, previousMargin: 8.6, swingRequired: 4.3 },
-  { name: 'Eltham and Chislehurst', region: 'london', marginality: 35, demographics: { medianIncome: 38000, unemploymentRate: 4.8, publicSectorDependency: 26, ageProfile: 'mixed' }, previousMargin: 18.4, swingRequired: 9.2 },
-  { name: 'Greenwich and Woolwich', region: 'london', marginality: 20, demographics: { medianIncome: 34000, unemploymentRate: 6.0, publicSectorDependency: 32, ageProfile: 'young' }, previousMargin: 28.6, swingRequired: 14.3 },
-  { name: 'Lewisham East', region: 'london', marginality: 15, demographics: { medianIncome: 33000, unemploymentRate: 5.9, publicSectorDependency: 29, ageProfile: 'young' }, previousMargin: 34.2, swingRequired: 17.1 },
-  { name: 'Lewisham West and East Dulwich', region: 'london', marginality: 12, demographics: { medianIncome: 36000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' }, previousMargin: 38.6, swingRequired: 19.3 },
+  {
+    name: 'Bethnal Green and Stepney',
+    region: 'london',
+    marginality: 15,
+    demographics: { medianIncome: 32000, unemploymentRate: 6.2, publicSectorDependency: 25, ageProfile: 'young' },
+    previousMargin: 35.2,
+    swingRequired: 17.6,
+  },
+  {
+    name: 'Hackney North and Stoke Newington',
+    region: 'london',
+    marginality: 10,
+    demographics: { medianIncome: 35000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 42.8,
+    swingRequired: 21.4,
+  },
+  {
+    name: 'Islington North',
+    region: 'london',
+    marginality: 25,
+    demographics: { medianIncome: 38000, unemploymentRate: 5.2, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 28.4,
+    swingRequired: 14.2,
+  },
+  {
+    name: 'Westminster and Chelsea East',
+    region: 'london',
+    marginality: 45,
+    demographics: { medianIncome: 55000, unemploymentRate: 3.5, publicSectorDependency: 18, ageProfile: 'mixed' },
+    previousMargin: 12.8,
+    swingRequired: 6.4,
+  },
+  {
+    name: 'Battersea',
+    region: 'london',
+    marginality: 40,
+    demographics: { medianIncome: 48000, unemploymentRate: 3.8, publicSectorDependency: 20, ageProfile: 'young' },
+    previousMargin: 15.2,
+    swingRequired: 7.6,
+  },
+  {
+    name: 'Croydon Central',
+    region: 'london',
+    marginality: 50,
+    demographics: { medianIncome: 36000, unemploymentRate: 5.5, publicSectorDependency: 24, ageProfile: 'mixed' },
+    previousMargin: 8.6,
+    swingRequired: 4.3,
+  },
+  {
+    name: 'Eltham and Chislehurst',
+    region: 'london',
+    marginality: 35,
+    demographics: { medianIncome: 38000, unemploymentRate: 4.8, publicSectorDependency: 26, ageProfile: 'mixed' },
+    previousMargin: 18.4,
+    swingRequired: 9.2,
+  },
+  {
+    name: 'Greenwich and Woolwich',
+    region: 'london',
+    marginality: 20,
+    demographics: { medianIncome: 34000, unemploymentRate: 6.0, publicSectorDependency: 32, ageProfile: 'young' },
+    previousMargin: 28.6,
+    swingRequired: 14.3,
+  },
+  {
+    name: 'Lewisham East',
+    region: 'london',
+    marginality: 15,
+    demographics: { medianIncome: 33000, unemploymentRate: 5.9, publicSectorDependency: 29, ageProfile: 'young' },
+    previousMargin: 34.2,
+    swingRequired: 17.1,
+  },
+  {
+    name: 'Lewisham West and East Dulwich',
+    region: 'london',
+    marginality: 12,
+    demographics: { medianIncome: 36000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' },
+    previousMargin: 38.6,
+    swingRequired: 19.3,
+  },
 
   // Northwest England (75 seats)
-  { name: 'Burnley', region: 'northwest', marginality: 75, demographics: { medianIncome: 26500, unemploymentRate: 6.8, publicSectorDependency: 28, ageProfile: 'mixed' }, previousMargin: 3.2, swingRequired: 1.6 },
-  { name: 'Liverpool Walton', region: 'northwest', marginality: 5, demographics: { medianIncome: 24000, unemploymentRate: 8.5, publicSectorDependency: 35, ageProfile: 'mixed' }, previousMargin: 52.4, swingRequired: 26.2 },
-  { name: 'Manchester Central', region: 'northwest', marginality: 8, demographics: { medianIncome: 28000, unemploymentRate: 7.2, publicSectorDependency: 30, ageProfile: 'young' }, previousMargin: 45.8, swingRequired: 22.9 },
-  { name: 'Manchester Withington', region: 'northwest', marginality: 20, demographics: { medianIncome: 32000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'young' }, previousMargin: 28.4, swingRequired: 14.2 },
-  { name: 'Blackburn', region: 'northwest', marginality: 35, demographics: { medianIncome: 25500, unemploymentRate: 7.5, publicSectorDependency: 32, ageProfile: 'mixed' }, previousMargin: 18.6, swingRequired: 9.3 },
-  { name: 'Bolton North East', region: 'northwest', marginality: 60, demographics: { medianIncome: 28000, unemploymentRate: 6.2, publicSectorDependency: 29, ageProfile: 'mixed' }, previousMargin: 6.4, swingRequired: 3.2 },
-  { name: 'Bolton South and Walkden', region: 'northwest', marginality: 30, demographics: { medianIncome: 27500, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 22.8, swingRequired: 11.4 },
-  { name: 'Bury North', region: 'northwest', marginality: 65, demographics: { medianIncome: 32000, unemploymentRate: 5.0, publicSectorDependency: 25, ageProfile: 'mixed' }, previousMargin: 5.2, swingRequired: 2.6 },
-  { name: 'Bury South', region: 'northwest', marginality: 45, demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' }, previousMargin: 12.6, swingRequired: 6.3 },
-  { name: 'Chester City of', region: 'northwest', marginality: 40, demographics: { medianIncome: 31000, unemploymentRate: 4.8, publicSectorDependency: 24, ageProfile: 'mixed' }, previousMargin: 14.8, swingRequired: 7.4 },
+  {
+    name: 'Burnley',
+    region: 'northwest',
+    marginality: 75,
+    demographics: { medianIncome: 26500, unemploymentRate: 6.8, publicSectorDependency: 28, ageProfile: 'mixed' },
+    previousMargin: 3.2,
+    swingRequired: 1.6,
+  },
+  {
+    name: 'Liverpool Walton',
+    region: 'northwest',
+    marginality: 5,
+    demographics: { medianIncome: 24000, unemploymentRate: 8.5, publicSectorDependency: 35, ageProfile: 'mixed' },
+    previousMargin: 52.4,
+    swingRequired: 26.2,
+  },
+  {
+    name: 'Manchester Central',
+    region: 'northwest',
+    marginality: 8,
+    demographics: { medianIncome: 28000, unemploymentRate: 7.2, publicSectorDependency: 30, ageProfile: 'young' },
+    previousMargin: 45.8,
+    swingRequired: 22.9,
+  },
+  {
+    name: 'Manchester Withington',
+    region: 'northwest',
+    marginality: 20,
+    demographics: { medianIncome: 32000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'young' },
+    previousMargin: 28.4,
+    swingRequired: 14.2,
+  },
+  {
+    name: 'Blackburn',
+    region: 'northwest',
+    marginality: 35,
+    demographics: { medianIncome: 25500, unemploymentRate: 7.5, publicSectorDependency: 32, ageProfile: 'mixed' },
+    previousMargin: 18.6,
+    swingRequired: 9.3,
+  },
+  {
+    name: 'Bolton North East',
+    region: 'northwest',
+    marginality: 60,
+    demographics: { medianIncome: 28000, unemploymentRate: 6.2, publicSectorDependency: 29, ageProfile: 'mixed' },
+    previousMargin: 6.4,
+    swingRequired: 3.2,
+  },
+  {
+    name: 'Bolton South and Walkden',
+    region: 'northwest',
+    marginality: 30,
+    demographics: { medianIncome: 27500, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 22.8,
+    swingRequired: 11.4,
+  },
+  {
+    name: 'Bury North',
+    region: 'northwest',
+    marginality: 65,
+    demographics: { medianIncome: 32000, unemploymentRate: 5.0, publicSectorDependency: 25, ageProfile: 'mixed' },
+    previousMargin: 5.2,
+    swingRequired: 2.6,
+  },
+  {
+    name: 'Bury South',
+    region: 'northwest',
+    marginality: 45,
+    demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' },
+    previousMargin: 12.6,
+    swingRequired: 6.3,
+  },
+  {
+    name: 'Chester City of',
+    region: 'northwest',
+    marginality: 40,
+    demographics: { medianIncome: 31000, unemploymentRate: 4.8, publicSectorDependency: 24, ageProfile: 'mixed' },
+    previousMargin: 14.8,
+    swingRequired: 7.4,
+  },
 
   // Yorkshire (54 seats)
-  { name: 'Sheffield Central', region: 'yorkshire', marginality: 10, demographics: { medianIncome: 27000, unemploymentRate: 6.5, publicSectorDependency: 32, ageProfile: 'young' }, previousMargin: 42.2, swingRequired: 21.1 },
-  { name: 'Leeds Central and Headingley', region: 'yorkshire', marginality: 15, demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 35.6, swingRequired: 17.8 },
-  { name: 'Bradford West', region: 'yorkshire', marginality: 55, demographics: { medianIncome: 23500, unemploymentRate: 8.2, publicSectorDependency: 34, ageProfile: 'young' }, previousMargin: 7.8, swingRequired: 3.9 },
-  { name: 'Halifax', region: 'yorkshire', marginality: 50, demographics: { medianIncome: 27500, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'mixed' }, previousMargin: 9.4, swingRequired: 4.7 },
-  { name: 'Huddersfield', region: 'yorkshire', marginality: 35, demographics: { medianIncome: 28000, unemploymentRate: 5.8, publicSectorDependency: 27, ageProfile: 'mixed' }, previousMargin: 18.2, swingRequired: 9.1 },
-  { name: 'Wakefield and Rothwell', region: 'yorkshire', marginality: 60, demographics: { medianIncome: 29000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' }, previousMargin: 6.2, swingRequired: 3.1 },
-  { name: 'Doncaster Central', region: 'yorkshire', marginality: 40, demographics: { medianIncome: 26000, unemploymentRate: 7.0, publicSectorDependency: 31, ageProfile: 'mixed' }, previousMargin: 14.6, swingRequired: 7.3 },
-  { name: 'Barnsley North', region: 'yorkshire', marginality: 20, demographics: { medianIncome: 25500, unemploymentRate: 7.2, publicSectorDependency: 33, ageProfile: 'mixed' }, previousMargin: 28.8, swingRequired: 14.4 },
-  { name: 'Rotherham', region: 'yorkshire', marginality: 25, demographics: { medianIncome: 26500, unemploymentRate: 6.8, publicSectorDependency: 32, ageProfile: 'mixed' }, previousMargin: 24.4, swingRequired: 12.2 },
-  { name: 'York Central', region: 'yorkshire', marginality: 45, demographics: { medianIncome: 30000, unemploymentRate: 4.5, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 12.2, swingRequired: 6.1 },
+  {
+    name: 'Sheffield Central',
+    region: 'yorkshire',
+    marginality: 10,
+    demographics: { medianIncome: 27000, unemploymentRate: 6.5, publicSectorDependency: 32, ageProfile: 'young' },
+    previousMargin: 42.2,
+    swingRequired: 21.1,
+  },
+  {
+    name: 'Leeds Central and Headingley',
+    region: 'yorkshire',
+    marginality: 15,
+    demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 35.6,
+    swingRequired: 17.8,
+  },
+  {
+    name: 'Bradford West',
+    region: 'yorkshire',
+    marginality: 55,
+    demographics: { medianIncome: 23500, unemploymentRate: 8.2, publicSectorDependency: 34, ageProfile: 'young' },
+    previousMargin: 7.8,
+    swingRequired: 3.9,
+  },
+  {
+    name: 'Halifax',
+    region: 'yorkshire',
+    marginality: 50,
+    demographics: { medianIncome: 27500, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'mixed' },
+    previousMargin: 9.4,
+    swingRequired: 4.7,
+  },
+  {
+    name: 'Huddersfield',
+    region: 'yorkshire',
+    marginality: 35,
+    demographics: { medianIncome: 28000, unemploymentRate: 5.8, publicSectorDependency: 27, ageProfile: 'mixed' },
+    previousMargin: 18.2,
+    swingRequired: 9.1,
+  },
+  {
+    name: 'Wakefield and Rothwell',
+    region: 'yorkshire',
+    marginality: 60,
+    demographics: { medianIncome: 29000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' },
+    previousMargin: 6.2,
+    swingRequired: 3.1,
+  },
+  {
+    name: 'Doncaster Central',
+    region: 'yorkshire',
+    marginality: 40,
+    demographics: { medianIncome: 26000, unemploymentRate: 7.0, publicSectorDependency: 31, ageProfile: 'mixed' },
+    previousMargin: 14.6,
+    swingRequired: 7.3,
+  },
+  {
+    name: 'Barnsley North',
+    region: 'yorkshire',
+    marginality: 20,
+    demographics: { medianIncome: 25500, unemploymentRate: 7.2, publicSectorDependency: 33, ageProfile: 'mixed' },
+    previousMargin: 28.8,
+    swingRequired: 14.4,
+  },
+  {
+    name: 'Rotherham',
+    region: 'yorkshire',
+    marginality: 25,
+    demographics: { medianIncome: 26500, unemploymentRate: 6.8, publicSectorDependency: 32, ageProfile: 'mixed' },
+    previousMargin: 24.4,
+    swingRequired: 12.2,
+  },
+  {
+    name: 'York Central',
+    region: 'yorkshire',
+    marginality: 45,
+    demographics: { medianIncome: 30000, unemploymentRate: 4.5, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 12.2,
+    swingRequired: 6.1,
+  },
 
   // West Midlands (59 seats)
-  { name: 'Birmingham Edgbaston', region: 'westmidlands', marginality: 40, demographics: { medianIncome: 32000, unemploymentRate: 5.8, publicSectorDependency: 26, ageProfile: 'young' }, previousMargin: 14.8, swingRequired: 7.4 },
-  { name: 'Birmingham Hall Green and Moseley', region: 'westmidlands', marginality: 30, demographics: { medianIncome: 28000, unemploymentRate: 6.5, publicSectorDependency: 29, ageProfile: 'mixed' }, previousMargin: 22.4, swingRequired: 11.2 },
-  { name: 'Birmingham Ladywood', region: 'westmidlands', marginality: 8, demographics: { medianIncome: 24000, unemploymentRate: 8.0, publicSectorDependency: 35, ageProfile: 'young' }, previousMargin: 46.2, swingRequired: 23.1 },
-  { name: 'Coventry North West', region: 'westmidlands', marginality: 35, demographics: { medianIncome: 29000, unemploymentRate: 6.0, publicSectorDependency: 28, ageProfile: 'mixed' }, previousMargin: 18.6, swingRequired: 9.3 },
-  { name: 'Coventry South', region: 'westmidlands', marginality: 42, demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' }, previousMargin: 13.8, swingRequired: 6.9 },
-  { name: 'Dudley', region: 'westmidlands', marginality: 70, demographics: { medianIncome: 28500, unemploymentRate: 6.2, publicSectorDependency: 27, ageProfile: 'mixed' }, previousMargin: 4.6, swingRequired: 2.3 },
-  { name: 'Walsall and Bloxwich', region: 'westmidlands', marginality: 65, demographics: { medianIncome: 27500, unemploymentRate: 6.8, publicSectorDependency: 29, ageProfile: 'mixed' }, previousMargin: 5.4, swingRequired: 2.7 },
-  { name: 'Wolverhampton South East', region: 'westmidlands', marginality: 38, demographics: { medianIncome: 26500, unemploymentRate: 7.0, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 16.4, swingRequired: 8.2 },
-  { name: 'Stoke-on-Trent Central', region: 'westmidlands', marginality: 55, demographics: { medianIncome: 25000, unemploymentRate: 7.5, publicSectorDependency: 31, ageProfile: 'mixed' }, previousMargin: 8.2, swingRequired: 4.1 },
-  { name: 'Stoke-on-Trent North', region: 'westmidlands', marginality: 60, demographics: { medianIncome: 26000, unemploymentRate: 7.2, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 6.8, swingRequired: 3.4 },
+  {
+    name: 'Birmingham Edgbaston',
+    region: 'westmidlands',
+    marginality: 40,
+    demographics: { medianIncome: 32000, unemploymentRate: 5.8, publicSectorDependency: 26, ageProfile: 'young' },
+    previousMargin: 14.8,
+    swingRequired: 7.4,
+  },
+  {
+    name: 'Birmingham Hall Green and Moseley',
+    region: 'westmidlands',
+    marginality: 30,
+    demographics: { medianIncome: 28000, unemploymentRate: 6.5, publicSectorDependency: 29, ageProfile: 'mixed' },
+    previousMargin: 22.4,
+    swingRequired: 11.2,
+  },
+  {
+    name: 'Birmingham Ladywood',
+    region: 'westmidlands',
+    marginality: 8,
+    demographics: { medianIncome: 24000, unemploymentRate: 8.0, publicSectorDependency: 35, ageProfile: 'young' },
+    previousMargin: 46.2,
+    swingRequired: 23.1,
+  },
+  {
+    name: 'Coventry North West',
+    region: 'westmidlands',
+    marginality: 35,
+    demographics: { medianIncome: 29000, unemploymentRate: 6.0, publicSectorDependency: 28, ageProfile: 'mixed' },
+    previousMargin: 18.6,
+    swingRequired: 9.3,
+  },
+  {
+    name: 'Coventry South',
+    region: 'westmidlands',
+    marginality: 42,
+    demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' },
+    previousMargin: 13.8,
+    swingRequired: 6.9,
+  },
+  {
+    name: 'Dudley',
+    region: 'westmidlands',
+    marginality: 70,
+    demographics: { medianIncome: 28500, unemploymentRate: 6.2, publicSectorDependency: 27, ageProfile: 'mixed' },
+    previousMargin: 4.6,
+    swingRequired: 2.3,
+  },
+  {
+    name: 'Walsall and Bloxwich',
+    region: 'westmidlands',
+    marginality: 65,
+    demographics: { medianIncome: 27500, unemploymentRate: 6.8, publicSectorDependency: 29, ageProfile: 'mixed' },
+    previousMargin: 5.4,
+    swingRequired: 2.7,
+  },
+  {
+    name: 'Wolverhampton South East',
+    region: 'westmidlands',
+    marginality: 38,
+    demographics: { medianIncome: 26500, unemploymentRate: 7.0, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 16.4,
+    swingRequired: 8.2,
+  },
+  {
+    name: 'Stoke-on-Trent Central',
+    region: 'westmidlands',
+    marginality: 55,
+    demographics: { medianIncome: 25000, unemploymentRate: 7.5, publicSectorDependency: 31, ageProfile: 'mixed' },
+    previousMargin: 8.2,
+    swingRequired: 4.1,
+  },
+  {
+    name: 'Stoke-on-Trent North',
+    region: 'westmidlands',
+    marginality: 60,
+    demographics: { medianIncome: 26000, unemploymentRate: 7.2, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 6.8,
+    swingRequired: 3.4,
+  },
 
   // East Midlands (47 seats)
-  { name: 'Nottingham East', region: 'eastmidlands', marginality: 20, demographics: { medianIncome: 27000, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 28.6, swingRequired: 14.3 },
-  { name: 'Nottingham South', region: 'eastmidlands', marginality: 35, demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 18.4, swingRequired: 9.2 },
-  { name: 'Derby South', region: 'eastmidlands', marginality: 40, demographics: { medianIncome: 28500, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'mixed' }, previousMargin: 14.6, swingRequired: 7.3 },
-  { name: 'Leicester East', region: 'eastmidlands', marginality: 25, demographics: { medianIncome: 27500, unemploymentRate: 6.8, publicSectorDependency: 31, ageProfile: 'mixed' }, previousMargin: 24.8, swingRequired: 12.4 },
-  { name: 'Leicester South', region: 'eastmidlands', marginality: 22, demographics: { medianIncome: 26500, unemploymentRate: 7.0, publicSectorDependency: 32, ageProfile: 'young' }, previousMargin: 26.4, swingRequired: 13.2 },
-  { name: 'Leicester West', region: 'eastmidlands', marginality: 18, demographics: { medianIncome: 28000, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' }, previousMargin: 32.2, swingRequired: 16.1 },
-  { name: 'Northampton North', region: 'eastmidlands', marginality: 52, demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' }, previousMargin: 9.2, swingRequired: 4.6 },
-  { name: 'Northampton South', region: 'eastmidlands', marginality: 48, demographics: { medianIncome: 31000, unemploymentRate: 5.2, publicSectorDependency: 25, ageProfile: 'mixed' }, previousMargin: 10.8, swingRequired: 5.4 },
-  { name: 'Peterborough', region: 'eastmidlands', marginality: 58, demographics: { medianIncome: 29500, unemploymentRate: 5.8, publicSectorDependency: 27, ageProfile: 'mixed' }, previousMargin: 7.2, swingRequired: 3.6 },
-  { name: 'Lincoln', region: 'eastmidlands', marginality: 45, demographics: { medianIncome: 28000, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'young' }, previousMargin: 12.4, swingRequired: 6.2 },
+  {
+    name: 'Nottingham East',
+    region: 'eastmidlands',
+    marginality: 20,
+    demographics: { medianIncome: 27000, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 28.6,
+    swingRequired: 14.3,
+  },
+  {
+    name: 'Nottingham South',
+    region: 'eastmidlands',
+    marginality: 35,
+    demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 18.4,
+    swingRequired: 9.2,
+  },
+  {
+    name: 'Derby South',
+    region: 'eastmidlands',
+    marginality: 40,
+    demographics: { medianIncome: 28500, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'mixed' },
+    previousMargin: 14.6,
+    swingRequired: 7.3,
+  },
+  {
+    name: 'Leicester East',
+    region: 'eastmidlands',
+    marginality: 25,
+    demographics: { medianIncome: 27500, unemploymentRate: 6.8, publicSectorDependency: 31, ageProfile: 'mixed' },
+    previousMargin: 24.8,
+    swingRequired: 12.4,
+  },
+  {
+    name: 'Leicester South',
+    region: 'eastmidlands',
+    marginality: 22,
+    demographics: { medianIncome: 26500, unemploymentRate: 7.0, publicSectorDependency: 32, ageProfile: 'young' },
+    previousMargin: 26.4,
+    swingRequired: 13.2,
+  },
+  {
+    name: 'Leicester West',
+    region: 'eastmidlands',
+    marginality: 18,
+    demographics: { medianIncome: 28000, unemploymentRate: 6.5, publicSectorDependency: 30, ageProfile: 'mixed' },
+    previousMargin: 32.2,
+    swingRequired: 16.1,
+  },
+  {
+    name: 'Northampton North',
+    region: 'eastmidlands',
+    marginality: 52,
+    demographics: { medianIncome: 30000, unemploymentRate: 5.5, publicSectorDependency: 26, ageProfile: 'mixed' },
+    previousMargin: 9.2,
+    swingRequired: 4.6,
+  },
+  {
+    name: 'Northampton South',
+    region: 'eastmidlands',
+    marginality: 48,
+    demographics: { medianIncome: 31000, unemploymentRate: 5.2, publicSectorDependency: 25, ageProfile: 'mixed' },
+    previousMargin: 10.8,
+    swingRequired: 5.4,
+  },
+  {
+    name: 'Peterborough',
+    region: 'eastmidlands',
+    marginality: 58,
+    demographics: { medianIncome: 29500, unemploymentRate: 5.8, publicSectorDependency: 27, ageProfile: 'mixed' },
+    previousMargin: 7.2,
+    swingRequired: 3.6,
+  },
+  {
+    name: 'Lincoln',
+    region: 'eastmidlands',
+    marginality: 45,
+    demographics: { medianIncome: 28000, unemploymentRate: 6.0, publicSectorDependency: 29, ageProfile: 'young' },
+    previousMargin: 12.4,
+    swingRequired: 6.2,
+  },
 
   // Southeast England (91 seats)
-  { name: 'Brighton Kemptown', region: 'southeast', marginality: 42, demographics: { medianIncome: 34000, unemploymentRate: 4.8, publicSectorDependency: 24, ageProfile: 'young' }, previousMargin: 13.6, swingRequired: 6.8 },
-  { name: 'Brighton Pavilion', region: 'southeast', marginality: 35, demographics: { medianIncome: 36000, unemploymentRate: 4.5, publicSectorDependency: 26, ageProfile: 'young' }, previousMargin: 18.8, swingRequired: 9.4 },
-  { name: 'Canterbury', region: 'southeast', marginality: 38, demographics: { medianIncome: 32000, unemploymentRate: 5.0, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 16.2, swingRequired: 8.1 },
-  { name: 'Crawley', region: 'southeast', marginality: 55, demographics: { medianIncome: 33000, unemploymentRate: 4.5, publicSectorDependency: 22, ageProfile: 'mixed' }, previousMargin: 8.4, swingRequired: 4.2 },
-  { name: 'Hastings and Rye', region: 'southeast', marginality: 62, demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 26, ageProfile: 'elderly' }, previousMargin: 5.8, swingRequired: 2.9 },
-  { name: 'Oxford East', region: 'southeast', marginality: 12, demographics: { medianIncome: 35000, unemploymentRate: 4.2, publicSectorDependency: 32, ageProfile: 'young' }, previousMargin: 38.4, swingRequired: 19.2 },
-  { name: 'Reading Central', region: 'southeast', marginality: 40, demographics: { medianIncome: 36000, unemploymentRate: 4.0, publicSectorDependency: 24, ageProfile: 'mixed' }, previousMargin: 14.8, swingRequired: 7.4 },
-  { name: 'Slough', region: 'southeast', marginality: 28, demographics: { medianIncome: 32000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' }, previousMargin: 23.6, swingRequired: 11.8 },
-  { name: 'Southampton Test', region: 'southeast', marginality: 44, demographics: { medianIncome: 30000, unemploymentRate: 5.2, publicSectorDependency: 28, ageProfile: 'young' }, previousMargin: 13.2, swingRequired: 6.6 },
-  { name: 'Worthing West', region: 'southeast', marginality: 58, demographics: { medianIncome: 32000, unemploymentRate: 4.5, publicSectorDependency: 24, ageProfile: 'elderly' }, previousMargin: 7.4, swingRequired: 3.7 },
+  {
+    name: 'Brighton Kemptown',
+    region: 'southeast',
+    marginality: 42,
+    demographics: { medianIncome: 34000, unemploymentRate: 4.8, publicSectorDependency: 24, ageProfile: 'young' },
+    previousMargin: 13.6,
+    swingRequired: 6.8,
+  },
+  {
+    name: 'Brighton Pavilion',
+    region: 'southeast',
+    marginality: 35,
+    demographics: { medianIncome: 36000, unemploymentRate: 4.5, publicSectorDependency: 26, ageProfile: 'young' },
+    previousMargin: 18.8,
+    swingRequired: 9.4,
+  },
+  {
+    name: 'Canterbury',
+    region: 'southeast',
+    marginality: 38,
+    demographics: { medianIncome: 32000, unemploymentRate: 5.0, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 16.2,
+    swingRequired: 8.1,
+  },
+  {
+    name: 'Crawley',
+    region: 'southeast',
+    marginality: 55,
+    demographics: { medianIncome: 33000, unemploymentRate: 4.5, publicSectorDependency: 22, ageProfile: 'mixed' },
+    previousMargin: 8.4,
+    swingRequired: 4.2,
+  },
+  {
+    name: 'Hastings and Rye',
+    region: 'southeast',
+    marginality: 62,
+    demographics: { medianIncome: 29000, unemploymentRate: 5.8, publicSectorDependency: 26, ageProfile: 'elderly' },
+    previousMargin: 5.8,
+    swingRequired: 2.9,
+  },
+  {
+    name: 'Oxford East',
+    region: 'southeast',
+    marginality: 12,
+    demographics: { medianIncome: 35000, unemploymentRate: 4.2, publicSectorDependency: 32, ageProfile: 'young' },
+    previousMargin: 38.4,
+    swingRequired: 19.2,
+  },
+  {
+    name: 'Reading Central',
+    region: 'southeast',
+    marginality: 40,
+    demographics: { medianIncome: 36000, unemploymentRate: 4.0, publicSectorDependency: 24, ageProfile: 'mixed' },
+    previousMargin: 14.8,
+    swingRequired: 7.4,
+  },
+  {
+    name: 'Slough',
+    region: 'southeast',
+    marginality: 28,
+    demographics: { medianIncome: 32000, unemploymentRate: 5.5, publicSectorDependency: 27, ageProfile: 'young' },
+    previousMargin: 23.6,
+    swingRequired: 11.8,
+  },
+  {
+    name: 'Southampton Test',
+    region: 'southeast',
+    marginality: 44,
+    demographics: { medianIncome: 30000, unemploymentRate: 5.2, publicSectorDependency: 28, ageProfile: 'young' },
+    previousMargin: 13.2,
+    swingRequired: 6.6,
+  },
+  {
+    name: 'Worthing West',
+    region: 'southeast',
+    marginality: 58,
+    demographics: { medianIncome: 32000, unemploymentRate: 4.5, publicSectorDependency: 24, ageProfile: 'elderly' },
+    previousMargin: 7.4,
+    swingRequired: 3.7,
+  },
 ];
 
 // Note: This is a sample of 50 constituencies. In a full implementation, you would need all 650.
@@ -99,34 +519,205 @@ export const UK_CONSTITUENCIES: Omit<Constituency, 'id'>[] = [
 // ===========================
 
 export const MP_FIRST_NAMES = [
-  'Rebecca', 'James', 'Sarah', 'David', 'Emma', 'Michael', 'Jessica', 'Thomas',
-  'Sophie', 'Daniel', 'Rachel', 'Matthew', 'Hannah', 'Christopher', 'Laura',
-  'Andrew', 'Emily', 'Benjamin', 'Charlotte', 'William', 'Olivia', 'Joshua',
-  'Tariq', 'Priya', 'Aisha', 'Mohammed', 'Fatima', 'Ali', 'Zainab', 'Hassan',
-  'Amina', 'Omar', 'Yasmin', 'Ibrahim', 'Khadija', 'Yusuf', 'Samantha', 'Ryan',
-  'Katie', 'Nathan', 'Lucy', 'Jack', 'Grace', 'Oliver', 'Megan', 'Harry',
-  'Chloe', 'George', 'Ella', 'Samuel', 'Beth', 'Tom', 'Anna', 'Edward',
-  'Catherine', 'Richard', 'Victoria', 'Peter', 'Jennifer', 'Nicholas', 'Michelle',
-  'Alexander', 'Amanda', 'Jonathan', 'Angela', 'Robert', 'Helen', 'Anthony',
-  'Karen', 'Steven', 'Lisa', 'Mark', 'Susan', 'Paul', 'Margaret', 'Simon',
-  'Sanjay', 'Deepa', 'Rajesh', 'Anita', 'Vikram', 'Meera', 'Ravi', 'Sunita',
-  'Wei', 'Mei', 'Jun', 'Lin', 'Chen', 'Ying', 'Kwame', 'Ama', 'Kofi', 'Abena',
+  'Rebecca',
+  'James',
+  'Sarah',
+  'David',
+  'Emma',
+  'Michael',
+  'Jessica',
+  'Thomas',
+  'Sophie',
+  'Daniel',
+  'Rachel',
+  'Matthew',
+  'Hannah',
+  'Christopher',
+  'Laura',
+  'Andrew',
+  'Emily',
+  'Benjamin',
+  'Charlotte',
+  'William',
+  'Olivia',
+  'Joshua',
+  'Tariq',
+  'Priya',
+  'Aisha',
+  'Mohammed',
+  'Fatima',
+  'Ali',
+  'Zainab',
+  'Hassan',
+  'Amina',
+  'Omar',
+  'Yasmin',
+  'Ibrahim',
+  'Khadija',
+  'Yusuf',
+  'Samantha',
+  'Ryan',
+  'Katie',
+  'Nathan',
+  'Lucy',
+  'Jack',
+  'Grace',
+  'Oliver',
+  'Megan',
+  'Harry',
+  'Chloe',
+  'George',
+  'Ella',
+  'Samuel',
+  'Beth',
+  'Tom',
+  'Anna',
+  'Edward',
+  'Catherine',
+  'Richard',
+  'Victoria',
+  'Peter',
+  'Jennifer',
+  'Nicholas',
+  'Michelle',
+  'Alexander',
+  'Amanda',
+  'Jonathan',
+  'Angela',
+  'Robert',
+  'Helen',
+  'Anthony',
+  'Karen',
+  'Steven',
+  'Lisa',
+  'Mark',
+  'Susan',
+  'Paul',
+  'Margaret',
+  'Simon',
+  'Sanjay',
+  'Deepa',
+  'Rajesh',
+  'Anita',
+  'Vikram',
+  'Meera',
+  'Ravi',
+  'Sunita',
+  'Wei',
+  'Mei',
+  'Jun',
+  'Lin',
+  'Chen',
+  'Ying',
+  'Kwame',
+  'Ama',
+  'Kofi',
+  'Abena',
 ];
 
 export const MP_LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis',
-  'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson',
-  'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White',
-  'Harris', 'Clark', 'Lewis', 'Walker', 'Hall', 'Allen', 'Young', 'King',
-  'Wright', 'Scott', 'Green', 'Baker', 'Adams', 'Nelson', 'Carter', 'Mitchell',
-  'Khan', 'Ahmed', 'Hussain', 'Ali', 'Shah', 'Malik', 'Patel', 'Singh',
-  'Kumar', 'Sharma', 'Mehta', 'Gupta', 'Reddy', 'Iyer', 'Nair', 'Chatterjee',
-  'Chen', 'Wang', 'Li', 'Zhang', 'Liu', 'Yang', 'Huang', 'Zhao', 'Wu', 'Zhou',
-  'Campbell', 'Murray', 'Robertson', 'Stewart', 'MacDonald', 'Fraser', 'Reid',
-  'Davies', 'Evans', 'Hughes', 'Roberts', 'Lewis', 'Griffiths', 'Rees', 'Owen',
-  'O\'Brien', 'Murphy', 'Kelly', 'Ryan', 'O\'Connor', 'Walsh', 'McCarthy',
-  'MacDonald', 'MacLeod', 'MacKenzie', 'Cameron', 'Grant', 'Ross', 'Henderson',
-  'Cooper', 'Bennett', 'Wood', 'Price', 'Hughes', 'Edwards', 'Collins', 'Cook',
+  'Smith',
+  'Johnson',
+  'Williams',
+  'Brown',
+  'Jones',
+  'Garcia',
+  'Miller',
+  'Davis',
+  'Rodriguez',
+  'Martinez',
+  'Hernandez',
+  'Lopez',
+  'Gonzalez',
+  'Wilson',
+  'Anderson',
+  'Thomas',
+  'Taylor',
+  'Moore',
+  'Jackson',
+  'Martin',
+  'Lee',
+  'Thompson',
+  'White',
+  'Harris',
+  'Clark',
+  'Lewis',
+  'Walker',
+  'Hall',
+  'Allen',
+  'Young',
+  'King',
+  'Wright',
+  'Scott',
+  'Green',
+  'Baker',
+  'Adams',
+  'Nelson',
+  'Carter',
+  'Mitchell',
+  'Khan',
+  'Ahmed',
+  'Hussain',
+  'Ali',
+  'Shah',
+  'Malik',
+  'Patel',
+  'Singh',
+  'Kumar',
+  'Sharma',
+  'Mehta',
+  'Gupta',
+  'Reddy',
+  'Iyer',
+  'Nair',
+  'Chatterjee',
+  'Chen',
+  'Wang',
+  'Li',
+  'Zhang',
+  'Liu',
+  'Yang',
+  'Huang',
+  'Zhao',
+  'Wu',
+  'Zhou',
+  'Campbell',
+  'Murray',
+  'Robertson',
+  'Stewart',
+  'MacDonald',
+  'Fraser',
+  'Reid',
+  'Davies',
+  'Evans',
+  'Hughes',
+  'Roberts',
+  'Lewis',
+  'Griffiths',
+  'Rees',
+  'Owen',
+  "O'Brien",
+  'Murphy',
+  'Kelly',
+  'Ryan',
+  "O'Connor",
+  'Walsh',
+  'McCarthy',
+  'MacDonald',
+  'MacLeod',
+  'MacKenzie',
+  'Cameron',
+  'Grant',
+  'Ross',
+  'Henderson',
+  'Cooper',
+  'Bennett',
+  'Wood',
+  'Price',
+  'Hughes',
+  'Edwards',
+  'Collins',
+  'Cook',
 ];
 
 // ===========================
@@ -178,7 +769,7 @@ export const REAL_CABINET_MPS: RealMPData[] = [
     ministerialRole: 'Deputy Prime Minister / Housing',
     isMinister: true,
     enteredParliament: 2015,
-    background: 'Former trade union official and care worker, champion of workers\' rights.',
+    background: "Former trade union official and care worker, champion of workers' rights.",
     rebelliousnessOverride: 2,
     principledOverride: 8,
   },
@@ -575,7 +1166,9 @@ export const REAL_OPPOSITION_MPS: RealMPData[] = [
  */
 function findConstituencyByName(constituencies: Constituency[], name: string): Constituency | undefined {
   const normalizedName = name.toLowerCase();
-  return constituencies.find(c => c.name.toLowerCase().includes(normalizedName) || normalizedName.includes(c.name.toLowerCase()));
+  return constituencies.find(
+    (c) => c.name.toLowerCase().includes(normalizedName) || normalizedName.includes(c.name.toLowerCase())
+  );
 }
 
 /**
@@ -604,9 +1197,18 @@ export function generateAllConstituencies(): Constituency[] {
 
   // Generate remaining constituencies (650 - 50 = 600 more)
   const regions: RegionUK[] = [
-    'london', 'southeast', 'southwest', 'eastengland', 'westmidlands',
-    'eastmidlands', 'yorkshire', 'northwest', 'northeast', 'wales',
-    'scotland', 'northernireland',
+    'london',
+    'southeast',
+    'southwest',
+    'eastengland',
+    'westmidlands',
+    'eastmidlands',
+    'yorkshire',
+    'northwest',
+    'northeast',
+    'wales',
+    'scotland',
+    'northernireland',
   ];
 
   const ageProfiles: AgeProfile[] = ['young', 'mixed', 'elderly'];
@@ -630,7 +1232,7 @@ export function generateAllConstituencies(): Constituency[] {
         publicSectorDependency,
         ageProfile,
       },
-      previousMargin: marginality / 5,  // Rough approximation
+      previousMargin: marginality / 5, // Rough approximation
       swingRequired: marginality / 10,
     });
   }
@@ -646,7 +1248,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
   const constituencies = generateAllConstituencies();
   const usedNames = new Set<string>();
   const usedConstituencyIds = new Set<string>();
-  
+
   let mpCounter = 0;
   let constituencyIndex = 0;
 
@@ -666,26 +1268,26 @@ export function generateAllMPs(): Map<string, MPProfile> {
   const createMPFromRealData = (realMP: RealMPData, party: PartyAffiliation = 'labour'): MPProfile | null => {
     // Try to find matching constituency
     let constituency = findConstituencyByName(constituencies, realMP.constituency);
-    
+
     // If not found, use next available constituency
     if (!constituency) {
       constituency = constituencies[constituencyIndex];
       constituencyIndex++;
     }
-    
+
     if (!constituency || usedConstituencyIds.has(constituency.id)) {
       constituency = constituencies[constituencyIndex];
       constituencyIndex++;
     }
-    
+
     if (!constituency) return null;
-    
+
     usedConstituencyIds.add(constituency.id);
     usedNames.add(realMP.name);
-    
+
     const ideology = generateIdeology(party, realMP.faction);
     let traits = generateTraits(realMP.isMinister, realMP.faction);
-    
+
     // Apply real-world trait overrides
     if (realMP.rebelliousnessOverride !== undefined) {
       traits.rebelliousness = realMP.rebelliousnessOverride;
@@ -693,7 +1295,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     if (realMP.principledOverride !== undefined) {
       traits.principled = realMP.principledOverride;
     }
-    
+
     const mp: MPProfile = {
       id: `mp_real_${mpCounter++}`,
       name: realMP.name,
@@ -708,7 +1310,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
       ministerialRole: realMP.ministerialRole,
       committees: [],
     };
-    
+
     return mp;
   };
 
@@ -744,7 +1346,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
 
   // 4. Remaining Frontbench/Payroll MPs (190 - to make 211 total ministers)
   const remainingMinisters = 211 - REAL_CABINET_MPS.length;
-  
+
   const ministerialRoles = [
     'Junior Minister',
     'Parliamentary Under-Secretary',
@@ -754,14 +1356,11 @@ export function generateAllMPs(): Map<string, MPProfile> {
 
   for (let i = 0; i < remainingMinisters; i++) {
     const faction: LabourFaction =
-      i < 40 ? 'centre_left' :
-      i < 80 ? 'party_loyalist' :
-      i < 120 ? 'soft_left' :
-      i < 160 ? 'blairite' : 'centre_left';
+      i < 40 ? 'centre_left' : i < 80 ? 'party_loyalist' : i < 120 ? 'soft_left' : i < 160 ? 'blairite' : 'centre_left';
 
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
-    
+
     usedConstituencyIds.add(constituency.id);
     const ideology = generateIdeology('labour', faction);
     const traits = generateTraits(true, faction);
@@ -790,7 +1389,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('labour', 'left');
     const traits = generateTraits(false, 'left');
 
@@ -805,7 +1404,9 @@ export function generateAllMPs(): Map<string, MPProfile> {
       background: 'Left-wing activist with community organising background.',
       enteredParliament: 2015 + Math.floor(Math.random() * 10),
       isMinister: false,
-      committees: ['Public Accounts', 'Treasury', 'Work and Pensions'][i % 3] ? [['Public Accounts', 'Treasury', 'Work and Pensions'][i % 3]] : [],
+      committees: ['Public Accounts', 'Treasury', 'Work and Pensions'][i % 3]
+        ? [['Public Accounts', 'Treasury', 'Work and Pensions'][i % 3]]
+        : [],
     };
 
     mps.set(mp.id, mp);
@@ -816,7 +1417,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('labour', 'soft_left');
     const traits = generateTraits(false, 'soft_left');
 
@@ -842,7 +1443,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('labour', 'centre_left');
     const traits = generateTraits(false, 'centre_left');
 
@@ -868,7 +1469,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('labour', 'blairite');
     const traits = generateTraits(false, 'blairite');
 
@@ -889,14 +1490,14 @@ export function generateAllMPs(): Map<string, MPProfile> {
     mps.set(mp.id, mp);
   }
 
-  console.log(`Total Labour MPs generated: ${Array.from(mps.values()).filter(mp => mp.party === 'labour').length}`);
+  console.log(`Total Labour MPs generated: ${Array.from(mps.values()).filter((mp) => mp.party === 'labour').length}`);
 
   // CONSERVATIVE MPs (121)
   for (let i = 0; i < 121; i++) {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('conservative');
     const traits = generateTraits(false);
 
@@ -921,7 +1522,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('liberal_democrat');
     const traits = generateTraits(false);
 
@@ -946,7 +1547,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('snp');
     const traits = generateTraits(false);
 
@@ -967,20 +1568,22 @@ export function generateAllMPs(): Map<string, MPProfile> {
   }
 
   // GREEN MPs (4) - including real ones
-  for (const realMP of REAL_OPPOSITION_MPS.filter(mp => mp.constituency.includes('Bristol') || mp.constituency.includes('Waveney'))) {
+  for (const realMP of REAL_OPPOSITION_MPS.filter(
+    (mp) => mp.constituency.includes('Bristol') || mp.constituency.includes('Waveney')
+  )) {
     const mp = createMPFromRealData(realMP, 'green');
     if (mp) {
       mps.set(mp.id, mp);
     }
   }
-  
+
   // Add remaining Greens if needed
-  const greenCount = Array.from(mps.values()).filter(mp => mp.party === 'green').length;
+  const greenCount = Array.from(mps.values()).filter((mp) => mp.party === 'green').length;
   for (let i = greenCount; i < 4; i++) {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('green');
     const traits = generateTraits(false);
 
@@ -1004,7 +1607,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
   for (let i = 0; i < 5; i++) {
     // Add real Nigel Farage
     if (i === 0) {
-      const farage = REAL_OPPOSITION_MPS.find(mp => mp.name === 'Nigel Farage');
+      const farage = REAL_OPPOSITION_MPS.find((mp) => mp.name === 'Nigel Farage');
       if (farage) {
         const mp = createMPFromRealData(farage, 'reform_uk');
         if (mp) {
@@ -1013,11 +1616,11 @@ export function generateAllMPs(): Map<string, MPProfile> {
         }
       }
     }
-    
+
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('reform_uk');
     const traits = generateTraits(false);
 
@@ -1042,7 +1645,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('plaid_cymru');
     const traits = generateTraits(false);
 
@@ -1067,7 +1670,7 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
+
     const ideology = generateIdeology('sinn_fein');
     const traits = generateTraits(false);
 
@@ -1093,12 +1696,52 @@ export function generateAllMPs(): Map<string, MPProfile> {
     const constituency = constituencies[constituencyIndex++];
     if (!constituency) continue;
     usedConstituencyIds.add(constituency.id);
-    
-    const parties: PartyAffiliation[] = ['dup', 'dup', 'dup', 'dup', 'dup', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent', 'independent'];
-    const partyLabels = ['DUP', 'DUP', 'DUP', 'DUP', 'DUP', 'SDLP', 'SDLP', 'Alliance', 'UUP', 'TUV', 'Independent', 'Independent', 'Independent', 'Independent', 'Independent', 'Independent', 'Independent', 'Independent', 'Independent'];
+
+    const parties: PartyAffiliation[] = [
+      'dup',
+      'dup',
+      'dup',
+      'dup',
+      'dup',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+      'independent',
+    ];
+    const partyLabels = [
+      'DUP',
+      'DUP',
+      'DUP',
+      'DUP',
+      'DUP',
+      'SDLP',
+      'SDLP',
+      'Alliance',
+      'UUP',
+      'TUV',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+      'Independent',
+    ];
     const party = parties[i];
     const partyLabel = partyLabels[i];
-    
+
     const ideology = generateIdeology(party === 'independent' ? 'labour' : party);
     const traits = generateTraits(false);
 
@@ -1143,7 +1786,9 @@ export function generateAllMPs(): Map<string, MPProfile> {
   }
 
   console.log(`Total MPs generated: ${mps.size}`);
-  console.log(`Real MPs included: ${REAL_CABINET_MPS.length + REAL_SCG_MPS.length + REAL_SOFT_LEFT_MPS.length + 3} (Cabinet, Rebels, Opposition leaders)`);
+  console.log(
+    `Real MPs included: ${REAL_CABINET_MPS.length + REAL_SCG_MPS.length + REAL_SOFT_LEFT_MPS.length + 3} (Cabinet, Rebels, Opposition leaders)`
+  );
 
   return mps;
 }

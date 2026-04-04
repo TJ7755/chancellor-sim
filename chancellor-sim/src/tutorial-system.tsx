@@ -80,7 +80,7 @@ export const TUTORIAL_SECTIONS: TutorialSection[] = [
     content: [
       'GDP Growth affected by: fiscal policy, confidence, interest rates, sterling.',
       'Inflation affected by: unemployment gap, VAT, sterling, wage growth.',
-      'Unemployment follows GDP with a 2-3 month lag (Okun\'s Law).',
+      "Unemployment follows GDP with a 2-3 month lag (Okun's Law).",
       'Bank Rate follows inflation with a 3-6 month lag (Taylor Rule).',
       'Gilt yields affected by: Bank Rate, deficit, debt, credibility.',
       'Sterling affected by: gilt yields, confidence, approval.',
@@ -95,7 +95,7 @@ export const TUTORIAL_SECTIONS: TutorialSection[] = [
   {
     title: 'Strategy Tips',
     content: [
-      'Start cautiously:  don\'t waste time on risky policies.',
+      "Start cautiously:  don't waste time on risky policies.",
       'Build fiscal headroom: Keep deficit manageable so you have space for future shocks.',
       'Invest in infrastructure: High GDP multiplier, long-term growth benefits.',
       'Protect the NHS: Most politically sensitive - real terms cuts are dangerous.',
@@ -133,10 +133,7 @@ export const TutorialModal: React.FC<{
               Section {currentSection + 1} of {TUTORIAL_SECTIONS.length}
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:bg-blue-700 px-3 py-1 rounded-sm text-xl font-bold"
-          >
+          <button onClick={onClose} className="text-white hover:bg-blue-700 px-3 py-1 rounded-sm text-xl font-bold">
             ×
           </button>
         </div>
@@ -182,9 +179,7 @@ export const TutorialModal: React.FC<{
               <button
                 key={index}
                 onClick={() => setCurrentSection(index)}
-                className={`w-3 h-3 rounded-full ${
-                  index === currentSection ? 'bg-blue-600' : 'bg-gray-300'
-                }`}
+                className={`w-3 h-3 rounded-full ${index === currentSection ? 'bg-blue-600' : 'bg-gray-300'}`}
                 aria-label={`Go to section ${index + 1}`}
               />
             ))}

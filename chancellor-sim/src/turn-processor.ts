@@ -11,6 +11,7 @@ import {
   TurnDelta,
   TurnDeltaDriver,
   getFiscalRuleById,
+  FiscalRuleId,
   OBR_HEADROOM_CALIBRATION,
   calculateRuleHeadroom,
   FISCAL_RULE_GILT_EFFECT,
@@ -77,13 +78,13 @@ function round1(value: number): number {
 // CRITICAL FIX: Adviser mechanical benefits
 // Advisers provide actual gameplay bonuses based on their expertise
 interface AdviserBonuses {
-  taxRevenueMultiplier: number;    // Multiplier on tax revenues (1.0 = normal, 1.05 = +5%)
-  spendingEfficiencyMultiplier: number;  // Multiplier on service quality gains
-  backbenchBonus: number;          // Flat bonus to backbench satisfaction
-  pmTrustBonus: number;            // Flat bonus to PM trust
-  gdpGrowthBonus: number;          // Flat bonus to GDP growth (pp)
-  debtInterestReduction: number;   // Reduction in debt interest (%)
-  credibilityBonus: number;        // Flat bonus to credibility index
+  taxRevenueMultiplier: number; // Multiplier on tax revenues (1.0 = normal, 1.05 = +5%)
+  spendingEfficiencyMultiplier: number; // Multiplier on service quality gains
+  backbenchBonus: number; // Flat bonus to backbench satisfaction
+  pmTrustBonus: number; // Flat bonus to PM trust
+  gdpGrowthBonus: number; // Flat bonus to GDP growth (pp)
+  debtInterestReduction: number; // Reduction in debt interest (%)
+  credibilityBonus: number; // Flat bonus to credibility index
 }
 
 function getAdviserBonuses(state: GameState): AdviserBonuses {
@@ -159,12 +160,12 @@ const BASELINE_DETAILED_TAX = Object.fromEntries(
 ) as Record<string, number>;
 
 function getDetailedSpendingBudget(state: GameState, id: string, fallback = 0): number {
-  const found = state.fiscal.detailedSpending?.find((item) => item.id === id);
+  const found = state.fiscal.detailedSpending?.find((item: { id: string; currentBudget: number }) => item.id === id);
   return found?.currentBudget ?? fallback;
 }
 
 function getDetailedTaxRate(state: GameState, id: string, fallback = 0): number {
-  const found = state.fiscal.detailedTaxes?.find((item) => item.id === id);
+  const found = state.fiscal.detailedTaxes?.find((item: { id: string; currentRate: number }) => item.id === id);
   return found?.currentRate ?? fallback;
 }
 
@@ -428,20 +429,12 @@ function checkFiscalYearRollover(state: GameState): GameState {
   // Skip if turn 0 (game start)
   if (currentMonth === 4 && metadata.currentTurn > 0) {
     // Check annual growth pledges before rolling over
-    const violatedPledges = checkAnnualGrowthPledges(
-      manifesto,
-      fiscal,
-      economic.inflationCPI
-    );
+    const violatedPledges = checkAnnualGrowthPledges(manifesto, fiscal, economic.inflationCPI);
 
     // Apply violations if any
     let newManifesto = manifesto;
     if (violatedPledges.length > 0) {
-      newManifesto = applyManifestoViolations(
-        manifesto,
-        violatedPledges,
-        metadata.currentTurn
-      );
+      newManifesto = applyManifestoViolations(manifesto, violatedPledges, metadata.currentTurn);
     }
 
     // New fiscal year - snapshot current spending and increment year
@@ -471,12 +464,12 @@ function processEmergencyProgrammes(state: GameState): GameState {
 
   // Decrement remaining months for each active programme
   const updatedProgrammes = emergencyProgrammes.active
-    .map(prog => ({
+    .map((prog) => ({
       ...prog,
-      remainingMonths: Math.max(0, prog.remainingMonths - 1)
+      remainingMonths: Math.max(0, prog.remainingMonths - 1),
     }))
     // Remove programmes where rebuilding is complete
-    .filter(prog => prog.remainingMonths > 0);
+    .filter((prog) => prog.remainingMonths > 0);
 
   return {
     ...state,
@@ -506,7 +499,7 @@ function calculateProductivity(state: GameState): GameState {
   const risk = getPolicyRiskAggregate(state);
 
   // Base productivity growth (very low - reflects UK's productivity puzzle)
-  let productivityGrowth = 0.10; // 0.10% annual baseline
+  let productivityGrowth = 0.1; // 0.10% annual baseline
 
   // 1. Capital investment effect (infrastructure, R&D, equipment)
   // Public capital spending builds productive capacity with lag
@@ -519,7 +512,7 @@ function calculateProductivity(state: GameState): GameState {
     fiscal.spending.policeCapital +
     fiscal.spending.justiceCapital +
     fiscal.spending.otherCapital;
-  const deliveredCapital = Math.max(0, plannedCapital - ((state.capitalDelivery.deferredCapital_bn || 0) * 12));
+  const deliveredCapital = Math.max(0, plannedCapital - (state.capitalDelivery.deferredCapital_bn || 0) * 12);
   const currentCapital = deliveredCapital;
 
   const capitalRatio = currentCapital / baselineCapital;
@@ -533,7 +526,7 @@ function calculateProductivity(state: GameState): GameState {
   const nhsGap = services.nhsQuality - 62;
   const eduGap = services.educationQuality - 68;
   const healthEffect = Math.tanh(nhsGap / 18) * 0.25; // max ~±0.25pp
-  const educationEffect = Math.tanh(eduGap / 18) * 0.30; // max ~±0.30pp
+  const educationEffect = Math.tanh(eduGap / 18) * 0.3; // max ~±0.30pp
   productivityGrowth += healthEffect + educationEffect;
 
   // 3. Innovation & R&D effect
@@ -549,9 +542,10 @@ function calculateProductivity(state: GameState): GameState {
   // 5. Tax environment for business investment
   // Corporation tax affects willingness to invest in UK
   // Lower corp tax → more investment → higher productivity (with lag)
-  const corpTaxEffect = fiscal.corporationTaxRate > 25
-    ? (25 - fiscal.corporationTaxRate) * 0.015 // Penalty for high corp tax
-    : (25 - fiscal.corporationTaxRate) * 0.010; // Smaller boost from low corp tax
+  const corpTaxEffect =
+    fiscal.corporationTaxRate > 25
+      ? (25 - fiscal.corporationTaxRate) * 0.015 // Penalty for high corp tax
+      : (25 - fiscal.corporationTaxRate) * 0.01; // Smaller boost from low corp tax
   productivityGrowth += corpTaxEffect;
 
   // 6. R&D tax credits and investment incentives
@@ -560,7 +554,7 @@ function calculateProductivity(state: GameState): GameState {
   productivityGrowth += rdCreditEffect;
 
   const annualInvestmentAllowance = getDetailedTaxRate(state, 'annualInvestmentAllowance', 1000000);
-  const aiaEffect = (annualInvestmentAllowance - 1000000) / 500000 * 0.05;
+  const aiaEffect = ((annualInvestmentAllowance - 1000000) / 500000) * 0.05;
   productivityGrowth += aiaEffect;
   if (fiscal.fullExpensing) {
     productivityGrowth += 0.08;
@@ -578,13 +572,16 @@ function calculateProductivity(state: GameState): GameState {
     // Check average capital spending over past 24 months
     // (Would need to track this properly in state - simplified for now)
     if (currentCapital < baselineCapital * 0.85) {
-      productivityGrowth -= 0.10; // Scarring effect from sustained underinvestment
+      productivityGrowth -= 0.1; // Scarring effect from sustained underinvestment
     }
   }
 
   // Gradual adjustment (productivity changes slowly)
   const currentProductivityGrowth = economic.productivityGrowthAnnual;
-  const adjustedProductivityGrowth = currentProductivityGrowth + (productivityGrowth - currentProductivityGrowth) * 0.08 - (risk.productivityMonthlyPenalty_pp || 0);
+  const adjustedProductivityGrowth =
+    currentProductivityGrowth +
+    (productivityGrowth - currentProductivityGrowth) * 0.08 -
+    (risk.productivityMonthlyPenalty_pp || 0);
 
   // Clamp to realistic UK range (-0.5% to 2.5%)
   const clampedProductivityGrowth = Math.max(-0.5, Math.min(2.5, adjustedProductivityGrowth));
@@ -633,7 +630,7 @@ function calculateGDPGrowth(state: GameState): GameState {
   // Coefficient was 0.06; raised to 0.10 to produce realistic 1.0–1.5% baseline once
   // the phantom spending-baseline bug (below) is corrected.
   const potentialGrowthTarget = 1.5;
-  const trendGrowthAnnual = rawTrendGrowthAnnual + (potentialGrowthTarget - rawTrendGrowthAnnual) * 0.10;
+  const trendGrowthAnnual = rawTrendGrowthAnnual + (potentialGrowthTarget - rawTrendGrowthAnnual) * 0.1;
   const trendGrowth = trendGrowthAnnual / 12; // Monthly
   let monthlyRealGrowth = trendGrowth;
 
@@ -658,21 +655,25 @@ function calculateGDPGrowth(state: GameState): GameState {
   const educationCurrentChange = fiscal.spending.educationCurrent - baselineEducationCurrent;
   const defenceCurrentChange = fiscal.spending.defenceCurrent - baselineDefenceCurrent;
   const welfareCurrentChange = fiscal.spending.welfareCurrent - baselineWelfareCurrent;
-  const otherCurrentChange = (fiscal.spending.policeCurrent + fiscal.spending.justiceCurrent + fiscal.spending.otherCurrent) - baselineOtherCurrent;
+  const otherCurrentChange =
+    fiscal.spending.policeCurrent +
+    fiscal.spending.justiceCurrent +
+    fiscal.spending.otherCurrent -
+    baselineOtherCurrent;
 
-  const capitalChange = (
+  const capitalChange =
     fiscal.spending.nhsCapital +
     fiscal.spending.educationCapital +
     fiscal.spending.defenceCapital +
     fiscal.spending.infrastructureCapital +
     fiscal.spending.policeCapital +
     fiscal.spending.justiceCapital +
-    fiscal.spending.otherCapital
-  ) - baselineCapital;
+    fiscal.spending.otherCapital -
+    baselineCapital;
 
   // Economic slack multiplier (higher multipliers in recession)
   const unemploymentGap = economic.unemploymentRate - 4.5;
-  const slackMultiplier = Math.max(0.9, Math.min(1.4, 1 + (unemploymentGap * 0.12)));
+  const slackMultiplier = Math.max(0.9, Math.min(1.4, 1 + unemploymentGap * 0.12));
 
   // Category-specific multipliers (short-run demand effect)
   // RECALIBRATED to match OBR/IFS evidence (reduced by ~35-40%)
@@ -683,7 +684,7 @@ function calculateGDPGrowth(state: GameState): GameState {
   let educationMultiplier = 0.65 * slackMultiplier;
 
   // Welfare/transfers: high multiplier (high MPC recipients)
-  let welfareMultiplier = 0.70 * slackMultiplier;
+  let welfareMultiplier = 0.7 * slackMultiplier;
 
   // Defence/admin: lower multiplier (some leakage, imports, procurement delays)
   let defenceMultiplier = 0.45 * slackMultiplier;
@@ -716,14 +717,16 @@ function calculateGDPGrowth(state: GameState): GameState {
 
   // Fiscal impact on demand (convert £bn changes to % GDP impact)
   const nominalGDP = economic.gdpNominal_bn;
-  const fiscalDemandImpact = (
-    nhsCurrentChange * nhsMultiplier +
-    educationCurrentChange * educationMultiplier +
-    welfareCurrentChange * welfareMultiplier +
-    defenceCurrentChange * defenceMultiplier +
-    otherCurrentChange * otherMultiplier +
-    capitalChange * capitalMultiplier
-  ) / nominalGDP * 100 / 12; // Convert to monthly % change
+  const fiscalDemandImpact =
+    (((nhsCurrentChange * nhsMultiplier +
+      educationCurrentChange * educationMultiplier +
+      welfareCurrentChange * welfareMultiplier +
+      defenceCurrentChange * defenceMultiplier +
+      otherCurrentChange * otherMultiplier +
+      capitalChange * capitalMultiplier) /
+      nominalGDP) *
+      100) /
+    12; // Convert to monthly % change
 
   monthlyRealGrowth += fiscalDemandImpact;
 
@@ -752,7 +755,12 @@ function calculateGDPGrowth(state: GameState): GameState {
   // Each 1pp income tax change affects ~£7bn (basic), ~£2bn (higher), ~£0.2bn (additional)
   // Demand impact = - (tax increase) * (income affected) * MPC * multiplier / GDP
   // Reduced multiplier from 1.0 to 0.35 following OBR methodology
-  const incomeTaxDemandEffect = -(basicRateChange * 7 * 0.45 + higherRateChange * 2 * 0.18 + additionalRateChange * 0.2 * 0.12) / nominalGDP * 100 * 0.35 * slackMultiplier / 12;
+  const incomeTaxDemandEffect =
+    ((-(basicRateChange * 7 * 0.45 + higherRateChange * 2 * 0.18 + additionalRateChange * 0.2 * 0.12) / nominalGDP) *
+      100 *
+      0.35 *
+      slackMultiplier) /
+    12;
   monthlyRealGrowth += incomeTaxDemandEffect;
 
   // NI changes: similar to income tax but affects different income distribution
@@ -765,17 +773,17 @@ function calculateGDPGrowth(state: GameState): GameState {
 
   // Employee NI affects disposable income (£6bn per pp, MPC ~0.5)
   // Reduced multiplier to 0.35
-  const niEmployeeDemandEffect = -(niEmployeeChange * 6 * 0.5) / nominalGDP * 100 * 0.35 * slackMultiplier / 12;
+  const niEmployeeDemandEffect = ((-(niEmployeeChange * 6 * 0.5) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
   // Employer NI has weaker short-run demand effect (some passed to workers, some to prices, some absorbed)
   // Reduced multiplier to 0.2
-  const niEmployerDemandEffect = -(niEmployerChange * 8.5 * 0.25) / nominalGDP * 100 * 0.2 * slackMultiplier / 12;
+  const niEmployerDemandEffect = ((-(niEmployerChange * 8.5 * 0.25) / nominalGDP) * 100 * 0.2 * slackMultiplier) / 12;
   monthlyRealGrowth += niEmployeeDemandEffect + niEmployerDemandEffect;
 
   // VAT changes: point-of-sale demand effect
   // RECALIBRATED: OBR uses ~0.35 multiplier for VAT
   const baselineVAT = 20;
   const vatChange = fiscal.vatRate - baselineVAT;
-  const vatDemandEffect = -(vatChange * 7.5 * 0.45) / nominalGDP * 100 * 0.35 * slackMultiplier / 12;
+  const vatDemandEffect = ((-(vatChange * 7.5 * 0.45) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
   monthlyRealGrowth += vatDemandEffect;
 
   // Corporation tax: SHORT-RUN supply-side effect (affects investment decisions)
@@ -787,18 +795,18 @@ function calculateGDPGrowth(state: GameState): GameState {
   // Supply-side: lower corp tax → more investment (gradual, conditional)
   // Short-run investment response: each 1pp corp tax cut adds ~£0.3bn investment (with lag)
   // Use 6-month lag: only 50% of effect hits in first month
-  const corpTaxInvestmentEffect = -(corpTaxChange * 0.3 * 0.5 * 0.3) / nominalGDP * 100 / 12; // 0.3 = multiplier
+  const corpTaxInvestmentEffect = ((-(corpTaxChange * 0.3 * 0.5 * 0.3) / nominalGDP) * 100) / 12; // 0.3 = multiplier
   monthlyRealGrowth += corpTaxInvestmentEffect;
 
   // Corp tax above 30%: accelerating discouragement (base erosion, profit shifting)
   if (fiscal.corporationTaxRate > 30) {
-    const corpTaxPenalty = (fiscal.corporationTaxRate - 30) * -0.008 / 12;
+    const corpTaxPenalty = ((fiscal.corporationTaxRate - 30) * -0.008) / 12;
     monthlyRealGrowth += corpTaxPenalty;
   }
 
   // Top income tax above 50%: labour supply and entrepreneurship effect
   if (fiscal.incomeTaxAdditionalRate > 50) {
-    const topRatePenalty = (fiscal.incomeTaxAdditionalRate - 50) * -0.003 / 12;
+    const topRatePenalty = ((fiscal.incomeTaxAdditionalRate - 50) * -0.003) / 12;
     monthlyRealGrowth += topRatePenalty;
   }
 
@@ -811,40 +819,40 @@ function calculateGDPGrowth(state: GameState): GameState {
   // The productivity step (Step 0.7) separately captures long-run human-capital effects.
 
   // Healthy workforce: NHS quality affects labour supply and absenteeism
-  const healthSupplySide = (state.services.nhsQuality - 45) * 0.002 / 12; // ref was 62; corrected to 45
+  const healthSupplySide = ((state.services.nhsQuality - 45) * 0.002) / 12; // ref was 62; corrected to 45
   monthlyRealGrowth += healthSupplySide;
 
   // Educated workforce: education quality affects human capital accumulation
-  const educationSupplySide = (state.services.educationQuality - 58) * 0.003 / 12; // ref was 68; corrected to 58
+  const educationSupplySide = ((state.services.educationQuality - 58) * 0.003) / 12; // ref was 68; corrected to 58
   monthlyRealGrowth += educationSupplySide;
 
   // Infrastructure: good infrastructure raises allocative efficiency (also captured via productivity)
-  const infraSupplySide = (state.services.infrastructureQuality - 48) * 0.002 / 12; // ref was 58; corrected to 48
+  const infraSupplySide = ((state.services.infrastructureQuality - 48) * 0.002) / 12; // ref was 58; corrected to 48
   monthlyRealGrowth += infraSupplySide;
 
   // === MONETARY CONDITIONS ===
 
   // Bank Rate / gilt yields affect borrowing costs → investment & consumption
-  const yieldEffect = (markets.giltYield10y - 4.15) * -0.015 / 12;
+  const yieldEffect = ((markets.giltYield10y - 4.15) * -0.015) / 12;
   monthlyRealGrowth += yieldEffect;
 
   // Sterling: appreciation hurts exports, depreciation helps (with lag)
-  const sterlingEffect = (markets.sterlingIndex - 100) * -0.0008 / 12;
+  const sterlingEffect = ((markets.sterlingIndex - 100) * -0.0008) / 12;
   monthlyRealGrowth += sterlingEffect;
 
   const externalDemandEffect = Math.max(
     -0.04,
-    Math.min(0.04, ((state.externalSector.currentAccountGDP - (-3.1)) * 0.05) / 12)
+    Math.min(0.04, ((state.externalSector.currentAccountGDP - -3.1) * 0.05) / 12)
   );
   monthlyRealGrowth += externalDemandEffect;
-  const housingSupplyEffect = ((state.housing.houseBuilding_annualStarts || 240000) - 240000) / 240000 * 0.025 / 12;
+  const housingSupplyEffect = ((((state.housing.houseBuilding_annualStarts || 240000) - 240000) / 240000) * 0.025) / 12;
   monthlyRealGrowth += housingSupplyEffect;
 
   if (state.externalSector.externalShockActive && state.externalSector.externalShockType === 'trade_war') {
     monthlyRealGrowth *= 0.9;
   }
   if ((state.industrialStrategy.exportShockTurnsRemaining || 0) > 0) {
-    monthlyRealGrowth += (-(0.1 + Math.random() * 0.1)) / 12;
+    monthlyRealGrowth += -(0.1 + Math.random() * 0.1) / 12;
   }
 
   // === AUTOMATIC STABILISERS ===
@@ -891,8 +899,8 @@ function calculateGDPGrowth(state: GameState): GameState {
   if (isFirstProcessedTurn) {
     const baselineNominalGrowth = economic.gdpGrowthMonthly + monthlyInflation;
     monthlyNominalGrowth = Math.max(
-      baselineNominalGrowth - 0.10,
-      Math.min(baselineNominalGrowth + 0.10, monthlyNominalGrowth)
+      baselineNominalGrowth - 0.1,
+      Math.min(baselineNominalGrowth + 0.1, monthlyNominalGrowth)
     );
     monthlyRealGrowth = monthlyNominalGrowth - monthlyInflation;
   }
@@ -932,14 +940,14 @@ function calculateExternalSector(state: GameState): GameState {
   let markets = { ...state.markets };
   let justStartedShock = false;
   const sterlingEffect = (state.markets.sterlingIndex - 100) * -0.03;
-  const growthDifferential = (state.economic.gdpGrowthAnnual - 1.0) - 1.5;
+  const growthDifferential = state.economic.gdpGrowthAnnual - 1.0 - 1.5;
   const importPressure = growthDifferential > 0 ? growthDifferential * 0.04 : 0;
   const baselineTarget = -2.5;
   ext.currentAccountGDP += (baselineTarget - ext.currentAccountGDP) * 0.02 + sterlingEffect + importPressure;
   ext.currentAccountGDP = Math.max(-8, Math.min(1, ext.currentAccountGDP));
 
   if (!ext.externalShockActive) {
-    const winterMonth = (state.metadata.currentTurn % 12);
+    const winterMonth = state.metadata.currentTurn % 12;
     const baseShockProb = (state.metadata.currentTurn < 24 ? 0.04 : 0.03) * difficulty.macroShockScale;
     if (Math.random() < baseShockProb) {
       const roll = Math.random();
@@ -1025,7 +1033,8 @@ function calculateExternalSector(state: GameState): GameState {
       trade_war: 'Global trade tensions are increasing frictions and weakening export demand.',
       partner_recession: 'Major trading partners are slowing, reducing external demand for UK output.',
       tariff_shock: 'New tariffs have been imposed on key UK exports, hitting competitiveness.',
-      banking_sector_stress: 'Financial-sector stress is lifting risk premia and tightening domestic credit conditions.',
+      banking_sector_stress:
+        'Financial-sector stress is lifting risk premia and tightening domestic credit conditions.',
     };
     return {
       ...nextState,
@@ -1120,7 +1129,7 @@ function calculateEmployment(state: GameState): GameState {
   const trendGrowth = 1.75;
   const growthGap = economic.gdpGrowthAnnual - trendGrowth;
   const okunsCoefficient = -0.45; // Calibrated to match OBR estimates
-  const unemploymentPressure = growthGap * okunsCoefficient / 12; // Monthly
+  const unemploymentPressure = (growthGap * okunsCoefficient) / 12; // Monthly
 
   let newUnemployment = economic.unemploymentRate + unemploymentPressure;
 
@@ -1138,7 +1147,7 @@ function calculateEmployment(state: GameState): GameState {
   participationRate += (childcareDelta / 10) * 0.015 * childcareLag;
 
   if (welfareRatio < 0.95) {
-    const cutScale = Math.min(1, (0.95 - welfareRatio) / 0.10);
+    const cutScale = Math.min(1, (0.95 - welfareRatio) / 0.1);
     participationRate -= 0.03 + cutScale * 0.05;
   }
 
@@ -1156,7 +1165,8 @@ function calculateEmployment(state: GameState): GameState {
   // Sectoral unemployment from public service cuts
   // Severe cuts to NHS/education cause direct job losses
   const nhsEmploymentEffect = state.services.nhsQuality < 50 ? (50 - state.services.nhsQuality) * 0.002 : 0;
-  const educationEmploymentEffect = state.services.educationQuality < 55 ? (55 - state.services.educationQuality) * 0.001 : 0;
+  const educationEmploymentEffect =
+    state.services.educationQuality < 55 ? (55 - state.services.educationQuality) * 0.001 : 0;
   newUnemployment += nhsEmploymentEffect + educationEmploymentEffect;
 
   // Clamp to reasonable range
@@ -1217,25 +1227,25 @@ function calculateInflation(state: GameState): GameState {
   // If anchored: 40% on Target (2.0%)
   // If de-anchored: 40% on Recent Trend (adaptive)
   const totalExpectationsWeight = 0.55;
-  const anchorWeight = (anchorHealth / 100); // 1.0 = fully anchored, 0.0 = fully adaptive
+  const anchorWeight = anchorHealth / 100; // 1.0 = fully anchored, 0.0 = fully adaptive
 
   const previousExpectations = economic.inflationExpectations ?? economic.inflationCPI;
   const adaptiveExpectation = previousExpectations * 0.7 + economic.inflationCPI * 0.3;
   const targetAnchoredExpectation = 2.0 * 0.3 + economic.inflationCPI * 0.7;
   const inflationExpectations = anchorHealth < 60 ? adaptiveExpectation : targetAnchoredExpectation;
   const recentTrend = inflationExpectations;
-  const expectationsTerm = (2.0 * anchorWeight * totalExpectationsWeight) +
-    (recentTrend * (1 - anchorWeight) * totalExpectationsWeight);
+  const expectationsTerm =
+    2.0 * anchorWeight * totalExpectationsWeight + recentTrend * (1 - anchorWeight) * totalExpectationsWeight;
 
   // Persistence (20%): inflation has inertia
-  const persistence = economic.inflationCPI * 0.20;
+  const persistence = economic.inflationCPI * 0.2;
 
   // Domestic pressure (15%): Phillips curve
   const domesticPressure = (2.0 + unemploymentGap * 0.5) * 0.15;
 
   // Import prices (10%): sterling effect
   const sterlingChange = (100 - markets.sterlingIndex) / 100;
-  const importPressure = (2.0 + sterlingChange * 8.0) * 0.10;
+  const importPressure = (2.0 + sterlingChange * 8.0) * 0.1;
 
   // VAT pass-through (one-off level effect spread over months)
   const vatChange = fiscal.vatRate - 20;
@@ -1251,10 +1261,19 @@ function calculateInflation(state: GameState): GameState {
   const rentInflationEffect = ((state.housing.rentInflation_pct || 6) - 6) * 0.08;
   const affordabilityServicesEffect = state.housing.housingAffordabilityIndex < 40 ? 0.2 : 0;
 
-  let inflation = persistence + expectationsTerm + domesticPressure + importPressure + vatEffect + wagePressure + energyImportInflationEffect + rentInflationEffect + affordabilityServicesEffect;
+  let inflation =
+    persistence +
+    expectationsTerm +
+    domesticPressure +
+    importPressure +
+    vatEffect +
+    wagePressure +
+    energyImportInflationEffect +
+    rentInflationEffect +
+    affordabilityServicesEffect;
 
   // Small random component
-  const randomShock = (Math.random() - 0.5) * 0.50 * difficulty.inflationShockScale;
+  const randomShock = (Math.random() - 0.5) * 0.5 * difficulty.inflationShockScale;
   inflation += randomShock;
 
   // Clamp to realistic UK range (deflation to high but not hyperinflation - unless de-anchored!)
@@ -1312,11 +1331,9 @@ function calculateBankRate(state: GameState): GameState {
   const { economic, markets } = state;
 
   const realWageGap = economic.wageGrowthAnnual - economic.inflationCPI;
-  const wagePressure = realWageGap > 2.0 ? (realWageGap - 2.0) : 0;
+  const wagePressure = realWageGap > 2.0 ? realWageGap - 2.0 : 0;
 
-  const inflationForecastSimple =
-    economic.inflationCPI * 0.7 +
-    (2.0 + wagePressure * 0.15) * 0.3;
+  const inflationForecastSimple = economic.inflationCPI * 0.7 + (2.0 + wagePressure * 0.15) * 0.3;
 
   const inflationGap = inflationForecastSimple - 2.0;
   const outputGap = economic.gdpGrowthAnnual - 1.0;
@@ -1337,7 +1354,7 @@ function calculateBankRate(state: GameState): GameState {
       3.25 +
       (1.1 + member.inflationWeight) * inflationGap +
       (0.6 + (1 - member.inflationWeight) * 0.3) * outputGap +
-      stanceBias(member.stance);
+      stanceBias(member.stance as 'dovish' | 'neutral' | 'hawkish');
     const preferredRate = Math.round(Math.max(0.1, Math.min(8.0, memberTaylor)) * 4) / 4;
     const delta = preferredRate - currentRate;
     let vote: 'cut' | 'hold' | 'hike' = 'hold';
@@ -1354,7 +1371,7 @@ function calculateBankRate(state: GameState): GameState {
   else if (cutVotes > holdVotes && cutVotes > hikeVotes) decision = 'cut';
   else if ((hikeVotes === holdVotes || cutVotes === holdVotes) && members.some((m) => m.role === 'Governor')) {
     const governorVote = members.find((m) => m.role === 'Governor')?.vote || 'hold';
-    decision = governorVote;
+    decision = governorVote as 'cut' | 'hold' | 'hike';
   }
 
   let newRate = currentRate;
@@ -1362,7 +1379,8 @@ function calculateBankRate(state: GameState): GameState {
   if (decision === 'cut') newRate = currentRate - 0.25;
   newRate = Math.round(Math.max(0.1, Math.min(8.0, newRate)) * 4) / 4;
 
-  const qtShouldPause = state.markets.giltYield10y > 6.2 || state.externalSector.externalShockType === 'banking_sector_stress';
+  const qtShouldPause =
+    state.markets.giltYield10y > 6.2 || state.externalSector.externalShockType === 'banking_sector_stress';
   const qtPausedTurns = qtShouldPause ? 2 : Math.max(0, (markets.qtPausedTurns || 0) - 1);
   const qtRundown = qtPausedTurns > 0 ? 0 : 1.8;
   const assetPurchaseFacility_bn = Math.max(0, (markets.assetPurchaseFacility_bn || 875) - qtRundown);
@@ -1401,7 +1419,8 @@ function calculateTaxRevenues(state: GameState): GameState {
 
   // Income tax (elasticity 1.1 to nominal GDP)
   const incomeTaxBase = 285;
-  const incomeTaxRateEffect = (fiscal.incomeTaxBasicRate - 20) * 7.0 +
+  const incomeTaxRateEffect =
+    (fiscal.incomeTaxBasicRate - 20) * 7.0 +
     (fiscal.incomeTaxHigherRate - 40) * 2.0 +
     (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
   const personalAllowanceEffect = ((12570 - (fiscal.personalAllowance || 12570)) / 100) * 0.6;
@@ -1428,7 +1447,15 @@ function calculateTaxRevenues(state: GameState): GameState {
     additionalRateAvoidanceLoss = 54 * avoidanceRate * effectiveTaxAvoidanceScale;
   }
 
-  const incomeTaxRevenue = (incomeTaxBase + incomeTaxRateEffect + personalAllowanceEffect + basicThresholdEffect + higherThresholdEffect - additionalRateAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.1) * fiscalDragMultiplier;
+  const incomeTaxRevenue =
+    (incomeTaxBase +
+      incomeTaxRateEffect +
+      personalAllowanceEffect +
+      basicThresholdEffect +
+      higherThresholdEffect -
+      additionalRateAvoidanceLoss) *
+    Math.pow(nominalGDPRatio, 1.1) *
+    fiscalDragMultiplier;
 
   // National Insurance (elasticity 1.0)
   // Employee NI + Employer NI combined
@@ -1457,7 +1484,9 @@ function calculateTaxRevenues(state: GameState): GameState {
     niEmployerAvoidanceLoss = (niBase * 0.4 + niEmployerRateEffect) * avoidanceRate * effectiveTaxAvoidanceScale;
   }
 
-  const niRevenue = (niBase + niEmployeeRateEffect + niEmployerRateEffect - niEmployeeAvoidanceLoss - niEmployerAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.0);
+  const niRevenue =
+    (niBase + niEmployeeRateEffect + niEmployerRateEffect - niEmployeeAvoidanceLoss - niEmployerAvoidanceLoss) *
+    Math.pow(nominalGDPRatio, 1.0);
 
   // VAT (elasticity 1.0 to consumption)
   const vatBase = 192;
@@ -1496,16 +1525,30 @@ function calculateTaxRevenues(state: GameState): GameState {
 
   // UPDATED: Reduced elasticity from 1.3 to 1.05 to match OBR estimates
   const fullExpensingCost = fiscal.fullExpensing ? 3.5 : 0;
-  const corpTaxRevenue = Math.max(0, (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss - fullExpensingCost) * Math.pow(nominalGDPRatio, 1.05));
+  const corpTaxRevenue = Math.max(
+    0,
+    (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss - fullExpensingCost) * Math.pow(nominalGDPRatio, 1.05)
+  );
 
   // Other taxes (elasticity 0.8)
   const otherRevenue = 323 * Math.pow(nominalGDPRatio, 0.8);
   const baseStampDuty = 16;
-  const stampDutyRateDelta = getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5) - (BASELINE_DETAILED_TAX.stampDuty || 5);
-  const sdltFirstTimeThresholdDelta_k = (getDetailedTaxRate(state, 'sdltFirstTimeBuyerThreshold', BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000) - (BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000)) / 1000;
+  const stampDutyRateDelta =
+    getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5) -
+    (BASELINE_DETAILED_TAX.stampDuty || 5);
+  const sdltFirstTimeThresholdDelta_k =
+    (getDetailedTaxRate(
+      state,
+      'sdltFirstTimeBuyerThreshold',
+      BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000
+    ) -
+      (BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000)) /
+    1000;
   const sdltSurchargeDelta = (fiscal.sdltAdditionalDwellingsSurcharge || 3) - 3;
-  const stampDutyMechanical = baseStampDuty + (stampDutyRateDelta * 1.5) + (sdltSurchargeDelta * 0.5) - (sdltFirstTimeThresholdDelta_k * 0.004);
-  const stampDutyRevenue = Math.max(0, stampDutyMechanical) *
+  const stampDutyMechanical =
+    baseStampDuty + stampDutyRateDelta * 1.5 + sdltSurchargeDelta * 0.5 - sdltFirstTimeThresholdDelta_k * 0.004;
+  const stampDutyRevenue =
+    Math.max(0, stampDutyMechanical) *
     Math.pow(Math.max(0.6, state.financialStability.housePriceIndex / 100), 1.2) *
     Math.max(0.4, state.financialStability.mortgageApprovals / 60) *
     Math.max(0.65, 1 - (sdltSurchargeDelta * 0.04 + Math.max(0, stampDutyRateDelta) * 0.03));
@@ -1513,29 +1556,32 @@ function calculateTaxRevenues(state: GameState): GameState {
   // Revenue adjustment from budget system reckoners (CGT, IHT, excise duties, reliefs, etc.)
   const revenueAdj = fiscal.revenueAdjustment_bn || 0;
   const upratingRegime = fiscal.thresholdUprating || 'frozen';
-  const monthlyCpiFactor = 1 + (economic.inflationCPI / 100 / 12);
-  const monthlyEarningsFactor = 1 + (economic.wageGrowthAnnual / 100 / 12);
-  const nextPersonalAllowance = upratingRegime === 'cpi_linked'
-    ? fiscal.personalAllowance * monthlyCpiFactor
-    : upratingRegime === 'earnings_linked'
-      ? fiscal.personalAllowance * monthlyEarningsFactor
-      : fiscal.personalAllowance;
-  const nextBasicUpperThreshold = upratingRegime === 'cpi_linked'
-    ? fiscal.basicRateUpperThreshold * monthlyCpiFactor
-    : upratingRegime === 'earnings_linked'
-      ? fiscal.basicRateUpperThreshold * monthlyEarningsFactor
-      : fiscal.basicRateUpperThreshold;
-  const nextHigherUpperThreshold = upratingRegime === 'cpi_linked'
-    ? fiscal.higherRateUpperThreshold * monthlyCpiFactor
-    : upratingRegime === 'earnings_linked'
-      ? fiscal.higherRateUpperThreshold * monthlyEarningsFactor
-      : fiscal.higherRateUpperThreshold;
-  const nextFreezeMonths = upratingRegime === 'frozen'
-    ? (fiscal.thresholdFreezeMonths || 0) + 1
-    : 0;
+  const monthlyCpiFactor = 1 + economic.inflationCPI / 100 / 12;
+  const monthlyEarningsFactor = 1 + economic.wageGrowthAnnual / 100 / 12;
+  const nextPersonalAllowance =
+    upratingRegime === 'cpi_linked'
+      ? fiscal.personalAllowance * monthlyCpiFactor
+      : upratingRegime === 'earnings_linked'
+        ? fiscal.personalAllowance * monthlyEarningsFactor
+        : fiscal.personalAllowance;
+  const nextBasicUpperThreshold =
+    upratingRegime === 'cpi_linked'
+      ? fiscal.basicRateUpperThreshold * monthlyCpiFactor
+      : upratingRegime === 'earnings_linked'
+        ? fiscal.basicRateUpperThreshold * monthlyEarningsFactor
+        : fiscal.basicRateUpperThreshold;
+  const nextHigherUpperThreshold =
+    upratingRegime === 'cpi_linked'
+      ? fiscal.higherRateUpperThreshold * monthlyCpiFactor
+      : upratingRegime === 'earnings_linked'
+        ? fiscal.higherRateUpperThreshold * monthlyEarningsFactor
+        : fiscal.higherRateUpperThreshold;
+  const nextFreezeMonths = upratingRegime === 'frozen' ? (fiscal.thresholdFreezeMonths || 0) + 1 : 0;
 
   // Apply adviser bonus (Treasury Mandarin +3%, Technocratic Centrist +2%)
-  const totalRevenueAnnual = (incomeTaxRevenue + niRevenue + vatRevenue + corpTaxRevenue + otherRevenue + stampDutyRevenue + revenueAdj) * adviserBonuses.taxRevenueMultiplier;
+  const totalRevenueAnnual =
+    (incomeTaxRevenue + niRevenue + vatRevenue + corpTaxRevenue + otherRevenue + stampDutyRevenue + revenueAdj) *
+    adviserBonuses.taxRevenueMultiplier;
 
   return {
     ...state,
@@ -1571,9 +1617,7 @@ function calculateSpendingEffects(state: GameState): GameState {
   };
 
   // Recalculate total departmental spending from breakdown (with stabilizer)
-  const departmentalSpending = DEPARTMENTAL_SPENDING_KEYS.reduce(
-    (sum, key) => sum + adjustedSpending[key], 0
-  );
+  const departmentalSpending = DEPARTMENTAL_SPENDING_KEYS.reduce((sum, key) => sum + adjustedSpending[key], 0);
 
   return {
     ...state,
@@ -1618,10 +1662,10 @@ function calculateFiscalBalance(state: GameState): GameState {
   const { debtManagement, refinancingPremiumRiskModifier } = advanceDebtManagement(state);
   const profile = debtManagement.maturityProfile;
   const debtInterestFromBuckets =
-    (profile.shortTerm.outstanding_bn * state.markets.bankRate / 100) +
-    (profile.medium.outstanding_bn * profile.medium.avgCoupon / 100) +
-    (profile.longTerm.outstanding_bn * profile.longTerm.avgCoupon / 100) +
-    (profile.indexLinked.outstanding_bn * (economic.inflationCPI + 0.5) / 100);
+    (profile.shortTerm.outstanding_bn * state.markets.bankRate) / 100 +
+    (profile.medium.outstanding_bn * profile.medium.avgCoupon) / 100 +
+    (profile.longTerm.outstanding_bn * profile.longTerm.avgCoupon) / 100 +
+    (profile.indexLinked.outstanding_bn * (economic.inflationCPI + 0.5)) / 100;
   const debtInterest_bn = debtInterestFromBuckets * (1 - adviserBonuses.debtInterestReduction / 100);
 
   // Total managed expenditure = departmental spending + debt interest
@@ -1629,7 +1673,7 @@ function calculateFiscalBalance(state: GameState): GameState {
 
   // Add emergency programme rebuilding costs
   const emergencyRebuildingCosts = emergencyProgrammes.active
-    .filter(prog => prog.remainingMonths > 0)
+    .filter((prog) => prog.remainingMonths > 0)
     .reduce((sum, prog) => sum + prog.rebuildingCostPerMonth_bn, 0);
 
   totalManagedExpenditure += emergencyRebuildingCosts;
@@ -1662,7 +1706,7 @@ function calculateFiscalBalance(state: GameState): GameState {
   const deficitPctGDP = (deficit_bn / economic.gdpNominal_bn) * 100;
 
   // Update debt stock (monthly increment)
-  const newDebt = fiscal.debtNominal_bn + (deficit_bn / 12);
+  const newDebt = fiscal.debtNominal_bn + deficit_bn / 12;
   const debtPctGDP = (newDebt / economic.gdpNominal_bn) * 100;
 
   // Fiscal headroom: how much room before breaching stability rule
@@ -1677,7 +1721,11 @@ function calculateFiscalBalance(state: GameState): GameState {
     fiscal.spending.justiceCapital +
     fiscal.spending.otherCapital;
 
-  const currentBudgetBalance = fiscal.totalRevenue_bn - (fiscal.totalSpending_bn - totalCapitalSpending) - debtInterest_bn - emergencyRebuildingCosts;
+  const currentBudgetBalance =
+    fiscal.totalRevenue_bn -
+    (fiscal.totalSpending_bn - totalCapitalSpending) -
+    debtInterest_bn -
+    emergencyRebuildingCosts;
   // Translate raw current-year balance to rule-specific headroom so the Dashboard
   // displays a figure that reflects the chosen fiscal framework's own threshold.
   const chosenRule = getFiscalRuleById(state.political.chosenFiscalRule);
@@ -1688,7 +1736,7 @@ function calculateFiscalBalance(state: GameState): GameState {
     economic.gdpNominal_bn,
     fiscal.totalRevenue_bn,
     fiscal.totalSpending_bn,
-    debtInterest_bn,
+    debtInterest_bn
   );
 
   const updatedPolicyRiskModifiers = refinancingPremiumRiskModifier
@@ -1712,7 +1760,10 @@ function calculateFiscalBalance(state: GameState): GameState {
   };
 }
 
-function advanceDebtManagement(state: GameState): { debtManagement: GameState['debtManagement']; refinancingPremiumRiskModifier: any | null } {
+function advanceDebtManagement(state: GameState): {
+  debtManagement: GameState['debtManagement'];
+  refinancingPremiumRiskModifier: any | null;
+} {
   const dm = state.debtManagement;
   const profile = {
     shortTerm: { ...dm.maturityProfile.shortTerm },
@@ -1772,11 +1823,15 @@ function advanceDebtManagement(state: GameState): { debtManagement: GameState['d
   const qeHoldings_bn = Math.max(0, dm.qeHoldings_bn - 8);
   const totalDebt = Math.max(1, state.fiscal.debtNominal_bn);
   const weightedAverageMaturity =
-    ((profile.shortTerm.outstanding_bn * 2) +
-      (profile.medium.outstanding_bn * 6.5) +
-      (profile.longTerm.outstanding_bn * 18) +
-      (profile.indexLinked.outstanding_bn * 12)) / totalDebt;
-  const refinancingRisk = Math.max(0, Math.min(100, (profile.shortTerm.outstanding_bn / totalDebt) * 150 + (100 - qeHoldings_bn / 10)));
+    (profile.shortTerm.outstanding_bn * 2 +
+      profile.medium.outstanding_bn * 6.5 +
+      profile.longTerm.outstanding_bn * 18 +
+      profile.indexLinked.outstanding_bn * 12) /
+    totalDebt;
+  const refinancingRisk = Math.max(
+    0,
+    Math.min(100, (profile.shortTerm.outstanding_bn / totalDebt) * 150 + (100 - qeHoldings_bn / 10))
+  );
 
   const snapshots = state.simulation.monthlySnapshots || [];
   const sixAgo = snapshots.length >= 6 ? snapshots[snapshots.length - 6] : null;
@@ -1795,11 +1850,12 @@ function advanceDebtManagement(state: GameState): { debtManagement: GameState['d
   let rolloverRiskPremium_bps = previousRolloverRiskPremium;
   let strategyYieldEffect_bps = 0;
 
-  const totalOutstanding = Math.max(1,
+  const totalOutstanding = Math.max(
+    1,
     profile.shortTerm.outstanding_bn +
-    profile.medium.outstanding_bn +
-    profile.longTerm.outstanding_bn +
-    profile.indexLinked.outstanding_bn
+      profile.medium.outstanding_bn +
+      profile.longTerm.outstanding_bn +
+      profile.indexLinked.outstanding_bn
   );
   const indexLinkedShare = profile.indexLinked.outstanding_bn / totalOutstanding;
 
@@ -1818,9 +1874,14 @@ function advanceDebtManagement(state: GameState): { debtManagement: GameState['d
   }
 
   const projectedDebtInterestByStrategy_bn = {
-    short: Math.max(0, state.fiscal.debtInterest_bn + (state.fiscal.debtNominal_bn * -0.0007) + (rolloverRiskPremium_bps / 10000) * state.fiscal.debtNominal_bn),
+    short: Math.max(
+      0,
+      state.fiscal.debtInterest_bn +
+        state.fiscal.debtNominal_bn * -0.0007 +
+        (rolloverRiskPremium_bps / 10000) * state.fiscal.debtNominal_bn
+    ),
     balanced: Math.max(0, state.fiscal.debtInterest_bn),
-    long: Math.max(0, state.fiscal.debtInterest_bn + (state.fiscal.debtNominal_bn * 0.001)),
+    long: Math.max(0, state.fiscal.debtInterest_bn + state.fiscal.debtNominal_bn * 0.001),
   };
 
   return {
@@ -1842,7 +1903,8 @@ function triggerSpendingReviewIfDue(state: GameState): GameState {
   const sr = state.spendingReview;
   if (!sr || sr.inReview) return state;
   const scheduledReviewTurns = new Set([1, 37]);
-  const isScheduledReview = scheduledReviewTurns.has(state.metadata.currentTurn) && sr.lastReviewTurn < state.metadata.currentTurn;
+  const isScheduledReview =
+    scheduledReviewTurns.has(state.metadata.currentTurn) && sr.lastReviewTurn < state.metadata.currentTurn;
   if (!isScheduledReview) return state;
   return {
     ...state,
@@ -1905,20 +1967,28 @@ function processLegislativePipeline(state: GameState): GameState {
     }
     return item;
   });
-  const antiAvoidanceNowActive = delayedQueue.some((item) => item.measureId.includes('anti_avoidance') && item.status === 'active');
-  const hasComplianceModifier = (state.policyRiskModifiers || []).some((modifier) => modifier.id.startsWith('anti_avoidance_effect_'));
-  const policyRiskModifiers: GameState['policyRiskModifiers'] = antiAvoidanceNowActive && !hasComplianceModifier
-    ? [
-      ...(state.policyRiskModifiers || []),
-      {
-        id: `anti_avoidance_effect_${state.metadata.currentTurn}`,
-        type: 'tax_compliance_boost' as const,
-        turnsRemaining: 12,
-        taxAvoidanceScaleDelta: -Math.min(0.5, Math.max(0, (state.fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3) * 0.15),
-        description: 'HMRC compliance programme is now reducing tax avoidance.',
-      },
-    ]
-    : state.policyRiskModifiers;
+  const antiAvoidanceNowActive = delayedQueue.some(
+    (item) => item.measureId.includes('anti_avoidance') && item.status === 'active'
+  );
+  const hasComplianceModifier = (state.policyRiskModifiers || []).some((modifier) =>
+    modifier.id.startsWith('anti_avoidance_effect_')
+  );
+  const policyRiskModifiers: GameState['policyRiskModifiers'] =
+    antiAvoidanceNowActive && !hasComplianceModifier
+      ? [
+          ...(state.policyRiskModifiers || []),
+          {
+            id: `anti_avoidance_effect_${state.metadata.currentTurn}`,
+            type: 'tax_compliance_boost' as const,
+            turnsRemaining: 12,
+            taxAvoidanceScaleDelta: -Math.min(
+              0.5,
+              Math.max(0, (state.fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3) * 0.15
+            ),
+            description: 'HMRC compliance programme is now reducing tax avoidance.',
+          },
+        ]
+      : state.policyRiskModifiers;
 
   return {
     ...state,
@@ -1926,7 +1996,10 @@ function processLegislativePipeline(state: GameState): GameState {
       ...state.legislativePipeline,
       queue: delayedQueue,
       hmrcSystemsCapacity: hmrcCapacityBase,
-      consultationLoad: Math.max(0, Math.min(100, (state.legislativePipeline.consultationLoad || 0) - 1 + (overload > 0 ? 4 : 0))),
+      consultationLoad: Math.max(
+        0,
+        Math.min(100, (state.legislativePipeline.consultationLoad || 0) - 1 + (overload > 0 ? 4 : 0))
+      ),
     },
     policyRiskModifiers,
   };
@@ -1942,12 +2015,15 @@ function processIndustrialStrategy(state: GameState): GameState {
     const next = { ...intervention, turnsActive: intervention.turnsActive + 1 };
     if (!next.outcomeRevealed && next.turnsActive >= next.turnsToEffect) {
       const draw = Math.random();
-      const adjustedSuccess = Math.max(0.2, Math.min(0.9, next.successProbability - (difficulty.macroShockScale - 1) * 0.08));
+      const adjustedSuccess = Math.max(
+        0.2,
+        Math.min(0.9, next.successProbability - (difficulty.macroShockScale - 1) * 0.08)
+      );
       next.outcomeRevealed = true;
       if (draw <= adjustedSuccess) {
         next.outcome = 'success';
         if (next.sector === 'clean_energy') productivityBoostAccumulated += 0.12;
-        else if (next.sector === 'life_sciences') productivityBoostAccumulated += 0.10;
+        else if (next.sector === 'life_sciences') productivityBoostAccumulated += 0.1;
         else if (next.sector === 'advanced_manufacturing') productivityBoostAccumulated += 0.08;
         else if (next.sector === 'digital') productivityBoostAccumulated += 0.06;
         else if (next.sector === 'defence') productivityBoostAccumulated += 0.05;
@@ -1965,7 +2041,7 @@ function processIndustrialStrategy(state: GameState): GameState {
   });
 
   const totalAnnualCost_bn = activeInterventions.reduce((sum, item) => sum + item.annualCost_bn, 0);
-  let stateAidRisk = (state.industrialStrategy.stateAidRisk || 15);
+  let stateAidRisk = state.industrialStrategy.stateAidRisk || 15;
   if (totalAnnualCost_bn > 4) {
     stateAidRisk = Math.min(100, stateAidRisk + (totalAnnualCost_bn - 4) * 1.6);
   } else {
@@ -1984,7 +2060,9 @@ function processIndustrialStrategy(state: GameState): GameState {
       productivityBoostAccumulated,
       failedInterventionCount,
       stateAidRisk,
-      exportShockTurnsRemaining: disputeTriggered ? 6 : Math.max(0, (state.industrialStrategy.exportShockTurnsRemaining || 0) - 1),
+      exportShockTurnsRemaining: disputeTriggered
+        ? 6
+        : Math.max(0, (state.industrialStrategy.exportShockTurnsRemaining || 0) - 1),
     },
     political: {
       ...state.political,
@@ -1994,28 +2072,28 @@ function processIndustrialStrategy(state: GameState): GameState {
 }
 
 function processCapitalDelivery(state: GameState): GameState {
-  const annualCapacity = (state.capitalDelivery.pipelineCapacity_bn || 80);
+  const annualCapacity = state.capitalDelivery.pipelineCapacity_bn || 80;
   const monthlyCapacity = annualCapacity / 12;
-  const plannedCapitalMonthly = (
-    state.fiscal.spending.nhsCapital +
-    state.fiscal.spending.educationCapital +
-    state.fiscal.spending.defenceCapital +
-    state.fiscal.spending.infrastructureCapital +
-    state.fiscal.spending.policeCapital +
-    state.fiscal.spending.justiceCapital +
-    state.fiscal.spending.otherCapital
-  ) / 12;
+  const plannedCapitalMonthly =
+    (state.fiscal.spending.nhsCapital +
+      state.fiscal.spending.educationCapital +
+      state.fiscal.spending.defenceCapital +
+      state.fiscal.spending.infrastructureCapital +
+      state.fiscal.spending.policeCapital +
+      state.fiscal.spending.justiceCapital +
+      state.fiscal.spending.otherCapital) /
+    12;
 
-  const deliverableMonthly = monthlyCapacity * Math.max(0.5, Math.min(1.0, state.capitalDelivery.deliveryRiskMultiplier || 0.9));
+  const deliverableMonthly =
+    monthlyCapacity * Math.max(0.5, Math.min(1.0, state.capitalDelivery.deliveryRiskMultiplier || 0.9));
   const deferredCapital_bn = Math.max(0, plannedCapitalMonthly - deliverableMonthly);
   const overProgrammeRatio = monthlyCapacity > 0 ? plannedCapitalMonthly / monthlyCapacity : 1;
-  const overCapacityTurns = overProgrammeRatio > 1.2
-    ? (state.capitalDelivery.overCapacityTurns || 0) + 1
-    : 0;
+  const overCapacityTurns = overProgrammeRatio > 1.2 ? (state.capitalDelivery.overCapacityTurns || 0) + 1 : 0;
 
-  const deliveryRiskMultiplier = overCapacityTurns >= 3
-    ? Math.max(0.5, (state.capitalDelivery.deliveryRiskMultiplier || 0.9) - 0.05)
-    : Math.min(1.0, (state.capitalDelivery.deliveryRiskMultiplier || 0.9) + 0.01);
+  const deliveryRiskMultiplier =
+    overCapacityTurns >= 3
+      ? Math.max(0.5, (state.capitalDelivery.deliveryRiskMultiplier || 0.9) - 0.05)
+      : Math.min(1.0, (state.capitalDelivery.deliveryRiskMultiplier || 0.9) + 0.01);
 
   const annualGrowth = Math.pow(1.02, 1 / 12);
   return {
@@ -2034,21 +2112,32 @@ function processHousingSupply(state: GameState): GameState {
   const housing = state.housing;
   const mortgageRate = state.markets.mortgageRate2y;
   const baselineStarts = 240000;
-  const planningDrag = 1 - (housing.planningBottleneck / 200);
+  const planningDrag = 1 - housing.planningBottleneck / 200;
   const infraUnlock = 1 + ((housing.infrastructureGuarantees_bn || 0) / 50) * 0.15;
   const reformMultiplier = housing.planningReformPackage ? 1.12 : 1.0;
   const rateDrag = (mortgageRate - 5.0) * 3000;
   const councilBoost = (housing.councilHouseBuildingGrant_bn || 0) * 8000;
-  const starts = Math.max(120000, baselineStarts * planningDrag * infraUnlock * reformMultiplier - rateDrag + councilBoost);
+  const starts = Math.max(
+    120000,
+    baselineStarts * planningDrag * infraUnlock * reformMultiplier - rateDrag + councilBoost
+  );
 
   const planningBottleneck = housing.planningReformPackage
     ? Math.max(20, housing.planningBottleneck - 2)
-    : ((state.metadata.currentTurn % 6 === 0) ? Math.min(90, housing.planningBottleneck + 1) : housing.planningBottleneck);
+    : state.metadata.currentTurn % 6 === 0
+      ? Math.min(90, housing.planningBottleneck + 1)
+      : housing.planningBottleneck;
 
   const demandPressure = (housing.htbAndSharedOwnership_bn || 0) * 0.5;
   const affordabilityDelta = ((starts - baselineStarts) / 120000) * 3 - demandPressure;
   const housingAffordabilityIndex = Math.max(5, Math.min(95, housing.housingAffordabilityIndex + affordabilityDelta));
-  const rentInflation_pct = Math.max(1, Math.min(12, housing.rentInflation_pct + (starts < baselineStarts ? 0.15 : -0.1) + (housingAffordabilityIndex < 40 ? 0.2 : 0)));
+  const rentInflation_pct = Math.max(
+    1,
+    Math.min(
+      12,
+      housing.rentInflation_pct + (starts < baselineStarts ? 0.15 : -0.1) + (housingAffordabilityIndex < 40 ? 0.2 : 0)
+    )
+  );
 
   return {
     ...state,
@@ -2061,9 +2150,10 @@ function processHousingSupply(state: GameState): GameState {
     },
     economic: {
       ...state.economic,
-      economicInactivity: Math.max(16, Math.min(28,
-        state.economic.economicInactivity + (housingAffordabilityIndex < 40 ? (0.1 / 12) : -0.02 / 12)
-      )),
+      economicInactivity: Math.max(
+        16,
+        Math.min(28, state.economic.economicInactivity + (housingAffordabilityIndex < 40 ? 0.1 / 12 : -0.02 / 12))
+      ),
     },
   };
 }
@@ -2077,9 +2167,14 @@ function processAnnualPayRounds(state: GameState): GameState {
 
   const nhsAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.nhsQuality) * 0.2;
   const teachersAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.educationQuality) * 0.2;
-  const civilAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure((state.services.policingEffectiveness + state.services.courtBacklogPerformance) / 2) * 0.2;
-  const armedAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.infrastructureQuality) * 0.2;
-  const policeAward = cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.policingEffectiveness) * 0.2;
+  const civilAward =
+    cpiAvg * 0.9 +
+    productivity * 0.3 +
+    recruitmentPressure((state.services.policingEffectiveness + state.services.courtBacklogPerformance) / 2) * 0.2;
+  const armedAward =
+    cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.infrastructureQuality) * 0.2;
+  const policeAward =
+    cpiAvg * 0.9 + productivity * 0.3 + recruitmentPressure(state.services.policingEffectiveness) * 0.2;
 
   const nhsWeightRaw = 0.55;
   const teachersWeightRaw = 0.22;
@@ -2118,8 +2213,14 @@ function processAnnualPayRounds(state: GameState): GameState {
     services: {
       ...state.services,
       nhsQuality: Math.min(100, state.services.nhsQuality + Math.max(-0.2, (nhsAward - cpiAvg) * 0.08)),
-      educationQuality: Math.min(100, state.services.educationQuality + Math.max(-0.2, (teachersAward - cpiAvg) * 0.08)),
-      policingEffectiveness: Math.min(100, state.services.policingEffectiveness + Math.max(-0.2, (policeAward - cpiAvg) * 0.06)),
+      educationQuality: Math.min(
+        100,
+        state.services.educationQuality + Math.max(-0.2, (teachersAward - cpiAvg) * 0.08)
+      ),
+      policingEffectiveness: Math.min(
+        100,
+        state.services.policingEffectiveness + Math.max(-0.2, (policeAward - cpiAvg) * 0.06)
+      ),
     },
   };
 }
@@ -2211,22 +2312,20 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
 
   // Current budget balance: revenue - (spending excl. investment) - debt interest
   // Investment spending (all capital) is excluded from the current budget
-  const currentBudgetBalance = fiscal.totalRevenue_bn -
-    (fiscal.totalSpending_bn - totalCapitalSpending) -
-    fiscal.debtInterest_bn;
-  const currentBudgetMet = !rule.rules.currentBudgetBalance || (currentBudgetBalance + OBR_HEADROOM_CALIBRATION) >= -0.5;
+  const currentBudgetBalance =
+    fiscal.totalRevenue_bn - (fiscal.totalSpending_bn - totalCapitalSpending) - fiscal.debtInterest_bn;
+  const currentBudgetMet = !rule.rules.currentBudgetBalance || currentBudgetBalance + OBR_HEADROOM_CALIBRATION >= -0.5;
 
   // Overall balance: total revenue >= total spending + debt interest
   const overallBalance = fiscal.totalRevenue_bn - fiscal.totalSpending_bn - fiscal.debtInterest_bn;
   const overallBalanceMet = !rule.rules.overallBalance || overallBalance >= -0.5;
 
   // Deficit ceiling
-  const deficitCeilingMet = rule.rules.deficitCeiling === undefined ||
-    fiscal.deficitPctGDP <= rule.rules.deficitCeiling;
+  const deficitCeilingMet =
+    rule.rules.deficitCeiling === undefined || fiscal.deficitPctGDP <= rule.rules.deficitCeiling;
 
   // Debt target
-  const debtTargetMet = rule.rules.debtTarget === undefined ||
-    fiscal.debtPctGDP <= rule.rules.debtTarget;
+  const debtTargetMet = rule.rules.debtTarget === undefined || fiscal.debtPctGDP <= rule.rules.debtTarget;
 
   // Debt falling: assessment depends on the rule's time horizon and investment exemption
   // Jeremy Hunt (no capex exemption, 5yr horizon): debt/GDP falls when deficit is on a path
@@ -2245,17 +2344,16 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
       // Long/medium horizon: current budget balance is the operationally correct test
       const cbBalanceForDebt =
         fiscal.totalRevenue_bn -
-        (fiscal.totalSpending_bn - (
-          fiscal.spending.nhsCapital +
-          fiscal.spending.educationCapital +
-          fiscal.spending.defenceCapital +
-          fiscal.spending.infrastructureCapital +
-          fiscal.spending.policeCapital +
-          fiscal.spending.justiceCapital +
-          fiscal.spending.otherCapital
-        )) -
+        (fiscal.totalSpending_bn -
+          (fiscal.spending.nhsCapital +
+            fiscal.spending.educationCapital +
+            fiscal.spending.defenceCapital +
+            fiscal.spending.infrastructureCapital +
+            fiscal.spending.policeCapital +
+            fiscal.spending.justiceCapital +
+            fiscal.spending.otherCapital)) -
         fiscal.debtInterest_bn;
-      debtFallingMet = (cbBalanceForDebt + OBR_HEADROOM_CALIBRATION) >= -0.5;
+      debtFallingMet = cbBalanceForDebt + OBR_HEADROOM_CALIBRATION >= -0.5;
     } else {
       // Short horizon: actual debt/GDP must be falling
       if (snapshots.length >= 12) {
@@ -2270,8 +2368,8 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
   }
 
   // Overall compliance
-  const overallCompliant = currentBudgetMet && overallBalanceMet &&
-    deficitCeilingMet && debtTargetMet && debtFallingMet;
+  const overallCompliant =
+    currentBudgetMet && overallBalanceMet && deficitCeilingMet && debtTargetMet && debtFallingMet;
 
   // Track consecutive breaches
   const prevBreaches = political.fiscalRuleCompliance.consecutiveBreaches;
@@ -2297,9 +2395,7 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
     ...state,
     fiscal: {
       ...fiscal,
-      fiscalRuleBreaches: !overallCompliant
-        ? (fiscal.fiscalRuleBreaches || 0) + 1
-        : fiscal.fiscalRuleBreaches || 0,
+      fiscalRuleBreaches: !overallCompliant ? (fiscal.fiscalRuleBreaches || 0) + 1 : fiscal.fiscalRuleBreaches || 0,
     },
     political: {
       ...political,
@@ -2315,8 +2411,10 @@ function evaluateFiscalRuleCompliance(state: GameState): GameState {
         capitalInvestment: totalCapitalSpending,
       },
       // Apply adviser bonus (Treasury Mandarin +5, Fiscal Hawk +8, Technocratic Centrist +6)
-      credibilityIndex: Math.max(0, Math.min(100,
-        political.credibilityIndex + credibilityChange + adviserBonuses.credibilityBonus)),
+      credibilityIndex: Math.max(
+        0,
+        Math.min(100, political.credibilityIndex + credibilityChange + adviserBonuses.credibilityBonus)
+      ),
     },
   };
 }
@@ -2360,7 +2458,8 @@ function checkGoldenRuleEnforcement(state: GameState): GameState {
 
   // Golden Rule: deficit increase should not exceed capital increase + tolerance
   // If violation: borrowing for current spending, not just investment
-  if (deficitIncrease > capitalIncrease + 1) {  // +1bn tolerance
+  if (deficitIncrease > capitalIncrease + 1) {
+    // +1bn tolerance
     // Violation: borrowing for current spending
     return {
       ...state,
@@ -2399,7 +2498,7 @@ function calculateMarkets(state: GameState): GameState {
   //   Bank Rate 3.25% (neutral, rest=0):      termPremium = +0.30, baseYield = 3.55
   //   Bank Rate 1.00% (rest=-2.25):           termPremium = +1.50 (capped), baseYield = 2.50
   const policyRestrictiveness = markets.bankRate - 3.25;
-  const termPremium = Math.max(-1.8, Math.min(1.5, 0.3 - policyRestrictiveness * 0.70));
+  const termPremium = Math.max(-1.8, Math.min(1.5, 0.3 - policyRestrictiveness * 0.7));
   const baseYield = markets.bankRate + termPremium;
 
   // UK QUANTITATIVE TIGHTENING SUPPLY PREMIUM:
@@ -2418,9 +2517,7 @@ function calculateMarkets(state: GameState): GameState {
   // Calibration: ±£10bn headroom ≈ ±5bps, capped at -25bps (surplus) / +40bps (breach).
   // Based on UK-specific OBR/DMO work on "headroom sensitivity" (OBR FSR 2023/24).
   const certifiedHeadroom = state.obr.fiscalHeadroomForecast_bn ?? fiscal.fiscalHeadroom_bn;
-  const headroomPremium = Math.max(-0.25, Math.min(0.40,
-    -certifiedHeadroom * 0.005
-  ));
+  const headroomPremium = Math.max(-0.25, Math.min(0.4, -certifiedHeadroom * 0.005));
   const guaranteePremium = ((state.housing.infrastructureGuarantees_bn || 0) / 2) * 0.01;
 
   // Fiscal risk premium (non-linear: rises faster above 100% debt/GDP)
@@ -2448,7 +2545,8 @@ function calculateMarkets(state: GameState): GameState {
   // Direction-of-travel premium: markets price fiscal momentum, not just levels
   // RECALIBRATED: Increased sensitivity to fiscal trajectory
   const previousDebt = typeof previousSnapshot?.debt === 'number' ? previousSnapshot.debt : fiscal.debtPctGDP;
-  const previousDeficit = typeof previousSnapshot?.deficit === 'number' ? previousSnapshot.deficit : fiscal.deficitPctGDP;
+  const previousDeficit =
+    typeof previousSnapshot?.deficit === 'number' ? previousSnapshot.deficit : fiscal.deficitPctGDP;
   const debtTrend = fiscal.debtPctGDP - previousDebt;
   const deficitTrend = fiscal.deficitPctGDP - previousDeficit;
 
@@ -2456,7 +2554,8 @@ function calculateMarkets(state: GameState): GameState {
   // Markets punish the RATE of change in borrowing, not just the level
   // If you try to borrow too much too quickly (e.g. +1% deficit in a single month), yields spike
   let vigilantePremium = 0;
-  if (process.env.NODE_ENV !== 'test') { // Simple way to gate if needed, but we rely on logic
+  if (process.env.NODE_ENV !== 'test') {
+    // Simple way to gate if needed, but we rely on logic
     if (hasTrendHistory && deficitTrend > 0.8) {
       // Massive fiscal expansion in one month -> Shock premium
       vigilantePremium = (deficitTrend - 0.8) * 0.5 * difficulty.marketReactionScale;
@@ -2477,7 +2576,7 @@ function calculateMarkets(state: GameState): GameState {
 
   // Fiscal rule credibility differential — drives persistent gilt yield level by framework.
   // FISCAL_RULE_GILT_EFFECT provides the per-rule offset (bp per month, signed).
-  const fiscalRuleCredibilityEffect = FISCAL_RULE_GILT_EFFECT[political.chosenFiscalRule] ?? 0;
+  const fiscalRuleCredibilityEffect = FISCAL_RULE_GILT_EFFECT[political.chosenFiscalRule as FiscalRuleId] ?? 0;
 
   // Market psychology component
   let marketPsychology = 0;
@@ -2500,9 +2599,7 @@ function calculateMarkets(state: GameState): GameState {
   }
 
   const fiscalRuleChangeShock =
-    (political.fiscalRuleYieldShockMonthsRemaining || 0) > 0
-      ? (political.fiscalRuleYieldShock_pp || 0)
-      : 0;
+    (political.fiscalRuleYieldShockMonthsRemaining || 0) > 0 ? political.fiscalRuleYieldShock_pp || 0 : 0;
 
   const spendingReviewPlanPremium = (() => {
     const sr = state.spendingReview;
@@ -2530,11 +2627,23 @@ function calculateMarkets(state: GameState): GameState {
   const issuanceStrategyEffect = (state.debtManagement.strategyYieldEffect_bps || 0) / 100;
   const rolloverRiskPremium = (state.debtManagement.rolloverRiskPremium_bps || 0) / 100;
 
-  let newYield10y = baseYield + debtPremium + deficitPremium + trendPremium +
-    vigilantePremium + credibilityDiscount + creditRatingPremium +
-    fiscalRuleCredibilityEffect + marketPsychology +
-    qtSupplyPremium + headroomPremium + fiscalRuleChangeShock + spendingReviewPlanPremium +
-    issuanceStrategyEffect + rolloverRiskPremium + guaranteePremium;
+  let newYield10y =
+    baseYield +
+    debtPremium +
+    deficitPremium +
+    trendPremium +
+    vigilantePremium +
+    credibilityDiscount +
+    creditRatingPremium +
+    fiscalRuleCredibilityEffect +
+    marketPsychology +
+    qtSupplyPremium +
+    headroomPremium +
+    fiscalRuleChangeShock +
+    spendingReviewPlanPremium +
+    issuanceStrategyEffect +
+    rolloverRiskPremium +
+    guaranteePremium;
 
   // LDI Crisis Logic (Realistic Mode)
   // If yields rise too fast (>50bps/month), pension funds get margin called
@@ -2545,19 +2654,20 @@ function calculateMarkets(state: GameState): GameState {
   let impliedYieldChange = newYield10y - prevYield;
 
   // Trigger condition: Sudden spike (>50bps) OR existing panic
-  if (difficulty.marketReactionScale > 1.0 && hasTrendHistory) { // Only in Realistic/Hard modes
-    if (impliedYieldChange > 0.50) {
+  if (difficulty.marketReactionScale > 1.0 && hasTrendHistory) {
+    // Only in Realistic/Hard modes
+    if (impliedYieldChange > 0.5) {
       ldiPanicTriggered = true;
       // Feedback loop: Add 150% of the excess rise atop the rise
-      const ldiShock = (impliedYieldChange - 0.50) * 1.5;
+      const ldiShock = (impliedYieldChange - 0.5) * 1.5;
       newYield10y += ldiShock;
     } else if (ldiPanicTriggered) {
       // Panic persists until yields stabilize or fall significantly
-      if (impliedYieldChange < -0.20) {
+      if (impliedYieldChange < -0.2) {
         ldiPanicTriggered = false; // Panic subsides
       } else {
         // Panic continues: lingering premium
-        newYield10y += 0.40;
+        newYield10y += 0.4;
       }
     }
   }
@@ -2570,9 +2680,15 @@ function calculateMarkets(state: GameState): GameState {
   const credibilityEffect = (political.credibilityIndex - 50) * 0.1;
   const vigilanteSterlingPenalty = vigilantePremium * -4.0; // Vigilantes crush currency
   // Fiscal rule sterling offset — stricter frameworks provide modest persistent currency support
-  const fiscalRuleSterlingOffset = FISCAL_RULE_STERLING_EFFECT[political.chosenFiscalRule] ?? 0;
+  const fiscalRuleSterlingOffset = FISCAL_RULE_STERLING_EFFECT[political.chosenFiscalRule as FiscalRuleId] ?? 0;
 
-  let newSterlingIndex = 100 + yieldSterlingEffect + confidenceEffect + credibilityEffect + vigilanteSterlingPenalty + fiscalRuleSterlingOffset;
+  let newSterlingIndex =
+    100 +
+    yieldSterlingEffect +
+    confidenceEffect +
+    credibilityEffect +
+    vigilanteSterlingPenalty +
+    fiscalRuleSterlingOffset;
   newSterlingIndex = Math.max(70, Math.min(130, newSterlingIndex));
 
   // Gradual adjustment (unless LDI panic, then instant)
@@ -2585,7 +2701,7 @@ function calculateMarkets(state: GameState): GameState {
   // Yield curve shape (dynamic vs Bank Rate)
   // 2y tends to track policy rate expectations; 30y embeds term premium.
   const curveSlope = Math.max(-1.2, Math.min(1.8, (smoothedYield - markets.bankRate) * 1.2));
-  const spread2y = Math.max(-1.0, Math.min(0.8, 0.10 - curveSlope * 0.35));
+  const spread2y = Math.max(-1.0, Math.min(0.8, 0.1 - curveSlope * 0.35));
   const spread30y = Math.max(0.2, Math.min(1.5, 0.55 + curveSlope * 0.25));
 
   // Mortgage rates
@@ -2601,7 +2717,7 @@ function calculateMarkets(state: GameState): GameState {
       mortgageRate2y: Math.max(1.0, Math.min(20, mortgageRate)),
       sterlingIndex: smoothedSterling,
       yieldChange10y: smoothedYield - prevYield,
-      ldiPanicTriggered: ldiPanicTriggered
+      ldiPanicTriggered: ldiPanicTriggered,
     },
     political: {
       ...political,
@@ -2609,23 +2725,27 @@ function calculateMarkets(state: GameState): GameState {
         (political.fiscalRuleYieldShockMonthsRemaining || 0) > 0
           ? (political.fiscalRuleYieldShock_pp || 0) * (5 / 6)
           : 0,
-      fiscalRuleYieldShockMonthsRemaining: Math.max(
-        0,
-        (political.fiscalRuleYieldShockMonthsRemaining || 0) - 1
-      ),
+      fiscalRuleYieldShockMonthsRemaining: Math.max(0, (political.fiscalRuleYieldShockMonthsRemaining || 0) - 1),
     },
   };
 }
 
 function getCreditRatingPremium(rating?: string): number {
   switch (rating) {
-    case 'AAA': return -0.2;
-    case 'AA+': return -0.1;
-    case 'AA': return 0;
-    case 'AA-': return 0.1;
-    case 'A+': return 0.3;
-    case 'A': return 0.5;
-    default: return 0.1; // AA- baseline
+    case 'AAA':
+      return -0.2;
+    case 'AA+':
+      return -0.1;
+    case 'AA':
+      return 0;
+    case 'AA-':
+      return 0.1;
+    case 'A+':
+      return 0.3;
+    case 'A':
+      return 0.5;
+    default:
+      return 0.1; // AA- baseline
   }
 }
 
@@ -2640,11 +2760,14 @@ function calculateHousingMarket(state: GameState): GameState {
     (mortgageRate - 3.5) * 1.2 +
     (fs.householdDebtToIncome - 130) * -0.05 +
     demandSupport * 0.5 +
-    ((Math.random() - 0.5) * difficulty.macroShockScale);
+    (Math.random() - 0.5) * difficulty.macroShockScale;
   fs.housePriceGrowthAnnual = Math.max(-8, Math.min(12, annualGrowth));
   fs.housePriceIndex = Math.max(40, fs.housePriceIndex * (1 + fs.housePriceGrowthAnnual / 12 / 100));
-  fs.housingAffordabilityIndex = Math.max(0, Math.min(100, 100 - (fs.housePriceIndex * 0.35) - (mortgageRate * 2.5)));
-  fs.housingAffordabilityIndex = Math.max(0, Math.min(100, fs.housingAffordabilityIndex - demandSupport * 0.6 + sdltDelta * 0.5));
+  fs.housingAffordabilityIndex = Math.max(0, Math.min(100, 100 - fs.housePriceIndex * 0.35 - mortgageRate * 2.5));
+  fs.housingAffordabilityIndex = Math.max(
+    0,
+    Math.min(100, fs.housingAffordabilityIndex - demandSupport * 0.6 + sdltDelta * 0.5)
+  );
   fs.mortgageApprovals = Math.max(20, Math.min(120, fs.mortgageApprovals - sdltDelta * 2 + demandSupport * 1.5));
 
   let stressDelta = 0;
@@ -2677,9 +2800,8 @@ function calculateHousingMarket(state: GameState): GameState {
     }
   }
 
-  const consecutiveHousingCrashTurns = fs.housePriceGrowthAnnual < -5
-    ? (state.financialStability.consecutiveHousingCrashTurns || 0) + 1
-    : 0;
+  const consecutiveHousingCrashTurns =
+    fs.housePriceGrowthAnnual < -5 ? (state.financialStability.consecutiveHousingCrashTurns || 0) + 1 : 0;
   const housingAMEPressure_bn = consecutiveHousingCrashTurns >= 2 ? 1.5 + Math.random() * 1.5 : 0;
   const fpcConstraintCost_bn = fs.fpcInterventionActive ? 5 : 0;
 
@@ -2698,12 +2820,18 @@ function calculateHousingMarket(state: GameState): GameState {
 }
 
 function calculateDevolution(state: GameState): GameState {
-  const dev = { ...state.devolution, nations: { ...state.devolution.nations }, localGov: { ...state.devolution.localGov } };
+  const dev = {
+    ...state.devolution,
+    nations: { ...state.devolution.nations },
+    localGov: { ...state.devolution.localGov },
+  };
   const nhsChange = state.fiscal.spending.nhsCurrent - 168.4;
   const educationChange = state.fiscal.spending.educationCurrent - 104.0;
-  const transportChange = (state.fiscal.spending.infrastructureCurrent + state.fiscal.spending.infrastructureCapital) - (20 + 80);
+  const transportChange =
+    state.fiscal.spending.infrastructureCurrent + state.fiscal.spending.infrastructureCapital - (20 + 80);
   const housingProgrammeChange =
-    (getDetailedSpendingBudget(state, 'localGovernmentGrants', BASELINE_DETAILED_SPENDING.localGovernmentGrants || 5.5) - 5.5) +
+    getDetailedSpendingBudget(state, 'localGovernmentGrants', BASELINE_DETAILED_SPENDING.localGovernmentGrants || 5.5) -
+    5.5 +
     (getDetailedSpendingBudget(state, 'housingCapital', BASELINE_DETAILED_SPENDING.housingCapital || 2.5) - 2.5);
   const comparableEnglandDELChange = nhsChange + educationChange + transportChange + housingProgrammeChange;
   const programmeBarnett_bn = comparableEnglandDELChange * (0.0998 + 0.0597 + 0.0348);
@@ -2722,7 +2850,8 @@ function calculateDevolution(state: GameState): GameState {
       if (inflationRealCut) nation.politicalTension += 0.7;
       else nation.politicalTension -= 0.4;
     } else {
-      if (state.political.governmentApproval < 35 && state.political.backbenchSatisfaction < 40) nation.politicalTension += 1.2;
+      if (state.political.governmentApproval < 35 && state.political.backbenchSatisfaction < 40)
+        nation.politicalTension += 1.2;
       else nation.politicalTension -= 0.3;
     }
     nation.politicalTension = Math.max(0, Math.min(100, nation.politicalTension));
@@ -2738,10 +2867,13 @@ function calculateDevolution(state: GameState): GameState {
   });
 
   const difficulty = getDifficultySettings(state);
-  const adultSocialCarePressure_bn = (dev.localGov.adultSocialCarePressure_bn || 12) * (1 + (3.5 / 12) / 100);
+  const adultSocialCarePressure_bn = (dev.localGov.adultSocialCarePressure_bn || 12) * (1 + 3.5 / 12 / 100);
   const retainedRatesBoost = (dev.localGov.businessRatesRetention || 50) * 0.02;
   const councilTaxFlexBoost = Math.max(0, ((dev.localGov.councilTaxGrowthCap || 3) - 3) * 0.4);
-  const coreSettlement_bn = Math.max(0, (dev.localGov.coreSettlement_bn || 14) + retainedRatesBoost + councilTaxFlexBoost);
+  const coreSettlement_bn = Math.max(
+    0,
+    (dev.localGov.coreSettlement_bn || 14) + retainedRatesBoost + councilTaxFlexBoost
+  );
   const fundingGap = Math.max(0, adultSocialCarePressure_bn - coreSettlement_bn);
 
   let localGovStress = dev.localGov.localGovStressIndex;
@@ -2749,14 +2881,15 @@ function calculateDevolution(state: GameState): GameState {
   if (dev.localGov.centralGrant_bn < 30 * (1 + state.economic.inflationCPI / 100)) localGovStress += 1.2;
   if (dev.localGov.localServicesQuality < 40) localGovStress += 1;
   localGovStress = Math.max(0, Math.min(100, localGovStress));
-  const localServicesQuality = Math.max(0, Math.min(100, dev.localGov.localServicesQuality + (fundingGap < 1 ? 0.2 : -0.35) - (localGovStress > 65 ? 0.45 : 0)));
+  const localServicesQuality = Math.max(
+    0,
+    Math.min(100, dev.localGov.localServicesQuality + (fundingGap < 1 ? 0.2 : -0.35) - (localGovStress > 65 ? 0.45 : 0))
+  );
   let section114Timer = (dev.section114Timer || 0) + 1;
   let section114Notices = dev.localGov.section114Notices;
   let section114Count = dev.localGov.section114Count || section114Notices;
   let section114Triggered = false;
-  const section114Probability =
-    localGovStress > 85 ? 0.35 :
-      localGovStress > 70 ? 0.15 : 0;
+  const section114Probability = localGovStress > 85 ? 0.35 : localGovStress > 70 ? 0.15 : 0;
   if (section114Timer >= 1 && Math.random() < section114Probability * difficulty.macroShockScale) {
     section114Notices += 1;
     section114Count += 1;
@@ -2765,7 +2898,8 @@ function calculateDevolution(state: GameState): GameState {
   }
 
   const barnettConsequentials_bn = programmeBarnett_bn * dev.barnettConsequentialMultiplier;
-  const devolvedRealTermsCut = (nhsChange < 0 ? Math.abs(nhsChange) : 0) + (educationChange < 0 ? Math.abs(educationChange) : 0);
+  const devolvedRealTermsCut =
+    (nhsChange < 0 ? Math.abs(nhsChange) : 0) + (educationChange < 0 ? Math.abs(educationChange) : 0);
   const niCredibilityPenalty = nations.northernIreland.politicalTension > 60 ? 5 : 0;
   const devolutionCrisis = nations.scotland.politicalTension > 85;
 
@@ -2793,8 +2927,17 @@ function calculateDevolution(state: GameState): GameState {
     political: {
       ...state.political,
       credibilityIndex: Math.max(0, state.political.credibilityIndex - niCredibilityPenalty),
-      backbenchSatisfaction: Math.max(0, state.political.backbenchSatisfaction - (section114Notices > state.devolution.localGov.section114Notices ? 2 : 0)),
-      governmentApproval: Math.max(10, state.political.governmentApproval - (section114Triggered ? (0.8 + Math.random() * 0.7) : 0) - (devolvedRealTermsCut > 4 ? 0.4 : 0)),
+      backbenchSatisfaction: Math.max(
+        0,
+        state.political.backbenchSatisfaction -
+          (section114Notices > state.devolution.localGov.section114Notices ? 2 : 0)
+      ),
+      governmentApproval: Math.max(
+        10,
+        state.political.governmentApproval -
+          (section114Triggered ? 0.8 + Math.random() * 0.7 : 0) -
+          (devolvedRealTermsCut > 4 ? 0.4 : 0)
+      ),
     },
   };
   if (devolutionCrisis) {
@@ -2811,7 +2954,8 @@ function calculateDevolution(state: GameState): GameState {
             month: state.metadata.currentMonth,
             date: new Date(state.metadata.currentYear, state.metadata.currentMonth - 1, 1),
             title: 'Devolution Crisis Escalates',
-            description: 'Relations with devolved administrations have deteriorated sharply, requiring direct PM intervention.',
+            description:
+              'Relations with devolved administrations have deteriorated sharply, requiring direct PM intervention.',
             immediateImpact: { approvalRating: -2, pmTrust: -2 },
             responseOptions: [],
             requiresResponse: false,
@@ -2840,7 +2984,8 @@ function calculateDevolution(state: GameState): GameState {
             month: state.metadata.currentMonth,
             date: new Date(state.metadata.currentYear, state.metadata.currentMonth - 1, 1),
             title: 'Council issues Section 114 notice',
-            description: 'A local authority has effectively declared bankruptcy, intensifying pressure on local services and central government.',
+            description:
+              'A local authority has effectively declared bankruptcy, intensifying pressure on local services and central government.',
             immediateImpact: { approvalRating: -1.1, pmTrust: -0.5 },
             responseOptions: [],
             requiresResponse: false,
@@ -2996,7 +3141,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const mentalHealthAccess = evolveServiceMetric(
     services.mentalHealthAccess,
     getProgrammeTotal(state, ['nhsMentalHealth']),
-    (BASELINE_DETAILED_SPENDING.nhsMentalHealth || 16.0),
+    BASELINE_DETAILED_SPENDING.nhsMentalHealth || 16.0,
     4.0,
     economic.inflationCPI,
     monthsElapsed
@@ -3004,7 +3149,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const primaryCareAccess = evolveServiceMetric(
     services.primaryCareAccess,
     getProgrammeTotal(state, ['nhsPrimaryCare']),
-    (BASELINE_DETAILED_SPENDING.nhsPrimaryCare || 18.0),
+    BASELINE_DETAILED_SPENDING.nhsPrimaryCare || 18.0,
     3.2,
     economic.inflationCPI,
     monthsElapsed
@@ -3012,7 +3157,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const socialCareQuality = evolveServiceMetric(
     services.socialCareQuality,
     getProgrammeTotal(state, ['socialCare']),
-    (BASELINE_DETAILED_SPENDING.socialCare || 7.5),
+    BASELINE_DETAILED_SPENDING.socialCare || 7.5,
     4.5,
     economic.inflationCPI,
     monthsElapsed
@@ -3020,7 +3165,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const prisonSafety = evolveServiceMetric(
     services.prisonSafety,
     getProgrammeTotal(state, ['prisonsAndProbation']),
-    (BASELINE_DETAILED_SPENDING.prisonsAndProbation || 5.5),
+    BASELINE_DETAILED_SPENDING.prisonsAndProbation || 5.5,
     2.8,
     economic.inflationCPI,
     monthsElapsed
@@ -3028,7 +3173,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const courtBacklogPerformance = evolveServiceMetric(
     services.courtBacklogPerformance,
     getProgrammeTotal(state, ['courts']),
-    (BASELINE_DETAILED_SPENDING.courts || 2.8),
+    BASELINE_DETAILED_SPENDING.courts || 2.8,
     2.5,
     economic.inflationCPI,
     monthsElapsed
@@ -3036,7 +3181,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const legalAidAccess = evolveServiceMetric(
     services.legalAidAccess,
     getProgrammeTotal(state, ['legalAid']),
-    (BASELINE_DETAILED_SPENDING.legalAid || 1.9),
+    BASELINE_DETAILED_SPENDING.legalAid || 1.9,
     2.2,
     economic.inflationCPI,
     monthsElapsed
@@ -3052,7 +3197,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const borderSecurityPerformance = evolveServiceMetric(
     services.borderSecurityPerformance,
     getProgrammeTotal(state, ['immigration']),
-    (BASELINE_DETAILED_SPENDING.immigration || 4.5),
+    BASELINE_DETAILED_SPENDING.immigration || 4.5,
     2.4,
     economic.inflationCPI,
     monthsElapsed
@@ -3076,7 +3221,7 @@ function calculateServiceQuality(state: GameState): GameState {
   const floodResilience = evolveServiceMetric(
     services.floodResilience,
     getProgrammeTotal(state, ['floodDefences']),
-    (BASELINE_DETAILED_SPENDING.floodDefences || 1.2),
+    BASELINE_DETAILED_SPENDING.floodDefences || 1.2,
     3.3,
     economic.inflationCPI,
     monthsElapsed
@@ -3182,12 +3327,18 @@ function calculateDistributional(state: GameState): GameState {
   const niEmployeeDelta = state.fiscal.nationalInsuranceRate - 8;
   const niEmployerDelta = state.fiscal.employerNIRate - 13.8;
   const vatDelta = state.fiscal.vatRate - 20;
-  const welfareRatio = (state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) / BASELINE_FISCAL_STATE.spending.welfareCurrent;
+  const welfareRatio =
+    (state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) /
+    BASELINE_FISCAL_STATE.spending.welfareCurrent;
   const ucTaperDelta = 55 - (state.fiscal.ucTaperRate || 55);
   const workAllowanceDelta = ((state.fiscal.workAllowanceMonthly || 344) - 344) / 50;
   const childcareDelta = ((state.fiscal.childcareSupportRate || 30) - 30) / 10;
-  const nhsRatio = (state.fiscal.spending.nhsCurrent - BASELINE_FISCAL_STATE.spending.nhsCurrent) / BASELINE_FISCAL_STATE.spending.nhsCurrent;
-  const eduRatio = (state.fiscal.spending.educationCurrent - BASELINE_FISCAL_STATE.spending.educationCurrent) / BASELINE_FISCAL_STATE.spending.educationCurrent;
+  const nhsRatio =
+    (state.fiscal.spending.nhsCurrent - BASELINE_FISCAL_STATE.spending.nhsCurrent) /
+    BASELINE_FISCAL_STATE.spending.nhsCurrent;
+  const eduRatio =
+    (state.fiscal.spending.educationCurrent - BASELINE_FISCAL_STATE.spending.educationCurrent) /
+    BASELINE_FISCAL_STATE.spending.educationCurrent;
   const vatBurdenWeight = [1.8, 1.6, 1.4, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6];
   const basicWeight = [0.0, 0.0, 0.03, 0.08, 0.12, 0.16, 0.18, 0.18, 0.14, 0.11];
   const higherWeight = [0, 0, 0, 0.01, 0.03, 0.07, 0.12, 0.18, 0.24, 0.35];
@@ -3197,7 +3348,11 @@ function calculateDistributional(state: GameState): GameState {
   const ucWeight = [0.32, 0.28, 0.2, 0.12, 0.04, 0.01, 0, 0, 0, 0];
   const serviceWeight = [0.16, 0.15, 0.13, 0.12, 0.11, 0.1, 0.09, 0.07, 0.04, 0.03];
   const decileImpacts = Array.from({ length: 10 }, (_, idx) => {
-    const incomeTaxEffect = -(basicDelta * basicWeight[idx] * 0.22 + higherDelta * higherWeight[idx] * 0.24 + additionalDelta * additionalWeight[idx] * 0.3);
+    const incomeTaxEffect = -(
+      basicDelta * basicWeight[idx] * 0.22 +
+      higherDelta * higherWeight[idx] * 0.24 +
+      additionalDelta * additionalWeight[idx] * 0.3
+    );
     const niEffect = -(niEmployeeDelta * niWeight[idx] * 0.18 + niEmployerDelta * niWeight[idx] * 0.08);
     const vatEffect = -(vatDelta * 0.09 * vatBurdenWeight[idx]);
     const welfareEffect = welfareRatio * welfareWeight[idx] * 6.5;
@@ -3222,15 +3377,22 @@ function calculateDistributional(state: GameState): GameState {
     const niBand = Math.max(0, Math.min(basicUpper - pa, taxable));
     const niCash = niBand * (state.fiscal.nationalInsuranceRate / 100);
     const vatBurden = (state.fiscal.vatRate / 20) * 0.08 * (1 - decile.id / 12);
-    const effectiveTaxRate = Math.max(0, Math.min(70, (taxCash + niCash) / income * 100 + vatBurden * 100));
+    const effectiveTaxRate = Math.max(0, Math.min(70, ((taxCash + niCash) / income) * 100 + vatBurden * 100));
     const prevTax = decile.effectiveTaxRate || effectiveTaxRate;
-    const welfareEffect = decile.id <= 3
-      ? ((state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) / BASELINE_FISCAL_STATE.spending.welfareCurrent) * 40
-      : (decile.id <= 4 ? ((state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) / BASELINE_FISCAL_STATE.spending.welfareCurrent) * 20 : 0);
+    const welfareEffect =
+      decile.id <= 3
+        ? ((state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) /
+            BASELINE_FISCAL_STATE.spending.welfareCurrent) *
+          40
+        : decile.id <= 4
+          ? ((state.fiscal.spending.welfareCurrent - BASELINE_FISCAL_STATE.spending.welfareCurrent) /
+              BASELINE_FISCAL_STATE.spending.welfareCurrent) *
+            20
+          : 0;
     const realIncomeChange =
       state.economic.wageGrowthAnnual -
       state.economic.inflationCPI -
-      ((effectiveTaxRate - prevTax) * 2) +
+      (effectiveTaxRate - prevTax) * 2 +
       welfareEffect +
       (decileImpacts[decile.id - 1] || 0);
     return {
@@ -3252,11 +3414,23 @@ function calculateDistributional(state: GameState): GameState {
   });
   const giniCoefficient = Math.max(0.28, Math.min(0.55, 1 - 2 * sumTerm));
   const bottomQuintileRealIncomeGrowth = (deciles[0].realIncomeChange + deciles[1].realIncomeChange) / 2;
-  const povertyRate = Math.max(8, Math.min(40, 17.5 - (bottomQuintileRealIncomeGrowth * 0.8) + (state.economic.inflationCPI > 4 ? (state.economic.inflationCPI - 4) * 0.3 : 0)));
+  const povertyRate = Math.max(
+    8,
+    Math.min(
+      40,
+      17.5 -
+        bottomQuintileRealIncomeGrowth * 0.8 +
+        (state.economic.inflationCPI > 4 ? (state.economic.inflationCPI - 4) * 0.3 : 0)
+    )
+  );
   const childPovertyRate = Math.max(10, Math.min(60, povertyRate * 1.65));
   const topDecileEffectiveTaxRate = deciles[9].effectiveTaxRate;
-  const taxProgressivityDelta = deciles[9].effectiveTaxRate - prev.deciles[9].effectiveTaxRate - (deciles[0].effectiveTaxRate - prev.deciles[0].effectiveTaxRate);
-  const lastTaxChangeDistribution = taxProgressivityDelta > 0.05 ? 'progressive' : taxProgressivityDelta < -0.05 ? 'regressive' : 'neutral';
+  const taxProgressivityDelta =
+    deciles[9].effectiveTaxRate -
+    prev.deciles[9].effectiveTaxRate -
+    (deciles[0].effectiveTaxRate - prev.deciles[0].effectiveTaxRate);
+  const lastTaxChangeDistribution =
+    taxProgressivityDelta > 0.05 ? 'progressive' : taxProgressivityDelta < -0.05 ? 'regressive' : 'neutral';
 
   return {
     ...state,
@@ -3288,27 +3462,33 @@ function calculateApproval(state: GameState): GameState {
   // Services effect (NHS dominates public perception)
   const nhsEffect = (services.nhsQuality - 62) * 0.12;
   const educationEffect = (services.educationQuality - 68) * 0.05;
-  const granularServicesAverage = (
-    services.mentalHealthAccess +
-    services.primaryCareAccess +
-    services.socialCareQuality +
-    services.prisonSafety +
-    services.courtBacklogPerformance +
-    services.legalAidAccess +
-    services.policingEffectiveness +
-    services.borderSecurityPerformance +
-    services.railReliability +
-    services.affordableHousingDelivery +
-    services.floodResilience +
-    services.researchInnovationOutput +
-    state.devolution.localGov.localServicesQuality
-  ) / 13;
+  const granularServicesAverage =
+    (services.mentalHealthAccess +
+      services.primaryCareAccess +
+      services.socialCareQuality +
+      services.prisonSafety +
+      services.courtBacklogPerformance +
+      services.legalAidAccess +
+      services.policingEffectiveness +
+      services.borderSecurityPerformance +
+      services.railReliability +
+      services.affordableHousingDelivery +
+      services.floodResilience +
+      services.researchInnovationOutput +
+      state.devolution.localGov.localServicesQuality) /
+    13;
   const granularServicesEffect = (granularServicesAverage - 55) * 0.06;
 
-  const cakeVatProxy = Math.max(0, fiscal.vatRate - 20) + Math.max(0, getDetailedTaxRate(state, 'vatDomesticEnergy', 5) - 5);
+  const cakeVatProxy =
+    Math.max(0, fiscal.vatRate - 20) + Math.max(0, getDetailedTaxRate(state, 'vatDomesticEnergy', 5) - 5);
   const householdTaxPressure =
     Math.max(0, getDetailedTaxRate(state, 'insurancePremiumTax', 12) - 12) * 0.35 +
-    Math.max(0, getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5) - (BASELINE_DETAILED_TAX.stampDuty || 5)) * 0.25 +
+    Math.max(
+      0,
+      getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5) -
+        (BASELINE_DETAILED_TAX.stampDuty || 5)
+    ) *
+      0.25 +
     Math.max(0, getDetailedTaxRate(state, 'sdltAdditionalSurcharge', 3) - 3) * 0.25 +
     Math.max(0, (state.devolution.localGov.councilTaxGrowthCap || 3) - 5) * 0.25 +
     cakeVatProxy * 0.4;
@@ -3322,9 +3502,11 @@ function calculateApproval(state: GameState): GameState {
   const businessTaxEffect = -businessTaxPressure * 0.5;
 
   // Fiscal responsibility perception
-  const deficitEffect = fiscal.deficitPctGDP > 6 ? -1.5 : fiscal.deficitPctGDP > 5 ? -0.8 : fiscal.deficitPctGDP < 3 ? 0.5 : 0;
+  const deficitEffect =
+    fiscal.deficitPctGDP > 6 ? -1.5 : fiscal.deficitPctGDP > 5 ? -0.8 : fiscal.deficitPctGDP < 3 ? 0.5 : 0;
   const fiscalRuleBreachEffect = state.political.fiscalRuleCompliance.overallCompliant ? 0 : -0.4;
-  const strikeEffect = (state.services.nhsStrikeMonthsRemaining > 0 ? -1.5 : 0) +
+  const strikeEffect =
+    (state.services.nhsStrikeMonthsRemaining > 0 ? -1.5 : 0) +
     (state.services.educationStrikeMonthsRemaining > 0 ? -1.5 : 0);
 
   // CRITICAL FIX: Manifesto violations with tiered penalties
@@ -3342,34 +3524,51 @@ function calculateApproval(state: GameState): GameState {
 
   // Honeymoon BOOST (first 12 months get a positive buffer that decays)
   // New governments enjoy a period of public goodwill
-  const honeymoonBoost = state.metadata.currentTurn < 12
-    ? (12 - state.metadata.currentTurn) * 0.15  // +1.8 at start, decaying to 0
-    : 0;
+  const honeymoonBoost =
+    state.metadata.currentTurn < 12
+      ? (12 - state.metadata.currentTurn) * 0.15 // +1.8 at start, decaying to 0
+      : 0;
 
   // Social media impact (minor influence)
   const socialMediaSentiment = calculateSocialMediaSentiment(state);
   const socialMediaEffect = calculateSocialMediaImpact(socialMediaSentiment);
   const distributionEffect =
-    (state.distributional.bottomQuintileRealIncomeGrowth * 0.3) -
-    ((state.distributional.giniCoefficient - 0.35) * 15) -
-    ((state.distributional.povertyRate - 17.5) * 0.5) +
-    ((state.financialStability.housingAffordabilityIndex - 38) * 0.04);
+    state.distributional.bottomQuintileRealIncomeGrowth * 0.3 -
+    (state.distributional.giniCoefficient - 0.35) * 15 -
+    (state.distributional.povertyRate - 17.5) * 0.5 +
+    (state.financialStability.housingAffordabilityIndex - 38) * 0.04;
 
   // Random noise
   const randomEffect = (Math.random() - 0.5) * 1.5;
-  const taxDistributionEffect = state.distributional.lastTaxChangeDistribution === 'regressive'
-    ? -3
-    : state.distributional.lastTaxChangeDistribution === 'progressive'
-      ? -1
-      : 0;
+  const taxDistributionEffect =
+    state.distributional.lastTaxChangeDistribution === 'regressive'
+      ? -3
+      : state.distributional.lastTaxChangeDistribution === 'progressive'
+        ? -1
+        : 0;
 
   // Combine with meaningful monthly sensitivity (0.25 instead of 0.08)
   // This allows a crisis to move approval ~2-3 points per month rather than ~0.3
-  let totalChange = (gdpEffect + unemploymentEffect + inflationEffect + realWageEffect +
-    nhsEffect + educationEffect + granularServicesEffect +
-    householdTaxEffect + businessTaxEffect +
-    deficitEffect + fiscalRuleBreachEffect + strikeEffect + manifestoEffect +
-    honeymoonBoost + socialMediaEffect + distributionEffect + taxDistributionEffect + randomEffect) * 0.25;
+  let totalChange =
+    (gdpEffect +
+      unemploymentEffect +
+      inflationEffect +
+      realWageEffect +
+      nhsEffect +
+      educationEffect +
+      granularServicesEffect +
+      householdTaxEffect +
+      businessTaxEffect +
+      deficitEffect +
+      fiscalRuleBreachEffect +
+      strikeEffect +
+      manifestoEffect +
+      honeymoonBoost +
+      socialMediaEffect +
+      distributionEffect +
+      taxDistributionEffect +
+      randomEffect) *
+    0.25;
 
   // CRITICAL FIX: Death spiral prevention and recovery mechanics
   // 1. Recovery bonus: bigger gains when improving from low base
@@ -3428,7 +3627,8 @@ function calculateBackbenchSatisfaction(state: GameState): GameState {
   const approvalEffect = (political.governmentApproval - 38) * 0.2;
 
   // Fiscal responsibility matters (all MPs hate looking reckless)
-  const deficitEffect = fiscal.deficitPctGDP > 6 ? -1.0 : fiscal.deficitPctGDP > 5 ? -0.5 : fiscal.deficitPctGDP < 3 ? 0.2 : 0;
+  const deficitEffect =
+    fiscal.deficitPctGDP > 6 ? -1.0 : fiscal.deficitPctGDP > 5 ? -0.5 : fiscal.deficitPctGDP < 3 ? 0.2 : 0;
 
   // Manifesto breaches anger all MPs (doubled impact)
   const manifestoEffect = -manifesto.totalViolations * 1.5;
@@ -3439,25 +3639,32 @@ function calculateBackbenchSatisfaction(state: GameState): GameState {
   // Strike risk unsettles MPs (public blame falls on government)
   const strikeEffect = political.strikeRisk > 60 ? -0.6 : political.strikeRisk > 50 ? -0.3 : 0;
 
-  const granularServiceStress = (
-    (50 - state.services.mentalHealthAccess) +
-    (50 - state.services.prisonSafety) +
-    (50 - state.services.courtBacklogPerformance) +
-    (50 - state.services.policingEffectiveness)
-  ) / 4;
+  const granularServiceStress =
+    (50 -
+      state.services.mentalHealthAccess +
+      (50 - state.services.prisonSafety) +
+      (50 - state.services.courtBacklogPerformance) +
+      (50 - state.services.policingEffectiveness)) /
+    4;
   const constituencyIssueEffect = granularServiceStress > 0 ? -granularServiceStress * 0.04 : 0;
 
   // Social media impact (MPs are sensitive to negative sentiment in constituencies)
   const socialMediaSentiment = calculateSocialMediaSentiment(state);
   const socialMediaEffectOnMPs = calculateSocialMediaImpact(socialMediaSentiment) * 0.7;
-  const obrHeadroomPenalty = state.obr.fiscalHeadroomForecast_bn < 0
-    ? -0.6
-    : state.obr.fiscalHeadroomForecast_bn < 5
-      ? -0.3
-      : 0;
+  const obrHeadroomPenalty =
+    state.obr.fiscalHeadroomForecast_bn < 0 ? -0.6 : state.obr.fiscalHeadroomForecast_bn < 5 ? -0.3 : 0;
 
   // Increased sensitivity (0.2 instead of 0.12)
-  const totalChange = (approvalEffect + deficitEffect + manifestoEffect + pmEffect + strikeEffect + constituencyIssueEffect + socialMediaEffectOnMPs + obrHeadroomPenalty) * 0.2;
+  const totalChange =
+    (approvalEffect +
+      deficitEffect +
+      manifestoEffect +
+      pmEffect +
+      strikeEffect +
+      constituencyIssueEffect +
+      socialMediaEffectOnMPs +
+      obrHeadroomPenalty) *
+    0.2;
 
   satisfaction += totalChange;
 
@@ -3465,7 +3672,7 @@ function calculateBackbenchSatisfaction(state: GameState): GameState {
   // This makes backbench satisfaction genuinely responsive to sustained poor performance
   // Drift target varies by chosen fiscal rule: stricter frameworks make Labour backbenchers
   // uncomfortable; more permissive frameworks (MMT, Golden Rule) are more popular.
-  const ruleBackbenchTarget = FISCAL_RULE_BACKBENCH_DRIFT_TARGET[state.political.chosenFiscalRule] ?? 55;
+  const ruleBackbenchTarget = FISCAL_RULE_BACKBENCH_DRIFT_TARGET[state.political.chosenFiscalRule as FiscalRuleId] ?? 55;
   satisfaction += (ruleBackbenchTarget - satisfaction) * 0.008;
 
   // Apply adviser bonus (Political Operator +3)
@@ -3511,13 +3718,13 @@ function updateMPStances(state: GameState): GameState {
     justiceSpendingChange: state.fiscal.spending.justice - baseline.spending.justice,
     otherSpendingChange: state.fiscal.spending.other - baseline.spending.other,
     detailedTaxRates: Object.fromEntries(
-      (state.fiscal.detailedTaxes || []).map((tax) => [
+      (state.fiscal.detailedTaxes || []).map((tax: { id: string; currentRate: number }) => [
         tax.id,
         tax.currentRate - (BASELINE_DETAILED_TAX[tax.id] ?? tax.currentRate),
       ])
     ),
     detailedSpendingBudgets: Object.fromEntries(
-      (state.fiscal.detailedSpending || []).map((item) => [
+      (state.fiscal.detailedSpending || []).map((item: { id: string; currentBudget: number }) => [
         item.id,
         item.currentBudget - (BASELINE_DETAILED_SPENDING[item.id] ?? item.currentBudget),
       ])
@@ -3573,15 +3780,13 @@ function calculatePMTrust(state: GameState): GameState {
   const manifestoEffect = -manifesto.totalViolations * 1.5;
 
   // Fiscal credibility (PM does not want to be seen as reckless)
-  const fiscalEffect = fiscal.deficitPctGDP > 6 ? -1.5 : fiscal.deficitPctGDP > 5 ? -0.8 : fiscal.deficitPctGDP < 3 ? 0.3 : 0;
+  const fiscalEffect =
+    fiscal.deficitPctGDP > 6 ? -1.5 : fiscal.deficitPctGDP > 5 ? -0.8 : fiscal.deficitPctGDP < 3 ? 0.3 : 0;
 
   // Market confidence (gilt crisis destroys PM trust - Truss effect)
   const marketEffect = markets.giltYield10y > 6 ? -2.5 : markets.giltYield10y > 5 ? -0.8 : 0;
-  const obrHeadroomEffect = state.obr.fiscalHeadroomForecast_bn < 0
-    ? -0.5
-    : state.obr.fiscalHeadroomForecast_bn < 5
-      ? -0.2
-      : 0;
+  const obrHeadroomEffect =
+    state.obr.fiscalHeadroomForecast_bn < 0 ? -0.5 : state.obr.fiscalHeadroomForecast_bn < 5 ? -0.2 : 0;
 
   // Backbench feedback (if backbenchers are revolting, PM blames chancellor)
   const backbenchEffect = (political.backbenchSatisfaction - 50) * 0.1;
@@ -3666,10 +3871,7 @@ function applyFiscalFrameworkChangeConsequences(state: GameState): GameState {
       backbenchSatisfaction: Math.max(0, political.backbenchSatisfaction - 5),
       fiscalRuleChangedLastTurn: false,
       fiscalRuleYieldShock_pp: (political.fiscalRuleYieldShock_pp || 0) + yieldShock,
-      fiscalRuleYieldShockMonthsRemaining: Math.max(
-        6,
-        political.fiscalRuleYieldShockMonthsRemaining || 0
-      ),
+      fiscalRuleYieldShockMonthsRemaining: Math.max(6, political.fiscalRuleYieldShockMonthsRemaining || 0),
       fiscalRuleUturnReactionTurnsRemaining: 3,
     },
     events: {
@@ -3771,10 +3973,15 @@ function checkPMIntervention(state: GameState): GameState {
       pmTrust: political.pmTrust,
       pmAnger,
       demandTitle: 'Backbench Rebellion Brewing',
-      demandDescription: 'The backbenches are in open revolt. We will increase a pressured frontline service budget now and lock it into the baseline.',
+      demandDescription:
+        'The backbenches are in open revolt. We will increase a pressured frontline service budget now and lock it into the baseline.',
       complyPolicyDescription: 'Comply: permanent +£3.0bn annual NHS current spending.',
       consequencesIfComply: { pmTrustChange: 10, backbenchSentimentChange: 15, publicApprovalChange: 2 },
-      consequencesIfDefy: { pmTrustChange: -15, backbenchSentimentChange: -10, reshuffleRisk: political.pmTrust < 30 ? 60 : 30 },
+      consequencesIfDefy: {
+        pmTrustChange: -15,
+        backbenchSentimentChange: -10,
+        reshuffleRisk: political.pmTrust < 30 ? 60 : 30,
+      },
     };
   } else if (manifesto.totalViolations > 0 && Math.random() < 0.25) {
     intervention = {
@@ -3784,10 +3991,15 @@ function checkPMIntervention(state: GameState): GameState {
       pmTrust: political.pmTrust,
       pmAnger,
       demandTitle: 'Manifesto Commitment Broken',
-      demandDescription: 'We made clear promises to the electorate. You must reverse a meaningful share of the latest manifesto breach.',
+      demandDescription:
+        'We made clear promises to the electorate. You must reverse a meaningful share of the latest manifesto breach.',
       complyPolicyDescription: 'Comply: partial reversal of the latest manifesto-violating tax rise or spending cut.',
       consequencesIfComply: { pmTrustChange: 8, backbenchSentimentChange: 10, publicApprovalChange: 1 },
-      consequencesIfDefy: { pmTrustChange: -12, backbenchSentimentChange: -8, reshuffleRisk: political.pmTrust < 30 ? 50 : 25 },
+      consequencesIfDefy: {
+        pmTrustChange: -12,
+        backbenchSentimentChange: -8,
+        reshuffleRisk: political.pmTrust < 30 ? 50 : 25,
+      },
     };
   } else if (political.governmentApproval < 30 && Math.random() < 0.3) {
     intervention = {
@@ -3797,10 +4009,15 @@ function checkPMIntervention(state: GameState): GameState {
       pmTrust: political.pmTrust,
       pmAnger,
       demandTitle: 'Public Confidence Collapsing',
-      demandDescription: 'The polling is catastrophic. We need an immediate service package that voters can feel this year.',
+      demandDescription:
+        'The polling is catastrophic. We need an immediate service package that voters can feel this year.',
       complyPolicyDescription: 'Comply: immediate +£2.5bn annual NHS and welfare support package.',
       consequencesIfComply: { pmTrustChange: 8, backbenchSentimentChange: 12, publicApprovalChange: 3 },
-      consequencesIfDefy: { pmTrustChange: -10, backbenchSentimentChange: -12, reshuffleRisk: political.pmTrust < 30 ? 55 : 25 },
+      consequencesIfDefy: {
+        pmTrustChange: -10,
+        backbenchSentimentChange: -12,
+        reshuffleRisk: political.pmTrust < 30 ? 55 : 25,
+      },
     };
   } else if ((markets.giltYield10y > 6 || fiscal.debtPctGDP > 110) && Math.random() < 0.35) {
     intervention = {
@@ -3811,9 +4028,14 @@ function checkPMIntervention(state: GameState): GameState {
       pmAnger,
       demandTitle: 'Economic Crisis Deepening',
       demandDescription: 'The gilt market is questioning our fiscal path. We need a credible tightening package now.',
-      complyPolicyDescription: 'Comply: enforce at least £5bn annual deficit reduction through spending restraint and/or revenue.',
+      complyPolicyDescription:
+        'Comply: enforce at least £5bn annual deficit reduction through spending restraint and/or revenue.',
       consequencesIfComply: { pmTrustChange: 12, backbenchSentimentChange: 5, publicApprovalChange: 1 },
-      consequencesIfDefy: { pmTrustChange: -20, backbenchSentimentChange: -5, reshuffleRisk: political.pmTrust < 25 ? 70 : 40 },
+      consequencesIfDefy: {
+        pmTrustChange: -20,
+        backbenchSentimentChange: -5,
+        reshuffleRisk: political.pmTrust < 25 ? 70 : 40,
+      },
     };
   } else if (state.obr.fiscalHeadroomForecast_bn < 0 && Math.random() < 0.45) {
     intervention = {
@@ -3826,7 +4048,11 @@ function checkPMIntervention(state: GameState): GameState {
       demandDescription: 'The OBR has certified a breach of our fiscal rules. The markets are already reacting.',
       complyPolicyDescription: 'Comply: deliver an immediate £6bn consolidation package for the next fiscal event.',
       consequencesIfComply: { pmTrustChange: 12, backbenchSentimentChange: 8, publicApprovalChange: 0.5 },
-      consequencesIfDefy: { pmTrustChange: -18, backbenchSentimentChange: -8, reshuffleRisk: political.pmTrust < 25 ? 70 : 45 },
+      consequencesIfDefy: {
+        pmTrustChange: -18,
+        backbenchSentimentChange: -8,
+        reshuffleRisk: political.pmTrust < 25 ? 70 : 45,
+      },
     };
   }
 
@@ -3848,20 +4074,31 @@ function checkPMIntervention(state: GameState): GameState {
 // ===========================
 
 function triggerEvents(state: GameState): GameState {
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   const monthLabel = monthNames[state.metadata.currentMonth - 1] || 'Unknown';
   const previousSnapshot = state.simulation.monthlySnapshots?.[state.simulation.monthlySnapshots.length - 1];
-  const previousYield = typeof previousSnapshot?.giltYield === 'number'
-    ? previousSnapshot.giltYield
-    : state.markets.giltYield10y;
-  const gdpGrowthMonthly = typeof state.economic.gdpGrowthMonthly === 'number'
-    ? state.economic.gdpGrowthMonthly
-    : state.economic.gdpGrowthAnnual / 12;
+  const previousYield =
+    typeof previousSnapshot?.giltYield === 'number' ? previousSnapshot.giltYield : state.markets.giltYield10y;
+  const gdpGrowthMonthly =
+    typeof state.economic.gdpGrowthMonthly === 'number'
+      ? state.economic.gdpGrowthMonthly
+      : state.economic.gdpGrowthAnnual / 12;
   const gdpGrowthQuarterly = (Math.pow(1 + gdpGrowthMonthly / 100, 3) - 1) * 100;
   const recentNewspapers = [
-    ...(state.events.eventLog || [])
-      .map((entry: any) => entry?.newsArticle)
-      .filter((article: any) => !!article),
+    ...(state.events.eventLog || []).map((entry: any) => entry?.newsArticle).filter((article: any) => !!article),
     ...(state.events.currentNewspaper ? [state.events.currentNewspaper] : []),
   ].slice(-18);
 
@@ -3870,8 +4107,10 @@ function triggerEvents(state: GameState): GameState {
   const inflationFactor = 1 + state.economic.inflationCPI / 100;
   const nhsBaselineReal = 168.4 * Math.pow(1 + 3.5 / 100, monthsElapsed / 12);
   const educationBaselineReal = 104.0 * Math.pow(1 + 2.0 / 100, monthsElapsed / 12);
-  const nhsRealGrowth = ((state.fiscal.spending.nhsCurrent / inflationFactor) - nhsBaselineReal) / nhsBaselineReal * 100;
-  const educationRealGrowth = ((state.fiscal.spending.educationCurrent / inflationFactor) - educationBaselineReal) / educationBaselineReal * 100;
+  const nhsRealGrowth =
+    ((state.fiscal.spending.nhsCurrent / inflationFactor - nhsBaselineReal) / nhsBaselineReal) * 100;
+  const educationRealGrowth =
+    ((state.fiscal.spending.educationCurrent / inflationFactor - educationBaselineReal) / educationBaselineReal) * 100;
   const welfareCut = state.fiscal.spending.welfare < 290 * 0.95;
 
   const strikeTriggerMultiplier = Math.max(0.5, state.services.strikeTriggerThresholdMultiplier || 1);
@@ -3879,7 +4118,8 @@ function triggerEvents(state: GameState): GameState {
   const nextServices = {
     ...state.services,
     consecutiveNHSCutMonths: nhsRealGrowth < -2 ? (state.services.consecutiveNHSCutMonths || 0) + 1 : 0,
-    consecutiveEducationCutMonths: educationRealGrowth < -2 ? (state.services.consecutiveEducationCutMonths || 0) + 1 : 0,
+    consecutiveEducationCutMonths:
+      educationRealGrowth < -2 ? (state.services.consecutiveEducationCutMonths || 0) + 1 : 0,
     consecutivePensionCutMonths: welfareCut ? (state.services.consecutivePensionCutMonths || 0) + 1 : 0,
   };
 
@@ -3889,7 +4129,7 @@ function triggerEvents(state: GameState): GameState {
   );
 
   if (!hasPendingSectorEvent) {
-    if ((nextServices.consecutivePensionCutMonths >= 2) && (nextServices.pensionerRevoltCooldown || 0) === 0) {
+    if (nextServices.consecutivePensionCutMonths >= 2 && (nextServices.pensionerRevoltCooldown || 0) === 0) {
       const floor = Math.max(state.fiscal.pmPensionFloor_bn || 0, 130);
       sectorEvent = {
         id: `sector_pension_${state.metadata.currentTurn}`,
@@ -3898,7 +4138,8 @@ function triggerEvents(state: GameState): GameState {
         month: state.metadata.currentTurn,
         date: new Date(state.metadata.currentYear, state.metadata.currentMonth - 1, 1),
         title: 'Pensioner revolt',
-        description: 'Pensioner groups have mobilised against real-terms pension pressure and are demanding a guaranteed minimum pension commitment.',
+        description:
+          'Pensioner groups have mobilised against real-terms pension pressure and are demanding a guaranteed minimum pension commitment.',
         immediateImpact: { approvalRating: -3, pmTrust: -1 },
         requiresResponse: false,
       };
@@ -4035,7 +4276,12 @@ function triggerEvents(state: GameState): GameState {
       nationalApproval: state.political.governmentApproval, // Alias for backwards compat
       pmTrust: state.political.pmTrust,
       backbenchSentiment: {
-        rebellionRisk: state.political.backbenchSatisfaction < 30 ? 'high' : state.political.backbenchSatisfaction < 50 ? 'medium' : 'low',
+        rebellionRisk:
+          state.political.backbenchSatisfaction < 30
+            ? 'high'
+            : state.political.backbenchSatisfaction < 50
+              ? 'medium'
+              : 'low',
       },
     },
     markets: {
@@ -4106,7 +4352,7 @@ function triggerEvents(state: GameState): GameState {
   // Generate newspaper for the most significant event (or general state)
   let newspaper: NewsArticle | null = null;
   try {
-    const significantEvent = newEvents.find(e => e.severity === 'crisis' || e.severity === 'major') || newEvents[0];
+    const significantEvent = newEvents.find((e) => e.severity === 'crisis' || e.severity === 'major') || newEvents[0];
     newspaper = generateNewspaper(eventsState, significantEvent);
   } catch (e) {
     // Newspaper generation is optional
@@ -4114,18 +4360,15 @@ function triggerEvents(state: GameState): GameState {
 
   // Store events and newspaper in state
   const existingPendingEvents = updatedState.events.pendingEvents || [];
-  const responseEvents = newEvents.filter(e => e.requiresResponse);
-  const resolvedEvents = newEvents.filter(e => !e.requiresResponse);
+  const responseEvents = newEvents.filter((e) => e.requiresResponse);
+  const resolvedEvents = newEvents.filter((e) => !e.requiresResponse);
   const resolvedEventEntries = resolvedEvents.map((event, idx) => ({
     event,
     resolved: true,
     newsArticle: idx === 0 ? newspaper || undefined : undefined,
   }));
 
-  const newEventLog = [
-    ...(updatedState.events.eventLog || []),
-    ...resolvedEventEntries,
-  ];
+  const newEventLog = [...(updatedState.events.eventLog || []), ...resolvedEventEntries];
 
   const allPendingEvents = sectorEvent
     ? [...existingPendingEvents, sectorEvent, ...responseEvents]
@@ -4169,11 +4412,12 @@ function triggerEvents(state: GameState): GameState {
   }
 
   const mpcDecision = state.markets.lastMPCDecision || 'hold';
-  const mpcQuote = mpcDecision === 'hike'
-    ? 'We remain focused on returning inflation sustainably to target.'
-    : mpcDecision === 'cut'
-      ? 'Disinflation is progressing and policy can begin to normalise carefully.'
-      : 'Policy must stay restrictive until inflation persistence eases further.';
+  const mpcQuote =
+    mpcDecision === 'hike'
+      ? 'We remain focused on returning inflation sustainably to target.'
+      : mpcDecision === 'cut'
+        ? 'Disinflation is progressing and policy can begin to normalise carefully.'
+        : 'Policy must stay restrictive until inflation persistence eases further.';
   const mpcBrief = `Bank of England ${mpcDecision}s Bank Rate at ${state.markets.bankRate.toFixed(2)}% (${state.markets.lastMPCVoteBreakdown || 'vote pending'}). Andrew Bailey: "${mpcQuote}"`;
   if (currentNewspaper) {
     currentNewspaper = {
@@ -4184,8 +4428,14 @@ function triggerEvents(state: GameState): GameState {
         mpcBrief,
         `OBR monitoring note: certified fiscal headroom currently £${(state.obr.fiscalHeadroomForecast_bn ?? state.fiscal.fiscalHeadroom_bn).toFixed(1)}bn under ${getFiscalRuleById(state.political.chosenFiscalRule).name}.`,
       ],
-      headline: mpcDecision === 'hold' ? currentNewspaper.headline : `MPC ${mpcDecision === 'hike' ? 'raises' : 'cuts'} Bank Rate`,
-      subheading: mpcDecision === 'hold' ? currentNewspaper.subheading : `${state.markets.lastMPCVoteBreakdown || 'MPC vote recorded'} as markets reassess the UK policy mix.`,
+      headline:
+        mpcDecision === 'hold'
+          ? currentNewspaper.headline
+          : `MPC ${mpcDecision === 'hike' ? 'raises' : 'cuts'} Bank Rate`,
+      subheading:
+        mpcDecision === 'hold'
+          ? currentNewspaper.subheading
+          : `${state.markets.lastMPCVoteBreakdown || 'MPC vote recorded'} as markets reassess the UK policy mix.`,
       isSpecialEdition: mpcDecision === 'hold' ? currentNewspaper.isSpecialEdition : true,
     };
   }
@@ -4205,9 +4455,10 @@ function applyEventImpact(state: GameState, impact: any): GameState {
   let newState = { ...state };
 
   if (impact.gdpGrowth) {
-    const currentMonthly = typeof newState.economic.gdpGrowthMonthly === 'number'
-      ? newState.economic.gdpGrowthMonthly
-      : newState.economic.gdpGrowthAnnual / 12;
+    const currentMonthly =
+      typeof newState.economic.gdpGrowthMonthly === 'number'
+        ? newState.economic.gdpGrowthMonthly
+        : newState.economic.gdpGrowthAnnual / 12;
     const newMonthly = currentMonthly + impact.gdpGrowth;
     const newAnnual = (Math.pow(1 + newMonthly / 100, 12) - 1) * 100;
     newState = {
@@ -4308,8 +4559,7 @@ function updateCreditRating(state: GameState): GameState {
   }
 
   const newRating = ratingScale[newIndex] as PoliticalState['creditRating'];
-  const outlook: PoliticalState['creditRatingOutlook'] =
-    score >= 2 ? 'positive' : score <= -1 ? 'negative' : 'stable';
+  const outlook: PoliticalState['creditRatingOutlook'] = score >= 2 ? 'positive' : score <= -1 ? 'negative' : 'stable';
 
   // Credibility impact from rating changes
   let credibilityChange = 0;
@@ -4420,11 +4670,17 @@ function buildObrForecastVintage(state: GameState): NonNullable<GameState['obr']
   const annualGrowthBase = state.economic.gdpGrowthAnnual;
   const annualInflationBase = state.economic.inflationCPI;
   const annualUnemploymentBase = state.economic.unemploymentRate;
-  const spendingDrivenBoost = Math.max(0, (state.fiscal.spending.nhsCurrent + state.fiscal.spending.educationCurrent + state.fiscal.spending.infrastructureCapital) - (168.4 + 104.0 + 80));
+  const spendingDrivenBoost = Math.max(
+    0,
+    state.fiscal.spending.nhsCurrent +
+      state.fiscal.spending.educationCurrent +
+      state.fiscal.spending.infrastructureCapital -
+      (168.4 + 104.0 + 80)
+  );
 
   const gdpGrowthPath = Array.from({ length: 5 }, (_, idx) => {
     const horizonDampen = 1 - idx * 0.04;
-    const cautionAdjusted = annualGrowthBase - ((spendingDrivenBoost / 100) * (1 - obrCaution) * 0.25);
+    const cautionAdjusted = annualGrowthBase - (spendingDrivenBoost / 100) * (1 - obrCaution) * 0.25;
     const noise = (Math.random() - 0.5) * 0.4;
     return round1(cautionAdjusted * horizonDampen + noise);
   });
@@ -4449,11 +4705,13 @@ function buildObrForecastVintage(state: GameState): NonNullable<GameState['obr']
     return round1(next);
   });
 
-  const latestHeadroom = round1(state.fiscal.fiscalHeadroom_bn - (spendingDrivenBoost * (1 - obrCaution) * 0.2));
+  const latestHeadroom = round1(state.fiscal.fiscalHeadroom_bn - spendingDrivenBoost * (1 - obrCaution) * 0.2);
   const policyScorings = [
     {
       measureDescription: 'Income tax package',
-      annualImpact_bn: round1(((state.fiscal.incomeTaxBasicRate - 20) * 7 + (state.fiscal.incomeTaxHigherRate - 40) * 2) * obrCaution),
+      annualImpact_bn: round1(
+        ((state.fiscal.incomeTaxBasicRate - 20) * 7 + (state.fiscal.incomeTaxHigherRate - 40) * 2) * obrCaution
+      ),
       certaintylevel: 'medium' as const,
     },
     {
@@ -4487,14 +4745,12 @@ function compareLastFiscalYearToForecast(state: GameState): OBRForecastCompariso
 
   const startTurn = state.metadata.currentTurn - 12;
   const fiscalYearData = state.simulation.monthlySnapshots.filter(
-    (row) => row.turn >= startTurn && row.turn < state.metadata.currentTurn
+    (row: { turn: number; gdpGrowth: number; deficit: number; debt: number }) => row.turn >= startTurn && row.turn < state.metadata.currentTurn
   );
   if (fiscalYearData.length === 0) return null;
 
-  const actualGDPGrowth =
-    fiscalYearData.reduce((sum, row) => sum + row.gdpGrowth, 0) / fiscalYearData.length;
-  const actualDeficit =
-    fiscalYearData.reduce((sum, row) => sum + row.deficit, 0) / fiscalYearData.length;
+  const actualGDPGrowth = fiscalYearData.reduce((sum: number, row: { gdpGrowth: number }) => sum + row.gdpGrowth, 0) / fiscalYearData.length;
+  const actualDeficit = fiscalYearData.reduce((sum: number, row: { deficit: number }) => sum + row.deficit, 0) / fiscalYearData.length;
   const actualDebt = fiscalYearData[fiscalYearData.length - 1].debt;
 
   const baseProjection = snapshot.horizonYears[0];
@@ -4540,7 +4796,12 @@ function processOBRForecasting(state: GameState): GameState {
         latestForecast,
         forecastVintages: [...(nextState.obr.forecastVintages || []), latestForecast],
         fiscalHeadroomForecast_bn: latestForecast.fiscalHeadroom_bn,
-        forecastRiskStatement: latestForecast.fiscalHeadroom_bn < 0 ? 'skewed_down' : latestForecast.fiscalHeadroom_bn < 10 ? 'balanced' : 'skewed_up',
+        forecastRiskStatement:
+          latestForecast.fiscalHeadroom_bn < 0
+            ? 'skewed_down'
+            : latestForecast.fiscalHeadroom_bn < 10
+              ? 'balanced'
+              : 'skewed_up',
       },
       simulation: {
         ...nextState.simulation,
@@ -4555,7 +4816,7 @@ function processOBRForecasting(state: GameState): GameState {
 
   const latest = nextState.obr.latestForecast;
   const gdpError = state.economic.gdpGrowthAnnual - latest.gdpGrowthPath[0];
-  const deficitError = state.fiscal.deficit_bn - ((latest.deficitPath[0] / 100) * state.economic.gdpNominal_bn);
+  const deficitError = state.fiscal.deficit_bn - (latest.deficitPath[0] / 100) * state.economic.gdpNominal_bn;
   const errors = [
     {
       forecastTurn: latest.eventTurn,
@@ -4605,19 +4866,49 @@ function processOBRForecasting(state: GameState): GameState {
 function captureTurnDelta(state: GameState, previousState: GameState): GameState {
   const approvalDrivers: TurnDeltaDriver[] = [
     { name: 'NHS quality', value: (state.services.nhsQuality - previousState.services.nhsQuality) * 0.12 },
-    { name: 'Unemployment gap', value: (previousState.economic.unemploymentRate - state.economic.unemploymentRate) * 0.6 },
+    {
+      name: 'Unemployment gap',
+      value: (previousState.economic.unemploymentRate - state.economic.unemploymentRate) * 0.6,
+    },
     { name: 'Inflation pressure', value: (previousState.economic.inflationCPI - state.economic.inflationCPI) * 0.5 },
-    { name: 'Manifesto penalty', value: (previousState.manifesto.totalViolations - state.manifesto.totalViolations) * 1.2 },
-    { name: 'Real wages', value: ((state.economic.wageGrowthAnnual - state.economic.inflationCPI) - (previousState.economic.wageGrowthAnnual - previousState.economic.inflationCPI)) * 0.4 },
+    {
+      name: 'Manifesto penalty',
+      value: (previousState.manifesto.totalViolations - state.manifesto.totalViolations) * 1.2,
+    },
+    {
+      name: 'Real wages',
+      value:
+        (state.economic.wageGrowthAnnual -
+          state.economic.inflationCPI -
+          (previousState.economic.wageGrowthAnnual - previousState.economic.inflationCPI)) *
+        0.4,
+    },
   ];
   const sortedApproval = [...approvalDrivers].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
-  const approvalPositive = sortedApproval.filter((item) => item.value > 0).slice(0, 3).map((item) => ({ ...item, value: round1(item.value) }));
-  const approvalNegative = sortedApproval.filter((item) => item.value < 0).slice(0, 3).map((item) => ({ ...item, value: round1(item.value) }));
+  const approvalPositive = sortedApproval
+    .filter((item) => item.value > 0)
+    .slice(0, 3)
+    .map((item) => ({ ...item, value: round1(item.value) }));
+  const approvalNegative = sortedApproval
+    .filter((item) => item.value < 0)
+    .slice(0, 3)
+    .map((item) => ({ ...item, value: round1(item.value) }));
 
   const giltDrivers: TurnDeltaDriver[] = [
-    { name: 'Debt premium', value: Math.max(0, state.fiscal.debtPctGDP - 90) * 0.02 - Math.max(0, previousState.fiscal.debtPctGDP - 90) * 0.02 },
-    { name: 'Deficit premium', value: Math.max(0, state.fiscal.deficitPctGDP - 3) * 0.15 - Math.max(0, previousState.fiscal.deficitPctGDP - 3) * 0.15 },
-    { name: 'Credibility', value: (previousState.political.credibilityIndex - state.political.credibilityIndex) * 0.008 },
+    {
+      name: 'Debt premium',
+      value:
+        Math.max(0, state.fiscal.debtPctGDP - 90) * 0.02 - Math.max(0, previousState.fiscal.debtPctGDP - 90) * 0.02,
+    },
+    {
+      name: 'Deficit premium',
+      value:
+        Math.max(0, state.fiscal.deficitPctGDP - 3) * 0.15 - Math.max(0, previousState.fiscal.deficitPctGDP - 3) * 0.15,
+    },
+    {
+      name: 'Credibility',
+      value: (previousState.political.credibilityIndex - state.political.credibilityIndex) * 0.008,
+    },
   ].map((item) => ({ ...item, value: round1(item.value) }));
 
   const deficitDrivers: TurnDeltaDriver[] = [
@@ -4633,9 +4924,15 @@ function captureTurnDelta(state: GameState, previousState: GameState): GameState
     deficitDrivers.push({ name: `Barnett: +£${(state.fiscal.barnettConsequentials_bn || 0).toFixed(1)}bn`, value: 0 });
   }
   if ((state.capitalDelivery.deferredCapital_bn || 0) > 0.01) {
-    deficitDrivers.push({ name: `Capital delivery cap: £${(state.capitalDelivery.deferredCapital_bn || 0).toFixed(1)}bn deferred`, value: 0 });
+    deficitDrivers.push({
+      name: `Capital delivery cap: £${(state.capitalDelivery.deferredCapital_bn || 0).toFixed(1)}bn deferred`,
+      value: 0,
+    });
   }
-  deficitDrivers.push({ name: `OBR headroom: £${(state.obr.fiscalHeadroomForecast_bn ?? state.fiscal.fiscalHeadroom_bn).toFixed(1)}bn`, value: 0 });
+  deficitDrivers.push({
+    name: `OBR headroom: £${(state.obr.fiscalHeadroomForecast_bn ?? state.fiscal.fiscalHeadroom_bn).toFixed(1)}bn`,
+    value: 0,
+  });
   const delayedItem = (state.legislativePipeline.queue || []).find((item) => item.status === 'delayed');
   if (delayedItem) {
     deficitDrivers.push({ name: `HMRC delay: ${delayedItem.measureId}`, value: 0 });
@@ -4675,7 +4972,8 @@ function checkGameOver(state: GameState): GameState {
       metadata: {
         ...metadata,
         gameOver: true,
-        gameOverReason: 'The Prime Minister has lost all confidence in your ability to manage the economy. You have been removed from office.',
+        gameOverReason:
+          'The Prime Minister has lost all confidence in your ability to manage the economy. You have been removed from office.',
       },
     };
   }
@@ -4683,15 +4981,15 @@ function checkGameOver(state: GameState): GameState {
   // Backbench revolt (low satisfaction + probabilistic, scaling probability)
   if (political.backbenchSatisfaction < difficulty.gameOverBackbenchThreshold) {
     // Probability increases as satisfaction drops lower
-    const revoltProbability =
-      political.backbenchSatisfaction < difficulty.gameOverBackbenchThreshold - 10 ? 0.6 : 0.3;
+    const revoltProbability = political.backbenchSatisfaction < difficulty.gameOverBackbenchThreshold - 10 ? 0.6 : 0.3;
     if (Math.random() < revoltProbability) {
       return {
         ...state,
         metadata: {
           ...metadata,
           gameOver: true,
-          gameOverReason: 'A backbench revolt has forced your resignation. Your party has lost confidence in your economic management.',
+          gameOverReason:
+            'A backbench revolt has forced your resignation. Your party has lost confidence in your economic management.',
         },
       };
     }
@@ -4704,7 +5002,8 @@ function checkGameOver(state: GameState): GameState {
       metadata: {
         ...metadata,
         gameOver: true,
-        gameOverReason: 'Gilt yields have surged above 7.5%. The UK faces a sovereign debt crisis. An emergency government has been formed without you.',
+        gameOverReason:
+          'Gilt yields have surged above 7.5%. The UK faces a sovereign debt crisis. An emergency government has been formed without you.',
       },
     };
   }
@@ -4716,7 +5015,8 @@ function checkGameOver(state: GameState): GameState {
       metadata: {
         ...metadata,
         gameOver: true,
-        gameOverReason: 'UK national debt has exceeded 120% of GDP. The IMF has been called in. Your chancellorship is over.',
+        gameOverReason:
+          'UK national debt has exceeded 120% of GDP. The IMF has been called in. Your chancellorship is over.',
       },
     };
   }

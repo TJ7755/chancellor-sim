@@ -215,9 +215,7 @@ export async function saveMP(mp: MPProfile): Promise<void> {
 /**
  * Save voting records for all MPs
  */
-export async function saveVotingRecords(
-  votingRecords: Map<string, VotingRecord>
-): Promise<void> {
+export async function saveVotingRecords(votingRecords: Map<string, VotingRecord>): Promise<void> {
   try {
     const db = await initMPDatabase();
     const transaction = db.transaction([STORE_VOTING_RECORDS], 'readwrite');
@@ -469,7 +467,13 @@ export async function batchRecordBudgetVotes(
           record = { mpId: vote.mpId, budgetVotes: [], rebellionCount: 0, loyaltyScore: 100 };
           records.push(record);
         }
-        record.budgetVotes.push({ budgetId: vote.budgetId, month: vote.month, choice: vote.choice, reasoning: vote.reasoning, coerced: vote.coerced });
+        record.budgetVotes.push({
+          budgetId: vote.budgetId,
+          month: vote.month,
+          choice: vote.choice,
+          reasoning: vote.reasoning,
+          coerced: vote.coerced,
+        });
         if (record.budgetVotes.length > 20) {
           record.budgetVotes = record.budgetVotes.slice(-20);
         }
@@ -625,10 +629,7 @@ export async function savePromise(promise: MPPromise): Promise<void> {
 /**
  * Mark a promise as broken
  */
-export async function markPromiseBroken(
-  promiseId: string,
-  month: number
-): Promise<void> {
+export async function markPromiseBroken(promiseId: string, month: number): Promise<void> {
   try {
     const db = await initMPDatabase();
     const transaction = db.transaction([STORE_PROMISES], 'readwrite');
@@ -756,7 +757,7 @@ export async function getBrokenPromises(): Promise<MPPromise[]> {
       request.onsuccess = () => {
         // Filter for broken promises manually
         const allPromises = request.result as MPPromise[];
-        const brokenPromises = allPromises.filter(p => p.broken === true);
+        const brokenPromises = allPromises.filter((p) => p.broken === true);
         db.close();
         resolve(brokenPromises);
       };
@@ -782,10 +783,7 @@ export async function getBrokenPromises(): Promise<MPPromise[]> {
 export async function clearAllMPData(): Promise<void> {
   try {
     const db = await initMPDatabase();
-    const transaction = db.transaction(
-      [STORE_MPS, STORE_VOTING_RECORDS, STORE_PROMISES],
-      'readwrite'
-    );
+    const transaction = db.transaction([STORE_MPS, STORE_VOTING_RECORDS, STORE_PROMISES], 'readwrite');
 
     await Promise.all([
       new Promise<void>((resolve, reject) => {

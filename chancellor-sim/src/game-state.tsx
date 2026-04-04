@@ -80,7 +80,12 @@ export type { ManifestoState } from './manifesto-system';
 export type { MPSystemState, LobbyingApproach, PromiseCategory } from './mp-system';
 export type { BudgetDraft } from './state/budget-draft';
 
-export { normalizeLoadedState, robustNormalizeMap, normalizeCurrentBudgetSupport, normalizeAdviserSystem } from './state/normalisation';
+export {
+  normalizeLoadedState,
+  robustNormalizeMap,
+  normalizeCurrentBudgetSupport,
+  normalizeAdviserSystem,
+} from './state/normalisation';
 export { serialiseGameState, writeSave, readSave } from './state/persistence';
 export { applyBudgetChangesToState } from './domain/budget/apply-changes';
 export { calcScore, calculateGrade } from './domain/game/scoring';

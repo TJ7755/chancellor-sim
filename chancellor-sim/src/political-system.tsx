@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 /**
  * UK CHANCELLOR SIMULATION - POLITICAL SYSTEM
@@ -287,10 +287,10 @@ export function generateInitialPoliticalState(): PoliticalState {
     const roll = Math.random();
     let ideologyPosition: number;
 
-    if (roll < 0.20) {
+    if (roll < 0.2) {
       // Left wing (Corbynites and left)
       ideologyPosition = -1.5 + Math.random() * 0.8;
-    } else if (roll < 0.70) {
+    } else if (roll < 0.7) {
       // Centrist mainstream
       ideologyPosition = -0.3 + Math.random() * 0.6;
     } else {
@@ -299,7 +299,7 @@ export function generateInitialPoliticalState(): PoliticalState {
     }
 
     // Constituency marginality: 70% safe, 30% marginal
-    const isMarginal = Math.random() < 0.30;
+    const isMarginal = Math.random() < 0.3;
     const constituencyMarginality = isMarginal
       ? 20 + Math.random() * 30 // Marginal: 20-50
       : 60 + Math.random() * 40; // Safe: 60-100
@@ -374,9 +374,7 @@ export function generateInitialPoliticalState(): PoliticalState {
 function calculateBackbenchSentiment(backbenchers: BackbencherMP[]): BackbenchSentiment {
   // Sort MPs into factions by ideology
   const leftWing = backbenchers.filter((mp) => mp.ideologyPosition < -0.5);
-  const centrists = backbenchers.filter(
-    (mp) => mp.ideologyPosition >= -0.5 && mp.ideologyPosition <= 0.5
-  );
+  const centrists = backbenchers.filter((mp) => mp.ideologyPosition >= -0.5 && mp.ideologyPosition <= 0.5);
   const rightWing = backbenchers.filter((mp) => mp.ideologyPosition > 0.5);
 
   // Calculate factional sentiments (average loyalty)
@@ -393,9 +391,7 @@ function calculateBackbenchSentiment(backbenchers: BackbencherMP[]): BackbenchSe
 
   // Count rebellion risks
   const mpsReadyToRebel = backbenchers.filter((mp) => mp.currentLoyalty < 30).length;
-  const mpsUneasy = backbenchers.filter(
-    (mp) => mp.currentLoyalty >= 30 && mp.currentLoyalty < 60
-  ).length;
+  const mpsUneasy = backbenchers.filter((mp) => mp.currentLoyalty >= 30 && mp.currentLoyalty < 60).length;
   const mpsLoyal = backbenchers.filter((mp) => mp.currentLoyalty >= 60).length;
 
   // Determine rebellion risk level
@@ -412,9 +408,7 @@ function calculateBackbenchSentiment(backbenchers: BackbencherMP[]): BackbenchSe
     { faction: 'right' as const, sentiment: rightWingSentiment },
   ];
   const worstFaction =
-    overallMood < 40
-      ? ('all' as const)
-      : factionSentiments.sort((a, b) => a.sentiment - b.sentiment)[0].faction;
+    overallMood < 40 ? ('all' as const) : factionSentiments.sort((a, b) => a.sentiment - b.sentiment)[0].faction;
 
   return {
     overallMood,
@@ -492,10 +486,7 @@ function calculateIdeologicalFit(mp: BackbencherMP, state: SimulationState): num
 /**
  * Update loyalty for each MP based on multiple factors
  */
-function updateBackbencherLoyalty(
-  mp: BackbencherMP,
-  state: SimulationState
-): BackbencherMP {
+function updateBackbencherLoyalty(mp: BackbencherMP, state: SimulationState): BackbencherMP {
   let loyaltyChange = 0;
 
   // 1. Ideological fit with fiscal policy
@@ -506,8 +497,7 @@ function updateBackbencherLoyalty(
   const constituencyPolling = getRegionalPolling(state, mp.region);
   const constituencyEffect = (constituencyPolling - 40) * 0.1; // -4 to +6
   const marginPenalty = (100 - mp.constituencyMarginality) / 20; // 0 to 5x multiplier
-  loyaltyChange +=
-    constituencyEffect * marginPenalty * mp.constituencyPriorityWeight;
+  loyaltyChange += constituencyEffect * marginPenalty * mp.constituencyPriorityWeight;
 
   // 3. Manifesto breach penalty
   const totalBreaches =
@@ -598,28 +588,13 @@ function calculatePublicApproval(state: SimulationState): PollingData {
 
   // Calculate new national approval
   const nationalChange = totalEffect + honeymoonAdjustment + factors.randomEvents;
-  const newNationalApproval = Math.max(
-    15,
-    Math.min(70, prevPolling.nationalApproval + nationalChange)
-  );
+  const newNationalApproval = Math.max(15, Math.min(70, prevPolling.nationalApproval + nationalChange));
 
   // Regional variations
-  const englandApproval = Math.max(
-    15,
-    Math.min(70, newNationalApproval + (Math.random() - 0.5) * 2)
-  ); // Close to national
-  const scotlandApproval = Math.max(
-    15,
-    Math.min(70, newNationalApproval - 8 + (Math.random() - 0.5) * 3)
-  ); // Labour weaker in Scotland
-  const walesApproval = Math.max(
-    15,
-    Math.min(70, newNationalApproval - 2 + (Math.random() - 0.5) * 2)
-  ); // Slightly lower
-  const northernIrelandApproval = Math.max(
-    15,
-    Math.min(70, 40 + (Math.random() - 0.5) * 5)
-  ); // Separate dynamics
+  const englandApproval = Math.max(15, Math.min(70, newNationalApproval + (Math.random() - 0.5) * 2)); // Close to national
+  const scotlandApproval = Math.max(15, Math.min(70, newNationalApproval - 8 + (Math.random() - 0.5) * 3)); // Labour weaker in Scotland
+  const walesApproval = Math.max(15, Math.min(70, newNationalApproval - 2 + (Math.random() - 0.5) * 2)); // Slightly lower
+  const northernIrelandApproval = Math.max(15, Math.min(70, 40 + (Math.random() - 0.5) * 5)); // Separate dynamics
 
   // Trend direction
   let trendDirection: PollingData['trendDirection'] = 'stable';
@@ -646,8 +621,7 @@ function calculatePMTrust(state: SimulationState): number {
   let trustChange = 0;
 
   // 1. Backbench sentiment effect (-5 to +5 per month)
-  const backbenchEffect =
-    (state.political.backbenchSentiment.overallMood - 60) * 0.08;
+  const backbenchEffect = (state.political.backbenchSentiment.overallMood - 60) * 0.08;
   trustChange += backbenchEffect;
 
   // 2. Public approval effect (-3 to +3 per month)
@@ -724,11 +698,8 @@ function createPMIntervention(
 /**
  * Check if PM intervention should trigger
  */
-function checkPMInterventionTrigger(
-  state: SimulationState
-): PMInterventionEvent | null {
-  const { pmTrust, backbenchSentiment, manifestoBreaches, polling } =
-    state.political;
+function checkPMInterventionTrigger(state: SimulationState): PMInterventionEvent | null {
+  const { pmTrust, backbenchSentiment, manifestoBreaches, polling } = state.political;
 
   // PM only intervenes if trust is low
   if (pmTrust > 40) return null;
@@ -744,10 +715,7 @@ function checkPMInterventionTrigger(
   }
 
   // 2. Major manifesto breach (check if new breach in recent history)
-  const totalBreaches =
-    manifestoBreaches.taxLocks +
-    manifestoBreaches.spendingPledges +
-    manifestoBreaches.fiscalRules;
+  const totalBreaches = manifestoBreaches.taxLocks + manifestoBreaches.spendingPledges + manifestoBreaches.fiscalRules;
   if (totalBreaches > 0 && state.currentMonth > 0) {
     // Would ideally check if breach is "new" - simplified here
     const shouldTrigger = Math.random() < 0.3; // 30% chance per month if breaches exist
@@ -779,17 +747,13 @@ export function processPolitics(state: SimulationState): SimulationState {
   // 1. Update individual MP loyalty levels
   newState.political = {
     ...newState.political,
-    backbenchers: newState.political.backbenchers.map((mp) =>
-      updateBackbencherLoyalty(mp, newState)
-    ),
+    backbenchers: newState.political.backbenchers.map((mp) => updateBackbencherLoyalty(mp, newState)),
   };
 
   // 2. Calculate backbench sentiment from updated MPs
   newState.political = {
     ...newState.political,
-    backbenchSentiment: calculateBackbenchSentiment(
-      newState.political.backbenchers
-    ),
+    backbenchSentiment: calculateBackbenchSentiment(newState.political.backbenchers),
   };
 
   // 3. Calculate public opinion changes
@@ -809,10 +773,7 @@ export function processPolitics(state: SimulationState): SimulationState {
   // 5. Check for PM intervention triggers
   const interventionEvent = checkPMInterventionTrigger(newState);
   if (interventionEvent) {
-    newState.political.pmInterventionsPending = [
-      ...newState.political.pmInterventionsPending,
-      interventionEvent,
-    ];
+    newState.political.pmInterventionsPending = [...newState.political.pmInterventionsPending, interventionEvent];
     newState.paused = true;
     newState.pauseReason = 'pm_intervention';
   }
@@ -830,10 +791,7 @@ export function processPolitics(state: SimulationState): SimulationState {
   }
 
   // 7. Add to PM trust history
-  newState.political.pmTrustHistory = [
-    ...newState.political.pmTrustHistory,
-    newState.political.pmTrust,
-  ].slice(-24);
+  newState.political.pmTrustHistory = [...newState.political.pmTrustHistory, newState.political.pmTrust].slice(-24);
 
   return newState;
 }
@@ -852,11 +810,7 @@ interface PMInterventionModalProps {
  * PM Phone Call Dialogue Modal
  * Pauses game and forces player choice
  */
-export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
-  event,
-  onComply,
-  onDefy,
-}) => {
+export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event, onComply, onDefy }) => {
   const getTrustColour = (trust: number): string => {
     if (trust > 50) return 'text-green-600';
     if (trust > 30) return 'text-orange-600';
@@ -875,12 +829,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
         {/* Phone Icon */}
         <div className="flex justify-center mb-4">
           <div className="w-20 h-20 bg-red-600  flex items-center justify-center animate-pulse">
-            <svg
-              className="w-10 h-10 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -892,46 +841,32 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">
-          The Prime Minister is calling...
-        </h2>
+        <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">The Prime Minister is calling...</h2>
         <p className="text-center text-gray-600 mb-6 text-lg">
-          {event.pmAnger === 'furious' &&
-            'The PM is furious about recent policy decisions'}
-          {event.pmAnger === 'angry' &&
-            'The PM is not pleased with the current situation'}
-          {event.pmAnger === 'concerned' &&
-            'The PM has concerns about the direction of policy'}
+          {event.pmAnger === 'furious' && 'The PM is furious about recent policy decisions'}
+          {event.pmAnger === 'angry' && 'The PM is not pleased with the current situation'}
+          {event.pmAnger === 'concerned' && 'The PM has concerns about the direction of policy'}
         </p>
 
         {/* PM Trust Indicator */}
         <div className="mb-6 p-4 bg-gray-50 ">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              PM Trust Level
-            </span>
+            <span className="text-sm font-medium text-gray-700">PM Trust Level</span>
             <span className={`font-bold text-lg ${getTrustColour(event.pmTrust)}`}>
               {Math.round(event.pmTrust)}/100
             </span>
           </div>
           <div className="w-full bg-gray-200  h-3">
-            <div
-              className={`h-3  ${getTrustBgColour(event.pmTrust)}`}
-              style={{ width: `${event.pmTrust}%` }}
-            />
+            <div className={`h-3  ${getTrustBgColour(event.pmTrust)}`} style={{ width: `${event.pmTrust}%` }} />
           </div>
         </div>
 
         {/* PM's Demand */}
         <div className="mb-6 p-6 border-2 border-red-300 bg-red-50 ">
-          <h3 className="font-bold text-red-900 mb-3 text-xl">
-            {event.demandTitle}
-          </h3>
+          <h3 className="font-bold text-red-900 mb-3 text-xl">{event.demandTitle}</h3>
           <p className="text-red-800 leading-relaxed">{event.demandDescription}</p>
           {event.complyPolicyDescription && (
-            <p className="text-sm text-red-900 mt-3 font-semibold">
-              {event.complyPolicyDescription}
-            </p>
+            <p className="text-sm text-red-900 mt-3 font-semibold">{event.complyPolicyDescription}</p>
           )}
         </div>
 
@@ -942,15 +877,10 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
             onClick={onComply}
             className="p-5 border-2 border-green-600 bg-green-50 hover:bg-green-100  transition-all transform hover:scale-105"
           >
-            <div className="font-bold text-green-900 mb-3 text-lg">
-              COMPLY WITH PM
-            </div>
+            <div className="font-bold text-green-900 mb-3 text-lg">COMPLY WITH PM</div>
             <div className="text-sm text-green-800 space-y-1 text-left">
               <div>• PM Trust: +{event.consequencesIfComply.pmTrustChange}</div>
-              <div>
-                • Backbenchers: +
-                {event.consequencesIfComply.backbenchSentimentChange}
-              </div>
+              <div>• Backbenchers: +{event.consequencesIfComply.backbenchSentimentChange}</div>
               <div>
                 • Public Approval: +{event.consequencesIfComply.publicApprovalChange}
                 pp
@@ -966,531 +896,17 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({
             <div className="font-bold text-red-900 mb-3 text-lg">DEFY PM</div>
             <div className="text-sm text-red-800 space-y-1 text-left">
               <div>• PM Trust: {event.consequencesIfDefy.pmTrustChange}</div>
-              <div>
-                • Backbenchers: {event.consequencesIfDefy.backbenchSentimentChange}
-              </div>
+              <div>• Backbenchers: {event.consequencesIfDefy.backbenchSentimentChange}</div>
               <div>• Reshuffle risk: {event.consequencesIfDefy.reshuffleRisk}%</div>
             </div>
           </button>
         </div>
 
         {/* Warning */}
-        <div className="text-xs text-center text-gray-500 italic">
-          This choice will have permanent consequences
-        </div>
+        <div className="text-xs text-center text-gray-500 italic">This choice will have permanent consequences</div>
       </div>
     </div>
   );
 };
 
-// ============================================================================
-// POLITICAL PANEL COMPONENT
-// ============================================================================
-
-interface PoliticalPanelProps {
-  state: SimulationState;
-}
-
-/**
- * Political metrics panel for dashboard
- */
-export const PoliticalPanel: React.FC<PoliticalPanelProps> = ({ state }) => {
-  const { political } = state;
-
-  const getStatusColour = (value: number, thresholds: [number, number]) => {
-    if (value > thresholds[0]) return 'text-green-600';
-    if (value > thresholds[1]) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const getRiskColour = (risk: BackbenchSentiment['rebellionRisk']) => {
-    switch (risk) {
-      case 'none':
-        return 'bg-green-100 border-green-300 text-green-900';
-      case 'low':
-        return 'bg-yellow-100 border-yellow-300 text-yellow-900';
-      case 'moderate':
-        return 'bg-orange-100 border-orange-300 text-orange-900';
-      case 'high':
-        return 'bg-red-100 border-red-300 text-red-900';
-      case 'critical':
-        return 'bg-red-200 border-red-400 text-red-950';
-    }
-  };
-
-  const getTrendArrow = (direction: PollingData['trendDirection']) => {
-    switch (direction) {
-      case 'rising':
-        return '↗';
-      case 'falling':
-        return '↘';
-      case 'stable':
-        return '→';
-    }
-  };
-
-  return (
-    <div className="bg-white   p-6">
-      <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">
-        Political Capital
-      </h2>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        {/* PM Trust */}
-        <div className="bg-gray-50 rounded p-3">
-          <div className="text-xs text-gray-600 mb-1">PM Trust</div>
-          <div
-            className={`text-2xl font-bold ${getStatusColour(political.pmTrust, [50, 35])}`}
-          >
-            {Math.round(political.pmTrust)}
-          </div>
-          {political.pmTrust < 40 && (
-            <div className="text-xs text-red-600 mt-1">At risk</div>
-          )}
-        </div>
-
-        {/* Public Approval */}
-        <div className="bg-gray-50 rounded p-3">
-          <div className="text-xs text-gray-600 mb-1">Public Approval</div>
-          <div
-            className={`text-2xl font-bold ${getStatusColour(political.polling.nationalApproval, [45, 35])}`}
-          >
-            {Math.round(political.polling.nationalApproval)}%
-          </div>
-          <div className="text-xs text-gray-600 mt-1">
-            {getTrendArrow(political.polling.trendDirection)}{' '}
-            {political.polling.trendDirection}
-          </div>
-        </div>
-
-        {/* Backbench Mood */}
-        <div className="bg-gray-50 rounded p-3">
-          <div className="text-xs text-gray-600 mb-1">Backbench Mood</div>
-          <div
-            className={`text-2xl font-bold ${getStatusColour(political.backbenchSentiment.overallMood, [60, 40])}`}
-          >
-            {Math.round(political.backbenchSentiment.overallMood)}
-          </div>
-          <div className="text-xs text-gray-600 mt-1">
-            {political.backbenchSentiment.mpsReadyToRebel} ready to rebel
-          </div>
-        </div>
-      </div>
-
-      {/* Rebellion Warning */}
-      {political.backbenchSentiment.rebellionRisk !== 'none' && (
-        <div
-          className={`p-3  mb-4 border-2 ${getRiskColour(political.backbenchSentiment.rebellionRisk)}`}
-        >
-          <div className="font-semibold text-sm">
-            Rebellion risk:{' '}
-            {political.backbenchSentiment.rebellionRisk.toUpperCase()}
-          </div>
-          <div className="text-xs mt-1">
-            {political.backbenchSentiment.mpsReadyToRebel} MPs ready to rebel •
-            Worst faction: {political.backbenchSentiment.worstFaction}
-          </div>
-        </div>
-      )}
-
-      {/* Regional Polling */}
-      <div className="border-t pt-4">
-        <div className="text-sm font-semibold text-gray-700 mb-2">
-          Regional Polling
-        </div>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-600">England:</span>
-            <span className="font-semibold">
-              {political.polling.englandApproval.toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Scotland:</span>
-            <span className="font-semibold">
-              {political.polling.scotlandApproval.toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Wales:</span>
-            <span className="font-semibold">
-              {political.polling.walesApproval.toFixed(1)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">N. Ireland:</span>
-            <span className="font-semibold">
-              {political.polling.northernIrelandApproval.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Honeymoon indicator */}
-      {political.polling.honeymoonDecayActive && (
-        <div className="mt-4 text-xs text-gray-500 italic">
-          Honeymoon period active (decays until month 12)
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ============================================================================
-// DEMO COMPONENT
-// ============================================================================
-
-/**
- * Standalone demo component for testing political system
- */
-export const PoliticalSystemDemo: React.FC = () => {
-  // Mock economic/fiscal/services state for demo
-  const mockEconomicState: EconomicState = {
-    gdpGrowthAnnual: 0.8,
-    cpi: 2.2,
-    unemploymentRate: 4.3,
-  };
-
-  const mockFiscalState: FiscalState = {
-    totalSpending: 1189,
-    deficit: 111,
-    debtToGdp: 98,
-    incomeTaxBasicRate: 20,
-    vatRate: 20,
-    niEmployeeRate: 8,
-  };
-
-  const mockServicesState: ServicesState = {
-    nhsQuality: 70,
-    educationQuality: 68,
-    infrastructureQuality: 65,
-  };
-
-  const mockMarketState: MarketState = {
-    giltYield10yr: 4.2,
-  };
-
-  // Initialize state
-  const [state, setState] = useState<SimulationState>({
-    currentMonth: 0,
-    currentDate: new Date('2024-07-05'),
-    economy: mockEconomicState,
-    fiscal: mockFiscalState,
-    services: mockServicesState,
-    markets: mockMarketState,
-    political: generateInitialPoliticalState(),
-  });
-
-  const [autoAdvance, setAutoAdvance] = useState(false);
-
-  // Auto-advance simulation
-  useEffect(() => {
-    if (!autoAdvance || state.paused) return;
-
-    const interval = setInterval(() => {
-      setState((prev) => {
-        const newState = processPolitics({
-          ...prev,
-          currentMonth: prev.currentMonth + 1,
-          currentDate: new Date(prev.currentDate.getTime() + 30 * 24 * 60 * 60 * 1000),
-        });
-        return newState;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [autoAdvance, state.paused]);
-
-  // Manual advance
-  const handleAdvanceMonth = () => {
-    setState((prev) => {
-      const newState = processPolitics({
-        ...prev,
-        currentMonth: prev.currentMonth + 1,
-        currentDate: new Date(prev.currentDate.getTime() + 30 * 24 * 60 * 60 * 1000),
-      });
-      return newState;
-    });
-  };
-
-  // Handle PM intervention response
-  const handlePMResponse = (choice: 'comply' | 'defy') => {
-    setState((prev) => {
-      const event = prev.political.pmInterventionsPending[0];
-
-      let newState = { ...prev };
-
-      // Apply consequences based on choice
-      if (choice === 'comply') {
-        const consequences = event.consequencesIfComply;
-        newState.political = {
-          ...newState.political,
-          pmTrust: Math.max(
-            0,
-            Math.min(100, newState.political.pmTrust + consequences.pmTrustChange)
-          ),
-          backbenchSentiment: {
-            ...newState.political.backbenchSentiment,
-            overallMood: Math.max(
-              0,
-              Math.min(
-                100,
-                newState.political.backbenchSentiment.overallMood +
-                  consequences.backbenchSentimentChange
-              )
-            ),
-          },
-          polling: {
-            ...newState.political.polling,
-            nationalApproval: Math.max(
-              15,
-              Math.min(
-                70,
-                newState.political.polling.nationalApproval +
-                  consequences.publicApprovalChange
-              )
-            ),
-          },
-          pmInterventionsPending: newState.political.pmInterventionsPending.slice(1),
-        };
-      } else {
-        const consequences = event.consequencesIfDefy;
-        newState.political = {
-          ...newState.political,
-          pmTrust: Math.max(
-            0,
-            Math.min(100, newState.political.pmTrust + consequences.pmTrustChange)
-          ),
-          backbenchSentiment: {
-            ...newState.political.backbenchSentiment,
-            overallMood: Math.max(
-              0,
-              Math.min(
-                100,
-                newState.political.backbenchSentiment.overallMood +
-                  consequences.backbenchSentimentChange
-              )
-            ),
-          },
-          pmInterventionsPending: newState.political.pmInterventionsPending.slice(1),
-        };
-      }
-
-      newState.paused =
-        newState.political.pmInterventionsPending.length > 0 ||
-        !!newState.political.reshuffleEvent;
-
-      return newState;
-    });
-  };
-
-  // Simulate tax increase (to test backbench reaction)
-  const handleSimulateTaxRise = () => {
-    setState((prev) => ({
-      ...prev,
-      fiscal: {
-        ...prev.fiscal,
-        incomeTaxBasicRate: 25, // Manifesto-breaking increase
-      },
-      political: {
-        ...prev.political,
-        manifestoBreaches: {
-          ...prev.political.manifestoBreaches,
-          taxLocks: 1,
-        },
-      },
-    }));
-  };
-
-  // Simulate NHS cuts (to test severe reaction)
-  const handleSimulateNHSCuts = () => {
-    setState((prev) => ({
-      ...prev,
-      services: {
-        ...prev.services,
-        nhsQuality: 50, // Severe decline
-      },
-    }));
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Political System Demo
-        </h1>
-
-        {/* Controls */}
-        <div className="bg-white   p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Simulation Controls</h2>
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={handleAdvanceMonth}
-              disabled={state.paused}
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              Advance Month
-            </button>
-            <button
-              onClick={() => setAutoAdvance(!autoAdvance)}
-              disabled={state.paused}
-              className={`px-6 py-2 rounded text-white ${
-                autoAdvance ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              } disabled:bg-gray-400`}
-            >
-              {autoAdvance ? 'Stop Auto-Advance' : 'Start Auto-Advance'}
-            </button>
-            <button
-              onClick={handleSimulateTaxRise}
-              className="px-6 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            >
-              Simulate Tax Rise
-            </button>
-            <button
-              onClick={handleSimulateNHSCuts}
-              className="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Simulate NHS Cuts
-            </button>
-          </div>
-          <div className="mt-4 text-sm text-gray-600">
-            Current Month: {state.currentMonth} (
-            {state.currentDate.toLocaleDateString('en-GB', {
-              month: 'long',
-              year: 'numeric',
-            })}
-            )
-          </div>
-        </div>
-
-        {/* Political Panel */}
-        <div className="mb-6">
-          <PoliticalPanel state={state} />
-        </div>
-
-        {/* Detailed Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Backbench Breakdown */}
-          <div className="bg-white   p-6">
-            <h2 className="text-xl font-bold mb-4">Backbench Breakdown</h2>
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm text-gray-600">Left Wing</div>
-                <div className="text-lg font-semibold">
-                  {Math.round(state.political.backbenchSentiment.leftWingSentiment)}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Centrist</div>
-                <div className="text-lg font-semibold">
-                  {Math.round(state.political.backbenchSentiment.centristSentiment)}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Right/Blairite</div>
-                <div className="text-lg font-semibold">
-                  {Math.round(state.political.backbenchSentiment.rightWingSentiment)}
-                </div>
-              </div>
-              <div className="border-t pt-3 mt-3">
-                <div className="text-sm text-gray-600">Loyal MPs</div>
-                <div className="text-lg font-semibold text-green-600">
-                  {state.political.backbenchSentiment.mpsLoyal}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Uneasy MPs</div>
-                <div className="text-lg font-semibold text-orange-600">
-                  {state.political.backbenchSentiment.mpsUneasy}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Ready to Rebel</div>
-                <div className="text-lg font-semibold text-red-600">
-                  {state.political.backbenchSentiment.mpsReadyToRebel}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Opinion Factors */}
-          <div className="bg-white   p-6">
-            <h2 className="text-xl font-bold mb-4">Opinion Factors</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Economic Performance:</span>
-                <span className="font-semibold">
-                  {state.political.opinionFactors.economicPerformance > 0 ? '+' : ''}
-                  {state.political.opinionFactors.economicPerformance.toFixed(1)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Service Quality:</span>
-                <span className="font-semibold">
-                  {state.political.opinionFactors.serviceQuality > 0 ? '+' : ''}
-                  {state.political.opinionFactors.serviceQuality.toFixed(1)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Manifesto Breaches:</span>
-                <span className="font-semibold text-red-600">
-                  {state.political.opinionFactors.manifestoBreaches.toFixed(1)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Media Scrutiny:</span>
-                <span className="font-semibold">
-                  {state.political.opinionFactors.mediaScrutiny > 0 ? '+' : ''}
-                  {state.political.opinionFactors.mediaScrutiny.toFixed(1)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* PM Intervention Modal */}
-        {state.political.pmInterventionsPending.length > 0 && (
-          <PMInterventionModal
-            event={state.political.pmInterventionsPending[0]}
-            onComply={() => handlePMResponse('comply')}
-            onDefy={() => handlePMResponse('defy')}
-          />
-        )}
-
-        {/* Reshuffle Event */}
-        {state.political.reshuffleEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white   max-w-lg w-full p-8">
-              <h2 className="text-3xl font-bold text-center text-red-900 mb-4">
-                GAME OVER
-              </h2>
-              <p className="text-gray-800 text-center mb-6">
-                {state.political.reshuffleEvent.narrative}
-              </p>
-              <button
-                onClick={() =>
-                  setState({
-                    ...state,
-                    political: generateInitialPoliticalState(),
-                    currentMonth: 0,
-                    paused: false,
-                  })
-                }
-                className="w-full px-6 py-3 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Restart Simulation
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export default PoliticalSystemDemo;
+export default PMInterventionModal;

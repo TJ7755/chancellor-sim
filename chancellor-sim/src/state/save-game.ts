@@ -105,7 +105,13 @@ function validatePolitical(state: any): string[] {
     errors.push('political is missing or not an object');
     return errors;
   }
-  const numericFields = ['governmentApproval', 'chancellorApproval', 'backbenchSatisfaction', 'pmTrust', 'credibilityIndex'];
+  const numericFields = [
+    'governmentApproval',
+    'chancellorApproval',
+    'backbenchSatisfaction',
+    'pmTrust',
+    'credibilityIndex',
+  ];
   for (const field of numericFields) {
     if (pol[field] !== undefined && typeof pol[field] !== 'number') {
       errors.push(`political.${field} must be a number if present`);
@@ -158,10 +164,35 @@ export function migrateSave(parsed: unknown): SaveMigrationResult {
     warnings.push('Save version 1 detected. Applied migration to the current save format.');
     if (migratedState && typeof migratedState === 'object') {
       if (!migratedState.political) migratedState.political = {};
-      if (!migratedState.advisers) migratedState.advisers = { advisers: [], maxAdvisers: 3, hiredAdvisers: new Map(), availableAdvisers: new Set(['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist']) };
-      if (!migratedState.events) migratedState.events = { activeEvents: [], eventHistory: [], pendingEvents: [], eventLog: [] };
-      if (!migratedState.manifesto) migratedState.manifesto = { selectedTemplate: null, pledges: [], totalPledges: 0, totalViolations: 0 };
-      if (!migratedState.mpSystem) migratedState.mpSystem = { allMPs: [], votingRecords: [], promises: [], concernProfiles: new Map(), activeGroups: [], lobbyingInProgress: false, selectedMPForDetail: null, filterSettings: {}, currentBudgetSupport: new Map() };
+      if (!migratedState.advisers)
+        migratedState.advisers = {
+          advisers: [],
+          maxAdvisers: 3,
+          hiredAdvisers: new Map(),
+          availableAdvisers: new Set([
+            'treasury_mandarin',
+            'political_operator',
+            'heterodox_economist',
+            'fiscal_hawk',
+            'social_democrat',
+            'technocratic_centrist',
+          ]),
+        };
+      if (!migratedState.events)
+        migratedState.events = { activeEvents: [], eventHistory: [], pendingEvents: [], eventLog: [] };
+      if (!migratedState.manifesto)
+        migratedState.manifesto = { selectedTemplate: null, pledges: [], totalPledges: 0, totalViolations: 0 };
+      if (!migratedState.mpSystem)
+        migratedState.mpSystem = {
+          allMPs: [],
+          votingRecords: [],
+          promises: [],
+          concernProfiles: new Map(),
+          activeGroups: [],
+          selectedMPForDetail: null,
+          filterSettings: {},
+          currentBudgetSupport: new Map(),
+        };
       if (!migratedState.simulation) migratedState.simulation = { monthlySnapshots: [], lastTurnDelta: {} };
     }
   }
@@ -171,7 +202,14 @@ export function migrateSave(parsed: unknown): SaveMigrationResult {
     if (migratedState && typeof migratedState === 'object') {
       if (migratedState.advisers?.availableAdvisers) {
         const oldIds = ['treasury', 'political', 'heterodox', 'fhawk', 'socdem', 'technocrat'];
-        const newIds = ['treasury_mandarin', 'political_operator', 'heterodox_economist', 'fiscal_hawk', 'social_democrat', 'technocratic_centrist'];
+        const newIds = [
+          'treasury_mandarin',
+          'political_operator',
+          'heterodox_economist',
+          'fiscal_hawk',
+          'social_democrat',
+          'technocratic_centrist',
+        ];
         const available = migratedState.advisers.availableAdvisers;
         if (available instanceof Set) {
           const updated = new Set<string>();

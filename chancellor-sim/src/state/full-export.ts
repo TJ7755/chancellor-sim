@@ -10,15 +10,17 @@ export interface FullGameExport {
 }
 
 export async function exportFullGame(gameSaveJson: string | null): Promise<FullGameExport> {
-  const [mps, votingRecords, promises] = await Promise.all([
-    loadMPs(),
-    loadVotingRecords(),
-    loadPromises(),
-  ]);
+  const [mps, votingRecords, promises] = await Promise.all([loadMPs(), loadVotingRecords(), loadPromises()]);
 
   const mpArray = Array.from((mps || new Map()).entries()).map(([id, data]: [string, any]) => ({ id, data }));
-  const votingArray = Array.from((votingRecords || new Map()).entries()).map(([mpId, data]: [string, any]) => ({ mpId, data }));
-  const promisesArray = Array.from((promises || new Map()).entries()).map(([id, data]: [string, any]) => ({ id, data }));
+  const votingArray = Array.from((votingRecords || new Map()).entries()).map(([mpId, data]: [string, any]) => ({
+    mpId,
+    data,
+  }));
+  const promisesArray = Array.from((promises || new Map()).entries()).map(([id, data]: [string, any]) => ({
+    id,
+    data,
+  }));
 
   return {
     version: '1',

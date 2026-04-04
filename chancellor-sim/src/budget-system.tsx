@@ -5,12 +5,18 @@ import {
   AdviserSidebar,
   AdviserModal,
   AdviserType,
-  SimulationState
+  SimulationState,
 } from './adviser-system';
 import { SpendingReviewState, useBudgetDraft, useGameActions, useGameState, writeSave } from './game-state';
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
-import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel } from './game-integration';
+import {
+  FISCAL_RULES,
+  FiscalRuleId,
+  getFiscalRuleById,
+  calculateRuleHeadroom,
+  getRuleHeadroomLabel,
+} from './game-integration';
 import { calculateLafferPoint, getLafferTaxTypeForControlId } from './laffer-analysis';
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
 import type { BudgetDraft } from './state/budget-draft';
@@ -23,10 +29,7 @@ import { detectPolicyConflicts } from './domain/budget/policy-conflicts';
 /**
  * Debounce utility for delaying function execution until after a delay
  */
-function debounce<T extends (...args: any[]) => void>(
-  func: T,
-  delay: number
-): (...args: Parameters<T>) => void {
+function debounce<T extends (...args: any[]) => void>(func: T, delay: number): (...args: Parameters<T>) => void {
   let timeoutId: NodeJS.Timeout | null = null;
 
   return (...args: Parameters<T>) => {
@@ -105,7 +108,7 @@ function simulateParliamentaryVote(
   fiscalRulesMet: boolean,
   taxIncreaseCount: number,
   spendingCutCount: number,
-  pmTrust: number,
+  pmTrust: number
 ): VoteResult {
   // Labour majority: 411 seats, Opposition: 232 voting seats (excl. 7 Sinn Fein who abstain + 1 Speaker)
   // Government needs 326 to pass (simple majority of 650)
@@ -120,9 +123,8 @@ function simulateParliamentaryVote(
   const manifestoPenalty = manifestoViolations * 0.08;
 
   // Radical budgets (large deficit changes) increase rebellion
-  const radicalismPenalty = Math.abs(deficitChange) > 20 ? 0.15 :
-    Math.abs(deficitChange) > 10 ? 0.08 :
-      Math.abs(deficitChange) > 5 ? 0.04 : 0;
+  const radicalismPenalty =
+    Math.abs(deficitChange) > 20 ? 0.15 : Math.abs(deficitChange) > 10 ? 0.08 : Math.abs(deficitChange) > 5 ? 0.04 : 0;
 
   // Fiscal rules breach is toxic
   const fiscalRulesPenalty = fiscalRulesMet ? 0 : 0.12;
@@ -137,10 +139,19 @@ function simulateParliamentaryVote(
   const pmBackingBonus = pmTrust > 60 ? 0.05 : pmTrust < 30 ? -0.08 : 0;
 
   // Calculate effective loyalty probability
-  const effectiveLoyalty = Math.max(0.1, Math.min(0.98,
-    baseLoyalty - manifestoPenalty - radicalismPenalty - fiscalRulesPenalty -
-    taxPenalty - spendingCutPenalty + pmBackingBonus
-  ));
+  const effectiveLoyalty = Math.max(
+    0.1,
+    Math.min(
+      0.98,
+      baseLoyalty -
+        manifestoPenalty -
+        radicalismPenalty -
+        fiscalRulesPenalty -
+        taxPenalty -
+        spendingCutPenalty +
+        pmBackingBonus
+    )
+  );
 
   // Simulate 200 backbenchers + ~211 frontbench/payroll MPs
   // Frontbench always votes with government (convention)
@@ -189,10 +200,13 @@ function simulateParliamentaryVote(
     keyRebels.push('A significant number of MPs abstained, signalling deep unease within the parliamentary party');
   }
   if (backbenchNoes > 0 && !fiscalRulesMet) {
-    keyRebels.push('Fiscal hawks within the party voted against after the OBR confirmed the budget breaches fiscal rules');
+    keyRebels.push(
+      'Fiscal hawks within the party voted against after the OBR confirmed the budget breaches fiscal rules'
+    );
   }
 
-  const voteProfileIndex = (Math.abs(governmentMajority) + backbenchNoes + backbenchAbstentions + manifestoViolations) % 3;
+  const voteProfileIndex =
+    (Math.abs(governmentMajority) + backbenchNoes + backbenchAbstentions + manifestoViolations) % 3;
 
   const pressurePoints: string[] = [];
   if (manifestoViolations > 0) {
@@ -211,13 +225,12 @@ function simulateParliamentaryVote(
     pressurePoints.push('weak PM authority in the PLP');
   }
 
-  const pressureSummary = pressurePoints.length > 0
-    ? ` Key flashpoints: ${pressurePoints.join(', ')}.`
-    : '';
+  const pressureSummary = pressurePoints.length > 0 ? ` Key flashpoints: ${pressurePoints.join(', ')}.` : '';
 
-  const abstentionSummary = backbenchAbstentions > 0
-    ? ` ${backbenchAbstentions} Labour MP${backbenchAbstentions === 1 ? '' : 's'} abstained.`
-    : '';
+  const abstentionSummary =
+    backbenchAbstentions > 0
+      ? ` ${backbenchAbstentions} Labour MP${backbenchAbstentions === 1 ? '' : 's'} abstained.`
+      : '';
 
   const dissentWordSet = ['dissent', 'breakaway vote', 'internal split'];
   const dissentWord = dissentWordSet[voteProfileIndex];
@@ -228,7 +241,7 @@ function simulateParliamentaryVote(
     const defeatLeads = [
       `The Budget falls by ${Math.abs(governmentMajority)} votes after a coordinated backbench revolt.`,
       `The government loses the division by ${Math.abs(governmentMajority)} votes, with the Treasury operation breaking down on the day.`,
-      `The Commons rejects the Budget by ${Math.abs(governmentMajority)} votes, handing the Chancellor a major political setback.`
+      `The Commons rejects the Budget by ${Math.abs(governmentMajority)} votes, handing the Chancellor a major political setback.`,
     ];
     const defeatLead = defeatLeads[voteProfileIndex];
     narrativeSummary = `${defeatLead} ${backbenchNoes} Labour MP${backbenchNoes === 1 ? '' : 's'} voted against the government.${abstentionSummary}${pressureSummary} The Chancellor must now either revise the package immediately or seek direct intervention from No.10.`;
@@ -236,14 +249,14 @@ function simulateParliamentaryVote(
     const narrowWinLeads = [
       `The Budget scrapes through by ${governmentMajority} votes.`,
       `The government survives by just ${governmentMajority} votes in a knife-edge division.`,
-      `The Budget passes by a wafer-thin margin of ${governmentMajority}.`
+      `The Budget passes by a wafer-thin margin of ${governmentMajority}.`,
     ];
     narrativeSummary = `${narrowWinLeads[voteProfileIndex]} ${backbenchNoes} Labour MP${backbenchNoes === 1 ? '' : 's'} voted against.${abstentionSummary}${pressureSummary}`;
   } else if (backbenchNoes > 40) {
     const dissentLeads = [
       `The Budget passes, but ${backbenchNoes} Labour MPs vote against the whip in a major show of defiance.`,
       `The government wins the vote, yet the scale of Labour dissent (${backbenchNoes} MPs) dominates the political story.`,
-      `The division is won, but ${backbenchNoes} Labour MPs break ranks, signalling a deep fracture.`
+      `The division is won, but ${backbenchNoes} Labour MPs break ranks, signalling a deep fracture.`,
     ];
     narrativeSummary = `${dissentLeads[voteProfileIndex]} Majority: ${governmentMajority}.${abstentionSummary}${pressureSummary}`;
   } else if (backbenchNoes > 15) {
@@ -254,7 +267,7 @@ function simulateParliamentaryVote(
     const unityLeads = [
       `The Budget passes with a commanding majority of ${governmentMajority} and full Labour unity.`,
       `The Commons approves the Budget by ${governmentMajority} votes with no Labour dissent.`,
-      `A disciplined parliamentary operation delivers a majority of ${governmentMajority} with zero Labour defections.`
+      `A disciplined parliamentary operation delivers a majority of ${governmentMajority} with zero Labour defections.`,
     ];
     narrativeSummary = `${unityLeads[voteProfileIndex]}${pressureSummary}`;
   }
@@ -262,19 +275,23 @@ function simulateParliamentaryVote(
   // Whip assessment
   let whipAssessment: string;
   if (backbenchNoes === 0 && backbenchAbstentions <= 2) {
-    whipAssessment = pmTrust >= 55
-      ? 'Chief Whip: operation executed cleanly. PM authority is holding and discipline remains high.'
-      : 'Chief Whip: despite wider tensions, the vote was held together effectively this time.';
+    whipAssessment =
+      pmTrust >= 55
+        ? 'Chief Whip: operation executed cleanly. PM authority is holding and discipline remains high.'
+        : 'Chief Whip: despite wider tensions, the vote was held together effectively this time.';
   } else if (backbenchNoes <= 8) {
     whipAssessment = 'Chief Whip: low-level dissent, manageable with targeted engagement before the next fiscal vote.';
   } else if (backbenchNoes <= 25) {
-    whipAssessment = 'Chief Whip: medium-scale backbench resistance. Several caucuses now expect policy concessions to stay on side.';
+    whipAssessment =
+      'Chief Whip: medium-scale backbench resistance. Several caucuses now expect policy concessions to stay on side.';
   } else if (backbenchNoes <= 50) {
-    whipAssessment = pmTrust < 35
-      ? 'Chief Whip: serious revolt with clear leadership fragility. Whips cannot guarantee future votes without a reset.'
-      : 'Chief Whip: serious revolt. Parliamentary discipline is weakening and requires immediate political repair.';
+    whipAssessment =
+      pmTrust < 35
+        ? 'Chief Whip: serious revolt with clear leadership fragility. Whips cannot guarantee future votes without a reset.'
+        : 'Chief Whip: serious revolt. Parliamentary discipline is weakening and requires immediate political repair.';
   } else {
-    whipAssessment = 'Chief Whip: full-spectrum breakdown in party discipline. The party machine is no longer containing dissent and your position is at acute risk.';
+    whipAssessment =
+      'Chief Whip: full-spectrum breakdown in party discipline. The party machine is no longer containing dissent and your position is at acute risk.';
   }
 
   return {
@@ -307,9 +324,7 @@ const ParliamentaryVoteModal: React.FC<{
           <div className="text-center">
             <div className="text-sm uppercase tracking-widest opacity-80 mb-1">House of Commons</div>
             <h2 className="text-3xl font-bold">Budget Division</h2>
-            <div className="text-sm mt-2 opacity-90">
-              That the Financial Statement and Budget Report be approved
-            </div>
+            <div className="text-sm mt-2 opacity-90">That the Financial Statement and Budget Report be approved</div>
           </div>
         </div>
 
@@ -322,7 +337,8 @@ const ParliamentaryVoteModal: React.FC<{
             Ayes: {voteResult.ayes} — Noes: {voteResult.noes}
           </div>
           <div className="text-sm text-gray-600 mt-1">
-            Government majority: {voteResult.governmentMajority > 0 ? '+' : ''}{voteResult.governmentMajority}
+            Government majority: {voteResult.governmentMajority > 0 ? '+' : ''}
+            {voteResult.governmentMajority}
             {voteResult.abstentions > 0 && ` · ${voteResult.abstentions} abstentions`}
           </div>
         </div>
@@ -333,15 +349,14 @@ const ParliamentaryVoteModal: React.FC<{
             <div className="bg-green-50 border-2 border-green-200 p-4 rounded-sm text-center">
               <div className="text-sm text-green-800 font-semibold uppercase mb-1">Ayes Lobby</div>
               <div className="text-5xl font-bold text-green-900">{voteResult.ayes}</div>
-              <div className="text-xs text-green-700 mt-2">
-                Government frontbench + loyal backbenchers
-              </div>
+              <div className="text-xs text-green-700 mt-2">Government frontbench + loyal backbenchers</div>
             </div>
             <div className="bg-red-50 border-2 border-red-200 p-4 rounded-sm text-center">
               <div className="text-sm text-red-800 font-semibold uppercase mb-1">Noes Lobby</div>
               <div className="text-5xl font-bold text-red-900">{voteResult.noes}</div>
               <div className="text-xs text-red-700 mt-2">
-                Opposition + {voteResult.rebellCount - voteResult.abstentions} government dissenting vote{voteResult.rebellCount - voteResult.abstentions !== 1 ? 's' : ''}
+                Opposition + {voteResult.rebellCount - voteResult.abstentions} government dissenting vote
+                {voteResult.rebellCount - voteResult.abstentions !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -424,14 +439,24 @@ const PMInterventionModal: React.FC<{
         <div className="p-6">
           <div className="bg-red-50 border-2 border-red-300  p-4 mb-6">
             <div className="flex items-start gap-3">
-              <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
               <div>
                 <h3 className="font-bold text-red-900 text-lg mb-2">Severe Political Consequences</h3>
                 <p className="text-red-800 text-sm">
-                  The Prime Minister will personally intervene to force all 411 Labour MPs to vote for this budget.
-                  This is an extreme measure that will have lasting political damage.
+                  The Prime Minister will personally intervene to force all 411 Labour MPs to vote for this budget. This
+                  is an extreme measure that will have lasting political damage.
                 </p>
               </div>
             </div>
@@ -474,7 +499,12 @@ const PMInterventionModal: React.FC<{
           <div className="bg-green-50 border border-green-200  p-4 mb-6">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <div className="font-semibold text-green-900">
                 Guarantee: Budget WILL pass with all 411 Labour MPs voting aye
@@ -527,7 +557,7 @@ const INITIAL_TAXES = {
     proposedRate: 20,
     currentRevenue: 269,
     projectedRevenue: 269,
-    unit: '%'
+    unit: '%',
   },
   incomeTaxHigher: {
     id: 'incomeTaxHigher',
@@ -536,7 +566,7 @@ const INITIAL_TAXES = {
     proposedRate: 40,
     currentRevenue: 0, // Included in total
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   incomeTaxAdditional: {
     id: 'incomeTaxAdditional',
@@ -545,7 +575,7 @@ const INITIAL_TAXES = {
     proposedRate: 45,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   personalAllowance: {
     id: 'personalAllowance',
@@ -554,7 +584,7 @@ const INITIAL_TAXES = {
     proposedRate: 12570,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   employeeNI: {
     id: 'employeeNI',
@@ -563,7 +593,7 @@ const INITIAL_TAXES = {
     proposedRate: 8,
     currentRevenue: 68,
     projectedRevenue: 68,
-    unit: '%'
+    unit: '%',
   },
   employerNI: {
     id: 'employerNI',
@@ -572,7 +602,7 @@ const INITIAL_TAXES = {
     proposedRate: 13.8,
     currentRevenue: 96,
     projectedRevenue: 96,
-    unit: '%'
+    unit: '%',
   },
   vat: {
     id: 'vat',
@@ -581,7 +611,7 @@ const INITIAL_TAXES = {
     proposedRate: 20,
     currentRevenue: 171,
     projectedRevenue: 171,
-    unit: '%'
+    unit: '%',
   },
   corporationTax: {
     id: 'corporationTax',
@@ -590,7 +620,7 @@ const INITIAL_TAXES = {
     proposedRate: 25,
     currentRevenue: 88,
     projectedRevenue: 88,
-    unit: '%'
+    unit: '%',
   },
   corporationTaxSmall: {
     id: 'corporationTaxSmall',
@@ -599,7 +629,7 @@ const INITIAL_TAXES = {
     proposedRate: 19,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   capitalGainsBasic: {
     id: 'capitalGainsBasic',
@@ -608,7 +638,7 @@ const INITIAL_TAXES = {
     proposedRate: 10,
     currentRevenue: 15,
     projectedRevenue: 15,
-    unit: '%'
+    unit: '%',
   },
   capitalGainsHigher: {
     id: 'capitalGainsHigher',
@@ -617,7 +647,7 @@ const INITIAL_TAXES = {
     proposedRate: 20,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   inheritanceTax: {
     id: 'inheritanceTax',
@@ -626,7 +656,7 @@ const INITIAL_TAXES = {
     proposedRate: 40,
     currentRevenue: 7.5,
     projectedRevenue: 7.5,
-    unit: '%'
+    unit: '%',
   },
   inheritanceTaxThreshold: {
     id: 'inheritanceTaxThreshold',
@@ -635,7 +665,7 @@ const INITIAL_TAXES = {
     proposedRate: 325000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   stampDuty: {
     id: 'stampDuty',
@@ -644,7 +674,7 @@ const INITIAL_TAXES = {
     proposedRate: 0,
     currentRevenue: 14,
     projectedRevenue: 14,
-    unit: 'System'
+    unit: 'System',
   },
   fuelDuty: {
     id: 'fuelDuty',
@@ -653,7 +683,7 @@ const INITIAL_TAXES = {
     proposedRate: 52.95,
     currentRevenue: 25,
     projectedRevenue: 25,
-    unit: 'p/litre'
+    unit: 'p/litre',
   },
   councilTax: {
     id: 'councilTax',
@@ -662,7 +692,7 @@ const INITIAL_TAXES = {
     proposedRate: 2171,
     currentRevenue: 46,
     projectedRevenue: 46,
-    unit: '£'
+    unit: '£',
   },
   businessRates: {
     id: 'businessRates',
@@ -671,7 +701,7 @@ const INITIAL_TAXES = {
     proposedRate: 54.6,
     currentRevenue: 32,
     projectedRevenue: 32,
-    unit: 'p/£'
+    unit: 'p/£',
   },
   alcoholDuty: {
     id: 'alcoholDuty',
@@ -680,7 +710,7 @@ const INITIAL_TAXES = {
     proposedRate: 100,
     currentRevenue: 13,
     projectedRevenue: 13,
-    unit: 'Index'
+    unit: 'Index',
   },
   tobaccoDuty: {
     id: 'tobaccoDuty',
@@ -689,7 +719,7 @@ const INITIAL_TAXES = {
     proposedRate: 100,
     currentRevenue: 9,
     projectedRevenue: 9,
-    unit: 'Index'
+    unit: 'Index',
   },
   airPassengerDuty: {
     id: 'airPassengerDuty',
@@ -698,7 +728,7 @@ const INITIAL_TAXES = {
     proposedRate: 100,
     currentRevenue: 4,
     projectedRevenue: 4,
-    unit: 'Index'
+    unit: 'Index',
   },
   vehicleExciseDuty: {
     id: 'vehicleExciseDuty',
@@ -707,7 +737,7 @@ const INITIAL_TAXES = {
     proposedRate: 180,
     currentRevenue: 8,
     projectedRevenue: 8,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Income Tax Thresholds and Allowances ----
@@ -718,7 +748,7 @@ const INITIAL_TAXES = {
     proposedRate: 50270,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   additionalRateThreshold: {
     id: 'additionalRateThreshold',
@@ -727,7 +757,7 @@ const INITIAL_TAXES = {
     proposedRate: 125140,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   marriageAllowance: {
     id: 'marriageAllowance',
@@ -736,7 +766,7 @@ const INITIAL_TAXES = {
     proposedRate: 1260,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- National Insurance Thresholds ----
@@ -747,7 +777,7 @@ const INITIAL_TAXES = {
     proposedRate: 12570,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   niUpperEarningsLimit: {
     id: 'niUpperEarningsLimit',
@@ -756,7 +786,7 @@ const INITIAL_TAXES = {
     proposedRate: 50270,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   niSecondaryThreshold: {
     id: 'niSecondaryThreshold',
@@ -765,7 +795,7 @@ const INITIAL_TAXES = {
     proposedRate: 9100,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   employmentAllowance: {
     id: 'employmentAllowance',
@@ -774,7 +804,7 @@ const INITIAL_TAXES = {
     proposedRate: 5000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- VAT Exemptions and Reliefs ----
@@ -785,7 +815,7 @@ const INITIAL_TAXES = {
     proposedRate: 5,
     currentRevenue: 5.5,
     projectedRevenue: 5.5,
-    unit: '%'
+    unit: '%',
   },
   vatPrivateSchools: {
     id: 'vatPrivateSchools',
@@ -794,7 +824,7 @@ const INITIAL_TAXES = {
     proposedRate: 20,
     currentRevenue: 1.7,
     projectedRevenue: 1.7,
-    unit: '%'
+    unit: '%',
   },
   vatRegistrationThreshold: {
     id: 'vatRegistrationThreshold',
@@ -803,7 +833,7 @@ const INITIAL_TAXES = {
     proposedRate: 85000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Business Tax Reliefs ----
@@ -814,7 +844,7 @@ const INITIAL_TAXES = {
     proposedRate: 1000000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   rdTaxCredit: {
     id: 'rdTaxCredit',
@@ -823,7 +853,7 @@ const INITIAL_TAXES = {
     proposedRate: 27,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   bankSurcharge: {
     id: 'bankSurcharge',
@@ -832,7 +862,7 @@ const INITIAL_TAXES = {
     proposedRate: 3,
     currentRevenue: 3.5,
     projectedRevenue: 3.5,
-    unit: '%'
+    unit: '%',
   },
   energyProfitsLevy: {
     id: 'energyProfitsLevy',
@@ -841,7 +871,7 @@ const INITIAL_TAXES = {
     proposedRate: 35,
     currentRevenue: 5.0,
     projectedRevenue: 5.0,
-    unit: '%'
+    unit: '%',
   },
   patentBoxRate: {
     id: 'patentBoxRate',
@@ -850,7 +880,7 @@ const INITIAL_TAXES = {
     proposedRate: 10,
     currentRevenue: 1.2,
     projectedRevenue: 1.2,
-    unit: '%'
+    unit: '%',
   },
 
   // ---- Capital Gains Allowances ----
@@ -861,7 +891,7 @@ const INITIAL_TAXES = {
     proposedRate: 3000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   cgtResidentialSurcharge: {
     id: 'cgtResidentialSurcharge',
@@ -870,7 +900,7 @@ const INITIAL_TAXES = {
     proposedRate: 8,
     currentRevenue: 2.5,
     projectedRevenue: 2.5,
-    unit: '%'
+    unit: '%',
   },
   badrRate: {
     id: 'badrRate',
@@ -879,7 +909,7 @@ const INITIAL_TAXES = {
     proposedRate: 10,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '%'
+    unit: '%',
   },
   badrLifetimeLimit: {
     id: 'badrLifetimeLimit',
@@ -888,7 +918,7 @@ const INITIAL_TAXES = {
     proposedRate: 1000000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Inheritance Tax Allowances ----
@@ -899,7 +929,7 @@ const INITIAL_TAXES = {
     proposedRate: 175000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Property Transaction Taxes ----
@@ -910,7 +940,7 @@ const INITIAL_TAXES = {
     proposedRate: 3,
     currentRevenue: 2.0,
     projectedRevenue: 2.0,
-    unit: '%'
+    unit: '%',
   },
   sdltFirstTimeBuyerThreshold: {
     id: 'sdltFirstTimeBuyerThreshold',
@@ -919,7 +949,7 @@ const INITIAL_TAXES = {
     proposedRate: 425000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Savings and Investment Reliefs ----
@@ -930,7 +960,7 @@ const INITIAL_TAXES = {
     proposedRate: 60000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   isaAllowance: {
     id: 'isaAllowance',
@@ -939,7 +969,7 @@ const INITIAL_TAXES = {
     proposedRate: 20000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
   dividendAllowance: {
     id: 'dividendAllowance',
@@ -948,7 +978,7 @@ const INITIAL_TAXES = {
     proposedRate: 1000,
     currentRevenue: 0,
     projectedRevenue: 0,
-    unit: '£'
+    unit: '£',
   },
 
   // ---- Other Indirect Taxes ----
@@ -959,7 +989,7 @@ const INITIAL_TAXES = {
     proposedRate: 12,
     currentRevenue: 8,
     projectedRevenue: 8,
-    unit: '%'
+    unit: '%',
   },
   softDrinksLevy: {
     id: 'softDrinksLevy',
@@ -968,8 +998,8 @@ const INITIAL_TAXES = {
     proposedRate: 100,
     currentRevenue: 0.3,
     projectedRevenue: 0.3,
-    unit: 'Index'
-  }
+    unit: 'Index',
+  },
 };
 
 // ============================================================================
@@ -1005,8 +1035,8 @@ function reconstructSpendingFromGameState(gameState: any): Map<string, SpendingC
         id: item.id,
         department: item.department || existing?.department || 'Other',
         programme: item.programme || existing?.programme,
-        currentBudget: typeof item.currentBudget === 'number' ? item.currentBudget : (existing?.currentBudget || 0),
-        proposedBudget: typeof item.currentBudget === 'number' ? item.currentBudget : (existing?.currentBudget || 0),
+        currentBudget: typeof item.currentBudget === 'number' ? item.currentBudget : existing?.currentBudget || 0,
+        proposedBudget: typeof item.currentBudget === 'number' ? item.currentBudget : existing?.currentBudget || 0,
         type: inferredType,
       });
     });
@@ -1141,7 +1171,7 @@ const INITIAL_SPENDING = {
     programme: 'NHS England Revenue',
     currentBudget: 164.9,
     proposedBudget: 164.9,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nhsPrimaryCare: {
     id: 'nhsPrimaryCare',
@@ -1149,7 +1179,7 @@ const INITIAL_SPENDING = {
     programme: 'Primary Care',
     currentBudget: 18.0,
     proposedBudget: 18.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nhsMentalHealth: {
     id: 'nhsMentalHealth',
@@ -1157,7 +1187,7 @@ const INITIAL_SPENDING = {
     programme: 'Mental Health',
     currentBudget: 16.0,
     proposedBudget: 16.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   publicHealth: {
     id: 'publicHealth',
@@ -1165,7 +1195,7 @@ const INITIAL_SPENDING = {
     programme: 'Public Health',
     currentBudget: 3.5,
     proposedBudget: 3.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   socialCare: {
     id: 'socialCare',
@@ -1173,7 +1203,7 @@ const INITIAL_SPENDING = {
     programme: 'Social Care Grants',
     currentBudget: 7.5,
     proposedBudget: 7.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nhsCapital: {
     id: 'nhsCapital',
@@ -1181,7 +1211,7 @@ const INITIAL_SPENDING = {
     programme: 'Capital Investment',
     currentBudget: 12.0,
     proposedBudget: 12.0,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Education
@@ -1191,7 +1221,7 @@ const INITIAL_SPENDING = {
     programme: 'Schools Core Funding',
     currentBudget: 59.4,
     proposedBudget: 59.4,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   pupilPremium: {
     id: 'pupilPremium',
@@ -1199,7 +1229,7 @@ const INITIAL_SPENDING = {
     programme: 'Pupil Premium',
     currentBudget: 2.9,
     proposedBudget: 2.9,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   furtherEducation: {
     id: 'furtherEducation',
@@ -1207,7 +1237,7 @@ const INITIAL_SPENDING = {
     programme: 'Further Education and Skills',
     currentBudget: 7.2,
     proposedBudget: 7.2,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   higherEducation: {
     id: 'higherEducation',
@@ -1215,7 +1245,7 @@ const INITIAL_SPENDING = {
     programme: 'Higher Education',
     currentBudget: 1.8,
     proposedBudget: 1.8,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   earlyYears: {
     id: 'earlyYears',
@@ -1223,7 +1253,7 @@ const INITIAL_SPENDING = {
     programme: 'Early Years',
     currentBudget: 8.0,
     proposedBudget: 8.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   send: {
     id: 'send',
@@ -1231,7 +1261,7 @@ const INITIAL_SPENDING = {
     programme: 'SEND Support',
     currentBudget: 10.5,
     proposedBudget: 10.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   schoolsCapital: {
     id: 'schoolsCapital',
@@ -1239,7 +1269,7 @@ const INITIAL_SPENDING = {
     programme: 'School Buildings and Infrastructure',
     currentBudget: 12.0,
     proposedBudget: 12.0,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Defence
@@ -1249,7 +1279,7 @@ const INITIAL_SPENDING = {
     programme: 'Army',
     currentBudget: 11.0,
     proposedBudget: 11.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   navyRevenue: {
     id: 'navyRevenue',
@@ -1257,7 +1287,7 @@ const INITIAL_SPENDING = {
     programme: 'Royal Navy',
     currentBudget: 8.5,
     proposedBudget: 8.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   rafRevenue: {
     id: 'rafRevenue',
@@ -1265,7 +1295,7 @@ const INITIAL_SPENDING = {
     programme: 'Royal Air Force',
     currentBudget: 7.5,
     proposedBudget: 7.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nuclearDeterrent: {
     id: 'nuclearDeterrent',
@@ -1273,7 +1303,7 @@ const INITIAL_SPENDING = {
     programme: 'Nuclear Deterrent',
     currentBudget: 3.5,
     proposedBudget: 3.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   defenceEquipment: {
     id: 'defenceEquipment',
@@ -1281,7 +1311,7 @@ const INITIAL_SPENDING = {
     programme: 'Equipment Plan',
     currentBudget: 16.6,
     proposedBudget: 16.6,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Work and Pensions (AME - Annual Managed Expenditure)
@@ -1291,7 +1321,7 @@ const INITIAL_SPENDING = {
     programme: 'State Pension',
     currentBudget: 130.0,
     proposedBudget: 130.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   universalCredit: {
     id: 'universalCredit',
@@ -1299,7 +1329,7 @@ const INITIAL_SPENDING = {
     programme: 'Universal Credit',
     currentBudget: 38.0,
     proposedBudget: 38.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   pip: {
     id: 'pip',
@@ -1307,7 +1337,7 @@ const INITIAL_SPENDING = {
     programme: 'Personal Independence Payment',
     currentBudget: 22.0,
     proposedBudget: 22.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   housingBenefit: {
     id: 'housingBenefit',
@@ -1315,7 +1345,7 @@ const INITIAL_SPENDING = {
     programme: 'Housing Benefit',
     currentBudget: 18.0,
     proposedBudget: 18.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   childBenefit: {
     id: 'childBenefit',
@@ -1323,7 +1353,7 @@ const INITIAL_SPENDING = {
     programme: 'Child Benefit',
     currentBudget: 12.6,
     proposedBudget: 12.6,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
 
   // Justice
@@ -1333,7 +1363,7 @@ const INITIAL_SPENDING = {
     programme: 'Prisons and Probation',
     currentBudget: 5.5,
     proposedBudget: 5.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   courts: {
     id: 'courts',
@@ -1341,7 +1371,7 @@ const INITIAL_SPENDING = {
     programme: 'Courts and Tribunals',
     currentBudget: 2.8,
     proposedBudget: 2.8,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   legalAid: {
     id: 'legalAid',
@@ -1349,7 +1379,7 @@ const INITIAL_SPENDING = {
     programme: 'Legal Aid',
     currentBudget: 1.9,
     proposedBudget: 1.9,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
 
   // Home Office
@@ -1359,7 +1389,7 @@ const INITIAL_SPENDING = {
     programme: 'Policing',
     currentBudget: 11.5,
     proposedBudget: 11.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   immigration: {
     id: 'immigration',
@@ -1367,7 +1397,7 @@ const INITIAL_SPENDING = {
     programme: 'Immigration and Borders',
     currentBudget: 4.5,
     proposedBudget: 4.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   counterTerrorism: {
     id: 'counterTerrorism',
@@ -1375,7 +1405,7 @@ const INITIAL_SPENDING = {
     programme: 'Counter-Terrorism',
     currentBudget: 1.2,
     proposedBudget: 1.2,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
 
   // Transport
@@ -1385,7 +1415,7 @@ const INITIAL_SPENDING = {
     programme: 'Rail Subsidy',
     currentBudget: 5.5,
     proposedBudget: 5.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nationalRoads: {
     id: 'nationalRoads',
@@ -1393,7 +1423,7 @@ const INITIAL_SPENDING = {
     programme: 'National Roads',
     currentBudget: 7.0,
     proposedBudget: 7.0,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
   localRoads: {
     id: 'localRoads',
@@ -1401,7 +1431,7 @@ const INITIAL_SPENDING = {
     programme: 'Local Roads',
     currentBudget: 3.5,
     proposedBudget: 3.5,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
   hs2: {
     id: 'hs2',
@@ -1409,7 +1439,7 @@ const INITIAL_SPENDING = {
     programme: 'HS2 Phase 1',
     currentBudget: 6.0,
     proposedBudget: 6.0,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Housing and Communities
@@ -1419,7 +1449,7 @@ const INITIAL_SPENDING = {
     programme: 'Local Government Grants',
     currentBudget: 5.5,
     proposedBudget: 5.5,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   housingCapital: {
     id: 'housingCapital',
@@ -1427,7 +1457,7 @@ const INITIAL_SPENDING = {
     programme: 'Affordable Housing',
     currentBudget: 2.5,
     proposedBudget: 2.5,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Environment and Agriculture
@@ -1437,7 +1467,7 @@ const INITIAL_SPENDING = {
     programme: 'Farm Subsidies and ELM',
     currentBudget: 2.4,
     proposedBudget: 2.4,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   floodDefences: {
     id: 'floodDefences',
@@ -1445,7 +1475,7 @@ const INITIAL_SPENDING = {
     programme: 'Flood Defences',
     currentBudget: 1.2,
     proposedBudget: 1.2,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Science and Technology
@@ -1455,7 +1485,7 @@ const INITIAL_SPENDING = {
     programme: 'UK Research and Innovation',
     currentBudget: 7.3,
     proposedBudget: 7.3,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   aiAndDigital: {
     id: 'aiAndDigital',
@@ -1463,7 +1493,7 @@ const INITIAL_SPENDING = {
     programme: 'AI and Digital Infrastructure',
     currentBudget: 1.5,
     proposedBudget: 1.5,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Energy and Net Zero
@@ -1473,7 +1503,7 @@ const INITIAL_SPENDING = {
     programme: 'Renewables Support',
     currentBudget: 1.0,
     proposedBudget: 1.0,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   homeInsulation: {
     id: 'homeInsulation',
@@ -1481,7 +1511,7 @@ const INITIAL_SPENDING = {
     programme: 'Home Insulation',
     currentBudget: 1.2,
     proposedBudget: 1.2,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
   nuclearNewBuild: {
     id: 'nuclearNewBuild',
@@ -1489,7 +1519,7 @@ const INITIAL_SPENDING = {
     programme: 'Nuclear New Build',
     currentBudget: 1.0,
     proposedBudget: 1.0,
-    type: 'capital' as const
+    type: 'capital' as const,
   },
 
   // Foreign Office
@@ -1499,7 +1529,7 @@ const INITIAL_SPENDING = {
     programme: 'Official Development Assistance',
     currentBudget: 11.4,
     proposedBudget: 11.4,
-    type: 'resource' as const
+    type: 'resource' as const,
   },
 
   // Debt Interest (AME)
@@ -1509,8 +1539,8 @@ const INITIAL_SPENDING = {
     programme: 'Central Government Debt Interest',
     currentBudget: 95.0,
     proposedBudget: 95.0,
-    type: 'resource' as const
-  }
+    type: 'resource' as const,
+  },
 };
 
 // ============================================================================
@@ -1519,70 +1549,80 @@ const INITIAL_SPENDING = {
 
 const TAX_RECKONERS: Record<string, number> = {
   // ---- Rates (£bn per 1pp change) ----
-  incomeTaxBasic: 7.0,           // £7bn per 1pp
-  incomeTaxHigher: 2.0,          // £2bn per 1pp
-  incomeTaxAdditional: 0.2,      // £200m per 1pp
-  employeeNI: 6.0,               // £6bn per 1pp
-  employerNI: 8.5,               // £8.5bn per 1pp
-  vat: 7.5,                      // £7.5bn per 1pp
-  corporationTax: 3.2,           // £3.2bn per 1pp
-  stampDuty: 1.5,                // £1.5bn per 1pp
-  corporationTaxSmall: 0.4,      // £400m per 1pp
-  capitalGainsBasic: 0.5,        // £500m per 1pp
-  capitalGainsHigher: 0.7,       // £700m per 1pp
-  inheritanceTax: 0.19,          // £190m per 1pp
-  fuelDuty: 0.5,                 // £500m per 1p/litre
-  councilTax: 0.46,              // £460m per 1% increase
-  businessRates: 0.58,           // £580m per 1p change
-  alcoholDuty: 0.13,             // £130m per 1% index change
-  tobaccoDuty: 0.09,             // £90m per 1% index change
-  airPassengerDuty: 0.04,        // £40m per 1% index change
-  vehicleExciseDuty: 0.044,      // £44m per £1 change
+  incomeTaxBasic: 7.0, // £7bn per 1pp
+  incomeTaxHigher: 2.0, // £2bn per 1pp
+  incomeTaxAdditional: 0.2, // £200m per 1pp
+  employeeNI: 6.0, // £6bn per 1pp
+  employerNI: 8.5, // £8.5bn per 1pp
+  vat: 7.5, // £7.5bn per 1pp
+  corporationTax: 3.2, // £3.2bn per 1pp
+  stampDuty: 1.5, // £1.5bn per 1pp
+  corporationTaxSmall: 0.4, // £400m per 1pp
+  capitalGainsBasic: 0.5, // £500m per 1pp
+  capitalGainsHigher: 0.7, // £700m per 1pp
+  inheritanceTax: 0.19, // £190m per 1pp
+  fuelDuty: 0.5, // £500m per 1p/litre
+  councilTax: 0.46, // £460m per 1% increase
+  businessRates: 0.58, // £580m per 1p change
+  alcoholDuty: 0.13, // £130m per 1% index change
+  tobaccoDuty: 0.09, // £90m per 1% index change
+  airPassengerDuty: 0.04, // £40m per 1% index change
+  vehicleExciseDuty: 0.044, // £44m per £1 change
 
   // ---- Thresholds (£bn per £1,000 change) ----
   // These entries use rateChange/1000 in the calculation
-  personalAllowance: -6.2,       // -£6.2bn per £1,000 increase (less revenue collected)
-  higherRateThreshold: -0.8,     // -£800m per £1,000 increase (fewer people at 40%)
-  additionalRateThreshold: -0.05,// -£50m per £1,000 increase
-  marriageAllowance: -0.25,      // -£250m per £1,000 increase
-  inheritanceTaxThreshold: -0.01,// -£10m per £1,000 increase
-  niPrimaryThreshold: -4.5,      // -£4.5bn per £1,000 increase
-  niUpperEarningsLimit: -0.3,    // -£300m per £1,000 increase
-  niSecondaryThreshold: -5.0,    // -£5bn per £1,000 increase (employer side)
-  employmentAllowance: -0.5,     // -£500m per £1,000 increase
-  vatRegistrationThreshold: -0.01,// -£10m per £1,000 increase
-  annualInvestmentAllowance: -0.002,// -£2m per £1,000 increase
-  cgtAnnualExempt: -0.4,         // -£400m per £1,000 increase
-  ihtResidenceNilRate: -0.02,    // -£20m per £1,000 increase
-  sdltFirstTimeBuyerThreshold: -0.004,// -£4m per £1,000 increase
-  pensionAnnualAllowance: -0.1,  // -£100m per £1,000 increase (more relief given)
-  isaAllowance: -0.02,           // -£20m per £1,000 increase
-  dividendAllowance: -0.9,       // -£900m per £1,000 increase
-  badrLifetimeLimit: -0.0005,    // -£500k per £1,000 increase
+  personalAllowance: -6.2, // -£6.2bn per £1,000 increase (less revenue collected)
+  higherRateThreshold: -0.8, // -£800m per £1,000 increase (fewer people at 40%)
+  additionalRateThreshold: -0.05, // -£50m per £1,000 increase
+  marriageAllowance: -0.25, // -£250m per £1,000 increase
+  inheritanceTaxThreshold: -0.01, // -£10m per £1,000 increase
+  niPrimaryThreshold: -4.5, // -£4.5bn per £1,000 increase
+  niUpperEarningsLimit: -0.3, // -£300m per £1,000 increase
+  niSecondaryThreshold: -5.0, // -£5bn per £1,000 increase (employer side)
+  employmentAllowance: -0.5, // -£500m per £1,000 increase
+  vatRegistrationThreshold: -0.01, // -£10m per £1,000 increase
+  annualInvestmentAllowance: -0.002, // -£2m per £1,000 increase
+  cgtAnnualExempt: -0.4, // -£400m per £1,000 increase
+  ihtResidenceNilRate: -0.02, // -£20m per £1,000 increase
+  sdltFirstTimeBuyerThreshold: -0.004, // -£4m per £1,000 increase
+  pensionAnnualAllowance: -0.1, // -£100m per £1,000 increase (more relief given)
+  isaAllowance: -0.02, // -£20m per £1,000 increase
+  dividendAllowance: -0.9, // -£900m per £1,000 increase
+  badrLifetimeLimit: -0.0005, // -£500k per £1,000 increase
 
   // ---- New percentage-based taxes (£bn per 1pp change) ----
-  vatDomesticEnergy: 0.7,        // £700m per 1pp (raising from 5% to 6%)
-  vatPrivateSchools: 0.085,      // £85m per 1pp
-  rdTaxCredit: -0.2,             // -£200m per 1pp increase (more relief = less net revenue)
-  bankSurcharge: 1.0,            // £1bn per 1pp
-  energyProfitsLevy: 0.15,       // £150m per 1pp
-  patentBoxRate: -0.08,          // -£80m per 1pp increase (bigger relief discount)
-  cgtResidentialSurcharge: 0.3,  // £300m per 1pp
-  badrRate: 0.1,                 // £100m per 1pp increase
-  sdltAdditionalSurcharge: 0.5,  // £500m per 1pp
-  insurancePremiumTax: 0.66,     // £660m per 1pp
-  softDrinksLevy: 0.003,         // £3m per 1% index change
+  vatDomesticEnergy: 0.7, // £700m per 1pp (raising from 5% to 6%)
+  vatPrivateSchools: 0.085, // £85m per 1pp
+  rdTaxCredit: -0.2, // -£200m per 1pp increase (more relief = less net revenue)
+  bankSurcharge: 1.0, // £1bn per 1pp
+  energyProfitsLevy: 0.15, // £150m per 1pp
+  patentBoxRate: -0.08, // -£80m per 1pp increase (bigger relief discount)
+  cgtResidentialSurcharge: 0.3, // £300m per 1pp
+  badrRate: 0.1, // £100m per 1pp increase
+  sdltAdditionalSurcharge: 0.5, // £500m per 1pp
+  insurancePremiumTax: 0.66, // £660m per 1pp
+  softDrinksLevy: 0.003, // £3m per 1% index change
 };
 
 // Threshold-type taxes: use rateChange / 1000 for reckoner calculation
 const THRESHOLD_TAX_IDS = new Set([
-  'personalAllowance', 'higherRateThreshold', 'additionalRateThreshold',
-  'marriageAllowance', 'inheritanceTaxThreshold',
-  'niPrimaryThreshold', 'niUpperEarningsLimit', 'niSecondaryThreshold', 'employmentAllowance',
-  'vatRegistrationThreshold', 'annualInvestmentAllowance',
-  'cgtAnnualExempt', 'ihtResidenceNilRate',
+  'personalAllowance',
+  'higherRateThreshold',
+  'additionalRateThreshold',
+  'marriageAllowance',
+  'inheritanceTaxThreshold',
+  'niPrimaryThreshold',
+  'niUpperEarningsLimit',
+  'niSecondaryThreshold',
+  'employmentAllowance',
+  'vatRegistrationThreshold',
+  'annualInvestmentAllowance',
+  'cgtAnnualExempt',
+  'ihtResidenceNilRate',
   'sdltFirstTimeBuyerThreshold',
-  'pensionAnnualAllowance', 'isaAllowance', 'dividendAllowance',
+  'pensionAnnualAllowance',
+  'isaAllowance',
+  'dividendAllowance',
   'badrLifetimeLimit',
 ]);
 
@@ -1620,13 +1660,7 @@ const NHS_SPENDING_ITEM_IDS = [
   'nhsCapital',
 ];
 
-const DEFENCE_SPENDING_ITEM_IDS = [
-  'armyRevenue',
-  'navyRevenue',
-  'rafRevenue',
-  'nuclearDeterrent',
-  'defenceEquipment',
-];
+const DEFENCE_SPENDING_ITEM_IDS = ['armyRevenue', 'navyRevenue', 'rafRevenue', 'nuclearDeterrent', 'defenceEquipment'];
 
 const EDUCATION_SPENDING_ITEM_IDS = [
   'schools',
@@ -1638,13 +1672,7 @@ const EDUCATION_SPENDING_ITEM_IDS = [
   'schoolsCapital',
 ];
 
-const WELFARE_SPENDING_ITEM_IDS = [
-  'statePension',
-  'universalCredit',
-  'pip',
-  'housingBenefit',
-  'childBenefit',
-];
+const WELFARE_SPENDING_ITEM_IDS = ['statePension', 'universalCredit', 'pip', 'housingBenefit', 'childBenefit'];
 
 const SPENDING_REVIEW_DEPARTMENT_ORDER: Array<keyof SpendingReviewState['departments']> = [
   'nhs',
@@ -1673,10 +1701,7 @@ function sumSpendingItems(
   }, 0);
 }
 
-function calculateDepartmentDelta(
-  spendingMap: Map<string, SpendingChange>,
-  ids: string[]
-): number {
+function calculateDepartmentDelta(spendingMap: Map<string, SpendingChange>, ids: string[]): number {
   const currentTotal = sumSpendingItems(spendingMap, ids, 'currentBudget');
   const proposedTotal = sumSpendingItems(spendingMap, ids, 'proposedBudget');
   return proposedTotal - currentTotal;
@@ -1693,50 +1718,50 @@ const STATIC_MANIFESTO_CONSTRAINTS: ManifestoConstraint[] = [
     description: 'No increase to income tax rates',
     type: 'tax_lock',
     violated: false,
-    severity: 'critical'
+    severity: 'critical',
   },
   {
     id: 'ni_lock',
     description: 'No increase to National Insurance rates',
     type: 'tax_lock',
     violated: false,
-    severity: 'critical'
+    severity: 'critical',
   },
   {
     id: 'vat_lock',
     description: 'No increase to VAT standard rate',
     type: 'tax_lock',
     violated: false,
-    severity: 'critical'
+    severity: 'critical',
   },
   {
     id: 'corporation_tax_lock',
     description: 'No increase to Corporation Tax rate',
     type: 'tax_lock',
     violated: false,
-    severity: 'critical'
+    severity: 'critical',
   },
   {
     id: 'nhs_pledge',
     description: 'Increase NHS funding in real terms each year',
     type: 'spending_pledge',
     violated: false,
-    severity: 'major'
+    severity: 'major',
   },
   {
     id: 'defence_pledge',
     description: 'Maintain defence spending at minimum 2% of GDP',
     type: 'spending_pledge',
     violated: false,
-    severity: 'major'
+    severity: 'major',
   },
   {
     id: 'triple_lock',
     description: 'Maintain state pension triple lock',
     type: 'spending_pledge',
     violated: false,
-    severity: 'critical'
-  }
+    severity: 'critical',
+  },
 ];
 
 // Generate fiscal rule constraints dynamically based on chosen framework
@@ -1751,7 +1776,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `Current budget in balance by year ${chosenRule.rules.timeHorizon}`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'critical'
+      severity: 'critical',
     });
   }
 
@@ -1761,7 +1786,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `Overall budget balanced every year`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'critical'
+      severity: 'critical',
     });
   }
 
@@ -1771,7 +1796,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `Deficit below ${chosenRule.rules.deficitCeiling}% of GDP`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'critical'
+      severity: 'critical',
     });
   }
 
@@ -1781,7 +1806,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `Debt below ${chosenRule.rules.debtTarget}% of GDP`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'critical'
+      severity: 'critical',
     });
   }
 
@@ -1791,7 +1816,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `Debt falling as % of GDP by year ${chosenRule.rules.timeHorizon}`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'critical'
+      severity: 'critical',
     });
   }
 
@@ -1802,7 +1827,7 @@ function generateFiscalRuleConstraints(chosenRuleId: string): ManifestoConstrain
       description: `No formal deficit or debt targets (focus on inflation and employment)`,
       type: 'fiscal_rule',
       violated: false,
-      severity: 'minor'
+      severity: 'minor',
     });
   }
 
@@ -1829,7 +1854,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     return currentDraft ? new Map(currentDraft.spending) : reconstructSpendingFromGameState(gameState);
   });
   const [budgetType, setBudgetType] = useState<'spring' | 'autumn' | 'emergency'>('spring');
-  const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints' | 'debt' | 'del'>('taxes');
+  const [activeView, setActiveView] = useState<'taxes' | 'spending' | 'impact' | 'constraints' | 'debt' | 'del'>(
+    'taxes'
+  );
   const [expandedDepartments, setExpandedDepartments] = useState<Set<string>>(new Set());
   const [showAdviserDetail, setShowAdviserDetail] = useState<AdviserType | null>(null);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
@@ -1838,7 +1865,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const [proposedFiscalRule, setProposedFiscalRule] = useState<FiscalRuleId>(gameState.political.chosenFiscalRule);
   const [pmInterventionTriggered, setPMInterventionTriggered] = useState(false);
   const [fiscalRuleMessage, setFiscalRuleMessage] = useState<string | null>(null);
-  const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{ count: number, mpCount: number } | null>(null);
+  const [brokenPromisesAlert, setBrokenPromisesAlert] = useState<{ count: number; mpCount: number } | null>(null);
   const [pmInterventionSuccess, setPMInterventionSuccess] = useState(false);
   const [dismissedConflicts, setDismissedConflicts] = useState<Set<string>>(new Set());
   const lastTurnRef = useRef<number | null>(null);
@@ -1847,19 +1874,36 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     workAllowanceMonthly: gameState.fiscal.workAllowanceMonthly,
     childcareSupportRate: gameState.fiscal.childcareSupportRate,
   });
-  const [thresholdUprating, setThresholdUprating] = useState<'frozen' | 'cpi_linked' | 'earnings_linked' | 'custom'>(gameState.fiscal.thresholdUprating || 'frozen');
+  const [thresholdUprating, setThresholdUprating] = useState<'frozen' | 'cpi_linked' | 'earnings_linked' | 'custom'>(
+    gameState.fiscal.thresholdUprating || 'frozen'
+  );
   const [fullExpensing, setFullExpensing] = useState<boolean>(gameState.fiscal.fullExpensing || false);
-  const [antiAvoidanceInvestment, setAntiAvoidanceInvestment] = useState<number>(gameState.fiscal.antiAvoidanceInvestment_bn || 0.3);
-  const [hmrcSystemsInvestment, setHmrcSystemsInvestment] = useState<number>(gameState.fiscal.hmrcSystemsInvestment_bn || 0.3);
-  const [planningReformPackage, setPlanningReformPackage] = useState<boolean>(gameState.housing.planningReformPackage || false);
-  const [infrastructureGuarantees, setInfrastructureGuarantees] = useState<number>(gameState.housing.infrastructureGuarantees_bn || 2);
+  const [antiAvoidanceInvestment, setAntiAvoidanceInvestment] = useState<number>(
+    gameState.fiscal.antiAvoidanceInvestment_bn || 0.3
+  );
+  const [hmrcSystemsInvestment, setHmrcSystemsInvestment] = useState<number>(
+    gameState.fiscal.hmrcSystemsInvestment_bn || 0.3
+  );
+  const [planningReformPackage, setPlanningReformPackage] = useState<boolean>(
+    gameState.housing.planningReformPackage || false
+  );
+  const [infrastructureGuarantees, setInfrastructureGuarantees] = useState<number>(
+    gameState.housing.infrastructureGuarantees_bn || 2
+  );
   const [htbSupport, setHtbSupport] = useState<number>(gameState.housing.htbAndSharedOwnership_bn || 1.5);
-  const [councilHousingGrant, setCouncilHousingGrant] = useState<number>(gameState.housing.councilHouseBuildingGrant_bn || 0.6);
-  const [localGovernmentGrantSettlement, setLocalGovernmentGrantSettlement] = useState<number>(gameState.devolution.localGov.centralGrant_bn || 30);
-  const [councilTaxReferendumCap, setCouncilTaxReferendumCap] = useState<number>(gameState.devolution.localGov.councilTaxGrowthCap || 3);
+  const [councilHousingGrant, setCouncilHousingGrant] = useState<number>(
+    gameState.housing.councilHouseBuildingGrant_bn || 0.6
+  );
+  const [localGovernmentGrantSettlement, setLocalGovernmentGrantSettlement] = useState<number>(
+    gameState.devolution.localGov.centralGrant_bn || 30
+  );
+  const [councilTaxReferendumCap, setCouncilTaxReferendumCap] = useState<number>(
+    gameState.devolution.localGov.councilTaxGrowthCap || 3
+  );
   const [selectedIndustrialInterventions, setSelectedIndustrialInterventions] = useState<Set<string>>(new Set());
   const pmComplianceEventCount = useMemo(
-    () => (gameState.pmRelationship.messages || []).filter((msg) => msg.subject === 'PM intervention implemented').length,
+    () =>
+      (gameState.pmRelationship.messages || []).filter((msg) => msg.subject === 'PM intervention implemented').length,
     [gameState.pmRelationship.messages]
   );
 
@@ -1971,20 +2015,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [gameState.metadata.currentMonth, budgetType]);
 
   // Manifesto NHS pledge target should be annual (fixed to fiscal-year baseline), not compounding monthly.
-  const nhsFiscalYearBaselineTotal =
-    gameState.fiscal.fiscalYearStartSpending?.nhs ?? gameState.fiscal.spending.nhs;
+  const nhsFiscalYearBaselineTotal = gameState.fiscal.fiscalYearStartSpending?.nhs ?? gameState.fiscal.spending.nhs;
   const nhsAnnualTargetTotal = nhsFiscalYearBaselineTotal * 1.02;
   // Triple lock should be annual (fixed to fiscal-year baseline), not compounding monthly.
   // Use fiscal year start spending as baseline and apply triple lock uplift, just like NHS.
-  const statePensionFiscalYearBaseline =
-    gameState.fiscal.fiscalYearStartSpending?.welfare
-      ? (gameState.fiscal.fiscalYearStartSpending.welfare * STATE_PENSION_SHARE_OF_WELFARE)
-      : (gameState.fiscal.spending.welfare * STATE_PENSION_SHARE_OF_WELFARE);
+  const statePensionFiscalYearBaseline = gameState.fiscal.fiscalYearStartSpending?.welfare
+    ? gameState.fiscal.fiscalYearStartSpending.welfare * STATE_PENSION_SHARE_OF_WELFARE
+    : gameState.fiscal.spending.welfare * STATE_PENSION_SHARE_OF_WELFARE;
   const statePensionAnnualTarget = statePensionFiscalYearBaseline * TRIPLE_LOCK_UPLIFT_RATE;
-  const currentNHSTotal = useMemo(
-    () => sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget'),
-    [spending]
-  );
+  const currentNHSTotal = useMemo(() => sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget'), [spending]);
 
   // ============================================================================
   // CALCULATIONS
@@ -2010,42 +2049,52 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     // Calculate total spending change
     let totalSpendingChange = 0;
     spending.forEach((item) => {
-      totalSpendingChange += (item.proposedBudget - item.currentBudget);
+      totalSpendingChange += item.proposedBudget - item.currentBudget;
     });
 
     const welfareLeverSpendingDelta =
       Math.max(0, 55 - welfareLevers.ucTaperRate) * 0.7 +
       Math.max(0, (welfareLevers.workAllowanceMonthly - 344) / 50) * 0.4 +
       Math.max(0, (welfareLevers.childcareSupportRate - 30) / 10) * 1.2 -
-      (
-        Math.max(0, 55 - gameState.fiscal.ucTaperRate) * 0.7 +
+      (Math.max(0, 55 - gameState.fiscal.ucTaperRate) * 0.7 +
         Math.max(0, (gameState.fiscal.workAllowanceMonthly - 344) / 50) * 0.4 +
-        Math.max(0, (gameState.fiscal.childcareSupportRate - 30) / 10) * 1.2
-      );
+        Math.max(0, (gameState.fiscal.childcareSupportRate - 30) / 10) * 1.2);
 
     const thresholdPolicyRevenueDelta =
       (thresholdUprating === 'frozen' ? 3.5 : thresholdUprating === 'earnings_linked' ? -1.5 : 0) -
-      ((gameState.fiscal.thresholdUprating || 'frozen') === 'frozen' ? 3.5 : (gameState.fiscal.thresholdUprating || 'frozen') === 'earnings_linked' ? -1.5 : 0);
+      ((gameState.fiscal.thresholdUprating || 'frozen') === 'frozen'
+        ? 3.5
+        : (gameState.fiscal.thresholdUprating || 'frozen') === 'earnings_linked'
+          ? -1.5
+          : 0);
     const fullExpensingRevenueDelta = (fullExpensing ? -3.5 : 0) - (gameState.fiscal.fullExpensing ? -3.5 : 0);
-    const antiAvoidanceRevenueDelta = ((antiAvoidanceInvestment - 0.3) * 1.1) - (((gameState.fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3) * 1.1);
-    const hmrcSystemsRevenueDelta = ((hmrcSystemsInvestment - 0.3) * 0.6) - (((gameState.fiscal.hmrcSystemsInvestment_bn || 0.3) - 0.3) * 0.6);
+    const antiAvoidanceRevenueDelta =
+      (antiAvoidanceInvestment - 0.3) * 1.1 - ((gameState.fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3) * 1.1;
+    const hmrcSystemsRevenueDelta =
+      (hmrcSystemsInvestment - 0.3) * 0.6 - ((gameState.fiscal.hmrcSystemsInvestment_bn || 0.3) - 0.3) * 0.6;
     const selectedIndustrialCostDelta = Array.from(selectedIndustrialInterventions).reduce((sum, id) => {
       const intervention = INDUSTRIAL_INTERVENTION_CATALOGUE.find((item) => item.id === id);
       return sum + (intervention?.annualCost_bn || 0);
     }, 0);
-    const localGovernmentGrantDelta = localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30);
+    const localGovernmentGrantDelta =
+      localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30);
 
     // Baseline fiscal position (from game state - reflects any previous budget submissions)
     const currentDeficit = gameState.fiscal.deficit_bn; // Current deficit from game state
     const currentDebt = gameState.fiscal.debtNominal_bn; // Current debt from game state
     const nominalGDP = gameState.economic.gdpNominal_bn; // Current GDP from game state
 
-    const projectedDeficit = currentDeficit +
+    const projectedDeficit =
+      currentDeficit +
       totalSpendingChange +
       welfareLeverSpendingDelta +
       selectedIndustrialCostDelta +
       localGovernmentGrantDelta -
-      (totalRevenueChange + thresholdPolicyRevenueDelta + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta);
+      (totalRevenueChange +
+        thresholdPolicyRevenueDelta +
+        fullExpensingRevenueDelta +
+        antiAvoidanceRevenueDelta +
+        hmrcSystemsRevenueDelta);
     const projectedDebt = currentDebt + projectedDeficit;
     const debtGDPRatio = (projectedDebt / nominalGDP) * 100;
 
@@ -2054,14 +2103,25 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // Calculate what fiscal metrics would be AFTER the proposed changes
     // Use current gameState fiscal data + proposed changes
-    const proposedTotalRevenue = gameState.fiscal.totalRevenue_bn + totalRevenueChange + thresholdPolicyRevenueDelta + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta;
-    const proposedTotalSpending = gameState.fiscal.totalSpending_bn + totalSpendingChange + welfareLeverSpendingDelta + selectedIndustrialCostDelta + localGovernmentGrantDelta;
+    const proposedTotalRevenue =
+      gameState.fiscal.totalRevenue_bn +
+      totalRevenueChange +
+      thresholdPolicyRevenueDelta +
+      fullExpensingRevenueDelta +
+      antiAvoidanceRevenueDelta +
+      hmrcSystemsRevenueDelta;
+    const proposedTotalSpending =
+      gameState.fiscal.totalSpending_bn +
+      totalSpendingChange +
+      welfareLeverSpendingDelta +
+      selectedIndustrialCostDelta +
+      localGovernmentGrantDelta;
 
     // Calculate actual capital spending change from spending items (not arbitrary 15%)
     let capitalSpendingChange = 0;
     spending.forEach((item) => {
       if (item.type === 'capital') {
-        capitalSpendingChange += (item.proposedBudget - item.currentBudget);
+        capitalSpendingChange += item.proposedBudget - item.currentBudget;
       }
     });
 
@@ -2077,14 +2137,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const proposedTotalCapital = currentTotalCapital + capitalSpendingChange;
 
     // Current budget balance: revenue - (spending excl. investment) - debt interest
-    const proposedCurrentBudgetBalance = proposedTotalRevenue -
-      (proposedTotalSpending - proposedTotalCapital) -
-      gameState.fiscal.debtInterest_bn;
+    const proposedCurrentBudgetBalance =
+      proposedTotalRevenue - (proposedTotalSpending - proposedTotalCapital) - gameState.fiscal.debtInterest_bn;
 
     // Deficit ceiling check (needed by Jeremy Hunt debtFalling test below)
     const proposedDeficitPctGDP = (projectedDeficit / nominalGDP) * 100;
-    const deficitCeilingMet = chosenRule.rules.deficitCeiling === undefined ||
-      proposedDeficitPctGDP <= chosenRule.rules.deficitCeiling;
+    const deficitCeilingMet =
+      chosenRule.rules.deficitCeiling === undefined || proposedDeficitPctGDP <= chosenRule.rules.deficitCeiling;
 
     // Rule-specific headroom: shows distance from the chosen rule's own threshold.
     // Uses calculateRuleHeadroom so the Budget tab and Dashboard display consistent figures.
@@ -2095,7 +2154,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       nominalGDP,
       proposedTotalRevenue,
       proposedTotalSpending,
-      gameState.fiscal.debtInterest_bn,
+      gameState.fiscal.debtInterest_bn
     );
     const currentBudgetMet = !chosenRule.rules.currentBudgetBalance || calibratedHeadroom >= -0.5;
 
@@ -2104,8 +2163,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const overallBalanceMet = !chosenRule.rules.overallBalance || proposedOverallBalance >= -0.5;
 
     // Debt target check
-    const debtTargetMet = chosenRule.rules.debtTarget === undefined ||
-      debtGDPRatio <= chosenRule.rules.debtTarget;
+    const debtTargetMet = chosenRule.rules.debtTarget === undefined || debtGDPRatio <= chosenRule.rules.debtTarget;
 
     // Debt falling check
     // Jeremy Hunt (no capex exemption): the deficit-ceiling test is the operationally correct
@@ -2127,8 +2185,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     // Overall compliance: all applicable rules must be met
-    const fiscalRulesMet = currentBudgetMet && overallBalanceMet &&
-      deficitCeilingMet && debtTargetMet && debtFallingMet;
+    const fiscalRulesMet =
+      currentBudgetMet && overallBalanceMet && deficitCeilingMet && debtTargetMet && debtFallingMet;
 
     // Headroom is the calibrated current budget balance: positive = surplus above OBR threshold,
     // negative = breach depth.  Matches the value shown on the Dashboard.
@@ -2143,7 +2201,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       debtGDPRatio,
       debtChange: projectedDebt - currentDebt,
       fiscalRulesMet,
-      headroom
+      headroom,
     };
   }, [
     taxes,
@@ -2174,7 +2232,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'critical',
         title: 'Large Deficit Increase',
         message: `Your proposals increase the deficit by £${fiscalImpact.deficitChange.toFixed(1)}bn. This will significantly increase borrowing costs and may trigger market concerns.`,
-        impact: `Gilt yields could rise by 30-50 basis points, adding £${(fiscalImpact.deficitChange * 0.02).toFixed(1)}bn to annual debt interest.`
+        impact: `Gilt yields could rise by 30-50 basis points, adding £${(fiscalImpact.deficitChange * 0.02).toFixed(1)}bn to annual debt interest.`,
       });
     } else if (fiscalImpact.deficitChange > 10) {
       newWarnings.push({
@@ -2183,7 +2241,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'warning',
         title: 'Moderate Deficit Increase',
         message: `Your proposals increase the deficit by £${fiscalImpact.deficitChange.toFixed(1)}bn. Markets will scrutinise the OBR forecast carefully.`,
-        impact: `Expected gilt yield increase of 10-20 basis points.`
+        impact: `Expected gilt yield increase of 10-20 basis points.`,
       });
     }
 
@@ -2195,7 +2253,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'critical',
         title: 'Fiscal Rules Breached',
         message: 'Your proposals breach one or both of the fiscal rules. This will severely damage credibility.',
-        impact: 'Market reaction likely similar to Truss mini-budget. Sterling could fall 3-5% and gilt yields spike.'
+        impact: 'Market reaction likely similar to Truss mini-budget. Sterling could fall 3-5% and gilt yields spike.',
       });
     } else if (fiscalImpact.fiscalRulesMet && fiscalImpact.headroom < 10) {
       newWarnings.push({
@@ -2204,7 +2262,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'warning',
         title: 'Thin Fiscal Headroom',
         message: `You have only £${fiscalImpact.headroom.toFixed(1)}bn of headroom against fiscal rules. Any adverse shock will breach the rules.`,
-        impact: 'OBR will flag this as a high-risk fiscal position.'
+        impact: 'OBR will flag this as a high-risk fiscal position.',
       });
     }
 
@@ -2216,8 +2274,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         category: 'political',
         severity: 'critical',
         title: 'Manifesto Commitment Broken',
-        message: 'Increasing income tax rates directly violates your manifesto pledge. This will cause severe political damage.',
-        impact: 'Public approval likely to fall by 10-15 points. Backbench rebellion likely.'
+        message:
+          'Increasing income tax rates directly violates your manifesto pledge. This will cause severe political damage.',
+        impact: 'Public approval likely to fall by 10-15 points. Backbench rebellion likely.',
       });
     }
 
@@ -2229,7 +2288,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'critical',
         title: 'Manifesto Commitment Broken',
         message: 'Increasing National Insurance rates directly violates your manifesto pledge.',
-        impact: 'Public approval likely to fall by 10-15 points.'
+        impact: 'Public approval likely to fall by 10-15 points.',
       });
     }
 
@@ -2241,7 +2300,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'critical',
         title: 'Manifesto Commitment Broken',
         message: 'Increasing VAT directly violates your manifesto pledge and hits lower-income households hardest.',
-        impact: 'Public approval likely to fall by 12-18 points. Regressive tax increase.'
+        impact: 'Public approval likely to fall by 12-18 points. Regressive tax increase.',
       });
     }
 
@@ -2255,7 +2314,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'warning',
         title: 'NHS Real Terms Cut',
         message: 'NHS funding is below the annual manifesto target measured from the start of this fiscal year.',
-        impact: 'Waiting lists will grow. Public approval on NHS handling will decline sharply.'
+        impact: 'Waiting lists will grow. Public approval on NHS handling will decline sharply.',
       });
     }
 
@@ -2268,7 +2327,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           severity: 'warning',
           title: 'Large Income Tax Increase',
           message: `Increasing basic rate by ${(tax.proposedRate - tax.currentRate).toFixed(1)}pp is a significant tax rise affecting 27 million people.`,
-          impact: 'Consumer spending will fall, potentially triggering a recession. Bank of England may cut rates.'
+          impact: 'Consumer spending will fall, potentially triggering a recession. Bank of England may cut rates.',
         });
       }
     });
@@ -2282,7 +2341,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         severity: 'warning',
         title: 'Justice System Cuts',
         message: 'Cutting justice spending will worsen the Crown Court backlog and prison overcrowding crisis.',
-        impact: 'Lord Chancellor may resign. Court backlog could exceed 80,000 cases.'
+        impact: 'Lord Chancellor may resign. Court backlog could exceed 80,000 cases.',
       });
     }
 
@@ -2290,10 +2349,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [taxes, spending, fiscalImpact, nhsAnnualTargetTotal]);
 
   const policyConflicts = useMemo(
-    () => detectPolicyConflicts(taxes, spending, {
-      nhsQuality: gameState.services.nhsQuality,
-      educationQuality: gameState.services.educationQuality,
-    }),
+    () =>
+      detectPolicyConflicts(taxes, spending, {
+        nhsQuality: gameState.services.nhsQuality,
+        educationQuality: gameState.services.educationQuality,
+      }),
     [taxes, spending, gameState.services.educationQuality, gameState.services.nhsQuality]
   );
   const visiblePolicyConflicts = useMemo(
@@ -2315,10 +2375,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     // Combine static constraints with dynamic fiscal rule constraints
     const allConstraints = [
       ...STATIC_MANIFESTO_CONSTRAINTS,
-      ...generateFiscalRuleConstraints(gameState.political.chosenFiscalRule)
+      ...generateFiscalRuleConstraints(gameState.political.chosenFiscalRule),
     ];
 
-    return allConstraints.map(constraint => {
+    return allConstraints.map((constraint) => {
       let violated = false;
 
       switch (constraint.id) {
@@ -2355,7 +2415,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         case 'nhs_pledge':
           const nhsTotal = sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'proposedBudget');
           // Allow small tolerance (£10m) for floating point arithmetic
-          violated = nhsTotal < (nhsAnnualTargetTotal - 0.01);
+          violated = nhsTotal < nhsAnnualTargetTotal - 0.01;
           break;
 
         case 'defence_pledge':
@@ -2387,7 +2447,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
       return { ...constraint, violated };
     });
-  }, [taxes, spending, fiscalImpact, gameState.political.chosenFiscalRule, nhsAnnualTargetTotal, statePensionAnnualTarget]);
+  }, [
+    taxes,
+    spending,
+    fiscalImpact,
+    gameState.political.chosenFiscalRule,
+    nhsAnnualTargetTotal,
+    statePensionAnnualTarget,
+  ]);
 
   // Generate adviser opinions based on proposed budget
   const adviserOpinions = useMemo(() => {
@@ -2409,7 +2476,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     let totalSpendingChange = 0;
     spending.forEach((item) => {
-      totalSpendingChange += (item.proposedBudget - item.currentBudget);
+      totalSpendingChange += item.proposedBudget - item.currentBudget;
     });
 
     // Create mock simulation state for adviser opinions
@@ -2426,7 +2493,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         unemploymentRate: 4.2,
         wageGrowthNominal: 4.5,
         bankRate: 5.0,
-        outputGap: -1.2
+        outputGap: -1.2,
       },
       fiscal: {
         totalRevenue: 1050,
@@ -2439,7 +2506,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         vatRevenue: 176,
         corporationTaxRevenue: 108,
         stabilityRuleMet: fiscalImpact.fiscalRulesMet,
-        investmentRuleMet: fiscalImpact.fiscalRulesMet
+        investmentRuleMet: fiscalImpact.fiscalRulesMet,
       },
       services: {
         nhsQuality: 65,
@@ -2447,12 +2514,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         educationQuality: 70,
         defenceReadiness: 72,
         policePerformance: 60,
-        justiceBacklog: 65000
+        justiceBacklog: 65000,
       },
       markets: {
         giltYield10yr: 4.2,
         giltYield10yrChange: 0.05,
-        marketSentiment: 'cautious'
+        marketSentiment: 'cautious',
       },
       political: {
         publicApproval: 38,
@@ -2462,23 +2529,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           mpsReadyToRebel: 18,
           leftFactionLoyalty: 70,
           centreFactionLoyalty: 68,
-          rightFactionLoyalty: 58
+          rightFactionLoyalty: 58,
         },
-        manifestoBreaches: constraints.filter(c => c.violated).map(c => c.id)
-      }
+        manifestoBreaches: constraints.filter((c) => c.violated).map((c) => c.id),
+      },
     };
 
-    return generateAdviserOpinions(
-      mockSimulationState,
-      adviserSystem,
-      {
-        revenueChange: totalRevenueChange,
-        spendingChange: totalSpendingChange,
-        projectedDeficit: fiscalImpact.projectedDeficit,
-        fiscalRulesMet: fiscalImpact.fiscalRulesMet,
-        manifestoBreaches: constraints.filter(c => c.violated).map(c => c.id)
-      }
-    );
+    return generateAdviserOpinions(mockSimulationState, adviserSystem, {
+      revenueChange: totalRevenueChange,
+      spendingChange: totalSpendingChange,
+      projectedDeficit: fiscalImpact.projectedDeficit,
+      fiscalRulesMet: fiscalImpact.fiscalRulesMet,
+      manifestoBreaches: constraints.filter((c) => c.violated).map((c) => c.id),
+    });
   }, [taxes, spending, fiscalImpact, constraints, adviserSystem]);
 
   // Debounced MP stance updater (300ms delay to prevent performance issues)
@@ -2516,7 +2579,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const budgetChanges = {
       incomeTaxBasicChange: incomeTaxBasic ? incomeTaxBasic.proposedRate - incomeTaxBasic.currentRate : 0,
       incomeTaxHigherChange: incomeTaxHigher ? incomeTaxHigher.proposedRate - incomeTaxHigher.currentRate : 0,
-      incomeTaxAdditionalChange: incomeTaxAdditional ? incomeTaxAdditional.proposedRate - incomeTaxAdditional.currentRate : 0,
+      incomeTaxAdditionalChange: incomeTaxAdditional
+        ? incomeTaxAdditional.proposedRate - incomeTaxAdditional.currentRate
+        : 0,
       niEmployeeChange: niEmployee ? niEmployee.proposedRate - niEmployee.currentRate : 0,
       niEmployerChange: niEmployer ? niEmployer.proposedRate - niEmployer.currentRate : 0,
       vatChange: vat ? vat.proposedRate - vat.currentRate : 0,
@@ -2529,7 +2594,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     };
 
     // Get manifesto violations
-    const violationDescriptions = constraints.filter(c => c.violated).map(c => c.description);
+    const violationDescriptions = constraints.filter((c) => c.violated).map((c) => c.description);
 
     // Update MP stances (debounced to prevent performance issues with 650 MPs)
     debouncedUpdateMPStances(budgetChanges, violationDescriptions);
@@ -2540,7 +2605,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   // ============================================================================
 
   const handleTaxChange = useCallback((taxId: string, newRate: number) => {
-    setTaxes(prev => {
+    setTaxes((prev) => {
       const newTaxes = new Map(prev);
       const tax = newTaxes.get(taxId);
       if (tax) {
@@ -2553,7 +2618,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const handleSpendingChange = useCallback((spendingId: string, newBudget: number) => {
     if (spendingId === 'debtInterest') return; // Debt interest cannot be manually changed
 
-    setSpending(prev => {
+    setSpending((prev) => {
       const newSpending = new Map(prev);
       const item = newSpending.get(spendingId);
       if (item) {
@@ -2564,117 +2629,122 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, []);
 
   // Function to apply a manifesto commitment's required changes
-  const applyManifestoCommitment = useCallback((constraintId: string) => {
-    switch (constraintId) {
-      case 'nhs_pledge': {
-        // Set NHS spending to the annual target measured from fiscal-year baseline.
-        const currentTotal = sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget');
-        const targetTotal = nhsAnnualTargetTotal;
+  const applyManifestoCommitment = useCallback(
+    (constraintId: string) => {
+      switch (constraintId) {
+        case 'nhs_pledge': {
+          // Set NHS spending to the annual target measured from fiscal-year baseline.
+          const currentTotal = sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget');
+          const targetTotal = nhsAnnualTargetTotal;
 
-        if (currentTotal <= 0 || currentTotal >= targetTotal - 0.01) {
-          break;
-        }
+          if (currentTotal <= 0 || currentTotal >= targetTotal - 0.01) {
+            break;
+          }
 
-        const scalingFactor = targetTotal / currentTotal;
+          const scalingFactor = targetTotal / currentTotal;
 
-        setSpending(prev => {
-          const newSpending = new Map(prev);
-          NHS_SPENDING_ITEM_IDS.forEach(id => {
-            const item = newSpending.get(id);
-            if (item) {
-              newSpending.set(id, {
-                ...item,
-                proposedBudget: item.currentBudget * scalingFactor
-              });
-            }
-          });
-          return newSpending;
-        });
-        break;
-      }
-
-      case 'defence_pledge': {
-        // Set defence spending to minimum 2% GDP (54.6bn)
-        const currentDefenceTotal = sumSpendingItems(spending, DEFENCE_SPENDING_ITEM_IDS, 'currentBudget');
-        const targetTotal = 54.6;
-
-        if (currentDefenceTotal > 0 && currentDefenceTotal < targetTotal) {
-          const scalingFactor = targetTotal / currentDefenceTotal;
-
-          setSpending(prev => {
+          setSpending((prev) => {
             const newSpending = new Map(prev);
-            DEFENCE_SPENDING_ITEM_IDS.forEach(id => {
+            NHS_SPENDING_ITEM_IDS.forEach((id) => {
               const item = newSpending.get(id);
               if (item) {
                 newSpending.set(id, {
                   ...item,
-                  proposedBudget: item.currentBudget * scalingFactor
+                  proposedBudget: item.currentBudget * scalingFactor,
                 });
               }
             });
             return newSpending;
           });
+          break;
         }
-        break;
-      }
 
-      case 'triple_lock': {
-        // Set state pension to annual triple-lock target from fiscal-year baseline.
-        const statePension = spending.get('statePension');
-        if (statePension && statePension.proposedBudget < statePensionAnnualTarget - 0.01) {
-          handleSpendingChange('statePension', statePensionAnnualTarget);
-        }
-        break;
-      }
+        case 'defence_pledge': {
+          // Set defence spending to minimum 2% GDP (54.6bn)
+          const currentDefenceTotal = sumSpendingItems(spending, DEFENCE_SPENDING_ITEM_IDS, 'currentBudget');
+          const targetTotal = 54.6;
 
-      case 'income_tax_lock':
-      case 'ni_lock':
-      case 'vat_lock':
-      case 'corporation_tax_lock': {
-        // Reset relevant tax rates to current (baseline)
-        setTaxes(prev => {
-          const newTaxes = new Map(prev);
+          if (currentDefenceTotal > 0 && currentDefenceTotal < targetTotal) {
+            const scalingFactor = targetTotal / currentDefenceTotal;
 
-          if (constraintId === 'income_tax_lock') {
-            ['incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional'].forEach(id => {
-              const tax = newTaxes.get(id);
-              if (tax && tax.proposedRate > tax.currentRate) {
-                newTaxes.set(id, { ...tax, proposedRate: tax.currentRate });
-              }
+            setSpending((prev) => {
+              const newSpending = new Map(prev);
+              DEFENCE_SPENDING_ITEM_IDS.forEach((id) => {
+                const item = newSpending.get(id);
+                if (item) {
+                  newSpending.set(id, {
+                    ...item,
+                    proposedBudget: item.currentBudget * scalingFactor,
+                  });
+                }
+              });
+              return newSpending;
             });
-          } else if (constraintId === 'ni_lock') {
-            ['employeeNI', 'employerNI'].forEach(id => {
-              const tax = newTaxes.get(id);
-              if (tax && tax.proposedRate > tax.currentRate) {
-                newTaxes.set(id, { ...tax, proposedRate: tax.currentRate });
-              }
-            });
-          } else if (constraintId === 'vat_lock') {
-            const vat = newTaxes.get('vat');
-            if (vat && vat.proposedRate > vat.currentRate) {
-              newTaxes.set('vat', { ...vat, proposedRate: vat.currentRate });
-            }
-          } else if (constraintId === 'corporation_tax_lock') {
-            const ct = newTaxes.get('corporationTax');
-            if (ct && ct.proposedRate > ct.currentRate) {
-              newTaxes.set('corporationTax', { ...ct, proposedRate: ct.currentRate });
-            }
           }
+          break;
+        }
 
-          return newTaxes;
-        });
-        break;
+        case 'triple_lock': {
+          // Set state pension to annual triple-lock target from fiscal-year baseline.
+          const statePension = spending.get('statePension');
+          if (statePension && statePension.proposedBudget < statePensionAnnualTarget - 0.01) {
+            handleSpendingChange('statePension', statePensionAnnualTarget);
+          }
+          break;
+        }
+
+        case 'income_tax_lock':
+        case 'ni_lock':
+        case 'vat_lock':
+        case 'corporation_tax_lock': {
+          // Reset relevant tax rates to current (baseline)
+          setTaxes((prev) => {
+            const newTaxes = new Map(prev);
+
+            if (constraintId === 'income_tax_lock') {
+              ['incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional'].forEach((id) => {
+                const tax = newTaxes.get(id);
+                if (tax && tax.proposedRate > tax.currentRate) {
+                  newTaxes.set(id, { ...tax, proposedRate: tax.currentRate });
+                }
+              });
+            } else if (constraintId === 'ni_lock') {
+              ['employeeNI', 'employerNI'].forEach((id) => {
+                const tax = newTaxes.get(id);
+                if (tax && tax.proposedRate > tax.currentRate) {
+                  newTaxes.set(id, { ...tax, proposedRate: tax.currentRate });
+                }
+              });
+            } else if (constraintId === 'vat_lock') {
+              const vat = newTaxes.get('vat');
+              if (vat && vat.proposedRate > vat.currentRate) {
+                newTaxes.set('vat', { ...vat, proposedRate: vat.currentRate });
+              }
+            } else if (constraintId === 'corporation_tax_lock') {
+              const ct = newTaxes.get('corporationTax');
+              if (ct && ct.proposedRate > ct.currentRate) {
+                newTaxes.set('corporationTax', { ...ct, proposedRate: ct.currentRate });
+              }
+            }
+
+            return newTaxes;
+          });
+          break;
+        }
+
+        default:
+          // For fiscal rules, show a message that adjustments are complex
+          setFiscalRuleMessage(
+            `Fiscal rule commitments require complex adjustments to both taxes and spending. Use the input fields to manually adjust your budget to meet the ${constraintId.replace(/_/g, ' ')} requirement.`
+          );
+          break;
       }
-
-      default:
-        // For fiscal rules, show a message that adjustments are complex
-        setFiscalRuleMessage(`Fiscal rule commitments require complex adjustments to both taxes and spending. Use the input fields to manually adjust your budget to meet the ${constraintId.replace(/_/g, ' ')} requirement.`);
-        break;
-    }
-  }, [spending, handleSpendingChange, nhsAnnualTargetTotal, statePensionAnnualTarget]);
+    },
+    [spending, handleSpendingChange, nhsAnnualTargetTotal, statePensionAnnualTarget]
+  );
 
   const toggleDepartment = useCallback((department: string) => {
-    setExpandedDepartments(prev => {
+    setExpandedDepartments((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(department)) {
         newSet.delete(department);
@@ -2697,9 +2767,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     let spendingCutCount = 0;
 
     taxes.forEach((tax) => {
-      if (tax.proposedRate > tax.currentRate &&
-        ['incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional',
-          'employeeNI', 'employerNI', 'vat', 'corporationTax'].includes(tax.id)) {
+      if (
+        tax.proposedRate > tax.currentRate &&
+        [
+          'incomeTaxBasic',
+          'incomeTaxHigher',
+          'incomeTaxAdditional',
+          'employeeNI',
+          'employerNI',
+          'vat',
+          'corporationTax',
+        ].includes(tax.id)
+      ) {
         taxIncreaseCount++;
       }
     });
@@ -2711,8 +2790,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     });
 
     // Count manifesto violations
-    const manifestoViolationCount = constraints.filter(c => c.violated).length;
-    const violationDescriptions = constraints.filter(c => c.violated).map(c => c.description);
+    const manifestoViolationCount = constraints.filter((c) => c.violated).length;
+    const violationDescriptions = constraints.filter((c) => c.violated).map((c) => c.description);
 
     // Build budget changes for MP stance calculation
     const incomeTaxBasic = taxes.get('incomeTaxBasic');
@@ -2730,7 +2809,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const budgetChanges = {
       incomeTaxBasicChange: incomeTaxBasic ? incomeTaxBasic.proposedRate - incomeTaxBasic.currentRate : 0,
       incomeTaxHigherChange: incomeTaxHigher ? incomeTaxHigher.proposedRate - incomeTaxHigher.currentRate : 0,
-      incomeTaxAdditionalChange: incomeTaxAdditional ? incomeTaxAdditional.proposedRate - incomeTaxAdditional.currentRate : 0,
+      incomeTaxAdditionalChange: incomeTaxAdditional
+        ? incomeTaxAdditional.proposedRate - incomeTaxAdditional.currentRate
+        : 0,
       niEmployeeChange: niEmployee ? niEmployee.proposedRate - niEmployee.currentRate : 0,
       niEmployerChange: niEmployer ? niEmployer.proposedRate - niEmployer.currentRate : 0,
       vatChange: vat ? vat.proposedRate - vat.currentRate : 0,
@@ -2747,22 +2828,23 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     };
 
     // Simulate parliamentary vote with enhanced MP system
-    const result = (gameState.mpSystem.allMPs.size > 0)
-      ? simulateEnhancedParliamentaryVote(
-        gameState.mpSystem,
-        budgetChanges,
-        violationDescriptions,
-        gameState.metadata.currentTurn
-      )
-      : simulateParliamentaryVote(
-        gameState.political.backbenchSatisfaction,
-        manifestoViolationCount,
-        fiscalImpact.deficitChange,
-        fiscalImpact.fiscalRulesMet,
-        taxIncreaseCount,
-        spendingCutCount,
-        gameState.political.pmTrust,
-      );
+    const result =
+      gameState.mpSystem.allMPs.size > 0
+        ? simulateEnhancedParliamentaryVote(
+            gameState.mpSystem,
+            budgetChanges,
+            violationDescriptions,
+            gameState.metadata.currentTurn
+          )
+        : simulateParliamentaryVote(
+            gameState.political.backbenchSatisfaction,
+            manifestoViolationCount,
+            fiscalImpact.deficitChange,
+            fiscalImpact.fiscalRulesMet,
+            taxIncreaseCount,
+            spendingCutCount,
+            gameState.political.pmTrust
+          );
 
     setVoteResult(result);
 
@@ -2780,7 +2862,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         if (!mp) return `Voted ${choice} on ${budgetType} budget`;
 
         if (choice === 'noe') {
-          if ((granularSpendingDelta.nhsMentalHealth || 0) < -0.3 && mp.constituency.demographics.unemploymentRate > 5.2) {
+          if (
+            (granularSpendingDelta.nhsMentalHealth || 0) < -0.3 &&
+            mp.constituency.demographics.unemploymentRate > 5.2
+          ) {
             return 'Opposed due to cuts to mental health provision in a high-need constituency.';
           }
           if ((granularSpendingDelta.prisonsAndProbation || 0) < -0.2) {
@@ -2809,9 +2894,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         choice,
         reasoning: buildVoteReasoning(mpId, choice),
       }));
-      batchRecordBudgetVotes(voteRecords as any).catch(err =>
-        console.error('Failed to record votes:', err)
-      );
+      batchRecordBudgetVotes(voteRecords as any).catch((err) => console.error('Failed to record votes:', err));
       gameActions.recordBudgetVotes(voteRecords as any);
     }
 
@@ -2851,7 +2934,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // If the vote passes, apply the budget changes (handled by onVoteContinue)
     // If it fails, allow withdrawal (handled by onVoteWithdraw)
-  }, [budgetType, fiscalImpact, taxes, spending, constraints, gameState.political, gameState.mpSystem, gameState.metadata, gameActions]);
+  }, [
+    budgetType,
+    fiscalImpact,
+    taxes,
+    spending,
+    constraints,
+    gameState.political,
+    gameState.mpSystem,
+    gameState.metadata,
+    gameActions,
+  ]);
 
   const applyBudgetToGameState = useCallback(() => {
     // Build BudgetChanges from the tax and spending deltas
@@ -2907,10 +3000,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       changes.basicRateUpperThresholdChange = higherRateThreshold.proposedRate - higherRateThreshold.currentRate;
     }
     if (additionalRateThreshold && additionalRateThreshold.proposedRate !== additionalRateThreshold.currentRate) {
-      changes.higherRateUpperThresholdChange = additionalRateThreshold.proposedRate - additionalRateThreshold.currentRate;
+      changes.higherRateUpperThresholdChange =
+        additionalRateThreshold.proposedRate - additionalRateThreshold.currentRate;
     }
     if (sdltAdditionalSurcharge && sdltAdditionalSurcharge.proposedRate !== sdltAdditionalSurcharge.currentRate) {
-      changes.sdltAdditionalDwellingsSurchargeChange = sdltAdditionalSurcharge.proposedRate - sdltAdditionalSurcharge.currentRate;
+      changes.sdltAdditionalDwellingsSurchargeChange =
+        sdltAdditionalSurcharge.proposedRate - sdltAdditionalSurcharge.currentRate;
     }
     if (thresholdUprating !== gameState.fiscal.thresholdUprating) {
       changes.thresholdUprating = thresholdUprating;
@@ -2928,7 +3023,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       changes.planningReformPackage = planningReformPackage;
     }
     if (infrastructureGuarantees !== gameState.housing.infrastructureGuarantees_bn) {
-      changes.infrastructureGuaranteesChange_bn = infrastructureGuarantees - gameState.housing.infrastructureGuarantees_bn;
+      changes.infrastructureGuaranteesChange_bn =
+        infrastructureGuarantees - gameState.housing.infrastructureGuarantees_bn;
     }
     if (htbSupport !== gameState.housing.htbAndSharedOwnership_bn) {
       changes.htbAndSharedOwnershipChange_bn = htbSupport - gameState.housing.htbAndSharedOwnership_bn;
@@ -2937,10 +3033,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       changes.councilHouseBuildingGrantChange_bn = councilHousingGrant - gameState.housing.councilHouseBuildingGrant_bn;
     }
     if (localGovernmentGrantSettlement !== (gameState.devolution.localGov.centralGrant_bn || 30)) {
-      changes.localGovCentralGrantChange_bn = localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30);
+      changes.localGovCentralGrantChange_bn =
+        localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30);
     }
     if (councilTaxReferendumCap !== (gameState.devolution.localGov.councilTaxGrowthCap || 3)) {
-      changes.councilTaxGrowthCapChange = councilTaxReferendumCap - (gameState.devolution.localGov.councilTaxGrowthCap || 3);
+      changes.councilTaxGrowthCapChange =
+        councilTaxReferendumCap - (gameState.devolution.localGov.councilTaxGrowthCap || 3);
     }
     if (selectedIndustrialInterventions.size > 0) {
       changes.industrialInterventionAddIds = Array.from(selectedIndustrialInterventions);
@@ -2949,8 +3047,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     // Calculate revenue adjustment from all OTHER tax changes
     // (taxes beyond the 7 rates the turn processor models: income tax x3, NI x2, VAT, corp tax)
     const mainTaxIds = new Set([
-      'incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional',
-      'employeeNI', 'employerNI', 'vat', 'corporationTax',
+      'incomeTaxBasic',
+      'incomeTaxHigher',
+      'incomeTaxAdditional',
+      'employeeNI',
+      'employerNI',
+      'vat',
+      'corporationTax',
     ]);
     let otherTaxRevenue = 0;
     taxes.forEach((tax) => {
@@ -2969,12 +3072,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     changes.revenueAdjustment = otherTaxRevenue;
 
     // Map spending changes: aggregate by department AND type (current vs capital)
-    const deptTotals: Record<string, {
-      currentCurrent: number;
-      proposedCurrent: number;
-      currentCapital: number;
-      proposedCapital: number;
-    }> = {};
+    const deptTotals: Record<
+      string,
+      {
+        currentCurrent: number;
+        proposedCurrent: number;
+        currentCapital: number;
+        proposedCapital: number;
+      }
+    > = {};
 
     spending.forEach((item) => {
       const dept = item.department.toLowerCase();
@@ -2987,7 +3093,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       else if (dept.includes('education')) key = 'education';
       else if (dept.includes('defence')) key = 'defence';
       else if (dept.includes('work') || dept.includes('pension')) key = 'welfare';
-      else if (dept.includes('transport') || dept.includes('energy') || dept.includes('housing')) key = 'infrastructure';
+      else if (dept.includes('transport') || dept.includes('energy') || dept.includes('housing'))
+        key = 'infrastructure';
       else if (dept.includes('home')) key = 'police';
       else if (dept.includes('justice')) key = 'justice';
       else key = 'other'; // Environment, Science, Foreign Office, etc.
@@ -3056,7 +3163,37 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     });
     setSpending(updatedSpending);
     gameActions.clearBudgetDraft();
-  }, [taxes, spending, gameActions, policyConflicts, welfareLevers, thresholdUprating, fullExpensing, antiAvoidanceInvestment, hmrcSystemsInvestment, planningReformPackage, infrastructureGuarantees, htbSupport, councilHousingGrant, selectedIndustrialInterventions, localGovernmentGrantSettlement, councilTaxReferendumCap, gameState.fiscal.ucTaperRate, gameState.fiscal.workAllowanceMonthly, gameState.fiscal.childcareSupportRate, gameState.fiscal.thresholdUprating, gameState.fiscal.fullExpensing, gameState.fiscal.antiAvoidanceInvestment_bn, gameState.fiscal.hmrcSystemsInvestment_bn, gameState.housing.planningReformPackage, gameState.housing.infrastructureGuarantees_bn, gameState.housing.htbAndSharedOwnership_bn, gameState.housing.councilHouseBuildingGrant_bn, gameState.devolution.localGov.centralGrant_bn, gameState.devolution.localGov.councilTaxGrowthCap]);
+  }, [
+    taxes,
+    spending,
+    gameActions,
+    policyConflicts,
+    welfareLevers,
+    thresholdUprating,
+    fullExpensing,
+    antiAvoidanceInvestment,
+    hmrcSystemsInvestment,
+    planningReformPackage,
+    infrastructureGuarantees,
+    htbSupport,
+    councilHousingGrant,
+    selectedIndustrialInterventions,
+    localGovernmentGrantSettlement,
+    councilTaxReferendumCap,
+    gameState.fiscal.ucTaperRate,
+    gameState.fiscal.workAllowanceMonthly,
+    gameState.fiscal.childcareSupportRate,
+    gameState.fiscal.thresholdUprating,
+    gameState.fiscal.fullExpensing,
+    gameState.fiscal.antiAvoidanceInvestment_bn,
+    gameState.fiscal.hmrcSystemsInvestment_bn,
+    gameState.housing.planningReformPackage,
+    gameState.housing.infrastructureGuarantees_bn,
+    gameState.housing.htbAndSharedOwnership_bn,
+    gameState.housing.councilHouseBuildingGrant_bn,
+    gameState.devolution.localGov.centralGrant_bn,
+    gameState.devolution.localGov.councilTaxGrowthCap,
+  ]);
 
   const handleVoteContinue = useCallback(() => {
     applyBudgetToGameState();
@@ -3092,7 +3229,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     gameActions.changeFiscalFramework(proposedFiscalRule);
-    setFiscalRuleMessage(`Fiscal framework changed to ${getFiscalRuleById(proposedFiscalRule).name}. Market and political consequences will apply next turn.`);
+    setFiscalRuleMessage(
+      `Fiscal framework changed to ${getFiscalRuleById(proposedFiscalRule).name}. Market and political consequences will apply next turn.`
+    );
     setShowFiscalRuleChangeModal(false);
   }, [gameActions, proposedFiscalRule, gameState.political.chosenFiscalRule]);
 
@@ -3131,16 +3270,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     };
 
     // Revenue description for thresholds
-    const revenueLabel = tax.currentRevenue > 0
-      ? `Current revenue: £${tax.currentRevenue.toFixed(1)}bn`
-      : isThreshold
-        ? 'Threshold/Allowance'
-        : '';
+    const revenueLabel =
+      tax.currentRevenue > 0
+        ? `Current revenue: £${tax.currentRevenue.toFixed(1)}bn`
+        : isThreshold
+          ? 'Threshold/Allowance'
+          : '';
     const lafferTaxType = getLafferTaxTypeForControlId(tax.id);
     const lafferPeak = lafferTaxType ? calculateLafferPoint(lafferTaxType, gameState as any) : null;
 
     return (
-      <div key={tax.id} className="bg-transparent border-b border-border-strong p-4 hover:border-accent transition-colors">
+      <div
+        key={tax.id}
+        className="bg-transparent border-b border-border-strong p-4 hover:border-accent transition-colors"
+      >
         <div className="flex justify-between items-start mb-3">
           <div>
             <h4 className="font-semibold text-primary">{tax.name}</h4>
@@ -3150,18 +3293,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="text-xl font-mono font-semibold text-primary">
               {isThreshold && tax.currentRate >= 100000
                 ? `£${(tax.proposedRate / 1000).toFixed(0)}k`
-                : `${formatValue(tax.proposedRate)}`
-              }
+                : `${formatValue(tax.proposedRate)}`}
               {!(isThreshold && tax.currentRate >= 100000) && (
                 <span className="text-sm font-normal text-tertiary ml-1">{tax.unit}</span>
               )}
             </div>
             {change !== 0 && (
               <div className={`text-sm font-semibold ${changeColour}`}>
-                {change > 0 ? '+' : ''}{isThreshold && tax.currentRate >= 100000
+                {change > 0 ? '+' : ''}
+                {isThreshold && tax.currentRate >= 100000
                   ? `£${(change / 1000).toFixed(1)}k`
-                  : `${formatValue(change)}${tax.unit}`
-                }
+                  : `${formatValue(change)}${tax.unit}`}
               </div>
             )}
           </div>
@@ -3185,14 +3327,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <span className="text-sm text-tertiary min-w-[4rem]">{tax.unit}</span>
           </div>
           <div className="text-xs text-tertiary">
-            Current: <span className="font-semibold text-secondary">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
+            Current:{' '}
+            <span className="font-semibold text-secondary">
+              {formatValue(tax.currentRate)}
+              {isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}
+            </span>
           </div>
         </div>
 
         {change !== 0 && (
           <div className="mt-3 pt-3 border-t border-border-custom">
             <div className="text-sm text-secondary">
-              Revenue impact: <span className={`font-semibold ${changeColour}`}>
+              Revenue impact:{' '}
+              <span className={`font-semibold ${changeColour}`}>
                 {calculateRevenueImpact(tax) >= 0 ? '+' : ''}£{calculateRevenueImpact(tax).toFixed(2)}bn
               </span>
             </div>
@@ -3255,15 +3402,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     return (
-      <div key={item.id} className={`bg-transparent border p-4 ${isDebtInterest ? 'border-border-custom bg-transparent/50' : 'border-border-custom hover:border-accent'
-        }`}>
+      <div
+        key={item.id}
+        className={`bg-transparent border p-4 ${
+          isDebtInterest ? 'border-border-custom bg-transparent/50' : 'border-border-custom hover:border-accent'
+        }`}
+      >
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <h4 className="font-semibold text-primary">{item.programme || item.department}</h4>
             <div className="flex flex-wrap gap-2 items-center mt-1">
               <span className="text-xs text-tertiary">{item.department}</span>
-              <span className={`text-xs px-2 py-0.5 ${item.type === 'capital' ? 'bg-accent-subtle text-accent border border-accent' : 'bg-secondary-subtle text-secondary border border-secondary'
-                }`}>
+              <span
+                className={`text-xs px-2 py-0.5 ${
+                  item.type === 'capital'
+                    ? 'bg-accent-subtle text-accent border border-accent'
+                    : 'bg-secondary-subtle text-secondary border border-secondary'
+                }`}
+              >
                 {item.type === 'capital' ? 'Capital' : 'Resource'}
               </span>
               {targetBudget && (
@@ -3280,11 +3436,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           </div>
           <div className="text-right">
             <div className="text-xl font-mono font-semibold text-primary">
-              £{item.proposedBudget.toFixed(1)}<span className="text-sm font-normal text-tertiary">bn</span>
+              £{item.proposedBudget.toFixed(1)}
+              <span className="text-sm font-normal text-tertiary">bn</span>
             </div>
             {change !== 0 && (
               <div className={`text-sm font-semibold ${changeColour}`}>
-                {change > 0 ? '+' : ''}£{change.toFixed(1)}bn ({changePct > 0 ? '+' : ''}{changePct.toFixed(1)}%)
+                {change > 0 ? '+' : ''}£{change.toFixed(1)}bn ({changePct > 0 ? '+' : ''}
+                {changePct.toFixed(1)}%)
               </div>
             )}
           </div>
@@ -3308,18 +3466,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 const nextValue = Number.isFinite(parsed) ? Math.max(0, parsed) : item.currentBudget;
                 handleSpendingChange(item.id, nextValue);
               }}
-              className={`w-full border px-3 py-2 text-primary ${isDebtInterest
-                ? 'bg-transparent border-border-custom text-muted cursor-not-allowed'
-                : 'bg-transparent border-border-custom'
-                }`}
+              className={`w-full border px-3 py-2 text-primary ${
+                isDebtInterest
+                  ? 'bg-transparent border-border-custom text-muted cursor-not-allowed'
+                  : 'bg-transparent border-border-custom'
+              }`}
             />
             <span className="text-sm text-tertiary">bn</span>
           </div>
           <div className="flex justify-between text-xs text-tertiary">
             <span className="font-semibold text-secondary">Current: £{item.currentBudget.toFixed(1)}bn</span>
-            {targetBudget && (
-              <span className="font-semibold text-warning">Target: £{targetBudget.toFixed(1)}bn</span>
-            )}
+            {targetBudget && <span className="font-semibold text-warning">Target: £{targetBudget.toFixed(1)}bn</span>}
             {!isDebtInterest && <span>Minimum: £0.0bn</span>}
           </div>
 
@@ -3328,7 +3485,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-2">
                 <span className="font-semibold">Note:</span>
                 <span>
-                  Interest payments are non-discretionary. To reduce interest costs, reduce the deficit and/or lower the total debt stock.
+                  Interest payments are non-discretionary. To reduce interest costs, reduce the deficit and/or lower the
+                  total debt stock.
                 </span>
               </div>
             </div>
@@ -3351,15 +3509,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   };
 
   const renderWarning = (warning: AdviserWarning) => {
-    const bgColour = warning.severity === 'critical' ? 'bg-red-50 border-red-200' :
-      warning.severity === 'warning' ? 'bg-amber-50 border-amber-200' :
-        'bg-blue-50 border-blue-200';
-    const titleColour = warning.severity === 'critical' ? 'text-red-900' :
-      warning.severity === 'warning' ? 'text-amber-900' :
-        'text-blue-900';
-    const messageColour = warning.severity === 'critical' ? 'text-red-700' :
-      warning.severity === 'warning' ? 'text-amber-700' :
-        'text-blue-700';
+    const bgColour =
+      warning.severity === 'critical'
+        ? 'bg-red-50 border-red-200'
+        : warning.severity === 'warning'
+          ? 'bg-amber-50 border-amber-200'
+          : 'bg-blue-50 border-blue-200';
+    const titleColour =
+      warning.severity === 'critical'
+        ? 'text-red-900'
+        : warning.severity === 'warning'
+          ? 'text-amber-900'
+          : 'text-blue-900';
+    const messageColour =
+      warning.severity === 'critical'
+        ? 'text-red-700'
+        : warning.severity === 'warning'
+          ? 'text-amber-700'
+          : 'text-blue-700';
 
     return (
       <div key={warning.id} className={`border  p-4 ${bgColour}`}>
@@ -3367,28 +3534,39 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           <div className="flex-shrink-0 mt-0.5">
             {warning.severity === 'critical' && (
               <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             )}
             {warning.severity === 'warning' && (
               <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             )}
             {warning.severity === 'info' && (
               <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
             )}
           </div>
           <div className="flex-1">
             <h4 className={`font-semibold ${titleColour}`}>{warning.title}</h4>
             <p className={`text-sm mt-1 ${messageColour}`}>{warning.message}</p>
-            {warning.impact && (
-              <p className={`text-sm mt-2 ${messageColour} font-medium`}>
-                Impact: {warning.impact}
-              </p>
-            )}
+            {warning.impact && <p className={`text-sm mt-2 ${messageColour} font-medium`}>Impact: {warning.impact}</p>}
             <div className="mt-2 text-xs font-semibold text-grey-600 uppercase">
               {warning.category} · {warning.severity}
             </div>
@@ -3399,16 +3577,29 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   };
 
   const renderConstraint = (constraint: ManifestoConstraint) => {
-    const statusColour = constraint.violated ?
-      constraint.severity === 'critical' ? 'text-red-600' : 'text-amber-600' :
-      'text-green-600';
-    const bgColour = constraint.violated ?
-      constraint.severity === 'critical' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200' :
-      'bg-green-50 border-green-200';
+    const statusColour = constraint.violated
+      ? constraint.severity === 'critical'
+        ? 'text-red-600'
+        : 'text-amber-600'
+      : 'text-green-600';
+    const bgColour = constraint.violated
+      ? constraint.severity === 'critical'
+        ? 'bg-red-50 border-red-200'
+        : 'bg-amber-50 border-amber-200'
+      : 'bg-green-50 border-green-200';
 
     // Determine if "Apply" button should be shown
-    const canApply = constraint.violated &&
-      ['nhs_pledge', 'defence_pledge', 'triple_lock', 'income_tax_lock', 'ni_lock', 'vat_lock', 'corporation_tax_lock'].includes(constraint.id);
+    const canApply =
+      constraint.violated &&
+      [
+        'nhs_pledge',
+        'defence_pledge',
+        'triple_lock',
+        'income_tax_lock',
+        'ni_lock',
+        'vat_lock',
+        'corporation_tax_lock',
+      ].includes(constraint.id);
 
     return (
       <div key={constraint.id} className={`border  p-4 ${bgColour}`}>
@@ -3427,16 +3618,26 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <h4 className="font-semibold text-grey-900">{constraint.description}</h4>
             </div>
             <div className="mt-1 flex gap-2">
-              <span className={`text-xs px-2 py-0.5 rounded ${constraint.type === 'fiscal_rule' ? 'bg-purple-100 text-purple-700' :
-                constraint.type === 'spending_pledge' ? 'bg-blue-100 text-blue-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  constraint.type === 'fiscal_rule'
+                    ? 'bg-purple-100 text-purple-700'
+                    : constraint.type === 'spending_pledge'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-red-100 text-red-700'
+                }`}
+              >
                 {constraint.type.replace('_', ' ')}
               </span>
-              <span className={`text-xs px-2 py-0.5 rounded ${constraint.severity === 'critical' ? 'bg-red-100 text-red-700' :
-                constraint.severity === 'major' ? 'bg-amber-100 text-amber-700' :
-                  'bg-grey-100 text-grey-700'
-                }`}>
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${
+                  constraint.severity === 'critical'
+                    ? 'bg-red-100 text-red-700'
+                    : constraint.severity === 'major'
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-grey-100 text-grey-700'
+                }`}
+              >
                 {constraint.severity}
               </span>
             </div>
@@ -3451,9 +3652,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 Apply
               </button>
             )}
-            <div className={`text-right font-bold ${statusColour}`}>
-              {constraint.violated ? 'VIOLATED' : 'MET'}
-            </div>
+            <div className={`text-right font-bold ${statusColour}`}>{constraint.violated ? 'VIOLATED' : 'MET'}</div>
           </div>
         </div>
       </div>
@@ -3484,15 +3683,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
   const spendingReviewEnvelope = useMemo(() => {
     const ruleRequiresPrudence = gameState.political.chosenFiscalRule !== 'mmt-inspired';
-    const prudenceMargin = ruleRequiresPrudence
-      ? Math.max(1.5, gameState.fiscal.fiscalHeadroom_bn * 0.15)
-      : 0;
+    const prudenceMargin = ruleRequiresPrudence ? Math.max(1.5, gameState.fiscal.fiscalHeadroom_bn * 0.15) : 0;
     const amePressures =
       Math.max(0, (gameState.fiscal.welfareAME_bn || 115) - 115) +
       Math.max(0, gameState.fiscal.housingAMEPressure_bn || 0) +
       Math.max(0, (gameState.fiscal.debtInterest_bn || 0) - 95);
     const baselineAnnualDEL = 1200;
-    const annualEnvelope = Math.max(0, baselineAnnualDEL + gameState.fiscal.fiscalHeadroom_bn - amePressures - prudenceMargin);
+    const annualEnvelope = Math.max(
+      0,
+      baselineAnnualDEL + gameState.fiscal.fiscalHeadroom_bn - amePressures - prudenceMargin
+    );
     return {
       prudenceMargin,
       amePressures,
@@ -3507,39 +3707,45 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     gameState.political.chosenFiscalRule,
   ]);
 
-  const handleSpendingReviewPlanChange = useCallback((
-    departmentKey: keyof SpendingReviewState['departments'],
-    planType: 'resource' | 'capital',
-    yearIdx: number,
-    nextValue: number,
-  ) => {
-    const normalized = Number.isFinite(nextValue) ? Math.max(0, nextValue) : 0;
-    const nextDepartments = { ...gameState.spendingReview.departments };
-    const nextDepartment = { ...nextDepartments[departmentKey] };
+  const handleSpendingReviewPlanChange = useCallback(
+    (
+      departmentKey: keyof SpendingReviewState['departments'],
+      planType: 'resource' | 'capital',
+      yearIdx: number,
+      nextValue: number
+    ) => {
+      const normalized = Number.isFinite(nextValue) ? Math.max(0, nextValue) : 0;
+      const nextDepartments = { ...gameState.spendingReview.departments };
+      const nextDepartment = { ...nextDepartments[departmentKey] };
 
-    if (planType === 'resource') {
-      const updated = [...nextDepartment.plannedResourceDEL_bn];
-      updated[yearIdx] = normalized;
-      nextDepartment.plannedResourceDEL_bn = updated;
-    } else {
-      const updated = [...nextDepartment.plannedCapitalDEL_bn];
-      updated[yearIdx] = normalized;
-      nextDepartment.plannedCapitalDEL_bn = updated;
-    }
+      if (planType === 'resource') {
+        const updated = [...nextDepartment.plannedResourceDEL_bn];
+        updated[yearIdx] = normalized;
+        nextDepartment.plannedResourceDEL_bn = updated;
+      } else {
+        const updated = [...nextDepartment.plannedCapitalDEL_bn];
+        updated[yearIdx] = normalized;
+        nextDepartment.plannedCapitalDEL_bn = updated;
+      }
 
-    nextDepartments[departmentKey] = nextDepartment;
-    gameActions.updateSpendingReviewPlans(nextDepartments);
-  }, [gameActions, gameState.spendingReview.departments]);
+      nextDepartments[departmentKey] = nextDepartment;
+      gameActions.updateSpendingReviewPlans(nextDepartments);
+    },
+    [gameActions, gameState.spendingReview.departments]
+  );
 
   const barnettPreview = useMemo(() => {
-    const nhsCurrent = spending.get('nhsEngland')?.proposedBudget ?? (gameState.fiscal.detailedSpending.find((item) => item.id === 'nhsEngland')?.currentBudget || 164.9);
-    const educationCurrent = spending.get('schools')?.proposedBudget ?? (gameState.fiscal.detailedSpending.find((item) => item.id === 'schools')?.currentBudget || 59.8);
-    const transportHousing = (spending.get('railSubsidy')?.proposedBudget ?? 5.5) + (spending.get('housingCapital')?.proposedBudget ?? 2.5);
+    const nhsCurrent =
+      spending.get('nhsEngland')?.proposedBudget ??
+      (gameState.fiscal.detailedSpending.find((item: { id: string; currentBudget: number }) => item.id === 'nhsEngland')?.currentBudget || 164.9);
+    const educationCurrent =
+      spending.get('schools')?.proposedBudget ??
+      (gameState.fiscal.detailedSpending.find((item: { id: string; currentBudget: number }) => item.id === 'schools')?.currentBudget || 59.8);
+    const transportHousing =
+      (spending.get('railSubsidy')?.proposedBudget ?? 5.5) + (spending.get('housingCapital')?.proposedBudget ?? 2.5);
     const baselineTransportHousing = 5.5 + 2.5;
     const comparableChange =
-      (nhsCurrent - 164.9) +
-      (educationCurrent - 59.8) +
-      (transportHousing - baselineTransportHousing);
+      nhsCurrent - 164.9 + (educationCurrent - 59.8) + (transportHousing - baselineTransportHousing);
     const scotland = comparableChange * 0.0998;
     const wales = comparableChange * 0.0597;
     const northernIreland = comparableChange * 0.0348;
@@ -3576,12 +3782,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     <button
                       onClick={() => isSpring && setBudgetType('spring')}
                       disabled={!isSpring}
-                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${budgetType === 'spring'
-                        ? 'bg-white text-primary'
-                        : isSpring
-                          ? 'bg-white/20 hover:bg-white/30'
-                          : 'opacity-40 cursor-not-allowed'
-                        }`}
+                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
+                        budgetType === 'spring'
+                          ? 'bg-white text-primary'
+                          : isSpring
+                            ? 'bg-white/20 hover:bg-white/30'
+                            : 'opacity-40 cursor-not-allowed'
+                      }`}
                     >
                       Spring Budget
                     </button>
@@ -3589,22 +3796,22 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     <button
                       onClick={() => isAutumn && setBudgetType('autumn')}
                       disabled={!isAutumn}
-                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${budgetType === 'autumn'
-                        ? 'bg-white text-primary'
-                        : isAutumn
-                          ? 'bg-white/20 hover:bg-white/30'
-                          : 'opacity-40 cursor-not-allowed'
-                        }`}
+                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
+                        budgetType === 'autumn'
+                          ? 'bg-white text-primary'
+                          : isAutumn
+                            ? 'bg-white/20 hover:bg-white/30'
+                            : 'opacity-40 cursor-not-allowed'
+                      }`}
                     >
                       Autumn Statement
                     </button>
 
                     <button
                       onClick={() => setBudgetType('emergency')}
-                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${budgetType === 'emergency'
-                        ? 'bg-white text-primary'
-                        : 'bg-white/20 hover:bg-white/30'
-                        }`}
+                      className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
+                        budgetType === 'emergency' ? 'bg-white text-primary' : 'bg-white/20 hover:bg-white/30'
+                      }`}
                     >
                       Emergency
                     </button>
@@ -3622,9 +3829,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           <div className="grid grid-cols-7 gap-4 text-sm">
             <div>
               <div className="text-label text-tertiary">Deficit Change</div>
-              <div className={`text-lg font-mono font-semibold ${fiscalImpact.deficitChange > 0 ? 'text-bad' :
-                fiscalImpact.deficitChange < 0 ? 'text-good' : 'text-primary'
-                }`}>
+              <div
+                className={`text-lg font-mono font-semibold ${
+                  fiscalImpact.deficitChange > 0
+                    ? 'text-bad'
+                    : fiscalImpact.deficitChange < 0
+                      ? 'text-good'
+                      : 'text-primary'
+                }`}
+              >
                 {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn
               </div>
             </div>
@@ -3642,29 +3855,43 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             </div>
             <div>
               <div className="text-label text-tertiary">Fiscal Rules</div>
-              <div className={`text-lg font-mono font-semibold ${fiscalImpact.fiscalRulesMet ? 'text-good' : 'text-bad'}`}>
+              <div
+                className={`text-lg font-mono font-semibold ${fiscalImpact.fiscalRulesMet ? 'text-good' : 'text-bad'}`}
+              >
                 {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACH'}
               </div>
             </div>
-            <div className={`px-3 py-1 ${
-              fiscalImpact.headroom > 10 ? 'bg-good-subtle' :
-              fiscalImpact.headroom > 0 ? 'bg-warning-subtle' :
-              'bg-bad-subtle'
-            }`}>
-              <div className="text-label text-tertiary">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
-              <div className={`text-lg font-mono font-semibold ${
-                fiscalImpact.headroom > 10 ? 'text-good' :
-                fiscalImpact.headroom > 0 ? 'text-warning' :
-                'text-bad'
-              }`}>
+            <div
+              className={`px-3 py-1 ${
+                fiscalImpact.headroom > 10
+                  ? 'bg-good-subtle'
+                  : fiscalImpact.headroom > 0
+                    ? 'bg-warning-subtle'
+                    : 'bg-bad-subtle'
+              }`}
+            >
+              <div className="text-label text-tertiary">
+                {getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}
+              </div>
+              <div
+                className={`text-lg font-mono font-semibold ${
+                  fiscalImpact.headroom > 10 ? 'text-good' : fiscalImpact.headroom > 0 ? 'text-warning' : 'text-bad'
+                }`}
+              >
                 {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
               </div>
             </div>
             <div>
               <div className="text-label text-tertiary">Warnings</div>
-              <div className={`text-lg font-mono font-semibold ${warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-bad' :
-                warnings.length > 0 ? 'text-warning' : 'text-good'
-                }`}>
+              <div
+                className={`text-lg font-mono font-semibold ${
+                  warnings.filter((w) => w.severity === 'critical').length > 0
+                    ? 'text-bad'
+                    : warnings.length > 0
+                      ? 'text-warning'
+                      : 'text-good'
+                }`}
+              >
                 {warnings.length}
               </div>
             </div>
@@ -3700,10 +3927,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   <button
                     key={view}
                     onClick={() => setActiveView(view)}
-                    className={`flex-1 px-6 py-3 font-semibold transition-colors border-b-2 ${activeView === view
-                      ? 'text-primary border-primary'
-                      : 'text-tertiary border-transparent hover:text-primary'
-                      }`}
+                    className={`flex-1 px-6 py-3 font-semibold transition-colors border-b-2 ${
+                      activeView === view
+                        ? 'text-primary border-primary'
+                        : 'text-tertiary border-transparent hover:text-primary'
+                    }`}
                   >
                     {view === 'taxes' && 'Taxation'}
                     {view === 'spending' && 'Public Spending'}
@@ -3718,36 +3946,46 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
             {activeView === 'del' && (
               <div className="space-y-4">
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900">Departmental Expenditure Limits (3-Year Plan)</h2>
                   <p className="text-sm text-grey-600 mt-1">
-                    Edit DEL plans at any time. Markets can react to out-year plans, but less than to current budgets and headroom.
+                    Edit DEL plans at any time. Markets can react to out-year plans, but less than to current budgets
+                    and headroom.
                   </p>
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <div className="text-grey-600">Projected 3Y DEL total</div>
                       <div className="text-2xl font-bold">£{spendingReviewPlanTotal.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <div className="text-grey-600">Headroom envelope (3Y)</div>
                       <div className="text-2xl font-bold">£{spendingReviewEnvelope.threeYearEnvelope.toFixed(1)}bn</div>
                     </div>
-                    <div className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                    <div
+                      className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}
+                    >
                       <div className="text-grey-600">Envelope check</div>
-                      <div className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-amber-700' : 'text-green-700'}`}>
-                        {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'Above envelope' : 'Below envelope'}
+                      <div
+                        className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-amber-700' : 'text-green-700'}`}
+                      >
+                        {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope
+                          ? 'Above envelope'
+                          : 'Below envelope'}
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-grey-600">
-                    Indicative envelope = headroom minus AME pressures (£{spendingReviewEnvelope.amePressures.toFixed(1)}bn) and prudence margin (£{spendingReviewEnvelope.prudenceMargin.toFixed(1)}bn).
+                    Indicative envelope = headroom minus AME pressures (£
+                    {spendingReviewEnvelope.amePressures.toFixed(1)}bn) and prudence margin (£
+                    {spendingReviewEnvelope.prudenceMargin.toFixed(1)}bn).
                   </div>
                   <div className="mt-2 text-xs font-medium text-grey-700">
                     Spending Review plans are indicative guidelines and may be revised.
                   </div>
                   {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope && (
                     <div className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-sm px-3 py-2">
-                      DEL plan is £{(spendingReviewPlanTotal - spendingReviewEnvelope.threeYearEnvelope).toFixed(1)}bn above the 3-year envelope.
+                      DEL plan is £{(spendingReviewPlanTotal - spendingReviewEnvelope.threeYearEnvelope).toFixed(1)}bn
+                      above the 3-year envelope.
                     </div>
                   )}
                 </div>
@@ -3755,7 +3993,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 {SPENDING_REVIEW_DEPARTMENT_ORDER.map((key) => {
                   const dept = gameState.spendingReview.departments[key];
                   return (
-                    <div key={key} className="bg-white   border border-grey-200 p-5">
+                    <div key={key} className="bg-bg-surface border border-border-strong p-5">
                       <div className="flex justify-between items-center mb-3">
                         <div>
                           <h3 className="text-lg font-bold text-grey-900">{dept.name}</h3>
@@ -3768,39 +4006,50 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         </div>
                       </div>
                       {(() => {
-                        const deptTotal = (dept.plannedResourceDEL_bn || []).reduce((acc, value) => acc + value, 0) + (dept.plannedCapitalDEL_bn || []).reduce((acc, value) => acc + value, 0);
-                        const fairShare = spendingReviewPlanTotal > 0
-                          ? (spendingReviewEnvelope.threeYearEnvelope * (deptTotal / spendingReviewPlanTotal))
-                          : 0;
+                        const deptTotal =
+                          (dept.plannedResourceDEL_bn || []).reduce((acc, value) => acc + value, 0) +
+                          (dept.plannedCapitalDEL_bn || []).reduce((acc, value) => acc + value, 0);
+                        const fairShare =
+                          spendingReviewPlanTotal > 0
+                            ? spendingReviewEnvelope.threeYearEnvelope * (deptTotal / spendingReviewPlanTotal)
+                            : 0;
                         const breach = deptTotal - fairShare;
                         return (
                           <div className={`text-xs mb-3 ${breach > 0 ? 'text-amber-700' : 'text-green-700'}`}>
-                            {breach > 0 ? `Department indicative envelope breach: +£${breach.toFixed(1)}bn` : 'Department within indicative envelope share'}
+                            {breach > 0
+                              ? `Department indicative envelope breach: +£${breach.toFixed(1)}bn`
+                              : 'Department within indicative envelope share'}
                           </div>
                         );
                       })()}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[0, 1, 2].map((yearIdx) => (
-                          <div key={`${key}_year_${yearIdx}`} className="border border-grey-100 rounded-sm p-3">
+                          <div key={`${key}_year_${yearIdx}`} className="border border-border-subtle p-3">
                             <div className="text-xs uppercase tracking-wide text-grey-600 mb-2">Year {yearIdx + 1}</div>
                             <label className="text-xs text-grey-600 block mb-1">Resource DEL (£bn)</label>
                             <input
                               type="number"
-                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              className="w-full border border-border-strong px-2 py-1 text-sm"
                               value={yearIdx === 0 ? dept.resourceDEL_bn : dept.plannedResourceDEL_bn[yearIdx]}
                               disabled={yearIdx === 0}
-                              onChange={(e) => handleSpendingReviewPlanChange(key, 'resource', yearIdx, Number(e.target.value))}
+                              onChange={(e) =>
+                                handleSpendingReviewPlanChange(key, 'resource', yearIdx, Number(e.target.value))
+                              }
                             />
                             <label className="text-xs text-grey-600 block mt-3 mb-1">Capital DEL (£bn)</label>
                             <input
                               type="number"
-                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              className="w-full border border-border-strong px-2 py-1 text-sm"
                               value={yearIdx === 0 ? dept.capitalDEL_bn : dept.plannedCapitalDEL_bn[yearIdx]}
                               disabled={yearIdx === 0}
-                              onChange={(e) => handleSpendingReviewPlanChange(key, 'capital', yearIdx, Number(e.target.value))}
+                              onChange={(e) =>
+                                handleSpendingReviewPlanChange(key, 'capital', yearIdx, Number(e.target.value))
+                              }
                             />
                             {yearIdx === 0 && (
-                              <div className="text-[11px] text-grey-500 mt-2">Year 1 is synced to current budget values.</div>
+                              <div className="text-[11px] text-grey-500 mt-2">
+                                Year 1 is synced to current budget values.
+                              </div>
                             )}
                           </div>
                         ))}
@@ -3812,42 +4061,79 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             )}
 
             {activeView === 'debt' && (
-              <div className="bg-white   border border-grey-200 p-6 space-y-4">
+              <div className="bg-bg-surface border border-border-strong p-6 space-y-4">
                 <h2 className="text-xl font-bold text-grey-900">Debt Management</h2>
-                <p className="text-sm text-grey-600">Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing risk.</p>
+                <p className="text-sm text-grey-600">
+                  Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing
+                  risk.
+                </p>
                 <div className="text-sm text-grey-700 bg-blue-50 border border-blue-200 rounded-sm p-3">
-                  Active strategy: <span className="font-semibold capitalize">{gameState.debtManagement.issuanceStrategy}</span> ·
-                  Yield effect: <span className="font-semibold">{((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps</span>
+                  Active strategy:{' '}
+                  <span className="font-semibold capitalize">{gameState.debtManagement.issuanceStrategy}</span> · Yield
+                  effect:{' '}
+                  <span className="font-semibold">
+                    {(gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : ''}
+                    {(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps
+                  </span>
                   {gameState.debtManagement.issuanceStrategy === 'short' && (
-                    <span> · Rollover risk premium: <span className="font-semibold">+{(gameState.debtManagement.rolloverRiskPremium_bps || 0).toFixed(0)} bps</span></span>
+                    <span>
+                      {' '}
+                      · Rollover risk premium:{' '}
+                      <span className="font-semibold">
+                        +{(gameState.debtManagement.rolloverRiskPremium_bps || 0).toFixed(0)} bps
+                      </span>
+                    </span>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">Refinancing risk</div>
                     <div className="text-2xl font-bold">{gameState.debtManagement.refinancingRisk.toFixed(1)}</div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">APF stock (QE/QT)</div>
-                    <div className="text-2xl font-bold">£{(gameState.markets.assetPurchaseFacility_bn || 0).toFixed(0)}bn</div>
+                    <div className="text-2xl font-bold">
+                      £{(gameState.markets.assetPurchaseFacility_bn || 0).toFixed(0)}bn
+                    </div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">Debt interest</div>
                     <div className="text-2xl font-bold">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">Projected annual interest (Short)</div>
-                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.short ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
+                    <div className="text-xl font-bold">
+                      £
+                      {(
+                        gameState.debtManagement.projectedDebtInterestByStrategy_bn?.short ??
+                        gameState.fiscal.debtInterest_bn
+                      ).toFixed(1)}
+                      bn
+                    </div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">Projected annual interest (Balanced)</div>
-                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.balanced ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
+                    <div className="text-xl font-bold">
+                      £
+                      {(
+                        gameState.debtManagement.projectedDebtInterestByStrategy_bn?.balanced ??
+                        gameState.fiscal.debtInterest_bn
+                      ).toFixed(1)}
+                      bn
+                    </div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
+                  <div className="border border-border-subtle p-3">
                     <div className="text-grey-600">Projected annual interest (Long)</div>
-                    <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.long ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
+                    <div className="text-xl font-bold">
+                      £
+                      {(
+                        gameState.debtManagement.projectedDebtInterestByStrategy_bn?.long ??
+                        gameState.fiscal.debtInterest_bn
+                      ).toFixed(1)}
+                      bn
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3857,11 +4143,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'taxes' && (
               <div className="space-y-6">
                 {/* Income Tax Rates */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Rates</h2>
-                  <p className="text-sm text-grey-600 mb-4">
-                    Revenue: £269bn · Affects 34 million taxpayers
-                  </p>
+                  <p className="text-sm text-grey-600 mb-4">Revenue: £269bn · Affects 34 million taxpayers</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('incomeTaxBasic')!)}
                     {renderTaxControl(taxes.get('incomeTaxHigher')!)}
@@ -3869,35 +4153,76 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Welfare and Labour Market Levers</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    AME measures: reducing taper or increasing work allowances and childcare support can lower structural unemployment over time, but increase welfare spending.
+                    AME measures: reducing taper or increasing work allowances and childcare support can lower
+                    structural unemployment over time, but increase welfare spending.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Universal Credit taper rate</label>
-                      <input type="number" min={35} max={75} step={1} value={welfareLevers.ucTaperRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate >= 0 ? '+' : '')}{(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate).toFixed(0)}pp</div>
+                      <input
+                        type="number"
+                        min={35}
+                        max={75}
+                        step={1}
+                        value={welfareLevers.ucTaperRate}
+                        onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
+                      <div className="text-xs text-grey-600 mt-2">
+                        Delta: {welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate >= 0 ? '+' : ''}
+                        {(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate).toFixed(0)}pp
+                      </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Work allowance</label>
-                      <input type="number" min={200} max={700} step={10} value={welfareLevers.workAllowanceMonthly} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, workAllowanceMonthly: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly >= 0 ? '+' : '')}£{(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly).toFixed(0)}/month</div>
+                      <input
+                        type="number"
+                        min={200}
+                        max={700}
+                        step={10}
+                        value={welfareLevers.workAllowanceMonthly}
+                        onChange={(e) =>
+                          setWelfareLevers((prev) => ({ ...prev, workAllowanceMonthly: Number(e.target.value) }))
+                        }
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
+                      <div className="text-xs text-grey-600 mt-2">
+                        Delta:{' '}
+                        {welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly >= 0 ? '+' : ''}£
+                        {(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly).toFixed(0)}/month
+                      </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Childcare support rate</label>
-                      <input type="number" min={0} max={100} step={1} value={welfareLevers.childcareSupportRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, childcareSupportRate: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate >= 0 ? '+' : '')}{(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate).toFixed(0)}pp</div>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={welfareLevers.childcareSupportRate}
+                        onChange={(e) =>
+                          setWelfareLevers((prev) => ({ ...prev, childcareSupportRate: Number(e.target.value) }))
+                        }
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
+                      <div className="text-xs text-grey-600 mt-2">
+                        Delta:{' '}
+                        {welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate >= 0 ? '+' : ''}
+                        {(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate).toFixed(0)}pp
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Income Tax Thresholds & Allowances */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Thresholds and Allowances</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous revenue impact.
+                    Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous
+                    revenue impact.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('personalAllowance')!)}
@@ -3907,15 +4232,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Threshold and Base Policy</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Choose uprating regime, anti-avoidance capacity, and housing-supply policy levers that influence inflation, labour supply, and medium-term revenue.
+                    Choose uprating regime, anti-avoidance capacity, and housing-supply policy levers that influence
+                    inflation, labour supply, and medium-term revenue.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Threshold uprating</label>
-                      <select value={thresholdUprating} onChange={(e) => setThresholdUprating(e.target.value as typeof thresholdUprating)} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
+                      <select
+                        value={thresholdUprating}
+                        onChange={(e) => setThresholdUprating(e.target.value as typeof thresholdUprating)}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      >
                         <option value="frozen">Frozen</option>
                         <option value="cpi_linked">CPI-linked</option>
                         <option value="earnings_linked">Earnings-linked</option>
@@ -3924,68 +4254,127 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <div className="text-xs text-grey-600 mt-2">
                         {thresholdUprating === 'frozen' && 'Raises revenue through fiscal drag.'}
                         {thresholdUprating === 'cpi_linked' && 'Keeps thresholds moving with inflation.'}
-                        {thresholdUprating === 'earnings_linked' && 'Looser than inflation-linking, with a larger revenue cost.'}
+                        {thresholdUprating === 'earnings_linked' &&
+                          'Looser than inflation-linking, with a larger revenue cost.'}
                         {thresholdUprating === 'custom' && 'Use the threshold controls above for bespoke settings.'}
                       </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Full expensing</label>
-                      <select value={fullExpensing ? 'enabled' : 'disabled'} onChange={(e) => setFullExpensing(e.target.value === 'enabled')} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
+                      <select
+                        value={fullExpensing ? 'enabled' : 'disabled'}
+                        onChange={(e) => setFullExpensing(e.target.value === 'enabled')}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      >
                         <option value="disabled">Disabled</option>
                         <option value="enabled">Enabled</option>
                       </select>
-                      <div className="text-xs text-grey-600 mt-2">Corp tax cost ~£3.5bn/yr, higher investment quality.</div>
+                      <div className="text-xs text-grey-600 mt-2">
+                        Corp tax cost ~£3.5bn/yr, higher investment quality.
+                      </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">HMRC anti-avoidance spend</label>
-                      <input type="number" min={0} max={3} step={0.1} value={antiAvoidanceInvestment} onChange={(e) => setAntiAvoidanceInvestment(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
+                      <input
+                        type="number"
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        value={antiAvoidanceInvestment}
+                        onChange={(e) => setAntiAvoidanceInvestment(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
                       <div className="text-sm text-grey-700 mt-2">£{antiAvoidanceInvestment.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">HMRC systems investment</label>
-                      <input type="number" min={0.3} max={1.5} step={0.1} value={hmrcSystemsInvestment} onChange={(e) => setHmrcSystemsInvestment(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
+                      <input
+                        type="number"
+                        min={0.3}
+                        max={1.5}
+                        step={0.1}
+                        value={hmrcSystemsInvestment}
+                        onChange={(e) => setHmrcSystemsInvestment(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
                       <div className="text-sm text-grey-700 mt-2">£{hmrcSystemsInvestment.toFixed(1)}bn</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Planning reform package</label>
-                      <select value={planningReformPackage ? 'active' : 'inactive'} onChange={(e) => setPlanningReformPackage(e.target.value === 'active')} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
+                      <select
+                        value={planningReformPackage ? 'active' : 'inactive'}
+                        onChange={(e) => setPlanningReformPackage(e.target.value === 'active')}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      >
                         <option value="inactive">Inactive</option>
                         <option value="active">Active</option>
                       </select>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Infrastructure guarantees</label>
-                      <input type="number" min={0} max={10} step={0.5} value={infrastructureGuarantees} onChange={(e) => setInfrastructureGuarantees(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        step={0.5}
+                        value={infrastructureGuarantees}
+                        onChange={(e) => setInfrastructureGuarantees(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
                       <div className="text-sm text-grey-700 mt-2">£{infrastructureGuarantees.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Demand-side support</label>
-                      <input type="number" min={0} max={5} step={0.1} value={htbSupport} onChange={(e) => setHtbSupport(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
+                      <input
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={htbSupport}
+                        onChange={(e) => setHtbSupport(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
                       <div className="text-sm text-grey-700 mt-2">£{htbSupport.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Council house building grant</label>
-                      <input type="number" min={0} max={3} step={0.1} value={councilHousingGrant} onChange={(e) => setCouncilHousingGrant(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
+                      <input
+                        type="number"
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        value={councilHousingGrant}
+                        onChange={(e) => setCouncilHousingGrant(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
                       <div className="text-sm text-grey-700 mt-2">£{councilHousingGrant.toFixed(1)}bn</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Industrial Strategy</h2>
-                  <p className="text-sm text-grey-600 mb-4">Select interventions to activate at this fiscal event. Outcomes are uncertain and revealed after delivery lags.</p>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Select interventions to activate at this fiscal event. Outcomes are uncertain and revealed after
+                    delivery lags.
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {INDUSTRIAL_INTERVENTION_CATALOGUE.map((intervention) => {
-                      const alreadyActive = (gameState.industrialStrategy.activeInterventions || []).some((item) => item.id === intervention.id);
+                      const alreadyActive = (gameState.industrialStrategy.activeInterventions || []).some(
+                        (item) => item.id === intervention.id
+                      );
                       const selected = selectedIndustrialInterventions.has(intervention.id);
                       return (
-                        <div key={intervention.id} className="border border-grey-200 rounded-sm p-3">
+                        <div key={intervention.id} className="border border-border-subtle p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="font-semibold text-grey-900">{intervention.name}</div>
-                              <div className="text-xs text-grey-600 mt-1">£{intervention.annualCost_bn.toFixed(1)}bn/yr · Lag {intervention.turnsToEffect} turns · Success {(intervention.successProbability * 100).toFixed(0)}%</div>
+                              <div className="text-xs text-grey-600 mt-1">
+                                £{intervention.annualCost_bn.toFixed(1)}bn/yr · Lag {intervention.turnsToEffect} turns ·
+                                Success {(intervention.successProbability * 100).toFixed(0)}%
+                              </div>
                             </div>
                             <button
                               disabled={alreadyActive}
@@ -4008,13 +4397,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                   <div className="mt-3 text-sm text-grey-700">
                     Active annual cost: £{(gameState.industrialStrategy.totalAnnualCost_bn || 0).toFixed(1)}bn ·
-                    Productivity boost: +{(gameState.industrialStrategy.productivityBoostAccumulated || 0).toFixed(2)}pp ·
-                    State aid risk: {(gameState.industrialStrategy.stateAidRisk || 0).toFixed(0)}
+                    Productivity boost: +{(gameState.industrialStrategy.productivityBoostAccumulated || 0).toFixed(2)}pp
+                    · State aid risk: {(gameState.industrialStrategy.stateAidRisk || 0).toFixed(0)}
                   </div>
                 </div>
 
                 {/* National Insurance */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">National Insurance</h2>
                   <p className="text-sm text-grey-600 mb-4">
                     Revenue: £164bn · Employee rate (Class 1) and employer contributions. Thresholds determine who pays.
@@ -4030,10 +4419,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* VAT */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">VAT and Indirect Consumption Taxes</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are politically charged.
+                    Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are
+                    politically charged.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('vat')!)}
@@ -4045,10 +4435,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Corporation Tax & Business */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Corporation Tax and Business Taxes</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect business decisions.
+                    Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect
+                    business decisions.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('corporationTax')!)}
@@ -4063,10 +4454,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Capital Gains Tax */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Capital Gains Tax</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a surcharge.
+                    Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a
+                    surcharge.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('capitalGainsBasic')!)}
@@ -4079,7 +4471,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Inheritance Tax */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Inheritance Tax</h2>
                   <p className="text-sm text-grey-600 mb-4">
                     Revenue: £7.5bn · Rate, nil-rate band, and residence nil-rate band. Only ~4% of estates pay IHT.
@@ -4092,7 +4484,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Property Taxes */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Property Transaction Taxes</h2>
                   <p className="text-sm text-grey-600 mb-4">
                     Revenue: £14bn · Stamp duty rates, first-time buyer relief, and second-home surcharge.
@@ -4106,10 +4498,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Savings and Investment Reliefs */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Savings and Investment Reliefs</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings incentives.
+                    Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings
+                    incentives.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('pensionAnnualAllowance')!)}
@@ -4119,10 +4512,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Excise Duties */}
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Excise Duties</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle duties.
+                    Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle
+                    duties.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('fuelDuty')!)}
@@ -4139,36 +4533,84 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Spending View */}
             {activeView === 'spending' && (
               <div className="space-y-4">
-                <div className="bg-white   border border-grey-200 p-4">
+                <div className="bg-bg-surface border border-border-strong p-4">
                   <h3 className="text-lg font-bold text-grey-900">Local Government</h3>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Local government grant settlement (£bn)</label>
-                      <input type="number" min={20} max={60} step={0.1} value={localGovernmentGrantSettlement} onChange={(e) => setLocalGovernmentGrantSettlement(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30) >= 0 ? '+' : '')}£{(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30)).toFixed(1)}bn</div>
+                    <div className="border border-border-subtle p-3">
+                      <label className="text-sm font-semibold text-grey-800">
+                        Local government grant settlement (£bn)
+                      </label>
+                      <input
+                        type="number"
+                        min={20}
+                        max={60}
+                        step={0.1}
+                        value={localGovernmentGrantSettlement}
+                        onChange={(e) => setLocalGovernmentGrantSettlement(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
+                      <div className="text-xs text-grey-600 mt-2">
+                        Delta:{' '}
+                        {localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30) >= 0
+                          ? '+'
+                          : ''}
+                        £
+                        {(
+                          localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30)
+                        ).toFixed(1)}
+                        bn
+                      </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
+                    <div className="border border-border-subtle p-3">
                       <label className="text-sm font-semibold text-grey-800">Council tax referendum cap (%)</label>
-                      <input type="number" min={3} max={10} step={0.1} value={councilTaxReferendumCap} onChange={(e) => setCouncilTaxReferendumCap(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Higher caps reduce central grant pressure but increase household tax pressure.</div>
+                      <input
+                        type="number"
+                        min={3}
+                        max={10}
+                        step={0.1}
+                        value={councilTaxReferendumCap}
+                        onChange={(e) => setCouncilTaxReferendumCap(Number(e.target.value))}
+                        className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
+                      />
+                      <div className="text-xs text-grey-600 mt-2">
+                        Higher caps reduce central grant pressure but increase household tax pressure.
+                      </div>
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                     <div className="border border-grey-200 rounded-sm p-2">
                       <div className="text-grey-600">Core settlement</div>
-                      <div className="text-xl font-bold">£{(gameState.devolution.localGov.coreSettlement_bn || 0).toFixed(1)}bn</div>
+                      <div className="text-xl font-bold">
+                        £{(gameState.devolution.localGov.coreSettlement_bn || 0).toFixed(1)}bn
+                      </div>
                     </div>
                     <div className="border border-grey-200 rounded-sm p-2">
                       <div className="text-grey-600">Adult social care pressure</div>
-                      <div className="text-xl font-bold">£{(gameState.devolution.localGov.adultSocialCarePressure_bn || 0).toFixed(1)}bn</div>
+                      <div className="text-xl font-bold">
+                        £{(gameState.devolution.localGov.adultSocialCarePressure_bn || 0).toFixed(1)}bn
+                      </div>
                     </div>
                     <div className="border border-grey-200 rounded-sm p-2">
                       <div className="text-grey-600">Funding gap</div>
-                      <div className="text-xl font-bold">£{Math.max(0, (gameState.devolution.localGov.adultSocialCarePressure_bn || 0) - (gameState.devolution.localGov.coreSettlement_bn || 0)).toFixed(1)}bn</div>
+                      <div className="text-xl font-bold">
+                        £
+                        {Math.max(
+                          0,
+                          (gameState.devolution.localGov.adultSocialCarePressure_bn || 0) -
+                            (gameState.devolution.localGov.coreSettlement_bn || 0)
+                        ).toFixed(1)}
+                        bn
+                      </div>
                     </div>
                     <div className="border border-grey-200 rounded-sm p-2">
                       <div className="text-grey-600">Stress index</div>
-                      <div className="text-xl font-bold">{(gameState.devolution.localGov.councilFundingStress || gameState.devolution.localGov.localGovStressIndex || 0).toFixed(0)}</div>
+                      <div className="text-xl font-bold">
+                        {(
+                          gameState.devolution.localGov.councilFundingStress ||
+                          gameState.devolution.localGov.localGovStressIndex ||
+                          0
+                        ).toFixed(0)}
+                      </div>
                     </div>
                   </div>
                   {(gameState.devolution.localGov.section114Count || 0) > 0 && (
@@ -4177,9 +4619,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   )}
                 </div>
-                <div className="bg-white   border border-grey-200 p-4">
+                <div className="bg-bg-surface border border-border-strong p-4">
                   <h3 className="text-lg font-bold text-grey-900 mb-2">Devolution and Barnett Consequentials</h3>
-                  <p className="text-sm text-grey-600 mb-3">Automatic consequential payments generated by England programme changes.</p>
+                  <p className="text-sm text-grey-600 mb-3">
+                    Automatic consequential payments generated by England programme changes.
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
                     <div className="border border-grey-200 rounded-sm p-2">
                       <div className="text-grey-600">Scotland</div>
@@ -4222,16 +4666,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                           </svg>
                           <div className="text-left">
                             <h3 className="text-lg font-bold text-grey-900">{department}</h3>
-                            <p className="text-sm text-grey-600">{items.length} programme{items.length !== 1 ? 's' : ''}</p>
+                            <p className="text-sm text-grey-600">
+                              {items.length} programme{items.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-grey-900">
-                            £{totalProposed.toFixed(1)}bn
-                          </div>
+                          <div className="text-2xl font-bold text-grey-900">£{totalProposed.toFixed(1)}bn</div>
                           {change !== 0 && (
-                            <div className={`text-sm font-semibold ${change > 0 ? 'text-blue-600' : 'text-red-600'
-                              }`}>
+                            <div className={`text-sm font-semibold ${change > 0 ? 'text-blue-600' : 'text-red-600'}`}>
                               {change > 0 ? '+' : ''}£{change.toFixed(1)}bn
                             </div>
                           )}
@@ -4241,7 +4684,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       {isExpanded && (
                         <div className="px-6 pb-6 pt-2 border-t border-grey-100">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {items.map(item => renderSpendingControl(item))}
+                            {items.map((item) => renderSpendingControl(item))}
                           </div>
                         </div>
                       )}
@@ -4254,26 +4697,38 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Impact View */}
             {activeView === 'impact' && (
               <div className="space-y-6">
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-4">Fiscal Position</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="border border-grey-200  p-4">
                       <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Current Deficit</div>
-                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.currentDeficit.toFixed(1)}bn</div>
+                      <div className="text-3xl font-bold text-grey-900">
+                        £{fiscalImpact.currentDeficit.toFixed(1)}bn
+                      </div>
                       <div className="text-sm text-grey-600 mt-1">OBR March 2024 forecast</div>
                     </div>
                     <div className="border border-grey-200  p-4">
                       <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Projected Deficit</div>
-                      <div className={`text-3xl font-bold ${fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit ? 'text-red-600' :
-                        fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit ? 'text-green-600' :
-                          'text-grey-900'
-                        }`}>
+                      <div
+                        className={`text-3xl font-bold ${
+                          fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit
+                            ? 'text-red-600'
+                            : fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit
+                              ? 'text-green-600'
+                              : 'text-grey-900'
+                        }`}
+                      >
                         £{fiscalImpact.projectedDeficit.toFixed(1)}bn
                       </div>
-                      <div className={`text-sm font-semibold mt-1 ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
-                        fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                          'text-grey-600'
-                        }`}>
+                      <div
+                        className={`text-sm font-semibold mt-1 ${
+                          fiscalImpact.deficitChange > 0
+                            ? 'text-red-600'
+                            : fiscalImpact.deficitChange < 0
+                              ? 'text-green-600'
+                              : 'text-grey-600'
+                        }`}
+                      >
                         {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn change
                       </div>
                     </div>
@@ -4284,45 +4739,66 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                     <div className="border border-grey-200  p-4">
                       <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
-                      <div className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
+                      <div
+                        className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}
+                      >
                         {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
                       </div>
-                      <div className={`text-sm font-semibold mt-1 ${
-                        fiscalImpact.headroom > 10 ? 'text-green-700' :
-                        fiscalImpact.headroom > 0 ? 'text-amber-700' :
-                        'text-red-700'
-                      }`}>
-                        {getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}: {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
+                      <div
+                        className={`text-sm font-semibold mt-1 ${
+                          fiscalImpact.headroom > 10
+                            ? 'text-green-700'
+                            : fiscalImpact.headroom > 0
+                              ? 'text-amber-700'
+                              : 'text-red-700'
+                        }`}
+                      >
+                        {getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}:{' '}
+                        {fiscalImpact.headroom >= 0 ? '+' : ''}£{fiscalImpact.headroom.toFixed(1)}bn
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Policy Pipeline</h2>
-                  <p className="text-sm text-grey-600 mb-4">Announced measures take time to clear legislation and systems delivery.</p>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Announced measures take time to clear legislation and systems delivery.
+                  </p>
                   {(gameState.legislativePipeline.queue || []).length === 0 ? (
                     <div className="text-sm text-grey-600">No measures in the pipeline.</div>
                   ) : (
                     <div className="space-y-2">
-                      {(gameState.legislativePipeline.queue || []).slice(-8).reverse().map((item) => (
-                        <div key={item.measureId} className="border border-grey-200 rounded-sm p-3 text-sm flex justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-grey-900">{item.description}</div>
-                            <div className="text-grey-600">Effective turn {item.effectiveTurn} · Type {item.type.replace('_', ' ')}</div>
+                      {(gameState.legislativePipeline.queue || [])
+                        .slice(-8)
+                        .reverse()
+                        .map((item) => (
+                          <div
+                            key={item.measureId}
+                            className="border border-border-subtle p-3 text-sm flex justify-between gap-3"
+                          >
+                            <div>
+                              <div className="font-semibold text-grey-900">{item.description}</div>
+                              <div className="text-grey-600">
+                                Effective turn {item.effectiveTurn} · Type {item.type.replace('_', ' ')}
+                              </div>
+                            </div>
+                            <div
+                              className={`font-semibold ${item.status === 'delayed' ? 'text-red-700' : item.status === 'active' ? 'text-green-700' : 'text-amber-700'}`}
+                            >
+                              {item.status}
+                            </div>
                           </div>
-                          <div className={`font-semibold ${item.status === 'delayed' ? 'text-red-700' : item.status === 'active' ? 'text-green-700' : 'text-amber-700'}`}>
-                            {item.status}
-                          </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   )}
                 </div>
 
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">OBR Policy Costings</h2>
-                  <p className="text-sm text-grey-600 mb-4">Latest certified annual impacts from the independent forecast vintage.</p>
+                  <p className="text-sm text-grey-600 mb-4">
+                    Latest certified annual impacts from the independent forecast vintage.
+                  </p>
                   {gameState.obr.latestForecast?.policyScorings?.length ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
@@ -4337,7 +4813,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                           {gameState.obr.latestForecast.policyScorings.map((row, idx) => (
                             <tr key={`${row.measureDescription}_${idx}`} className="border-b border-grey-100">
                               <td className="py-2">{row.measureDescription}</td>
-                              <td className="py-2 text-right font-semibold">{row.annualImpact_bn >= 0 ? '+' : ''}£{row.annualImpact_bn.toFixed(1)}bn</td>
+                              <td className="py-2 text-right font-semibold">
+                                {row.annualImpact_bn >= 0 ? '+' : ''}£{row.annualImpact_bn.toFixed(1)}bn
+                              </td>
                               <td className="py-2 text-right">{row.certaintylevel.replace('_', ' ')}</td>
                             </tr>
                           ))}
@@ -4345,16 +4823,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </table>
                     </div>
                   ) : (
-                    <div className="text-sm text-grey-600">No OBR costing table available until the next Budget or Autumn Statement.</div>
+                    <div className="text-sm text-grey-600">
+                      No OBR costing table available until the next Budget or Autumn Statement.
+                    </div>
                   )}
                 </div>
 
                 {warnings.length > 0 && (
-                  <div className="bg-white   border border-grey-200 p-6">
+                  <div className="bg-bg-surface border border-border-strong p-6">
                     <h2 className="text-xl font-bold text-grey-900 mb-4">Adviser Warnings</h2>
-                    <div className="space-y-3">
-                      {warnings.map(warning => renderWarning(warning))}
-                    </div>
+                    <div className="space-y-3">{warnings.map((warning) => renderWarning(warning))}</div>
                   </div>
                 )}
 
@@ -4362,11 +4840,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   <div className="bg-green-50 border border-green-200  p-6">
                     <div className="flex items-center gap-3 text-green-900">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       <div>
                         <h3 className="font-bold">No Warnings</h3>
-                        <p className="text-sm text-green-700">Your budget proposals do not trigger any adviser warnings.</p>
+                        <p className="text-sm text-green-700">
+                          Your budget proposals do not trigger any adviser warnings.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -4377,19 +4862,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Constraints View */}
             {activeView === 'constraints' && (
               <div className="space-y-6">
-                <div className="bg-white   border border-grey-200 p-6">
+                <div className="bg-bg-surface border border-border-strong p-6">
                   <h2 className="text-xl font-bold text-grey-900 mb-2">Manifesto Commitments</h2>
                   <p className="text-sm text-grey-600 mb-4">
-                    Your manifesto commitments and fiscal rules. Breaking these will have serious political consequences.
+                    Your manifesto commitments and fiscal rules. Breaking these will have serious political
+                    consequences.
                   </p>
-                  <div className="space-y-3">
-                    {constraints.map(constraint => renderConstraint(constraint))}
-                  </div>
+                  <div className="space-y-3">{constraints.map((constraint) => renderConstraint(constraint))}</div>
 
                   <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
                     <h3 className="text-lg font-bold text-gray-900">Change fiscal framework</h3>
                     <p className="text-sm text-gray-600">
-                      Changing the fiscal framework mid-term is a high-risk decision and will carry immediate credibility and political costs on the next turn.
+                      Changing the fiscal framework mid-term is a high-risk decision and will carry immediate
+                      credibility and political costs on the next turn.
                     </p>
                     <div className="flex gap-3 items-center">
                       <select
@@ -4398,7 +4883,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         className="px-3 py-2 border border-gray-300 rounded-sm text-sm"
                       >
                         {FISCAL_RULES.map((rule) => (
-                          <option key={rule.id} value={rule.id}>{rule.name}</option>
+                          <option key={rule.id} value={rule.id}>
+                            {rule.name}
+                          </option>
                         ))}
                       </select>
                       <button
@@ -4414,18 +4901,30 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 <div className="bg-blue-50 border border-blue-200  p-6">
                   <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-6 h-6 text-blue-600 flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <div>
                       <h3 className="font-bold text-blue-900 mb-1">About Fiscal Rules</h3>
                       <p className="text-sm text-blue-700 mb-2">
-                        The Stability Rule requires the current budget (day-to-day spending) to be in balance by the fifth year of the forecast.
-                        The Investment Rule requires public sector net financial liabilities to be falling as a share of GDP by the fifth year.
+                        The Stability Rule requires the current budget (day-to-day spending) to be in balance by the
+                        fifth year of the forecast. The Investment Rule requires public sector net financial liabilities
+                        to be falling as a share of GDP by the fifth year.
                       </p>
                       <p className="text-sm text-blue-700">
-                        These targets are verified by the Office for Budget Responsibility (OBR) and are legally binding under the Charter for Budget Responsibility.
-                        Breaching fiscal rules will trigger severe market reaction and political crisis.
+                        These targets are verified by the Office for Budget Responsibility (OBR) and are legally binding
+                        under the Charter for Budget Responsibility. Breaching fiscal rules will trigger severe market
+                        reaction and political crisis.
                       </p>
                     </div>
                   </div>
@@ -4438,8 +4937,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 {visiblePolicyConflicts.map((conflict) => (
                   <div key={conflict.id} className="bg-amber-50 border border-amber-300  p-4">
                     <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <svg
+                        className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
                       </svg>
                       <div>
                         <div className="text-sm font-bold text-amber-900">{conflict.title}</div>
@@ -4542,10 +5051,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
       {/* PM Intervention Modal */}
       {showPMInterventionModal && (
-        <PMInterventionModal
-          onConfirm={handlePMIntervention}
-          onCancel={() => setShowPMInterventionModal(false)}
-        />
+        <PMInterventionModal onConfirm={handlePMIntervention} onCancel={() => setShowPMInterventionModal(false)} />
       )}
 
       {showFiscalRuleChangeModal && (
@@ -4556,11 +5062,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-gray-700">
-                You are changing from <span className="font-semibold">{getFiscalRuleById(gameState.political.chosenFiscalRule).name}</span> to{' '}
+                You are changing from{' '}
+                <span className="font-semibold">{getFiscalRuleById(gameState.political.chosenFiscalRule).name}</span> to{' '}
                 <span className="font-semibold">{getFiscalRuleById(proposedFiscalRule).name}</span>.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-sm p-3 text-sm text-amber-900">
-                Consequences on next turn: credibility shock, one-off gilt yield shock with six-month decay, PM trust fall, and backbench dissatisfaction.
+                Consequences on next turn: credibility shock, one-off gilt yield shock with six-month decay, PM trust
+                fall, and backbench dissatisfaction.
               </div>
               <div className="flex gap-3">
                 <button
@@ -4595,8 +5103,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="p-6">
               <div className="bg-blue-50 border-2 border-blue-300  p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <div>
                     <p className="text-blue-900">{fiscalRuleMessage}</p>
@@ -4631,15 +5149,27 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="p-6">
               <div className="bg-red-50 border-2 border-red-300  p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  <svg
+                    className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
                   </svg>
                   <div>
                     <p className="text-red-900 font-semibold">
-                      You have broken {brokenPromisesAlert.count} promise{brokenPromisesAlert.count > 1 ? 's' : ''} affecting {brokenPromisesAlert.mpCount} MP{brokenPromisesAlert.mpCount !== 1 ? 's' : ''}.
+                      You have broken {brokenPromisesAlert.count} promise{brokenPromisesAlert.count > 1 ? 's' : ''}{' '}
+                      affecting {brokenPromisesAlert.mpCount} MP{brokenPromisesAlert.mpCount !== 1 ? 's' : ''}.
                     </p>
                     <p className="text-red-800 mt-2">
-                      These MPs will remember this betrayal and become much more hostile to future budgets. Trust has been severely damaged.
+                      These MPs will remember this betrayal and become much more hostile to future budgets. Trust has
+                      been severely damaged.
                     </p>
                   </div>
                 </div>
@@ -4672,16 +5202,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="p-6">
               <div className="bg-green-50 border-2 border-green-300  p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <div>
                     <p className="text-green-900 font-semibold">
                       Budget has been forced through Parliament. All 411 Labour MPs have been compelled to vote aye.
                     </p>
-                    <p className="text-green-800 mt-2">
-                      The political consequences are severe.
-                    </p>
+                    <p className="text-green-800 mt-2">The political consequences are severe.</p>
                   </div>
                 </div>
               </div>

@@ -55,15 +55,30 @@ export function checkGameOverConditions(
   }
 
   if (state.confidenceVoteDefeated) {
-    return { triggered: true, reason: 'You have lost a vote of confidence in the House of Commons.', severity: 'critical' };
+    return {
+      triggered: true,
+      reason: 'You have lost a vote of confidence in the House of Commons.',
+      severity: 'critical',
+    };
   }
 
   if (state.pmTrust !== undefined && state.pmTrust < thresholds.pmTrustMinimum) {
-    return { triggered: true, reason: 'The Prime Minister has lost all confidence in your ability.', severity: 'critical' };
+    return {
+      triggered: true,
+      reason: 'The Prime Minister has lost all confidence in your ability.',
+      severity: 'critical',
+    };
   }
 
-  if (state.backbenchSatisfaction !== undefined && state.backbenchSatisfaction < thresholds.backbenchSatisfactionMinimum) {
-    return { triggered: true, reason: 'The parliamentary party has revolted against your leadership.', severity: 'critical' };
+  if (
+    state.backbenchSatisfaction !== undefined &&
+    state.backbenchSatisfaction < thresholds.backbenchSatisfactionMinimum
+  ) {
+    return {
+      triggered: true,
+      reason: 'The parliamentary party has revolted against your leadership.',
+      severity: 'critical',
+    };
   }
 
   if (state.debtPctGDP !== undefined && state.debtPctGDP > thresholds.debtPctGDPMaximum) {

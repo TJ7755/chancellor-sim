@@ -16,12 +16,14 @@ export function serialiseGameState(state: GameState): unknown {
       allMPs: [],
       votingRecords: [],
       promises: [],
-      concernProfiles: state.mpSystem.concernProfiles instanceof Map
-        ? Array.from(state.mpSystem.concernProfiles.entries())
-        : state.mpSystem.concernProfiles,
-      currentBudgetSupport: state.mpSystem.currentBudgetSupport instanceof Map
-        ? Array.from(state.mpSystem.currentBudgetSupport.entries())
-        : state.mpSystem.currentBudgetSupport,
+      concernProfiles:
+        state.mpSystem.concernProfiles instanceof Map
+          ? Array.from(state.mpSystem.concernProfiles.entries())
+          : state.mpSystem.concernProfiles,
+      currentBudgetSupport:
+        state.mpSystem.currentBudgetSupport instanceof Map
+          ? Array.from(state.mpSystem.currentBudgetSupport.entries())
+          : state.mpSystem.currentBudgetSupport,
       selectedMPForDetail: null,
       filterSettings: {
         party: undefined,
@@ -33,15 +35,18 @@ export function serialiseGameState(state: GameState): unknown {
     },
     advisers: {
       ...state.advisers,
-      hiredAdvisers: state.advisers.hiredAdvisers instanceof Map
-        ? Array.from(state.advisers.hiredAdvisers.entries())
-        : state.advisers.hiredAdvisers,
-      availableAdvisers: state.advisers.availableAdvisers instanceof Set
-        ? Array.from(state.advisers.availableAdvisers)
-        : state.advisers.availableAdvisers,
-      currentOpinions: state.advisers.currentOpinions instanceof Map
-        ? Array.from(state.advisers.currentOpinions.entries())
-        : state.advisers.currentOpinions,
+      hiredAdvisers:
+        state.advisers.hiredAdvisers instanceof Map
+          ? Array.from(state.advisers.hiredAdvisers.entries())
+          : state.advisers.hiredAdvisers,
+      availableAdvisers:
+        state.advisers.availableAdvisers instanceof Set
+          ? Array.from(state.advisers.availableAdvisers)
+          : state.advisers.availableAdvisers,
+      currentOpinions:
+        state.advisers.currentOpinions instanceof Map
+          ? Array.from(state.advisers.currentOpinions.entries())
+          : state.advisers.currentOpinions,
       showDetailedView: null,
     },
   };

@@ -23,10 +23,7 @@ function findNextFiscalEventTurn(turn: number): number {
  * Apply budget changes to game state. Returns the new state.
  * This is a pure function -- no side effects, no context access.
  */
-export function applyBudgetChangesToState(
-  prevState: GameState,
-  changes: BudgetChanges
-): GameState {
+export function applyBudgetChangesToState(prevState: GameState, changes: BudgetChanges): GameState {
   const taxDeltas = {
     incomeTaxBasicChange: changes.incomeTaxBasicChange || 0,
     incomeTaxHigherChange: changes.incomeTaxHigherChange || 0,
@@ -70,18 +67,57 @@ export function applyBudgetChangesToState(
   ].some((delta) => delta > 5);
 
   const deptCuts: Array<{ current: number; delta: number; id: string }> = [
-    { id: 'nhs', current: prevState.fiscal.spending.nhs, delta: (changes.nhsCurrentChange || 0) + (changes.nhsCapitalChange || 0) + (changes.nhsSpendingChange || 0) },
-    { id: 'education', current: prevState.fiscal.spending.education, delta: (changes.educationCurrentChange || 0) + (changes.educationCapitalChange || 0) + (changes.educationSpendingChange || 0) },
-    { id: 'defence', current: prevState.fiscal.spending.defence, delta: (changes.defenceCurrentChange || 0) + (changes.defenceCapitalChange || 0) + (changes.defenceSpendingChange || 0) },
-    { id: 'infrastructure', current: prevState.fiscal.spending.infrastructure, delta: (changes.infrastructureCurrentChange || 0) + (changes.infrastructureCapitalChange || 0) + (changes.infrastructureSpendingChange || 0) },
-    { id: 'homeOffice', current: prevState.fiscal.spending.police + prevState.fiscal.spending.justice, delta: (changes.policeCurrentChange || 0) + (changes.policeCapitalChange || 0) + (changes.justiceCurrentChange || 0) + (changes.justiceCapitalChange || 0) + (changes.policeSpendingChange || 0) + (changes.justiceSpendingChange || 0) },
-    { id: 'other', current: prevState.fiscal.spending.other, delta: (changes.otherCurrentChange || 0) + (changes.otherCapitalChange || 0) + (changes.otherSpendingChange || 0) },
+    {
+      id: 'nhs',
+      current: prevState.fiscal.spending.nhs,
+      delta: (changes.nhsCurrentChange || 0) + (changes.nhsCapitalChange || 0) + (changes.nhsSpendingChange || 0),
+    },
+    {
+      id: 'education',
+      current: prevState.fiscal.spending.education,
+      delta:
+        (changes.educationCurrentChange || 0) +
+        (changes.educationCapitalChange || 0) +
+        (changes.educationSpendingChange || 0),
+    },
+    {
+      id: 'defence',
+      current: prevState.fiscal.spending.defence,
+      delta:
+        (changes.defenceCurrentChange || 0) +
+        (changes.defenceCapitalChange || 0) +
+        (changes.defenceSpendingChange || 0),
+    },
+    {
+      id: 'infrastructure',
+      current: prevState.fiscal.spending.infrastructure,
+      delta:
+        (changes.infrastructureCurrentChange || 0) +
+        (changes.infrastructureCapitalChange || 0) +
+        (changes.infrastructureSpendingChange || 0),
+    },
+    {
+      id: 'homeOffice',
+      current: prevState.fiscal.spending.police + prevState.fiscal.spending.justice,
+      delta:
+        (changes.policeCurrentChange || 0) +
+        (changes.policeCapitalChange || 0) +
+        (changes.justiceCurrentChange || 0) +
+        (changes.justiceCapitalChange || 0) +
+        (changes.policeSpendingChange || 0) +
+        (changes.justiceSpendingChange || 0),
+    },
+    {
+      id: 'other',
+      current: prevState.fiscal.spending.other,
+      delta: (changes.otherCurrentChange || 0) + (changes.otherCapitalChange || 0) + (changes.otherSpendingChange || 0),
+    },
   ];
   const majorSpendingCut = deptCuts.some((dept) => {
     if (dept.current <= 0) return false;
     const nominalAfter = dept.current + dept.delta;
     const realAfter = nominalAfter / (1 + prevState.economic.inflationCPI / 100);
-    return ((dept.current - realAfter) / dept.current) > 0.15;
+    return (dept.current - realAfter) / dept.current > 0.15;
   });
 
   if (majorTaxRise || majorSpendingCut) {
@@ -110,17 +146,14 @@ export function applyBudgetChangesToState(
 
   const expectedInflationIncreaseFactor = prevState.economic.inflationCPI / 100;
   const nhsNominalChange =
-    (changes.nhsCurrentChange || 0) +
-    (changes.nhsCapitalChange || 0) +
-    (changes.nhsSpendingChange || 0);
+    (changes.nhsCurrentChange || 0) + (changes.nhsCapitalChange || 0) + (changes.nhsSpendingChange || 0);
   const educationNominalChange =
     (changes.educationCurrentChange || 0) +
     (changes.educationCapitalChange || 0) +
     (changes.educationSpendingChange || 0);
 
   const nhsRequiredNominalIncrease = prevState.fiscal.spending.nhs * expectedInflationIncreaseFactor;
-  const educationRequiredNominalIncrease =
-    prevState.fiscal.spending.education * expectedInflationIncreaseFactor;
+  const educationRequiredNominalIncrease = prevState.fiscal.spending.education * expectedInflationIncreaseFactor;
 
   const violationCheck = checkPolicyForViolations(prevState.manifesto, {
     incomeTaxBasicChange: appliedTaxDeltas.incomeTaxBasicChange,
@@ -153,25 +186,53 @@ export function applyBudgetChangesToState(
   // Update tax rates
   if (appliedTaxDeltas.incomeTaxBasicChange) newFiscal.incomeTaxBasicRate += appliedTaxDeltas.incomeTaxBasicChange;
   if (appliedTaxDeltas.incomeTaxHigherChange) newFiscal.incomeTaxHigherRate += appliedTaxDeltas.incomeTaxHigherChange;
-  if (appliedTaxDeltas.incomeTaxAdditionalChange) newFiscal.incomeTaxAdditionalRate += appliedTaxDeltas.incomeTaxAdditionalChange;
+  if (appliedTaxDeltas.incomeTaxAdditionalChange)
+    newFiscal.incomeTaxAdditionalRate += appliedTaxDeltas.incomeTaxAdditionalChange;
   if (appliedTaxDeltas.niEmployeeChange) newFiscal.nationalInsuranceRate += appliedTaxDeltas.niEmployeeChange;
   if (appliedTaxDeltas.niEmployerChange) newFiscal.employerNIRate += appliedTaxDeltas.niEmployerChange;
   if (appliedTaxDeltas.vatChange) newFiscal.vatRate += appliedTaxDeltas.vatChange;
   if (appliedTaxDeltas.corporationTaxChange) newFiscal.corporationTaxRate += appliedTaxDeltas.corporationTaxChange;
-  if (changes.personalAllowanceChange !== undefined) newFiscal.personalAllowance = Math.max(0, newFiscal.personalAllowance + changes.personalAllowanceChange);
-  if (changes.basicRateUpperThresholdChange !== undefined) newFiscal.basicRateUpperThreshold = Math.max(newFiscal.personalAllowance + 1000, newFiscal.basicRateUpperThreshold + changes.basicRateUpperThresholdChange);
-  if (changes.higherRateUpperThresholdChange !== undefined) newFiscal.higherRateUpperThreshold = Math.max(newFiscal.basicRateUpperThreshold + 1000, newFiscal.higherRateUpperThreshold + changes.higherRateUpperThresholdChange);
+  if (changes.personalAllowanceChange !== undefined)
+    newFiscal.personalAllowance = Math.max(0, newFiscal.personalAllowance + changes.personalAllowanceChange);
+  if (changes.basicRateUpperThresholdChange !== undefined)
+    newFiscal.basicRateUpperThreshold = Math.max(
+      newFiscal.personalAllowance + 1000,
+      newFiscal.basicRateUpperThreshold + changes.basicRateUpperThresholdChange
+    );
+  if (changes.higherRateUpperThresholdChange !== undefined)
+    newFiscal.higherRateUpperThreshold = Math.max(
+      newFiscal.basicRateUpperThreshold + 1000,
+      newFiscal.higherRateUpperThreshold + changes.higherRateUpperThresholdChange
+    );
   if (changes.thresholdUprating !== undefined) newFiscal.thresholdUprating = changes.thresholdUprating;
   if (changes.fullExpensing !== undefined) newFiscal.fullExpensing = changes.fullExpensing;
-  if (changes.antiAvoidanceInvestmentChange_bn !== undefined) newFiscal.antiAvoidanceInvestment_bn = Math.max(0, Math.min(3, (newFiscal.antiAvoidanceInvestment_bn || 0) + changes.antiAvoidanceInvestmentChange_bn));
-  if (changes.hmrcSystemsInvestmentChange_bn !== undefined) newFiscal.hmrcSystemsInvestment_bn = Math.max(0, Math.min(1.5, (newFiscal.hmrcSystemsInvestment_bn || 0) + changes.hmrcSystemsInvestmentChange_bn));
-  if (changes.sdltAdditionalDwellingsSurchargeChange !== undefined) newFiscal.sdltAdditionalDwellingsSurcharge = Math.max(0, Math.min(10, (newFiscal.sdltAdditionalDwellingsSurcharge || 3) + changes.sdltAdditionalDwellingsSurchargeChange));
-  if (changes.ucTaperRateChange !== undefined) newFiscal.ucTaperRate = Math.max(35, Math.min(75, newFiscal.ucTaperRate + changes.ucTaperRateChange));
-  if (changes.workAllowanceMonthlyChange !== undefined) newFiscal.workAllowanceMonthly = Math.max(0, newFiscal.workAllowanceMonthly + changes.workAllowanceMonthlyChange);
-  if (changes.childcareSupportRateChange !== undefined) newFiscal.childcareSupportRate = Math.max(0, Math.min(100, newFiscal.childcareSupportRate + changes.childcareSupportRateChange));
+  if (changes.antiAvoidanceInvestmentChange_bn !== undefined)
+    newFiscal.antiAvoidanceInvestment_bn = Math.max(
+      0,
+      Math.min(3, (newFiscal.antiAvoidanceInvestment_bn || 0) + changes.antiAvoidanceInvestmentChange_bn)
+    );
+  if (changes.hmrcSystemsInvestmentChange_bn !== undefined)
+    newFiscal.hmrcSystemsInvestment_bn = Math.max(
+      0,
+      Math.min(1.5, (newFiscal.hmrcSystemsInvestment_bn || 0) + changes.hmrcSystemsInvestmentChange_bn)
+    );
+  if (changes.sdltAdditionalDwellingsSurchargeChange !== undefined)
+    newFiscal.sdltAdditionalDwellingsSurcharge = Math.max(
+      0,
+      Math.min(10, (newFiscal.sdltAdditionalDwellingsSurcharge || 3) + changes.sdltAdditionalDwellingsSurchargeChange)
+    );
+  if (changes.ucTaperRateChange !== undefined)
+    newFiscal.ucTaperRate = Math.max(35, Math.min(75, newFiscal.ucTaperRate + changes.ucTaperRateChange));
+  if (changes.workAllowanceMonthlyChange !== undefined)
+    newFiscal.workAllowanceMonthly = Math.max(0, newFiscal.workAllowanceMonthly + changes.workAllowanceMonthlyChange);
+  if (changes.childcareSupportRateChange !== undefined)
+    newFiscal.childcareSupportRate = Math.max(
+      0,
+      Math.min(100, newFiscal.childcareSupportRate + changes.childcareSupportRateChange)
+    );
 
   if (changes.detailedTaxRates) {
-    newFiscal.detailedTaxes = newFiscal.detailedTaxes.map((tax: { id: string; currentRate: number }) => {
+    newFiscal.detailedTaxes = newFiscal.detailedTaxes.map((tax) => {
       const nextRate = changes.detailedTaxRates?.[tax.id];
       return nextRate !== undefined ? { ...tax, currentRate: nextRate } : tax;
     });
@@ -182,13 +243,17 @@ export function applyBudgetChangesToState(
   // Update spending (current + capital)
   if (changes.nhsCurrentChange !== undefined) newFiscal.spending.nhsCurrent += changes.nhsCurrentChange;
   if (changes.nhsCapitalChange !== undefined) newFiscal.spending.nhsCapital += changes.nhsCapitalChange;
-  if (changes.educationCurrentChange !== undefined) newFiscal.spending.educationCurrent += changes.educationCurrentChange;
-  if (changes.educationCapitalChange !== undefined) newFiscal.spending.educationCapital += changes.educationCapitalChange;
+  if (changes.educationCurrentChange !== undefined)
+    newFiscal.spending.educationCurrent += changes.educationCurrentChange;
+  if (changes.educationCapitalChange !== undefined)
+    newFiscal.spending.educationCapital += changes.educationCapitalChange;
   if (changes.defenceCurrentChange !== undefined) newFiscal.spending.defenceCurrent += changes.defenceCurrentChange;
   if (changes.defenceCapitalChange !== undefined) newFiscal.spending.defenceCapital += changes.defenceCapitalChange;
   if (changes.welfareCurrentChange !== undefined) newFiscal.spending.welfareCurrent += changes.welfareCurrentChange;
-  if (changes.infrastructureCurrentChange !== undefined) newFiscal.spending.infrastructureCurrent += changes.infrastructureCurrentChange;
-  if (changes.infrastructureCapitalChange !== undefined) newFiscal.spending.infrastructureCapital += changes.infrastructureCapitalChange;
+  if (changes.infrastructureCurrentChange !== undefined)
+    newFiscal.spending.infrastructureCurrent += changes.infrastructureCurrentChange;
+  if (changes.infrastructureCapitalChange !== undefined)
+    newFiscal.spending.infrastructureCapital += changes.infrastructureCapitalChange;
   if (changes.policeCurrentChange !== undefined) newFiscal.spending.policeCurrent += changes.policeCurrentChange;
   if (changes.policeCapitalChange !== undefined) newFiscal.spending.policeCapital += changes.policeCapitalChange;
   if (changes.justiceCurrentChange !== undefined) newFiscal.spending.justiceCurrent += changes.justiceCurrentChange;
@@ -201,7 +266,8 @@ export function applyBudgetChangesToState(
   if (changes.educationSpendingChange !== undefined) newFiscal.spending.education += changes.educationSpendingChange;
   if (changes.defenceSpendingChange !== undefined) newFiscal.spending.defence += changes.defenceSpendingChange;
   if (changes.welfareSpendingChange !== undefined) newFiscal.spending.welfare += changes.welfareSpendingChange;
-  if (changes.infrastructureSpendingChange !== undefined) newFiscal.spending.infrastructure += changes.infrastructureSpendingChange;
+  if (changes.infrastructureSpendingChange !== undefined)
+    newFiscal.spending.infrastructure += changes.infrastructureSpendingChange;
   if (changes.policeSpendingChange !== undefined) newFiscal.spending.police += changes.policeSpendingChange;
   if (changes.justiceSpendingChange !== undefined) newFiscal.spending.justice += changes.justiceSpendingChange;
   if (changes.otherSpendingChange !== undefined) newFiscal.spending.other += changes.otherSpendingChange;
@@ -211,18 +277,24 @@ export function applyBudgetChangesToState(
   newFiscal.spending.education = newFiscal.spending.educationCurrent + newFiscal.spending.educationCapital;
   newFiscal.spending.defence = newFiscal.spending.defenceCurrent + newFiscal.spending.defenceCapital;
   newFiscal.spending.welfare = newFiscal.spending.welfareCurrent;
-  newFiscal.spending.infrastructure = newFiscal.spending.infrastructureCurrent + newFiscal.spending.infrastructureCapital;
+  newFiscal.spending.infrastructure =
+    newFiscal.spending.infrastructureCurrent + newFiscal.spending.infrastructureCapital;
   newFiscal.spending.police = newFiscal.spending.policeCurrent + newFiscal.spending.policeCapital;
   newFiscal.spending.justice = newFiscal.spending.justiceCurrent + newFiscal.spending.justiceCapital;
   newFiscal.spending.other = newFiscal.spending.otherCurrent + newFiscal.spending.otherCapital;
 
   newFiscal.totalSpending_bn =
-    newFiscal.spending.nhs + newFiscal.spending.education + newFiscal.spending.defence +
-    newFiscal.spending.welfare + newFiscal.spending.infrastructure + newFiscal.spending.police +
-    newFiscal.spending.justice + newFiscal.spending.other;
+    newFiscal.spending.nhs +
+    newFiscal.spending.education +
+    newFiscal.spending.defence +
+    newFiscal.spending.welfare +
+    newFiscal.spending.infrastructure +
+    newFiscal.spending.police +
+    newFiscal.spending.justice +
+    newFiscal.spending.other;
 
   if (changes.detailedSpendingBudgets) {
-    newFiscal.detailedSpending = newFiscal.detailedSpending.map((item: { id: string; type: string; currentBudget: number; currentAllocation: number; capitalAllocation: number }) => {
+    newFiscal.detailedSpending = newFiscal.detailedSpending.map((item) => {
       const nextBudget = changes.detailedSpendingBudgets?.[item.id];
       if (nextBudget === undefined) return item;
       if (item.type === 'capital') {
@@ -245,7 +317,10 @@ export function applyBudgetChangesToState(
 
   const nextCentralGrant = prevState.devolution.localGov.centralGrant_bn;
   const centralGrantAfterLevers = Math.max(0, nextCentralGrant + (changes.localGovCentralGrantChange_bn || 0));
-  const councilTaxCapAfterLevers = Math.max(3, Math.min(10, (prevState.devolution.localGov.councilTaxGrowthCap || 3) + (changes.councilTaxGrowthCapChange || 0)));
+  const councilTaxCapAfterLevers = Math.max(
+    3,
+    Math.min(10, (prevState.devolution.localGov.councilTaxGrowthCap || 3) + (changes.councilTaxGrowthCapChange || 0))
+  );
 
   const nextSpendingReviewDepartments = {
     ...prevState.spendingReview.departments,
@@ -253,48 +328,87 @@ export function applyBudgetChangesToState(
       ...prevState.spendingReview.departments.nhs,
       resourceDEL_bn: newFiscal.spending.nhsCurrent,
       capitalDEL_bn: newFiscal.spending.nhsCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.nhsCurrent, ...(prevState.spendingReview.departments.nhs.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.nhsCapital, ...(prevState.spendingReview.departments.nhs.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.nhsCurrent,
+        ...(prevState.spendingReview.departments.nhs.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.nhsCapital,
+        ...(prevState.spendingReview.departments.nhs.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
     education: {
       ...prevState.spendingReview.departments.education,
       resourceDEL_bn: newFiscal.spending.educationCurrent,
       capitalDEL_bn: newFiscal.spending.educationCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.educationCurrent, ...(prevState.spendingReview.departments.education.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.educationCapital, ...(prevState.spendingReview.departments.education.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.educationCurrent,
+        ...(prevState.spendingReview.departments.education.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.educationCapital,
+        ...(prevState.spendingReview.departments.education.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
     defence: {
       ...prevState.spendingReview.departments.defence,
       resourceDEL_bn: newFiscal.spending.defenceCurrent,
       capitalDEL_bn: newFiscal.spending.defenceCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.defenceCurrent, ...(prevState.spendingReview.departments.defence.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.defenceCapital, ...(prevState.spendingReview.departments.defence.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.defenceCurrent,
+        ...(prevState.spendingReview.departments.defence.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.defenceCapital,
+        ...(prevState.spendingReview.departments.defence.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
     infrastructure: {
       ...prevState.spendingReview.departments.infrastructure,
       resourceDEL_bn: newFiscal.spending.infrastructureCurrent,
       capitalDEL_bn: newFiscal.spending.infrastructureCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.infrastructureCurrent, ...(prevState.spendingReview.departments.infrastructure.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.infrastructureCapital, ...(prevState.spendingReview.departments.infrastructure.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.infrastructureCurrent,
+        ...(prevState.spendingReview.departments.infrastructure.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.infrastructureCapital,
+        ...(prevState.spendingReview.departments.infrastructure.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
     homeOffice: {
       ...prevState.spendingReview.departments.homeOffice,
       resourceDEL_bn: newFiscal.spending.policeCurrent + newFiscal.spending.justiceCurrent,
       capitalDEL_bn: newFiscal.spending.policeCapital + newFiscal.spending.justiceCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.policeCurrent + newFiscal.spending.justiceCurrent, ...(prevState.spendingReview.departments.homeOffice.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.policeCapital + newFiscal.spending.justiceCapital, ...(prevState.spendingReview.departments.homeOffice.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.policeCurrent + newFiscal.spending.justiceCurrent,
+        ...(prevState.spendingReview.departments.homeOffice.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.policeCapital + newFiscal.spending.justiceCapital,
+        ...(prevState.spendingReview.departments.homeOffice.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
     localGov: {
       ...prevState.spendingReview.departments.localGov,
       resourceDEL_bn: centralGrantAfterLevers,
-      plannedResourceDEL_bn: [centralGrantAfterLevers, ...(prevState.spendingReview.departments.localGov.plannedResourceDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        centralGrantAfterLevers,
+        ...(prevState.spendingReview.departments.localGov.plannedResourceDEL_bn || []).slice(1),
+      ],
     },
     other: {
       ...prevState.spendingReview.departments.other,
       resourceDEL_bn: newFiscal.spending.otherCurrent,
       capitalDEL_bn: newFiscal.spending.otherCapital,
-      plannedResourceDEL_bn: [newFiscal.spending.otherCurrent, ...(prevState.spendingReview.departments.other.plannedResourceDEL_bn || []).slice(1)],
-      plannedCapitalDEL_bn: [newFiscal.spending.otherCapital, ...(prevState.spendingReview.departments.other.plannedCapitalDEL_bn || []).slice(1)],
+      plannedResourceDEL_bn: [
+        newFiscal.spending.otherCurrent,
+        ...(prevState.spendingReview.departments.other.plannedResourceDEL_bn || []).slice(1),
+      ],
+      plannedCapitalDEL_bn: [
+        newFiscal.spending.otherCapital,
+        ...(prevState.spendingReview.departments.other.plannedCapitalDEL_bn || []).slice(1),
+      ],
     },
   };
 
@@ -313,7 +427,11 @@ export function applyBudgetChangesToState(
       capacityCost: 20,
     });
   }
-  if (changes.personalAllowanceChange !== undefined || changes.basicRateUpperThresholdChange !== undefined || changes.higherRateUpperThresholdChange !== undefined) {
+  if (
+    changes.personalAllowanceChange !== undefined ||
+    changes.basicRateUpperThresholdChange !== undefined ||
+    changes.higherRateUpperThresholdChange !== undefined
+  ) {
     policyPipelineEntries.push({
       measureId: `thresholds_${prevState.metadata.currentTurn}`,
       description: 'Income tax threshold policy update',
@@ -334,13 +452,16 @@ export function applyBudgetChangesToState(
       type: 'secondary_legislation',
       announcedTurn: prevState.metadata.currentTurn,
       effectiveTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1) + 1,
-      turnsRemaining: Math.max(1, findNextFiscalEventTurn(prevState.metadata.currentTurn + 1) - prevState.metadata.currentTurn),
+      turnsRemaining: Math.max(
+        1,
+        findNextFiscalEventTurn(prevState.metadata.currentTurn + 1) - prevState.metadata.currentTurn
+      ),
       fiscalImpactOnEffect_bn:
-        (taxDeltas.incomeTaxBasicChange * 7) +
-        (taxDeltas.incomeTaxHigherChange * 2) +
-        (taxDeltas.incomeTaxAdditionalChange * 0.2) +
-        (taxDeltas.vatChange * 7.5) +
-        (taxDeltas.corporationTaxChange * 3.2),
+        taxDeltas.incomeTaxBasicChange * 7 +
+        taxDeltas.incomeTaxHigherChange * 2 +
+        taxDeltas.incomeTaxAdditionalChange * 0.2 +
+        taxDeltas.vatChange * 7.5 +
+        taxDeltas.corporationTaxChange * 3.2,
       status: 'queued',
       delayRisk: 0.06,
       capacityCost: 20,
@@ -370,7 +491,7 @@ export function applyBudgetChangesToState(
     manifesto: newManifesto,
     policyRiskModifiers: [
       ...(prevState.policyRiskModifiers || []),
-      ...((changes.policyRiskModifiers || []).map((modifier) => ({ ...modifier }))),
+      ...(changes.policyRiskModifiers || []).map((modifier) => ({ ...modifier })),
     ],
     spendingReview: {
       ...prevState.spendingReview,
@@ -387,9 +508,18 @@ export function applyBudgetChangesToState(
     housing: {
       ...prevState.housing,
       planningReformPackage: changes.planningReformPackage ?? prevState.housing.planningReformPackage,
-      infrastructureGuarantees_bn: Math.max(0, Math.min(10, prevState.housing.infrastructureGuarantees_bn + (changes.infrastructureGuaranteesChange_bn || 0))),
-      htbAndSharedOwnership_bn: Math.max(0, prevState.housing.htbAndSharedOwnership_bn + (changes.htbAndSharedOwnershipChange_bn || 0)),
-      councilHouseBuildingGrant_bn: Math.max(0, Math.min(3, prevState.housing.councilHouseBuildingGrant_bn + (changes.councilHouseBuildingGrantChange_bn || 0))),
+      infrastructureGuarantees_bn: Math.max(
+        0,
+        Math.min(10, prevState.housing.infrastructureGuarantees_bn + (changes.infrastructureGuaranteesChange_bn || 0))
+      ),
+      htbAndSharedOwnership_bn: Math.max(
+        0,
+        prevState.housing.htbAndSharedOwnership_bn + (changes.htbAndSharedOwnershipChange_bn || 0)
+      ),
+      councilHouseBuildingGrant_bn: Math.max(
+        0,
+        Math.min(3, prevState.housing.councilHouseBuildingGrant_bn + (changes.councilHouseBuildingGrantChange_bn || 0))
+      ),
     },
     industrialStrategy: {
       ...prevState.industrialStrategy,
@@ -407,15 +537,19 @@ export function applyBudgetChangesToState(
     legislativePipeline: {
       ...prevState.legislativePipeline,
       queue: [...(prevState.legislativePipeline.queue || []), ...policyPipelineEntries],
-      consultationLoad: Math.max(0, Math.min(100,
-        (prevState.legislativePipeline.consultationLoad || 25) + (policyPipelineEntries.length > 0 ? 5 : 0)
-      )),
+      consultationLoad: Math.max(
+        0,
+        Math.min(
+          100,
+          (prevState.legislativePipeline.consultationLoad || 25) + (policyPipelineEntries.length > 0 ? 5 : 0)
+        )
+      ),
     },
     fiscal: {
       ...newFiscal,
       thresholdFreezeMonths:
         (changes.thresholdUprating ?? newFiscal.thresholdUprating) === 'frozen'
-          ? (prevState.fiscal.thresholdFreezeMonths || 0)
+          ? prevState.fiscal.thresholdFreezeMonths || 0
           : 0,
       nextFiscalEventTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1),
       pendingAnnouncements: queueMajorTaxForEvent
@@ -424,11 +558,11 @@ export function applyBudgetChangesToState(
             {
               description: 'Pre-announced major tax package for next fiscal event',
               fiscalImpact_bn:
-                (taxDeltas.incomeTaxBasicChange * 7) +
-                (taxDeltas.incomeTaxHigherChange * 2) +
-                (taxDeltas.incomeTaxAdditionalChange * 0.2) +
-                (taxDeltas.vatChange * 7.5) +
-                (taxDeltas.corporationTaxChange * 3.2),
+                taxDeltas.incomeTaxBasicChange * 7 +
+                taxDeltas.incomeTaxHigherChange * 2 +
+                taxDeltas.incomeTaxAdditionalChange * 0.2 +
+                taxDeltas.vatChange * 7.5 +
+                taxDeltas.corporationTaxChange * 3.2,
               announcedTurn: prevState.metadata.currentTurn,
               effectiveTurn: findNextFiscalEventTurn(prevState.metadata.currentTurn + 1),
               implemented: false,

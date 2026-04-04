@@ -24,7 +24,7 @@ function buildThreatFollowUpMessage(state: GameState, targetDeficitBn: number, d
 
 export function processPMCommunicationsStep(
   state: GameState,
-  runPMCommunications: (gameState: GameState) => PMCommunicationsResult = processPMCommunications,
+  runPMCommunications: (gameState: GameState) => PMCommunicationsResult = processPMCommunications
 ): GameState {
   if (!state.metadata.gameStarted || state.metadata.gameOver) {
     return state;
@@ -38,7 +38,7 @@ export function processPMCommunicationsStep(
     const followUpMessage = buildThreatFollowUpMessage(
       state,
       breachedThreat.targetDeficit_bn,
-      breachedThreat.deadlineTurn,
+      breachedThreat.deadlineTurn
     );
 
     return {
@@ -48,9 +48,7 @@ export function processPMCommunicationsStep(
         unreadCount: state.pmRelationship.unreadCount + 1,
         messages: [...state.pmRelationship.messages, followUpMessage],
         activeThreats: state.pmRelationship.activeThreats.map((threat) =>
-          threat.id === breachedThreat.id
-            ? { ...threat, followUpSent: true }
-            : threat
+          threat.id === breachedThreat.id ? { ...threat, followUpSent: true } : threat
         ),
       },
     };
@@ -64,7 +62,8 @@ export function processPMCommunicationsStep(
       metadata: {
         ...state.metadata,
         gameOver: true,
-        gameOverReason: 'You have been reshuffled out of the Treasury. The Prime Minister has lost confidence in your ability to manage the economy.',
+        gameOverReason:
+          'You have been reshuffled out of the Treasury. The Prime Minister has lost confidence in your ability to manage the economy.',
       },
     };
   }
@@ -79,15 +78,12 @@ export function processPMCommunicationsStep(
       ...state.pmRelationship,
       unreadCount: (state.pmRelationship.unreadCount || 0) + 1,
       ...relationshipUpdates,
-      messages: [
-        ...updatedPMRelationship.messages,
-        newMessage,
-      ],
+      messages: [...updatedPMRelationship.messages, newMessage],
     };
 
     if (newMessage.type === 'demand' && newMessage.demandCategory && newMessage.demandDetails) {
       const targetDeficit = newMessage.threatTargetDeficit_bn ?? 50;
-      const deadlineTurn = newMessage.threatDeadlineTurn ?? (state.metadata.currentTurn + 3);
+      const deadlineTurn = newMessage.threatDeadlineTurn ?? state.metadata.currentTurn + 3;
       updatedPMRelationship.activeDemands = [
         ...updatedPMRelationship.activeDemands,
         {
