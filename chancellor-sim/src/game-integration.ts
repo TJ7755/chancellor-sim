@@ -1535,13 +1535,11 @@ export interface PoliticalState {
   pmTrustHistory?: number[];
   reshuffleEvent?: any;
   polling?: any;
-  opinionFactors?: any;
   manifestoBreaches?: {
     taxLocks: number;
     spendingPledges: number;
     fiscalRules: number;
   };
-  significantEvents?: any[];
   creditRating?: 'AAA' | 'AA+' | 'AA' | 'AA-' | 'A+' | 'A';
   creditRatingOutlook?: 'stable' | 'negative' | 'positive';
 }
@@ -1575,7 +1573,6 @@ export function createInitialPoliticalState(): PoliticalState {
     backbenchers: [],
     pmTrustHistory: [75],
     manifestoBreaches: { taxLocks: 0, spendingPledges: 0, fiscalRules: 0 },
-    significantEvents: [],
     creditRating: 'AA-',
     creditRatingOutlook: 'negative',
   };
