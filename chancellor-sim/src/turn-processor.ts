@@ -28,6 +28,7 @@ import { renderSectorHeadline } from './data/sector-revolts';
 import { processPMCommunicationsStep } from './domain/pm/communications-step';
 import { processFiscalEventCycle } from './domain/fiscal/fiscal-event-cycle';
 import { processParliamentaryMechanics } from './domain/parliament/parliamentary-mechanics';
+import { getDifficultySettings as getDomainDifficultySettings } from './domain/game/difficulty';
 
 const DEPARTMENTAL_SPENDING_KEYS = [
   'nhs',
@@ -204,11 +205,10 @@ type DifficultySettings = {
   gameOverBackbenchThreshold: number;
   gameOverYieldThreshold: number;
   gameOverDebtThreshold: number;
-  // CRITICAL FIX: Add more difficulty parameters for comprehensive scaling
-  taxAvoidanceScale: number; // Scale of tax avoidance (higher = more avoidance)
-  spendingEfficiencyScale: number; // Efficiency of spending (higher = more benefit)
-  marketReactionScale: number; // Sensitivity of gilt yields to fiscal position
-  serviceDegradationScale: number; // Rate of service quality decline
+  taxAvoidanceScale: number;
+  spendingEfficiencyScale: number;
+  marketReactionScale: number;
+  serviceDegradationScale: number;
 };
 
 function getDifficultySettings(state: GameState): DifficultySettings {
@@ -216,6 +216,8 @@ function getDifficultySettings(state: GameState): DifficultySettings {
   const risk = getPolicyRiskAggregate(state);
   const qeReduction = Math.max(0, 875 - (state.markets?.assetPurchaseFacility_bn || 875));
   const qtMarketAdj = (qeReduction / 50) * 0.02;
+  const domainSettings = getDomainDifficultySettings(mode);
+  const thresholds = domainSettings.gameOverThresholds;
 
   if (mode === 'forgiving') {
     return {
@@ -223,14 +225,14 @@ function getDifficultySettings(state: GameState): DifficultySettings {
       inflationShockScale: 0.75,
       pmTrustSensitivity: 0.85,
       pmInterventionTrustThreshold: 35,
-      gameOverPMTrust: 15,
-      gameOverBackbenchThreshold: 24,
-      gameOverYieldThreshold: 8.5,
-      gameOverDebtThreshold: 130,
+      gameOverPMTrust: thresholds.pmTrustMinimum,
+      gameOverBackbenchThreshold: thresholds.backbenchSatisfactionMinimum,
+      gameOverYieldThreshold: thresholds.giltYieldMaximum,
+      gameOverDebtThreshold: thresholds.debtPctGDPMaximum,
       taxAvoidanceScale: Math.max(0.5, 0.7 + risk.taxAvoidanceScaleDelta),
-      spendingEfficiencyScale: 1.15, // 15% more efficient spending
-      marketReactionScale: 0.8 + risk.marketReactionScaleDelta + qtMarketAdj, // 20% calmer markets
-      serviceDegradationScale: 0.85, // 15% slower degradation
+      spendingEfficiencyScale: 1.15,
+      marketReactionScale: 0.8 + risk.marketReactionScaleDelta + qtMarketAdj,
+      serviceDegradationScale: 0.85,
     };
   }
 
@@ -240,14 +242,14 @@ function getDifficultySettings(state: GameState): DifficultySettings {
       inflationShockScale: 1.15,
       pmTrustSensitivity: 1.15,
       pmInterventionTrustThreshold: 45,
-      gameOverPMTrust: 24,
-      gameOverBackbenchThreshold: 33,
-      gameOverYieldThreshold: 7.0,
-      gameOverDebtThreshold: 115,
+      gameOverPMTrust: thresholds.pmTrustMinimum,
+      gameOverBackbenchThreshold: thresholds.backbenchSatisfactionMinimum,
+      gameOverYieldThreshold: thresholds.giltYieldMaximum,
+      gameOverDebtThreshold: thresholds.debtPctGDPMaximum,
       taxAvoidanceScale: Math.max(0.5, 1.25 + risk.taxAvoidanceScaleDelta),
-      spendingEfficiencyScale: 0.9, // 10% less efficient spending
-      marketReactionScale: 1.2 + risk.marketReactionScaleDelta + qtMarketAdj, // 20% more volatile markets
-      serviceDegradationScale: 1.15, // 15% faster degradation
+      spendingEfficiencyScale: 0.9,
+      marketReactionScale: 1.2 + risk.marketReactionScaleDelta + qtMarketAdj,
+      serviceDegradationScale: 1.15,
     };
   }
 
@@ -256,10 +258,10 @@ function getDifficultySettings(state: GameState): DifficultySettings {
     inflationShockScale: 1.0,
     pmTrustSensitivity: 1.0,
     pmInterventionTrustThreshold: 40,
-    gameOverPMTrust: 20,
-    gameOverBackbenchThreshold: 30,
-    gameOverYieldThreshold: 7.5,
-    gameOverDebtThreshold: 120,
+    gameOverPMTrust: thresholds.pmTrustMinimum,
+    gameOverBackbenchThreshold: thresholds.backbenchSatisfactionMinimum,
+    gameOverYieldThreshold: thresholds.giltYieldMaximum,
+    gameOverDebtThreshold: thresholds.debtPctGDPMaximum,
     taxAvoidanceScale: Math.max(0.5, 1.0 + risk.taxAvoidanceScaleDelta),
     spendingEfficiencyScale: 1.0,
     marketReactionScale: 1.0 + risk.marketReactionScaleDelta + qtMarketAdj,
@@ -4600,7 +4602,7 @@ function saveHistoricalSnapshot(state: GameState): GameState {
     ...state,
     simulation: {
       ...state.simulation,
-      monthlySnapshots: [...state.simulation.monthlySnapshots, snapshot],
+      monthlySnapshots: [...state.simulation.monthlySnapshots, snapshot].slice(-120),
     },
   };
 }

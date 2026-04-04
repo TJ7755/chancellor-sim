@@ -1,3 +1,5 @@
+import { getDifficultySettings } from './difficulty';
+
 export interface GameOverCondition {
   triggered: boolean;
   reason: string;
@@ -13,27 +15,9 @@ export interface GameOverThresholds {
 }
 
 export const DIFFICULTY_THRESHOLDS: Record<string, GameOverThresholds> = {
-  forgiving: {
-    pmTrustMinimum: 10,
-    backbenchSatisfactionMinimum: 15,
-    debtPctGDPMaximum: 120,
-    giltYieldMaximum: 8,
-    approvalMinimum: 20,
-  },
-  standard: {
-    pmTrustMinimum: 20,
-    backbenchSatisfactionMinimum: 25,
-    debtPctGDPMaximum: 100,
-    giltYieldMaximum: 6,
-    approvalMinimum: 30,
-  },
-  realistic: {
-    pmTrustMinimum: 25,
-    backbenchSatisfactionMinimum: 30,
-    debtPctGDPMaximum: 90,
-    giltYieldMaximum: 5,
-    approvalMinimum: 35,
-  },
+  forgiving: getDifficultySettings('forgiving').gameOverThresholds,
+  standard: getDifficultySettings('standard').gameOverThresholds,
+  realistic: getDifficultySettings('realistic').gameOverThresholds,
 };
 
 export function checkGameOverConditions(

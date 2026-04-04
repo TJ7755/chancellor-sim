@@ -51,7 +51,7 @@ describe('game over conditions', () => {
       {
         pmTrust: 60,
         backbenchSatisfaction: 55,
-        debtPctGDP: 105,
+        debtPctGDP: 125,
         giltYield10y: 4.2,
         approval: 45,
       },
@@ -67,7 +67,7 @@ describe('game over conditions', () => {
         pmTrust: 60,
         backbenchSatisfaction: 55,
         debtPctGDP: 85,
-        giltYield10y: 7.0,
+        giltYield10y: 8.0,
         approval: 45,
       },
       'standard'
