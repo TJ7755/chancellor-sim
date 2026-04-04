@@ -17,6 +17,25 @@ import {
   FISCAL_RULE_GILT_EFFECT,
   FISCAL_RULE_STERLING_EFFECT,
   FISCAL_RULE_BACKBENCH_DRIFT_TARGET,
+  BASELINE_NHS_CURRENT_SPENDING_BN,
+  BASELINE_EDUCATION_CURRENT_SPENDING_BN,
+  BASELINE_DEFENCE_CURRENT_SPENDING_BN,
+  BASELINE_WELFARE_CURRENT_SPENDING_BN,
+  BASELINE_INFRASTRUCTURE_CURRENT_SPENDING_BN,
+  BASELINE_INFRASTRUCTURE_CAPITAL_SPENDING_BN,
+  BASELINE_OTHER_CURRENT_COMBINED_BN,
+  BASELINE_TOTAL_CAPITAL_SPENDING_BN,
+  BASELINE_EDUCATION_TOTAL_SPENDING_BN,
+  BASELINE_INFRASTRUCTURE_TOTAL_SPENDING_BN,
+  BASELINE_INCOME_TAX_BASIC_RATE,
+  BASELINE_INCOME_TAX_HIGHER_RATE,
+  BASELINE_INCOME_TAX_ADDITIONAL_RATE,
+  BASELINE_NI_EMPLOYEE_RATE,
+  BASELINE_NI_EMPLOYER_RATE,
+  BASELINE_VAT_RATE,
+  BASELINE_CORPORATION_TAX_RATE,
+  BASELINE_NOMINAL_GDP_BN,
+  BASELINE_DEFICIT_BN,
 } from './game-integration';
 import { GameState, BudgetChanges } from './game-state';
 import { generateEvents, generateNewspaper, RandomEvent, NewsArticle } from './events-media';
@@ -505,7 +524,7 @@ function calculateProductivity(state: GameState): GameState {
 
   // 1. Capital investment effect (infrastructure, R&D, equipment)
   // Public capital spending builds productive capacity with lag
-  const baselineCapital = 141.4; // Baseline total capital spending
+  const baselineCapital = BASELINE_TOTAL_CAPITAL_SPENDING_BN;
   const plannedCapital =
     fiscal.spending.nhsCapital +
     fiscal.spending.educationCapital +
@@ -645,12 +664,12 @@ function calculateGDPGrowth(state: GameState): GameState {
   //   Correct value = policeCurrent(18.5) + justiceCurrent(12.7) + otherCurrent(306.0) = 337.2.
   //   The miscalibrated 135.8 created a phantom +£201bn demand impulse that added ~3%/yr
   //   to annualised GDP growth at neutral policy — the primary cause of Known Issue #1.
-  const baselineNHSCurrent = 168.4;
-  const baselineEducationCurrent = 104.0;
-  const baselineDefenceCurrent = 39.0; // was 39.4; corrected to match initial state
-  const baselineWelfareCurrent = 290.0;
-  const baselineOtherCurrent = 337.2; // was 135.8; corrected to 18.5+12.7+306.0=337.2
-  const baselineCapital = 141.4;
+  const baselineNHSCurrent = BASELINE_NHS_CURRENT_SPENDING_BN;
+  const baselineEducationCurrent = BASELINE_EDUCATION_CURRENT_SPENDING_BN;
+  const baselineDefenceCurrent = BASELINE_DEFENCE_CURRENT_SPENDING_BN;
+  const baselineWelfareCurrent = BASELINE_WELFARE_CURRENT_SPENDING_BN;
+  const baselineOtherCurrent = BASELINE_OTHER_CURRENT_COMBINED_BN;
+  const baselineCapital = BASELINE_TOTAL_CAPITAL_SPENDING_BN;
 
   // Changes from baseline
   const nhsCurrentChange = fiscal.spending.nhsCurrent - baselineNHSCurrent;
@@ -746,9 +765,9 @@ function calculateGDPGrowth(state: GameState): GameState {
   // RECALIBRATED: OBR estimates ~0.35 multiplier for income tax (lower than previously)
   // MPC varies by income: low earners 0.6-0.9, high earners 0.1-0.4
   // Approximate weighted MPC ~0.45 for basic rate, ~0.18 for higher/additional
-  const baselineIncomeTaxBasic = 20;
-  const baselineIncomeTaxHigher = 40;
-  const baselineIncomeTaxAdditional = 45;
+  const baselineIncomeTaxBasic = BASELINE_INCOME_TAX_BASIC_RATE;
+  const baselineIncomeTaxHigher = BASELINE_INCOME_TAX_HIGHER_RATE;
+  const baselineIncomeTaxAdditional = BASELINE_INCOME_TAX_ADDITIONAL_RATE;
 
   const basicRateChange = fiscal.incomeTaxBasicRate - baselineIncomeTaxBasic;
   const higherRateChange = fiscal.incomeTaxHigherRate - baselineIncomeTaxHigher;
@@ -767,8 +786,8 @@ function calculateGDPGrowth(state: GameState): GameState {
 
   // NI changes: similar to income tax but affects different income distribution
   // RECALIBRATED to match OBR estimates (~0.3-0.35 multiplier)
-  const baselineNIEmployee = 8;
-  const baselineNIEmployer = 13.8;
+  const baselineNIEmployee = BASELINE_NI_EMPLOYEE_RATE;
+  const baselineNIEmployer = BASELINE_NI_EMPLOYER_RATE;
 
   const niEmployeeChange = fiscal.nationalInsuranceRate - baselineNIEmployee;
   const niEmployerChange = fiscal.employerNIRate - baselineNIEmployer;
@@ -783,7 +802,7 @@ function calculateGDPGrowth(state: GameState): GameState {
 
   // VAT changes: point-of-sale demand effect
   // RECALIBRATED: OBR uses ~0.35 multiplier for VAT
-  const baselineVAT = 20;
+  const baselineVAT = BASELINE_VAT_RATE;
   const vatChange = fiscal.vatRate - baselineVAT;
   const vatDemandEffect = ((-(vatChange * 7.5 * 0.45) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
   monthlyRealGrowth += vatDemandEffect;
@@ -791,7 +810,7 @@ function calculateGDPGrowth(state: GameState): GameState {
   // Corporation tax: SHORT-RUN supply-side effect (affects investment decisions)
   // Long-run effect via productivity already captured
   // Multiplier 0.1-0.4 for short-run investment response
-  const baselineCorpTax = 25;
+  const baselineCorpTax = BASELINE_CORPORATION_TAX_RATE;
   const corpTaxChange = fiscal.corporationTaxRate - baselineCorpTax;
 
   // Supply-side: lower corp tax → more investment (gradual, conditional)
@@ -1416,7 +1435,7 @@ function calculateTaxRevenues(state: GameState): GameState {
   // Scale by cumulative nominal GDP growth from baseline, with elasticities
 
   // Use ratio of current nominal GDP to baseline to capture cumulative growth
-  const baselineNominalGDP = 2750; // July 2024 nominal GDP (£bn)
+  const baselineNominalGDP = BASELINE_NOMINAL_GDP_BN;
   const nominalGDPRatio = economic.gdpNominal_bn / baselineNominalGDP;
 
   // Income tax (elasticity 1.1 to nominal GDP)
@@ -2441,8 +2460,8 @@ function checkGoldenRuleEnforcement(state: GameState): GameState {
   }
 
   // Calculate baseline values (July 2024 initial state)
-  const baselineDeficit = 87; // Initial deficit
-  const baselineCapital = 12.0 + 12.0 + 16.6 + 80.0 + 0.5 + 0.3 + 20.0; // ~141.4bn
+  const baselineDeficit = BASELINE_DEFICIT_BN;
+  const baselineCapital = BASELINE_TOTAL_CAPITAL_SPENDING_BN;
 
   // Calculate current totals
   const deficitIncrease = fiscal.deficit_bn - baselineDeficit;
@@ -2827,10 +2846,10 @@ function calculateDevolution(state: GameState): GameState {
     nations: { ...state.devolution.nations },
     localGov: { ...state.devolution.localGov },
   };
-  const nhsChange = state.fiscal.spending.nhsCurrent - 168.4;
-  const educationChange = state.fiscal.spending.educationCurrent - 104.0;
+  const nhsChange = state.fiscal.spending.nhsCurrent - BASELINE_NHS_CURRENT_SPENDING_BN;
+  const educationChange = state.fiscal.spending.educationCurrent - BASELINE_EDUCATION_CURRENT_SPENDING_BN;
   const transportChange =
-    state.fiscal.spending.infrastructureCurrent + state.fiscal.spending.infrastructureCapital - (20 + 80);
+    state.fiscal.spending.infrastructureCurrent + state.fiscal.spending.infrastructureCapital - (BASELINE_INFRASTRUCTURE_CURRENT_SPENDING_BN + BASELINE_INFRASTRUCTURE_CAPITAL_SPENDING_BN);
   const housingProgrammeChange =
     getDetailedSpendingBudget(state, 'localGovernmentGrants', BASELINE_DETAILED_SPENDING.localGovernmentGrants || 5.5) -
     5.5 +

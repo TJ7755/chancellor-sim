@@ -4,6 +4,46 @@
 // This file bridges the existing system files with the new unified game state
 
 // ===========================
+// Baseline Constants (July 2024 starting values)
+// ===========================
+// These are the source of truth for all baseline/reference values used in
+// turn-processor calculations. They must match the factory function values
+// in createInitialFiscalState() and createInitialEconomicState().
+
+export const BASELINE_NHS_CURRENT_SPENDING_BN = 168.4;
+export const BASELINE_EDUCATION_CURRENT_SPENDING_BN = 104.0;
+export const BASELINE_DEFENCE_CURRENT_SPENDING_BN = 39.0;
+export const BASELINE_WELFARE_CURRENT_SPENDING_BN = 290.0;
+export const BASELINE_INFRASTRUCTURE_CURRENT_SPENDING_BN = 20.0;
+export const BASELINE_POLICE_CURRENT_SPENDING_BN = 18.5;
+export const BASELINE_JUSTICE_CURRENT_SPENDING_BN = 12.7;
+export const BASELINE_OTHER_CURRENT_SPENDING_BN = 306.0;
+
+export const BASELINE_NHS_CAPITAL_SPENDING_BN = 12.0;
+export const BASELINE_EDUCATION_CAPITAL_SPENDING_BN = 12.0;
+export const BASELINE_DEFENCE_CAPITAL_SPENDING_BN = 16.6;
+export const BASELINE_INFRASTRUCTURE_CAPITAL_SPENDING_BN = 80.0;
+export const BASELINE_POLICE_CAPITAL_SPENDING_BN = 0.5;
+export const BASELINE_JUSTICE_CAPITAL_SPENDING_BN = 0.3;
+export const BASELINE_OTHER_CAPITAL_SPENDING_BN = 20.0;
+
+export const BASELINE_TOTAL_CAPITAL_SPENDING_BN = 141.4;
+export const BASELINE_OTHER_CURRENT_COMBINED_BN = 337.2;
+export const BASELINE_EDUCATION_TOTAL_SPENDING_BN = 116;
+export const BASELINE_INFRASTRUCTURE_TOTAL_SPENDING_BN = 100;
+
+export const BASELINE_INCOME_TAX_BASIC_RATE = 20;
+export const BASELINE_INCOME_TAX_HIGHER_RATE = 40;
+export const BASELINE_INCOME_TAX_ADDITIONAL_RATE = 45;
+export const BASELINE_NI_EMPLOYEE_RATE = 8;
+export const BASELINE_NI_EMPLOYER_RATE = 13.8;
+export const BASELINE_VAT_RATE = 20;
+export const BASELINE_CORPORATION_TAX_RATE = 25;
+
+export const BASELINE_NOMINAL_GDP_BN = 2750;
+export const BASELINE_DEFICIT_BN = 87;
+
+// ===========================
 // Fiscal Rules Framework
 // ===========================
 
