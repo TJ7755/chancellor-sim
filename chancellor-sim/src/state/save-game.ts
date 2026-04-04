@@ -549,6 +549,27 @@ export function validateSaveSchema(state: any): { valid: boolean; errors: string
   return { valid: errors.length === 0, errors };
 }
 
+/*
+ * SAVE MIGRATION GUIDE
+ * Current version: SAVE_VERSION (see constant above)
+ *
+ * When adding a new top-level state slice or making a breaking change to an
+ * existing slice:
+ *   1. Increment SAVE_VERSION.
+ *   2. Add a migration case below that handles the previous version.
+ *   3. The migration must add sensible defaults for any new fields.
+ *   4. Update the schema validation in validateSaveSchema() to cover the
+ *      new slice.
+ *   5. Update normaliseLoadedState() in normalisation.ts to provide defaults
+ *      for the new slice.
+ *
+ * Versions:
+ *   '1' -> '3': Added advisers, events, manifesto, mpSystem, simulation slices.
+ *               Remapped adviser IDs (e.g. 'treasury' -> 'treasury_mandarin').
+ *   '2' -> '3': Fixed invalid manifesto default (standard_labour -> cautious-centrist).
+ *               Remapped adviser IDs using the old-to-new mapping.
+ *   '3' -> '?': Next migration goes here.
+ */
 export function migrateSave(parsed: unknown): SaveMigrationResult {
   if (!parsed || typeof parsed !== 'object') {
     return {

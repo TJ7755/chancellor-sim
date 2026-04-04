@@ -301,6 +301,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     const result = readSave('chancellor-autosave');
     if (!result) return;
+    if ('error' in result) {
+      console.warn('[Save]', result.error);
+      return;
+    }
 
     if (result.warnings.length > 0) {
       result.warnings.forEach((w) => console.warn('[Load]', w));
@@ -563,6 +567,10 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const loadGame = useCallback((slotName: string): boolean => {
     const result = readSave(`chancellor-save-${slotName}`);
     if (!result) return false;
+    if ('error' in result) {
+      console.warn('[Save]', result.error);
+      return false;
+    }
 
     if (result.warnings.length > 0) {
       result.warnings.forEach((w) => console.warn('[Load]', w));

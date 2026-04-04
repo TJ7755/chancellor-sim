@@ -18,6 +18,10 @@ export interface TaxRevenueInputs {
   wageGrowthAnnual: number;
   fullExpensing: boolean;
   sdltAdditionalDwellingsSurcharge: number;
+  stampDutyRate: number;
+  sdltFirstTimeBuyerThreshold: number;
+  housePriceIndex: number;
+  mortgageApprovals: number;
   revenueAdjustment_bn: number;
   taxAvoidanceScale: number;
   taxRevenueMultiplier: number;
@@ -29,6 +33,7 @@ export interface TaxRevenueResult {
   niRevenue: number;
   vatRevenue: number;
   corpTaxRevenue: number;
+  stampDutyRevenue: number;
   otherRevenue: number;
 }
 
@@ -125,12 +130,26 @@ export function calculateTaxRevenue(inputs: TaxRevenueInputs): TaxRevenueResult 
     (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss - fullExpensingCost) * Math.pow(nominalGDPRatio, 1.05)
   );
 
-  // Other taxes
+  // Other taxes (elasticity 0.8)
   const otherRevenue = 323 * Math.pow(nominalGDPRatio, 0.8);
+
+  // Stamp duty land tax
+  const baseStampDuty = 16;
+  const stampDutyRateDelta = inputs.stampDutyRate - 5;
+  const sdltFirstTimeThresholdDelta_k = (inputs.sdltFirstTimeBuyerThreshold - 425000) / 1000;
+  const sdltSurchargeDelta = inputs.sdltAdditionalDwellingsSurcharge - 3;
+  const stampDutyMechanical =
+    baseStampDuty + stampDutyRateDelta * 1.5 + sdltSurchargeDelta * 0.5 - sdltFirstTimeThresholdDelta_k * 0.004;
+  const stampDutyRevenue =
+    Math.max(0, stampDutyMechanical) *
+    Math.pow(Math.max(0.6, inputs.housePriceIndex / 100), 1.2) *
+    Math.max(0.4, inputs.mortgageApprovals / 60) *
+    Math.max(0.65, 1 - (sdltSurchargeDelta * 0.04 + Math.max(0, stampDutyRateDelta) * 0.03));
+
   const revenueAdj = inputs.revenueAdjustment_bn || 0;
 
   const totalRevenueAnnual =
-    (incomeTaxRevenue + niRevenue + vatRevenue + corpTaxRevenue + otherRevenue + revenueAdj) *
+    (incomeTaxRevenue + niRevenue + vatRevenue + corpTaxRevenue + otherRevenue + stampDutyRevenue + revenueAdj) *
     inputs.taxRevenueMultiplier;
 
   return {
@@ -139,6 +158,7 @@ export function calculateTaxRevenue(inputs: TaxRevenueInputs): TaxRevenueResult 
     niRevenue,
     vatRevenue,
     corpTaxRevenue,
+    stampDutyRevenue,
     otherRevenue,
   };
 }

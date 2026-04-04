@@ -6,6 +6,7 @@ export interface GDPInputs {
   unemploymentRate: number;
   inflationCPI: number;
   gdpGrowthAnnual: number;
+  gdpGrowthMonthly: number;
   gdpNominal_bn: number;
   spending: {
     nhsCurrent: number;
@@ -32,18 +33,27 @@ export interface GDPInputs {
     vatRate: number;
     corporationTaxRate: number;
   };
-  bankRate: number;
   giltYield10y: number;
-  businessConfidence: number;
+  sterlingIndex: number;
   gdpGrowthBonus: number;
-  difficultyMarketReactionScale: number;
+  nhsQuality: number;
+  educationQuality: number;
+  infrastructureQuality: number;
+  currentAccountGDP: number;
+  externalShockActive: boolean;
+  externalShockType: string | null;
+  exportShockTurnsRemaining: number;
+  houseBuildingAnnualStarts: number;
+  isFirstProcessedTurn: boolean;
+  currentTurn: number;
+  monthlySnapshotsLength: number;
+  macroShockScale: number;
 }
 
 export interface GDPResult {
   gdpGrowthMonthly: number;
   gdpGrowthAnnual: number;
   gdpNominal_bn: number;
-  outputGap: number;
 }
 
 // July 2024 baseline spending values
@@ -145,57 +155,154 @@ export function calculateGDPGrowth(inputs: GDPInputs): GDPResult {
 
   monthlyRealGrowth += fiscalDemandImpact;
 
-  // Tax effects on demand
-  const taxDeltaBasic = inputs.taxRates.incomeTaxBasicRate - BASELINE_TAX.incomeTaxBasic;
-  const taxDeltaHigher = inputs.taxRates.incomeTaxHigherRate - BASELINE_TAX.incomeTaxHigher;
-  const taxDeltaAdditional = inputs.taxRates.incomeTaxAdditionalRate - BASELINE_TAX.incomeTaxAdditional;
-  const taxDeltaNI = inputs.taxRates.nationalInsuranceRate - BASELINE_TAX.niEmployee;
-  const taxDeltaEmployerNI = inputs.taxRates.employerNIRate - BASELINE_TAX.niEmployer;
-  const taxDeltaVAT = inputs.taxRates.vatRate - BASELINE_TAX.vat;
-  const taxDeltaCT = inputs.taxRates.corporationTaxRate - BASELINE_TAX.corpTax;
+  const noSpendDelta =
+    nhsCurrentChange === 0 &&
+    educationCurrentChange === 0 &&
+    defenceCurrentChange === 0 &&
+    welfareCurrentChange === 0 &&
+    otherCurrentChange === 0 &&
+    capitalChange === 0;
 
-  const taxDemandImpact =
-    (-taxDeltaBasic * 0.003 -
-      taxDeltaHigher * 0.001 -
-      taxDeltaAdditional * 0.0001 -
-      taxDeltaNI * 0.0025 -
-      taxDeltaEmployerNI * 0.003 -
-      taxDeltaVAT * 0.0035 -
-      taxDeltaCT * 0.0015) *
-    slackMultiplier;
+  // === TAX EFFECTS (demand-side) ===
 
-  monthlyRealGrowth += taxDemandImpact;
+  const basicRateChange = inputs.taxRates.incomeTaxBasicRate - BASELINE_TAX.incomeTaxBasic;
+  const higherRateChange = inputs.taxRates.incomeTaxHigherRate - BASELINE_TAX.incomeTaxHigher;
+  const additionalRateChange = inputs.taxRates.incomeTaxAdditionalRate - BASELINE_TAX.incomeTaxAdditional;
 
-  // Monetary policy impulse (18-month lag)
-  const rateGap = inputs.bankRate - 5.25;
-  const monetaryImpulse = (-rateGap * 0.008) / 12;
-  monthlyRealGrowth += monetaryImpulse;
+  const incomeTaxDemandEffect =
+    ((-(basicRateChange * 7 * 0.45 + higherRateChange * 2 * 0.18 + additionalRateChange * 0.2 * 0.12) / nominalGDP) *
+      100 *
+      0.35 *
+      slackMultiplier) /
+    12;
+  monthlyRealGrowth += incomeTaxDemandEffect;
 
-  // Gilt yield effect on confidence
-  const giltEffect = (-(inputs.giltYield10y - 4.1) * 0.005) / 12;
-  monthlyRealGrowth += giltEffect;
+  const niEmployeeChange = inputs.taxRates.nationalInsuranceRate - BASELINE_TAX.niEmployee;
+  const niEmployerChange = inputs.taxRates.employerNIRate - BASELINE_TAX.niEmployer;
 
-  // Business confidence effect
-  const confidenceEffect = (((inputs.businessConfidence - 50) / 100) * 0.05) / 12;
-  monthlyRealGrowth += confidenceEffect;
+  const niEmployeeDemandEffect =
+    ((-(niEmployeeChange * 6 * 0.5) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
+  const niEmployerDemandEffect =
+    ((-(niEmployerChange * 8.5 * 0.25) / nominalGDP) * 100 * 0.2 * slackMultiplier) / 12;
+  monthlyRealGrowth += niEmployeeDemandEffect + niEmployerDemandEffect;
 
-  // Adviser bonus
+  const vatChange = inputs.taxRates.vatRate - BASELINE_TAX.vat;
+  const vatDemandEffect = ((-(vatChange * 7.5 * 0.45) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
+  monthlyRealGrowth += vatDemandEffect;
+
+  const corpTaxChange = inputs.taxRates.corporationTaxRate - BASELINE_TAX.corpTax;
+  const corpTaxInvestmentEffect = ((-(corpTaxChange * 0.3 * 0.5 * 0.3) / nominalGDP) * 100) / 12;
+  monthlyRealGrowth += corpTaxInvestmentEffect;
+
+  if (inputs.taxRates.corporationTaxRate > 30) {
+    const corpTaxPenalty = ((inputs.taxRates.corporationTaxRate - 30) * -0.008) / 12;
+    monthlyRealGrowth += corpTaxPenalty;
+  }
+
+  if (inputs.taxRates.incomeTaxAdditionalRate > 50) {
+    const topRatePenalty = ((inputs.taxRates.incomeTaxAdditionalRate - 50) * -0.003) / 12;
+    monthlyRealGrowth += topRatePenalty;
+  }
+
+  const noTaxDelta =
+    basicRateChange === 0 &&
+    higherRateChange === 0 &&
+    additionalRateChange === 0 &&
+    niEmployeeChange === 0 &&
+    niEmployerChange === 0 &&
+    vatChange === 0 &&
+    corpTaxChange === 0;
+
+  // === SUPPLY-SIDE EFFECTS ===
+
+  const healthSupplySide = ((inputs.nhsQuality - 45) * 0.002) / 12;
+  monthlyRealGrowth += healthSupplySide;
+
+  const educationSupplySide = ((inputs.educationQuality - 58) * 0.003) / 12;
+  monthlyRealGrowth += educationSupplySide;
+
+  const infraSupplySide = ((inputs.infrastructureQuality - 48) * 0.002) / 12;
+  monthlyRealGrowth += infraSupplySide;
+
+  // === MONETARY CONDITIONS ===
+
+  const yieldEffect = ((inputs.giltYield10y - 4.15) * -0.015) / 12;
+  monthlyRealGrowth += yieldEffect;
+
+  const sterlingEffect = ((inputs.sterlingIndex - 100) * -0.0008) / 12;
+  monthlyRealGrowth += sterlingEffect;
+
+  // === EXTERNAL DEMAND ===
+
+  const externalDemandEffect = Math.max(
+    -0.04,
+    Math.min(0.04, ((inputs.currentAccountGDP - -3.1) * 0.05) / 12)
+  );
+  monthlyRealGrowth += externalDemandEffect;
+
+  // === HOUSING SUPPLY ===
+
+  const housingSupplyEffect =
+    ((((inputs.houseBuildingAnnualStarts || 240000) - 240000) / 240000) * 0.025) / 12;
+  monthlyRealGrowth += housingSupplyEffect;
+
+  // === EXTERNAL SHOCKS ===
+
+  if (inputs.externalShockActive && inputs.externalShockType === 'trade_war') {
+    monthlyRealGrowth *= 0.9;
+  }
+  if ((inputs.exportShockTurnsRemaining || 0) > 0) {
+    monthlyRealGrowth += -(0.1 + Math.random() * 0.1) / 12;
+  }
+
+  // === ADVISER BONUS ===
+
   monthlyRealGrowth += inputs.gdpGrowthBonus / 12;
 
-  // Difficulty scaling
-  monthlyRealGrowth *= inputs.difficultyMarketReactionScale;
+  // === RANDOM SHOCK ===
 
-  // Clamp to realistic range
-  monthlyRealGrowth = Math.max(-1.5, Math.min(2.0, monthlyRealGrowth));
+  const randomShock = inputs.isFirstProcessedTurn
+    ? 0
+    : (Math.random() - 0.5) * 0.12 * inputs.macroShockScale;
+  monthlyRealGrowth += randomShock;
 
-  const gdpGrowthAnnual = monthlyRealGrowth * 12;
-  const gdpNominal_bn = inputs.gdpNominal_bn * (1 + monthlyRealGrowth / 100 + inputs.inflationCPI / 1200);
-  const outputGap = gdpGrowthAnnual - potentialGrowthTarget;
+  // === NO-CHANGE CLAMPING ===
+
+  if (noSpendDelta && noTaxDelta) {
+    const baselineLower = trendGrowth - 0.08;
+    const baselineUpper = trendGrowth + 0.08;
+    monthlyRealGrowth = Math.max(baselineLower, Math.min(baselineUpper, monthlyRealGrowth));
+  }
+
+  // Clamp monthly real growth to realistic UK range
+  monthlyRealGrowth = Math.max(-0.25, Math.min(0.25, monthlyRealGrowth));
+
+  // Nominal GDP growth = real growth + inflation
+  const monthlyInflation = inputs.inflationCPI / 12;
+  let monthlyNominalGrowth = monthlyRealGrowth + monthlyInflation;
+
+  // Turn-0 stabilisation
+  if (inputs.isFirstProcessedTurn) {
+    const baselineNominalGrowth = inputs.gdpGrowthMonthly + monthlyInflation;
+    monthlyNominalGrowth = Math.max(
+      baselineNominalGrowth - 0.1,
+      Math.min(baselineNominalGrowth + 0.1, monthlyNominalGrowth)
+    );
+    monthlyRealGrowth = monthlyNominalGrowth - monthlyInflation;
+  }
+
+  monthlyNominalGrowth = Math.max(-2, Math.min(2, monthlyNominalGrowth));
+  monthlyRealGrowth = monthlyNominalGrowth - monthlyInflation;
+
+  // Calculate new nominal GDP
+  const newGDP = inputs.gdpNominal_bn * (1 + monthlyNominalGrowth / 100);
+
+  // Annualise real growth via compounding
+  const annualRealGrowth = (Math.pow(1 + monthlyRealGrowth / 100, 12) - 1) * 100;
 
   return {
     gdpGrowthMonthly: monthlyRealGrowth,
-    gdpGrowthAnnual,
-    gdpNominal_bn,
-    outputGap,
+    gdpGrowthAnnual: annualRealGrowth,
+    gdpNominal_bn: newGDP,
   };
 }

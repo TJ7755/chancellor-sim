@@ -48,6 +48,10 @@ import { processPMCommunicationsStep } from './domain/pm/communications-step';
 import { processFiscalEventCycle } from './domain/fiscal/fiscal-event-cycle';
 import { processParliamentaryMechanics } from './domain/parliament/parliamentary-mechanics';
 import { getDifficultySettings as getDomainDifficultySettings } from './domain/game/difficulty';
+import { calculateInflation as calculateInflationDomain, InflationInputs } from './domain/economy/inflation';
+import { calculateDebtDynamics, DebtInputs } from './domain/fiscal/debt';
+import { calculateGDPGrowth as calculateGDPGrowthDomain, GDPInputs } from './domain/economy/gdp';
+import { calculateTaxRevenue as calculateTaxRevenueDomain, TaxRevenueInputs } from './domain/fiscal/tax-revenue';
 
 const DEPARTMENTAL_SPENDING_KEYS = [
   'nhs',
@@ -636,321 +640,55 @@ function calculateProductivity(state: GameState): GameState {
  * 5. Productivity growth feeds into potential GDP
  */
 function calculateGDPGrowth(state: GameState): GameState {
-  const { economic, fiscal, markets } = state;
+  const { economic, fiscal, markets, services, externalSector, housing, industrialStrategy } = state;
   const difficulty = getDifficultySettings(state);
   const adviserBonuses = getAdviserBonuses(state);
 
-  // Base trend REAL growth = trend productivity growth + labour force growth
-  // UK labour force growth ~0.75%/yr including net immigration contribution (OBR LTO 2024).
-  // was 0.50; raised to 0.75 to match OBR potential output assumption.
-  const labourForceGrowth = 0.75;
-  const rawTrendGrowthAnnual = economic.productivityGrowthAnnual + labourForceGrowth;
-
-  // Medium-term convergence to potential (~1.5% real growth)
-  // Pulls the economy back toward plausible long-run UK potential output.
-  // Coefficient was 0.06; raised to 0.10 to produce realistic 1.0–1.5% baseline once
-  // the phantom spending-baseline bug (below) is corrected.
-  const potentialGrowthTarget = 1.5;
-  const trendGrowthAnnual = rawTrendGrowthAnnual + (potentialGrowthTarget - rawTrendGrowthAnnual) * 0.1;
-  const trendGrowth = trendGrowthAnnual / 12; // Monthly
-  let monthlyRealGrowth = trendGrowth;
-
-  // === DEMAND-SIDE EFFECTS ===
-
-  // Baselines — must exactly match the July 2024 values in createInitialFiscalState()
-  // so that zero delta = zero fiscal demand impulse at game start.
-  // BUG FIX: baselineDefenceCurrent was 39.4 (typo); correct value is 39.0.
-  // CRITICAL FIX: baselineOtherCurrent was 135.8 (incorrectly derived from a partial sum).
-  //   Correct value = policeCurrent(18.5) + justiceCurrent(12.7) + otherCurrent(306.0) = 337.2.
-  //   The miscalibrated 135.8 created a phantom +£201bn demand impulse that added ~3%/yr
-  //   to annualised GDP growth at neutral policy — the primary cause of Known Issue #1.
-  const baselineNHSCurrent = BASELINE_NHS_CURRENT_SPENDING_BN;
-  const baselineEducationCurrent = BASELINE_EDUCATION_CURRENT_SPENDING_BN;
-  const baselineDefenceCurrent = BASELINE_DEFENCE_CURRENT_SPENDING_BN;
-  const baselineWelfareCurrent = BASELINE_WELFARE_CURRENT_SPENDING_BN;
-  const baselineOtherCurrent = BASELINE_OTHER_CURRENT_COMBINED_BN;
-  const baselineCapital = BASELINE_TOTAL_CAPITAL_SPENDING_BN;
-
-  // Changes from baseline
-  const nhsCurrentChange = fiscal.spending.nhsCurrent - baselineNHSCurrent;
-  const educationCurrentChange = fiscal.spending.educationCurrent - baselineEducationCurrent;
-  const defenceCurrentChange = fiscal.spending.defenceCurrent - baselineDefenceCurrent;
-  const welfareCurrentChange = fiscal.spending.welfareCurrent - baselineWelfareCurrent;
-  const otherCurrentChange =
-    fiscal.spending.policeCurrent +
-    fiscal.spending.justiceCurrent +
-    fiscal.spending.otherCurrent -
-    baselineOtherCurrent;
-
-  const capitalChange =
-    fiscal.spending.nhsCapital +
-    fiscal.spending.educationCapital +
-    fiscal.spending.defenceCapital +
-    fiscal.spending.infrastructureCapital +
-    fiscal.spending.policeCapital +
-    fiscal.spending.justiceCapital +
-    fiscal.spending.otherCapital -
-    baselineCapital;
-
-  // Economic slack multiplier (higher multipliers in recession)
-  const unemploymentGap = economic.unemploymentRate - 4.5;
-  const slackMultiplier = Math.max(0.9, Math.min(1.4, 1 + unemploymentGap * 0.12));
-
-  // Category-specific multipliers (short-run demand effect)
-  // RECALIBRATED to match OBR/IFS evidence (reduced by ~35-40%)
-  // NHS current: medium-high multiplier (wages + procurement + supply chains)
-  let nhsMultiplier = 0.7 * slackMultiplier;
-
-  // Education current: medium-high multiplier (wages + local spending)
-  let educationMultiplier = 0.65 * slackMultiplier;
-
-  // Welfare/transfers: high multiplier (high MPC recipients)
-  let welfareMultiplier = 0.7 * slackMultiplier;
-
-  // Defence/admin: lower multiplier (some leakage, imports, procurement delays)
-  let defenceMultiplier = 0.45 * slackMultiplier;
-  let otherMultiplier = 0.5 * slackMultiplier;
-
-  // Capital spending: medium multiplier + long-run productivity effect (handled in productivity function)
-  let capitalMultiplier = 0.65 * slackMultiplier;
-
-  // Inflation dampener (supply constraints reduce real multipliers)
-  if (economic.inflationCPI > 3) {
-    const dampener = Math.max(0.7, 1 - (economic.inflationCPI - 3) * 0.06);
-    nhsMultiplier *= dampener;
-    educationMultiplier *= dampener;
-    welfareMultiplier *= dampener;
-    defenceMultiplier *= dampener;
-    otherMultiplier *= dampener;
-    capitalMultiplier *= dampener;
-  }
-
-  const outputGapCurrent = economic.gdpGrowthAnnual - 1.0;
-  if (outputGapCurrent > 0) {
-    const overheatingDampener = Math.max(0.75, 1 - outputGapCurrent * 0.08);
-    nhsMultiplier *= overheatingDampener;
-    educationMultiplier *= overheatingDampener;
-    welfareMultiplier *= overheatingDampener;
-    defenceMultiplier *= overheatingDampener;
-    otherMultiplier *= overheatingDampener;
-    capitalMultiplier *= overheatingDampener;
-  }
-
-  // Fiscal impact on demand (convert £bn changes to % GDP impact)
-  const nominalGDP = economic.gdpNominal_bn;
-  const fiscalDemandImpact =
-    (((nhsCurrentChange * nhsMultiplier +
-      educationCurrentChange * educationMultiplier +
-      welfareCurrentChange * welfareMultiplier +
-      defenceCurrentChange * defenceMultiplier +
-      otherCurrentChange * otherMultiplier +
-      capitalChange * capitalMultiplier) /
-      nominalGDP) *
-      100) /
-    12; // Convert to monthly % change
-
-  monthlyRealGrowth += fiscalDemandImpact;
-
-  const noSpendDelta =
-    nhsCurrentChange === 0 &&
-    educationCurrentChange === 0 &&
-    defenceCurrentChange === 0 &&
-    welfareCurrentChange === 0 &&
-    otherCurrentChange === 0 &&
-    capitalChange === 0;
-
-  // === TAX EFFECTS (both demand and supply-side) ===
-
-  // Income tax changes: demand effect via disposable income
-  // RECALIBRATED: OBR estimates ~0.35 multiplier for income tax (lower than previously)
-  // MPC varies by income: low earners 0.6-0.9, high earners 0.1-0.4
-  // Approximate weighted MPC ~0.45 for basic rate, ~0.18 for higher/additional
-  const baselineIncomeTaxBasic = BASELINE_INCOME_TAX_BASIC_RATE;
-  const baselineIncomeTaxHigher = BASELINE_INCOME_TAX_HIGHER_RATE;
-  const baselineIncomeTaxAdditional = BASELINE_INCOME_TAX_ADDITIONAL_RATE;
-
-  const basicRateChange = fiscal.incomeTaxBasicRate - baselineIncomeTaxBasic;
-  const higherRateChange = fiscal.incomeTaxHigherRate - baselineIncomeTaxHigher;
-  const additionalRateChange = fiscal.incomeTaxAdditionalRate - baselineIncomeTaxAdditional;
-
-  // Each 1pp income tax change affects ~£7bn (basic), ~£2bn (higher), ~£0.2bn (additional)
-  // Demand impact = - (tax increase) * (income affected) * MPC * multiplier / GDP
-  // Reduced multiplier from 1.0 to 0.35 following OBR methodology
-  const incomeTaxDemandEffect =
-    ((-(basicRateChange * 7 * 0.45 + higherRateChange * 2 * 0.18 + additionalRateChange * 0.2 * 0.12) / nominalGDP) *
-      100 *
-      0.35 *
-      slackMultiplier) /
-    12;
-  monthlyRealGrowth += incomeTaxDemandEffect;
-
-  // NI changes: similar to income tax but affects different income distribution
-  // RECALIBRATED to match OBR estimates (~0.3-0.35 multiplier)
-  const baselineNIEmployee = BASELINE_NI_EMPLOYEE_RATE;
-  const baselineNIEmployer = BASELINE_NI_EMPLOYER_RATE;
-
-  const niEmployeeChange = fiscal.nationalInsuranceRate - baselineNIEmployee;
-  const niEmployerChange = fiscal.employerNIRate - baselineNIEmployer;
-
-  // Employee NI affects disposable income (£6bn per pp, MPC ~0.5)
-  // Reduced multiplier to 0.35
-  const niEmployeeDemandEffect = ((-(niEmployeeChange * 6 * 0.5) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
-  // Employer NI has weaker short-run demand effect (some passed to workers, some to prices, some absorbed)
-  // Reduced multiplier to 0.2
-  const niEmployerDemandEffect = ((-(niEmployerChange * 8.5 * 0.25) / nominalGDP) * 100 * 0.2 * slackMultiplier) / 12;
-  monthlyRealGrowth += niEmployeeDemandEffect + niEmployerDemandEffect;
-
-  // VAT changes: point-of-sale demand effect
-  // RECALIBRATED: OBR uses ~0.35 multiplier for VAT
-  const baselineVAT = BASELINE_VAT_RATE;
-  const vatChange = fiscal.vatRate - baselineVAT;
-  const vatDemandEffect = ((-(vatChange * 7.5 * 0.45) / nominalGDP) * 100 * 0.35 * slackMultiplier) / 12;
-  monthlyRealGrowth += vatDemandEffect;
-
-  // Corporation tax: SHORT-RUN supply-side effect (affects investment decisions)
-  // Long-run effect via productivity already captured
-  // Multiplier 0.1-0.4 for short-run investment response
-  const baselineCorpTax = BASELINE_CORPORATION_TAX_RATE;
-  const corpTaxChange = fiscal.corporationTaxRate - baselineCorpTax;
-
-  // Supply-side: lower corp tax → more investment (gradual, conditional)
-  // Short-run investment response: each 1pp corp tax cut adds ~£0.3bn investment (with lag)
-  // Use 6-month lag: only 50% of effect hits in first month
-  const corpTaxInvestmentEffect = ((-(corpTaxChange * 0.3 * 0.5 * 0.3) / nominalGDP) * 100) / 12; // 0.3 = multiplier
-  monthlyRealGrowth += corpTaxInvestmentEffect;
-
-  // Corp tax above 30%: accelerating discouragement (base erosion, profit shifting)
-  if (fiscal.corporationTaxRate > 30) {
-    const corpTaxPenalty = ((fiscal.corporationTaxRate - 30) * -0.008) / 12;
-    monthlyRealGrowth += corpTaxPenalty;
-  }
-
-  // Top income tax above 50%: labour supply and entrepreneurship effect
-  if (fiscal.incomeTaxAdditionalRate > 50) {
-    const topRatePenalty = ((fiscal.incomeTaxAdditionalRate - 50) * -0.003) / 12;
-    monthlyRealGrowth += topRatePenalty;
-  }
-
-  // === SUPPLY-SIDE EFFECTS (from public services) ===
-  // Reference levels use the July 2024 starting quality scores (45, 58, 48)
-  // rather than abstract ideal values (62, 68, 58) that created a structural drag
-  // of ~-0.084%/yr at baseline — i.e. the model penalised neutral policy for simply
-  // starting with a stressed NHS/education system.  Effects remain non-zero relative
-  // to the baseline start, so policy-driven quality improvements still lift GDP.
-  // The productivity step (Step 0.7) separately captures long-run human-capital effects.
-
-  // Healthy workforce: NHS quality affects labour supply and absenteeism
-  const healthSupplySide = ((state.services.nhsQuality - 45) * 0.002) / 12; // ref was 62; corrected to 45
-  monthlyRealGrowth += healthSupplySide;
-
-  // Educated workforce: education quality affects human capital accumulation
-  const educationSupplySide = ((state.services.educationQuality - 58) * 0.003) / 12; // ref was 68; corrected to 58
-  monthlyRealGrowth += educationSupplySide;
-
-  // Infrastructure: good infrastructure raises allocative efficiency (also captured via productivity)
-  const infraSupplySide = ((state.services.infrastructureQuality - 48) * 0.002) / 12; // ref was 58; corrected to 48
-  monthlyRealGrowth += infraSupplySide;
-
-  // === MONETARY CONDITIONS ===
-
-  // Bank Rate / gilt yields affect borrowing costs → investment & consumption
-  const yieldEffect = ((markets.giltYield10y - 4.15) * -0.015) / 12;
-  monthlyRealGrowth += yieldEffect;
-
-  // Sterling: appreciation hurts exports, depreciation helps (with lag)
-  const sterlingEffect = ((markets.sterlingIndex - 100) * -0.0008) / 12;
-  monthlyRealGrowth += sterlingEffect;
-
-  const externalDemandEffect = Math.max(
-    -0.04,
-    Math.min(0.04, ((state.externalSector.currentAccountGDP - -3.1) * 0.05) / 12)
-  );
-  monthlyRealGrowth += externalDemandEffect;
-  const housingSupplyEffect = ((((state.housing.houseBuilding_annualStarts || 240000) - 240000) / 240000) * 0.025) / 12;
-  monthlyRealGrowth += housingSupplyEffect;
-
-  if (state.externalSector.externalShockActive && state.externalSector.externalShockType === 'trade_war') {
-    monthlyRealGrowth *= 0.9;
-  }
-  if ((state.industrialStrategy.exportShockTurnsRemaining || 0) > 0) {
-    monthlyRealGrowth += -(0.1 + Math.random() * 0.1) / 12;
-  }
-
-  // === AUTOMATIC STABILISERS ===
-  // These are partly captured through unemployment-triggered welfare spending (in spending effects),
-  // but also through progressive tax system automatically adjusting revenues
-  // (captured in tax revenue calculations)
-
-  // === ADVISER BONUSES ===
-  monthlyRealGrowth += adviserBonuses.gdpGrowthBonus / 12;
-
-  // === BUSINESS CYCLE RANDOMNESS ===
-  // RECALIBRATED: Reduced random volatility to match realistic monthly GDP data
-  // UK monthly GDP growth rarely moves more than ±0.15% from expected
   const isFirstProcessedTurn = state.metadata.currentTurn <= 1 && (state.simulation.monthlySnapshots?.length || 0) <= 1;
-  const randomShock = isFirstProcessedTurn ? 0 : (Math.random() - 0.5) * 0.12 * difficulty.macroShockScale;
-  monthlyRealGrowth += randomShock;
 
-  const noTaxDelta =
-    basicRateChange === 0 &&
-    higherRateChange === 0 &&
-    additionalRateChange === 0 &&
-    niEmployeeChange === 0 &&
-    niEmployerChange === 0 &&
-    vatChange === 0 &&
-    corpTaxChange === 0;
+  const inputs: GDPInputs = {
+    productivityGrowthAnnual: economic.productivityGrowthAnnual,
+    unemploymentRate: economic.unemploymentRate,
+    inflationCPI: economic.inflationCPI,
+    gdpGrowthAnnual: economic.gdpGrowthAnnual,
+    gdpGrowthMonthly: economic.gdpGrowthMonthly,
+    gdpNominal_bn: economic.gdpNominal_bn,
+    spending: fiscal.spending,
+    taxRates: {
+      incomeTaxBasicRate: fiscal.incomeTaxBasicRate,
+      incomeTaxHigherRate: fiscal.incomeTaxHigherRate,
+      incomeTaxAdditionalRate: fiscal.incomeTaxAdditionalRate,
+      nationalInsuranceRate: fiscal.nationalInsuranceRate,
+      employerNIRate: fiscal.employerNIRate,
+      vatRate: fiscal.vatRate,
+      corporationTaxRate: fiscal.corporationTaxRate,
+    },
+    giltYield10y: markets.giltYield10y,
+    sterlingIndex: markets.sterlingIndex,
+    gdpGrowthBonus: adviserBonuses.gdpGrowthBonus,
+    nhsQuality: services.nhsQuality,
+    educationQuality: services.educationQuality,
+    infrastructureQuality: services.infrastructureQuality,
+    currentAccountGDP: externalSector.currentAccountGDP,
+    externalShockActive: externalSector.externalShockActive,
+    externalShockType: externalSector.externalShockType,
+    exportShockTurnsRemaining: industrialStrategy.exportShockTurnsRemaining || 0,
+    houseBuildingAnnualStarts: housing.houseBuilding_annualStarts || 240000,
+    isFirstProcessedTurn,
+    currentTurn: state.metadata.currentTurn,
+    monthlySnapshotsLength: state.simulation.monthlySnapshots?.length || 0,
+    macroShockScale: difficulty.macroShockScale,
+  };
 
-  if (noSpendDelta && noTaxDelta) {
-    const baselineLower = trendGrowth - 0.08;
-    const baselineUpper = trendGrowth + 0.08;
-    monthlyRealGrowth = Math.max(baselineLower, Math.min(baselineUpper, monthlyRealGrowth));
-  }
-
-  // Clamp monthly REAL growth to realistic UK range
-  // UK quarterly growth: typically -0.5% to +0.7% → monthly: -0.17% to +0.23%
-  // Allow wider range for rare shocks, but not enough to generate persistent ~4% annual growth without policy moves.
-  monthlyRealGrowth = Math.max(-0.25, Math.min(0.25, monthlyRealGrowth));
-
-  // Nominal GDP growth = real growth + inflation
-  const monthlyInflation = economic.inflationCPI / 12;
-  let monthlyNominalGrowth = monthlyRealGrowth + monthlyInflation;
-
-  // Turn-0 stabilisation pass: prevent an artificial first-month nominal GDP jump
-  // when transitioning from static initial values into the dynamic compounding model.
-  if (isFirstProcessedTurn) {
-    const baselineNominalGrowth = economic.gdpGrowthMonthly + monthlyInflation;
-    monthlyNominalGrowth = Math.max(
-      baselineNominalGrowth - 0.1,
-      Math.min(baselineNominalGrowth + 0.1, monthlyNominalGrowth)
-    );
-    monthlyRealGrowth = monthlyNominalGrowth - monthlyInflation;
-  }
-
-  const rawMonthlyNominalGrowth = monthlyNominalGrowth;
-  monthlyNominalGrowth = Math.max(-2, Math.min(2, monthlyNominalGrowth));
-  if (state.metadata.currentTurn === 1 && Math.abs(rawMonthlyNominalGrowth - monthlyNominalGrowth) > 0.0001) {
-    console.warn('[GDP guard] Turn-1 nominal growth clamped.', {
-      rawMonthlyNominalGrowthPct: round1(rawMonthlyNominalGrowth),
-      clampedMonthlyNominalGrowthPct: round1(monthlyNominalGrowth),
-      priorGDP_bn: round1(economic.gdpNominal_bn),
-      turn: state.metadata.currentTurn,
-    });
-  }
-  monthlyRealGrowth = monthlyNominalGrowth - monthlyInflation;
-
-  // Calculate new nominal GDP
-  const newGDP = economic.gdpNominal_bn * (1 + monthlyNominalGrowth / 100);
-
-  // Annualise REAL growth via compounding
-  const annualRealGrowth = (Math.pow(1 + monthlyRealGrowth / 100, 12) - 1) * 100;
+  const result = calculateGDPGrowthDomain(inputs);
 
   return {
     ...state,
     economic: {
       ...economic,
-      gdpGrowthMonthly: monthlyRealGrowth,
-      gdpGrowthAnnual: annualRealGrowth,
-      gdpNominal_bn: newGDP,
+      gdpGrowthMonthly: result.gdpGrowthMonthly,
+      gdpGrowthAnnual: result.gdpGrowthAnnual,
+      gdpNominal_bn: result.gdpNominal_bn,
     },
   };
 }
@@ -1212,103 +950,30 @@ function calculateInflation(state: GameState): GameState {
   const { economic, fiscal, markets } = state;
   const difficulty = getDifficultySettings(state);
 
-  // Hybrid Phillips Curve
-  const nairu = 4.25;
-  const unemploymentGap = nairu - economic.unemploymentRate;
+  const inflationInputs: InflationInputs = {
+    inflationCPI: economic.inflationCPI,
+    inflationExpectations: economic.inflationExpectations ?? economic.inflationCPI,
+    inflationAnchorHealth: economic.inflationAnchorHealth ?? 100,
+    unemploymentRate: economic.unemploymentRate,
+    wageGrowthAnnual: economic.wageGrowthAnnual,
+    bankRate: markets.bankRate,
+    sterlingIndex: markets.sterlingIndex,
+    vatRate: fiscal.vatRate,
+    energyImportPricePressure: state.externalSector.energyImportPricePressure,
+    rentInflation_pct: state.housing.rentInflation_pct || 6,
+    housingAffordabilityIndex: state.housing.housingAffordabilityIndex,
+    inflationShockScale: difficulty.inflationShockScale,
+  };
 
-  // New Feature: Inflation Expectations De-anchoring (Realistic Mode)
-  // If inflation runs hot for too long, expectations become "unmoored" from the 2% target
-  // They start following recent trends instead (adaptive expectations)
-  // This makes inflation "sticky" and harder to bring down
-
-  let anchorHealth = economic.inflationAnchorHealth ?? 100; // 0-100 score
-
-  // Decay logic (only in Realistic/Standard, but mostly bites in Realistic due to volatility)
-  if (economic.inflationCPI > 8.0) {
-    anchorHealth -= 4.0; // Rapid loss of credibility
-  } else if (economic.inflationCPI > 5.0) {
-    anchorHealth -= 2.0; // Steady erosion
-  } else if (economic.inflationCPI > 3.5) {
-    anchorHealth -= 0.5; // Slight drift
-  }
-
-  // Recovery logic (hard work required)
-  // Requires low inflation AND positive real interest rates (credibility signal)
-  const realRate = markets.bankRate - economic.inflationCPI;
-  if (economic.inflationCPI < 3.0 && realRate > 1.0) {
-    anchorHealth += 1.0; // Re-anchoring
-  } else if (economic.inflationCPI < 2.5) {
-    anchorHealth += 0.5; // Passive stability
-  }
-
-  anchorHealth = Math.max(0, Math.min(100, anchorHealth));
-
-  // Calculate Expectations Term
-  // Standard model: 40% weight on expectations
-  // If anchored: 40% on Target (2.0%)
-  // If de-anchored: 40% on Recent Trend (adaptive)
-  const totalExpectationsWeight = 0.55;
-  const anchorWeight = anchorHealth / 100; // 1.0 = fully anchored, 0.0 = fully adaptive
-
-  const previousExpectations = economic.inflationExpectations ?? economic.inflationCPI;
-  const adaptiveExpectation = previousExpectations * 0.7 + economic.inflationCPI * 0.3;
-  const targetAnchoredExpectation = 2.0 * 0.3 + economic.inflationCPI * 0.7;
-  const inflationExpectations = anchorHealth < 60 ? adaptiveExpectation : targetAnchoredExpectation;
-  const recentTrend = inflationExpectations;
-  const expectationsTerm =
-    2.0 * anchorWeight * totalExpectationsWeight + recentTrend * (1 - anchorWeight) * totalExpectationsWeight;
-
-  // Persistence (20%): inflation has inertia
-  const persistence = economic.inflationCPI * 0.2;
-
-  // Domestic pressure (15%): Phillips curve
-  const domesticPressure = (2.0 + unemploymentGap * 0.5) * 0.15;
-
-  // Import prices (10%): sterling effect
-  const sterlingChange = (100 - markets.sterlingIndex) / 100;
-  const importPressure = (2.0 + sterlingChange * 8.0) * 0.1;
-
-  // VAT pass-through (one-off level effect spread over months)
-  const vatChange = fiscal.vatRate - 20;
-  const vatEffect = vatChange * 0.04; // Spread effect
-
-  // Wage-price spiral component
-  const realWageGap = economic.wageGrowthAnnual - economic.inflationCPI;
-  const wagePressure = realWageGap > 2.0 ? (realWageGap - 2.0) * 0.1 : 0;
-  const energyImportInflationEffect = Math.max(
-    -0.4,
-    Math.min(0.4, state.externalSector.energyImportPricePressure * 0.08)
-  );
-  const rentInflationEffect = ((state.housing.rentInflation_pct || 6) - 6) * 0.08;
-  const affordabilityServicesEffect = state.housing.housingAffordabilityIndex < 40 ? 0.2 : 0;
-
-  let inflation =
-    persistence +
-    expectationsTerm +
-    domesticPressure +
-    importPressure +
-    vatEffect +
-    wagePressure +
-    energyImportInflationEffect +
-    rentInflationEffect +
-    affordabilityServicesEffect;
-
-  // Small random component
-  const randomShock = (Math.random() - 0.5) * 0.5 * difficulty.inflationShockScale;
-  inflation += randomShock;
-
-  // Clamp to realistic UK range (deflation to high but not hyperinflation - unless de-anchored!)
-  // If de-anchored, allow it to run higher
-  const maxInflation = anchorHealth < 50 ? 20.0 : 12.0;
-  inflation = Math.max(-2.0, Math.min(maxInflation, inflation));
+  const result = calculateInflationDomain(inflationInputs);
 
   return {
     ...state,
     economic: {
       ...economic,
-      inflationCPI: inflation,
-      inflationAnchorHealth: anchorHealth,
-      inflationExpectations,
+      inflationCPI: result.inflationCPI,
+      inflationAnchorHealth: result.inflationAnchorHealth,
+      inflationExpectations: result.inflationExpectations,
     },
   };
 }
@@ -1429,153 +1094,42 @@ function calculateTaxRevenues(state: GameState): GameState {
   const { economic, fiscal } = state;
   const difficulty = getDifficultySettings(state);
   const adviserBonuses = getAdviserBonuses(state);
-  const effectiveTaxAvoidanceScale = difficulty.taxAvoidanceScale;
 
-  // Base revenues (£bn annual): Income Tax 269, NI 164, VAT 171, Corp Tax 88, Other 386
-  // Scale by cumulative nominal GDP growth from baseline, with elasticities
-
-  // Use ratio of current nominal GDP to baseline to capture cumulative growth
-  const baselineNominalGDP = BASELINE_NOMINAL_GDP_BN;
-  const nominalGDPRatio = economic.gdpNominal_bn / baselineNominalGDP;
-
-  // Income tax (elasticity 1.1 to nominal GDP)
-  const incomeTaxBase = 285;
-  const incomeTaxRateEffect =
-    (fiscal.incomeTaxBasicRate - 20) * 7.0 +
-    (fiscal.incomeTaxHigherRate - 40) * 2.0 +
-    (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
-  const personalAllowanceEffect = ((12570 - (fiscal.personalAllowance || 12570)) / 100) * 0.6;
-  const basicThresholdEffect = ((50270 - (fiscal.basicRateUpperThreshold || 50270)) / 1000) * 1.1;
-  const higherThresholdEffect = ((125140 - (fiscal.higherRateUpperThreshold || 125140)) / 1000) * 0.25;
-
-  let fiscalDragMultiplier = 1;
-  if ((fiscal.thresholdUprating || 'frozen') === 'frozen') {
-    const freezeYears = (fiscal.thresholdFreezeMonths || 0) / 12;
-    fiscalDragMultiplier = Math.pow(1 + Math.max(0, economic.wageGrowthAnnual) / 100, 0.35 * Math.max(0, freezeYears));
-  } else if (fiscal.thresholdUprating === 'earnings_linked') {
-    fiscalDragMultiplier = 0.985;
-  }
-
-  // CRITICAL FIX: Tax avoidance on additional rate (top 1% of earners)
-  // Above 50%, avoidance accelerates (salary sacrifice, incorporation, emigration)
-  // Scaled by difficulty setting
-  let additionalRateAvoidanceLoss = 0;
-  if (fiscal.incomeTaxAdditionalRate > 50) {
-    const excessRate = fiscal.incomeTaxAdditionalRate - 50;
-    // Each pp above 50% loses 0.8% of the additional rate base (£54bn at baseline)
-    // Accelerates: at 60%, loses 10*0.8=8% = £4.3bn; at 70%, loses 20*0.8=16% = £8.6bn
-    const avoidanceRate = Math.pow(1.016, excessRate) - 1; // Exponential: ~1.6% per pp, accelerating
-    additionalRateAvoidanceLoss = 54 * avoidanceRate * effectiveTaxAvoidanceScale;
-  }
-
-  const incomeTaxRevenue =
-    (incomeTaxBase +
-      incomeTaxRateEffect +
-      personalAllowanceEffect +
-      basicThresholdEffect +
-      higherThresholdEffect -
-      additionalRateAvoidanceLoss) *
-    Math.pow(nominalGDPRatio, 1.1) *
-    fiscalDragMultiplier;
-
-  // National Insurance (elasticity 1.0)
-  // Employee NI + Employer NI combined
-  const niBase = 175;
-  const niEmployeeRateEffect = (fiscal.nationalInsuranceRate - 8) * 6.0;
-  const niEmployerRateEffect = (fiscal.employerNIRate - 13.8) * 8.5;
-
-  // CRITICAL FIX: National Insurance avoidance (H4 completion)
-  // Employee NI above 12%: salary sacrifice, dividend substitution, contractor reclassification
-  let niEmployeeAvoidanceLoss = 0;
-  if (fiscal.nationalInsuranceRate > 12) {
-    const excessRate = fiscal.nationalInsuranceRate - 12;
-    // Exponential avoidance: ~2% per pp above 12%
-    // At 15% NI: loses ~6%; at 18%: loses ~12%
-    const avoidanceRate = Math.pow(1.02, excessRate) - 1;
-    niEmployeeAvoidanceLoss = (niBase * 0.6 + niEmployeeRateEffect) * avoidanceRate * effectiveTaxAvoidanceScale;
-  }
-
-  // Employer NI above 15%: shift to contractors, offshore, automation to reduce headcount
-  let niEmployerAvoidanceLoss = 0;
-  if (fiscal.employerNIRate > 15) {
-    const excessRate = fiscal.employerNIRate - 15;
-    // Exponential avoidance: ~2.5% per pp above 15%
-    // At 18% NI: loses ~8%; at 21%: loses ~15%
-    const avoidanceRate = Math.pow(1.025, excessRate) - 1;
-    niEmployerAvoidanceLoss = (niBase * 0.4 + niEmployerRateEffect) * avoidanceRate * effectiveTaxAvoidanceScale;
-  }
-
-  const niRevenue =
-    (niBase + niEmployeeRateEffect + niEmployerRateEffect - niEmployeeAvoidanceLoss - niEmployerAvoidanceLoss) *
-    Math.pow(nominalGDPRatio, 1.0);
-
-  // VAT (elasticity 1.0 to consumption)
-  const vatBase = 192;
-  const vatRateEffect = (fiscal.vatRate - 20) * 7.5;
-
-  // CRITICAL FIX: VAT behavioral response (consumption reduction)
-  // Higher VAT reduces real consumption via two channels:
-  // 1. Price effect: people buy less when prices rise
-  // 2. Evasion/substitution: cash economy, cross-border shopping
-  let vatBehavioralLoss = 0;
-  if (fiscal.vatRate > 20) {
-    const excessRate = fiscal.vatRate - 20;
-    // Each pp above 20% loses ~2% of VAT base (semi-elastic demand)
-    // At 25% VAT: loses ~10% of base; at 30%: loses ~20%
-    const consumptionReduction = Math.pow(1.02, excessRate) - 1;
-    vatBehavioralLoss = (vatBase + vatRateEffect) * consumptionReduction * effectiveTaxAvoidanceScale;
-  }
-
-  const vatRevenue = Math.max(0, (vatBase + vatRateEffect - vatBehavioralLoss) * Math.pow(nominalGDPRatio, 1.0));
-
-  // Corporation Tax (elasticity 1.3, volatile)
-  const corpTaxBase = 94;
-  const corpTaxRateEffect = (fiscal.corporationTaxRate - 25) * 3.2;
-
-  // CRITICAL FIX: Corporation tax avoidance (profit shifting, base erosion)
-  // Above 30%, avoidance accelerates dramatically (transfer pricing, IP offshoring)
-  // Scaled by difficulty setting
-  let corpTaxAvoidanceLoss = 0;
-  if (fiscal.corporationTaxRate > 30) {
-    const excessRate = fiscal.corporationTaxRate - 30;
-    // Avoidance accelerates exponentially: at 35%, ~10% base lost; at 40%, ~20% lost; at 45%, ~35% lost
-    const avoidanceRate = Math.pow(1.035, excessRate) - 1; // Exponential: ~3.5% per pp, accelerating
-    const effectiveBase = corpTaxBase + corpTaxRateEffect;
-    corpTaxAvoidanceLoss = effectiveBase * avoidanceRate * effectiveTaxAvoidanceScale;
-  }
-
-  // UPDATED: Reduced elasticity from 1.3 to 1.05 to match OBR estimates
-  const fullExpensingCost = fiscal.fullExpensing ? 3.5 : 0;
-  const corpTaxRevenue = Math.max(
-    0,
-    (corpTaxBase + corpTaxRateEffect - corpTaxAvoidanceLoss - fullExpensingCost) * Math.pow(nominalGDPRatio, 1.05)
+  const stampDutyRate = getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5);
+  const sdltFirstTimeBuyerThreshold = getDetailedTaxRate(
+    state,
+    'sdltFirstTimeBuyerThreshold',
+    BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000
   );
 
-  // Other taxes (elasticity 0.8)
-  const otherRevenue = 323 * Math.pow(nominalGDPRatio, 0.8);
-  const baseStampDuty = 16;
-  const stampDutyRateDelta =
-    getDetailedTaxRate(state, 'stampDuty', BASELINE_DETAILED_TAX.stampDuty || 5) -
-    (BASELINE_DETAILED_TAX.stampDuty || 5);
-  const sdltFirstTimeThresholdDelta_k =
-    (getDetailedTaxRate(
-      state,
-      'sdltFirstTimeBuyerThreshold',
-      BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000
-    ) -
-      (BASELINE_DETAILED_TAX.sdltFirstTimeBuyerThreshold || 425000)) /
-    1000;
-  const sdltSurchargeDelta = (fiscal.sdltAdditionalDwellingsSurcharge || 3) - 3;
-  const stampDutyMechanical =
-    baseStampDuty + stampDutyRateDelta * 1.5 + sdltSurchargeDelta * 0.5 - sdltFirstTimeThresholdDelta_k * 0.004;
-  const stampDutyRevenue =
-    Math.max(0, stampDutyMechanical) *
-    Math.pow(Math.max(0.6, state.financialStability.housePriceIndex / 100), 1.2) *
-    Math.max(0.4, state.financialStability.mortgageApprovals / 60) *
-    Math.max(0.65, 1 - (sdltSurchargeDelta * 0.04 + Math.max(0, stampDutyRateDelta) * 0.03));
+  const inputs: TaxRevenueInputs = {
+    gdpNominal_bn: economic.gdpNominal_bn,
+    incomeTaxBasicRate: fiscal.incomeTaxBasicRate,
+    incomeTaxHigherRate: fiscal.incomeTaxHigherRate,
+    incomeTaxAdditionalRate: fiscal.incomeTaxAdditionalRate,
+    nationalInsuranceRate: fiscal.nationalInsuranceRate,
+    employerNIRate: fiscal.employerNIRate,
+    vatRate: fiscal.vatRate,
+    corporationTaxRate: fiscal.corporationTaxRate,
+    personalAllowance: fiscal.personalAllowance || 12570,
+    basicRateUpperThreshold: fiscal.basicRateUpperThreshold || 50270,
+    higherRateUpperThreshold: fiscal.higherRateUpperThreshold || 125140,
+    thresholdUprating: fiscal.thresholdUprating || 'frozen',
+    thresholdFreezeMonths: fiscal.thresholdFreezeMonths || 0,
+    wageGrowthAnnual: economic.wageGrowthAnnual,
+    fullExpensing: fiscal.fullExpensing,
+    sdltAdditionalDwellingsSurcharge: fiscal.sdltAdditionalDwellingsSurcharge || 3,
+    stampDutyRate,
+    sdltFirstTimeBuyerThreshold,
+    housePriceIndex: state.financialStability.housePriceIndex,
+    mortgageApprovals: state.financialStability.mortgageApprovals,
+    revenueAdjustment_bn: fiscal.revenueAdjustment_bn || 0,
+    taxAvoidanceScale: difficulty.taxAvoidanceScale,
+    taxRevenueMultiplier: adviserBonuses.taxRevenueMultiplier,
+  };
 
-  // Revenue adjustment from budget system reckoners (CGT, IHT, excise duties, reliefs, etc.)
-  const revenueAdj = fiscal.revenueAdjustment_bn || 0;
+  const result = calculateTaxRevenueDomain(inputs);
+
   const upratingRegime = fiscal.thresholdUprating || 'frozen';
   const monthlyCpiFactor = 1 + economic.inflationCPI / 100 / 12;
   const monthlyEarningsFactor = 1 + economic.wageGrowthAnnual / 100 / 12;
@@ -1599,17 +1153,12 @@ function calculateTaxRevenues(state: GameState): GameState {
         : fiscal.higherRateUpperThreshold;
   const nextFreezeMonths = upratingRegime === 'frozen' ? (fiscal.thresholdFreezeMonths || 0) + 1 : 0;
 
-  // Apply adviser bonus (Treasury Mandarin +3%, Technocratic Centrist +2%)
-  const totalRevenueAnnual =
-    (incomeTaxRevenue + niRevenue + vatRevenue + corpTaxRevenue + otherRevenue + stampDutyRevenue + revenueAdj) *
-    adviserBonuses.taxRevenueMultiplier;
-
   return {
     ...state,
     fiscal: {
       ...fiscal,
-      totalRevenue_bn: totalRevenueAnnual,
-      stampDutyRevenue_bn: stampDutyRevenue,
+      totalRevenue_bn: result.totalRevenue_bn,
+      stampDutyRevenue_bn: result.stampDutyRevenue,
       personalAllowance: nextPersonalAllowance,
       basicRateUpperThreshold: nextBasicUpperThreshold,
       higherRateUpperThreshold: nextHigherUpperThreshold,
@@ -1682,22 +1231,10 @@ function calculateFiscalBalance(state: GameState): GameState {
   const adviserBonuses = getAdviserBonuses(state);
   const { debtManagement, refinancingPremiumRiskModifier } = advanceDebtManagement(state);
   const profile = debtManagement.maturityProfile;
-  const debtInterestFromBuckets =
-    (profile.shortTerm.outstanding_bn * state.markets.bankRate) / 100 +
-    (profile.medium.outstanding_bn * profile.medium.avgCoupon) / 100 +
-    (profile.longTerm.outstanding_bn * profile.longTerm.avgCoupon) / 100 +
-    (profile.indexLinked.outstanding_bn * (economic.inflationCPI + 0.5)) / 100;
-  const debtInterest_bn = debtInterestFromBuckets * (1 - adviserBonuses.debtInterestReduction / 100);
 
-  // Total managed expenditure = departmental spending + debt interest
-  let totalManagedExpenditure = fiscal.totalSpending_bn + debtInterest_bn;
-
-  // Add emergency programme rebuilding costs
   const emergencyRebuildingCosts = emergencyProgrammes.active
     .filter((prog) => prog.remainingMonths > 0)
     .reduce((sum, prog) => sum + prog.rebuildingCostPerMonth_bn, 0);
-
-  totalManagedExpenditure += emergencyRebuildingCosts;
 
   const welfareAMEFloor = 115 + Math.max(0, economic.unemploymentRate - 4.5) * 4 + (fiscal.housingAMEPressure_bn || 0);
   const welfareReformAMECost =
@@ -1706,29 +1243,40 @@ function calculateFiscalBalance(state: GameState): GameState {
     Math.max(0, ((fiscal.childcareSupportRate || 30) - 30) / 10) * 1.2;
   const welfareAMEApplied = Math.max(fiscal.welfareAME_bn || 115, welfareAMEFloor) + welfareReformAMECost;
   const welfareAMEAutoGrowth_bn = Math.max(0, welfareAMEApplied - (fiscal.welfareAME_bn || 115));
-  totalManagedExpenditure += welfareAMEAutoGrowth_bn;
 
   const fpcConstraintCost_bn = fiscal.fpcConstraintCost_bn || 0;
-  totalManagedExpenditure += fpcConstraintCost_bn;
-
   const barnettConsequentials_bn = fiscal.barnettConsequentials_bn || 0;
-  totalManagedExpenditure += barnettConsequentials_bn;
-
   const industrialStrategyCost_bn = state.industrialStrategy.totalAnnualCost_bn || 0;
-  totalManagedExpenditure += industrialStrategyCost_bn;
-
   const localGovernmentGrantCost_bn = (state.devolution.localGov.centralGrant_bn || 30) - 30;
-  totalManagedExpenditure += localGovernmentGrantCost_bn;
-
   const capitalPreparationCost_bn = state.capitalDelivery.procurementPrepCost_bn || 0;
-  totalManagedExpenditure += capitalPreparationCost_bn;
 
-  const deficit_bn = totalManagedExpenditure - fiscal.totalRevenue_bn;
-  const deficitPctGDP = (deficit_bn / economic.gdpNominal_bn) * 100;
+  const debtInputs: DebtInputs = {
+    debtNominal_bn: fiscal.debtNominal_bn,
+    totalRevenue_bn: fiscal.totalRevenue_bn,
+    totalSpending_bn: fiscal.totalSpending_bn,
+    gdpNominal_bn: economic.gdpNominal_bn,
+    bankRate: state.markets.bankRate,
+    inflationCPI: economic.inflationCPI,
+    debtMaturityProfile: {
+      shortTerm_bn: profile.shortTerm.outstanding_bn,
+      shortTermCoupon: profile.shortTerm.avgCoupon,
+      medium_bn: profile.medium.outstanding_bn,
+      mediumCoupon: profile.medium.avgCoupon,
+      longTerm_bn: profile.longTerm.outstanding_bn,
+      longTermCoupon: profile.longTerm.avgCoupon,
+      indexLinked_bn: profile.indexLinked.outstanding_bn,
+    },
+    debtInterestReduction: adviserBonuses.debtInterestReduction,
+    emergencyRebuildingCosts,
+    welfareAMEAutoGrowth_bn,
+    fpcConstraintCost_bn,
+    barnettConsequentials_bn,
+    industrialStrategyCost_bn,
+    localGovernmentGrantCost_bn,
+    capitalPreparationCost_bn,
+  };
 
-  // Update debt stock (monthly increment)
-  const newDebt = fiscal.debtNominal_bn + deficit_bn / 12;
-  const debtPctGDP = (newDebt / economic.gdpNominal_bn) * 100;
+  const debtResult = calculateDebtDynamics(debtInputs);
 
   // Fiscal headroom: how much room before breaching stability rule
   // Stability rule: current budget balance (excl. investment) must be in balance
@@ -1745,7 +1293,7 @@ function calculateFiscalBalance(state: GameState): GameState {
   const currentBudgetBalance =
     fiscal.totalRevenue_bn -
     (fiscal.totalSpending_bn - totalCapitalSpending) -
-    debtInterest_bn -
+    debtResult.debtInterest_bn -
     emergencyRebuildingCosts;
   // Translate raw current-year balance to rule-specific headroom so the Dashboard
   // displays a figure that reflects the chosen fiscal framework's own threshold.
@@ -1753,11 +1301,11 @@ function calculateFiscalBalance(state: GameState): GameState {
   const headroom = calculateRuleHeadroom(
     chosenRule,
     currentBudgetBalance,
-    deficitPctGDP,
+    debtResult.deficitPctGDP,
     economic.gdpNominal_bn,
     fiscal.totalRevenue_bn,
     fiscal.totalSpending_bn,
-    debtInterest_bn
+    debtResult.debtInterest_bn
   );
 
   const updatedPolicyRiskModifiers = refinancingPremiumRiskModifier
@@ -1768,13 +1316,13 @@ function calculateFiscalBalance(state: GameState): GameState {
     ...state,
     fiscal: {
       ...fiscal,
-      deficit_bn,
-      deficitPctGDP,
-      debtNominal_bn: newDebt,
-      debtPctGDP,
+      deficit_bn: debtResult.deficit_bn,
+      deficitPctGDP: debtResult.deficitPctGDP,
+      debtNominal_bn: debtResult.debtNominal_bn,
+      debtPctGDP: debtResult.debtPctGDP,
       fiscalHeadroom_bn: headroom,
       welfareAME_bn: welfareAMEApplied,
-      debtInterest_bn,
+      debtInterest_bn: debtResult.debtInterest_bn,
     },
     debtManagement,
     policyRiskModifiers: updatedPolicyRiskModifiers,

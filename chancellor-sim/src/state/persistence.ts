@@ -71,20 +71,19 @@ export function writeSave(key: string, state: GameState): { success: boolean; er
   }
 }
 
-export function readSave(key: string): { state: unknown; warnings: string[] } | null {
+export function readSave(key: string): { state: unknown; warnings: string[] } | null | { error: string } {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
 
     const validation = validateSave(raw);
     if (!validation.success || !validation.state) {
-      console.warn(`[Save] ${validation.error || `Save at key "${key}" is invalid.`}`);
-      return null;
+      return { error: validation.error || `Save at key "${key}" is invalid.` };
     }
 
     return { state: validation.state, warnings: validation.warnings };
   } catch (e) {
-    console.error(`[Save] Unexpected error reading key "${key}":`, e);
-    return null;
+    const message = e instanceof Error ? e.message : String(e);
+    return { error: `Unexpected error reading save at key "${key}": ${message}` };
   }
 }

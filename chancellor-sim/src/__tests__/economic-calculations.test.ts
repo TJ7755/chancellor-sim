@@ -13,6 +13,7 @@ function defaultGDPInputs(): GDPInputs {
     unemploymentRate: 4.2,
     inflationCPI: 2.2,
     gdpGrowthAnnual: 1.0,
+    gdpGrowthMonthly: 0.08,
     gdpNominal_bn: 2750,
     spending: {
       nhsCurrent: 168.4,
@@ -39,51 +40,61 @@ function defaultGDPInputs(): GDPInputs {
       vatRate: 20,
       corporationTaxRate: 25,
     },
-    bankRate: 5.25,
-    giltYield10y: 4.1,
-    businessConfidence: 50,
+    giltYield10y: 4.15,
+    sterlingIndex: 100,
     gdpGrowthBonus: 0,
-    difficultyMarketReactionScale: 1.0,
+    nhsQuality: 45,
+    educationQuality: 58,
+    infrastructureQuality: 48,
+    currentAccountGDP: -3.1,
+    externalShockActive: false,
+    externalShockType: null,
+    exportShockTurnsRemaining: 0,
+    houseBuildingAnnualStarts: 240000,
+    isFirstProcessedTurn: false,
+    currentTurn: 2,
+    monthlySnapshotsLength: 2,
+    macroShockScale: 1.0,
   };
 }
 
 describe('calculateGDPGrowth', () => {
   it('returns positive baseline growth at neutral policy', () => {
-    const result = calculateGDPGrowth(defaultGDPInputs());
+    const result = calculateGDPGrowth({ ...defaultGDPInputs(), isFirstProcessedTurn: true });
     expect(result.gdpGrowthAnnual).toBeGreaterThan(0);
     expect(result.gdpGrowthAnnual).toBeLessThan(3.0);
   });
 
   it('increases growth when spending rises', () => {
-    const inputs = defaultGDPInputs();
+    const inputs = { ...defaultGDPInputs(), isFirstProcessedTurn: true };
     inputs.spending.nhsCurrent += 10;
     const result = calculateGDPGrowth(inputs);
-    const baseline = calculateGDPGrowth(defaultGDPInputs());
+    const baseline = calculateGDPGrowth({ ...defaultGDPInputs(), isFirstProcessedTurn: true });
     expect(result.gdpGrowthAnnual).toBeGreaterThan(baseline.gdpGrowthAnnual);
   });
 
   it('decreases growth when taxes rise', () => {
-    const inputs = defaultGDPInputs();
+    const inputs = { ...defaultGDPInputs(), isFirstProcessedTurn: true };
     inputs.taxRates.incomeTaxBasicRate = 22;
     const result = calculateGDPGrowth(inputs);
-    const baseline = calculateGDPGrowth(defaultGDPInputs());
+    const baseline = calculateGDPGrowth({ ...defaultGDPInputs(), isFirstProcessedTurn: true });
     expect(result.gdpGrowthAnnual).toBeLessThan(baseline.gdpGrowthAnnual);
   });
 
-  it('decreases growth when bank rate rises', () => {
-    const inputs = defaultGDPInputs();
-    inputs.bankRate = 6.0;
+  it('decreases growth when gilt yields rise', () => {
+    const inputs = { ...defaultGDPInputs(), isFirstProcessedTurn: true };
+    inputs.giltYield10y = 6.0;
     const result = calculateGDPGrowth(inputs);
-    const baseline = calculateGDPGrowth(defaultGDPInputs());
-    expect(result.gdpGrowthAnnual).toBeLessThan(baseline.gdpGrowthAnnual);
+    const baseline = calculateGDPGrowth({ ...defaultGDPInputs(), isFirstProcessedTurn: true });
+    expect(result.gdpGrowthMonthly).toBeLessThan(baseline.gdpGrowthMonthly);
   });
 
   it('clamps monthly growth to realistic range', () => {
-    const inputs = defaultGDPInputs();
+    const inputs = { ...defaultGDPInputs(), isFirstProcessedTurn: true };
     inputs.spending.nhsCurrent = 500;
     const result = calculateGDPGrowth(inputs);
-    expect(result.gdpGrowthMonthly).toBeLessThanOrEqual(2.0);
-    expect(result.gdpGrowthMonthly).toBeGreaterThanOrEqual(-1.5);
+    expect(result.gdpGrowthMonthly).toBeLessThanOrEqual(0.25);
+    expect(result.gdpGrowthMonthly).toBeGreaterThanOrEqual(-0.25);
   });
 });
 
@@ -176,6 +187,10 @@ function defaultTaxInputs(): TaxRevenueInputs {
     wageGrowthAnnual: 5.4,
     fullExpensing: false,
     sdltAdditionalDwellingsSurcharge: 3,
+    stampDutyRate: 5,
+    sdltFirstTimeBuyerThreshold: 425000,
+    housePriceIndex: 100,
+    mortgageApprovals: 60,
     revenueAdjustment_bn: 0,
     taxAvoidanceScale: 1.0,
     taxRevenueMultiplier: 1.0,
