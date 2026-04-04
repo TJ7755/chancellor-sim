@@ -985,17 +985,17 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
       <div className="bg-bg-surface border border-border-strong p-5">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Projections</h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <h3 className="text-lg font-bold text-primary">Projections</h3>
+            <p className="text-sm text-secondary mt-1">
               Forward simulation of all non-political indicators, including public service quality.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <label className="text-sm font-semibold text-gray-700">Forecast period:</label>
+            <label className="text-sm font-semibold text-secondary">Forecast period:</label>
             <select
               value={projectionMonths}
               onChange={(e) => setProjectionMonths(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-300 rounded-sm text-sm"
+              className="px-3 py-2 border border-border-strong text-sm"
             >
               <option value={12}>12 months</option>
               <option value={24}>24 months</option>
@@ -1014,13 +1014,13 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
         </div>
         {gameState.simulation.lastObrComparison && (
           <div className="mt-3 border border-border-strong overflow-hidden">
-            <div className="bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700">
+            <div className="bg-subdued px-3 py-2 text-xs font-semibold text-secondary">
               OBR-style forecast vs outturn ({gameState.simulation.lastObrComparison.fiscalYear}/
               {String(gameState.simulation.lastObrComparison.fiscalYear + 1).slice(2)})
             </div>
             <table className="w-full text-xs">
-              <thead className="bg-white">
-                <tr className="text-left text-gray-600">
+              <thead className="bg-elevated">
+                <tr className="text-left text-secondary">
                   <th className="px-3 py-2">Metric</th>
                   <th className="px-3 py-2">Projected</th>
                   <th className="px-3 py-2">Actual</th>
@@ -1029,8 +1029,8 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
               </thead>
               <tbody>
                 {gameState.simulation.lastObrComparison.rows.map((row: any) => (
-                  <tr key={row.metric} className="border-t border-gray-100">
-                    <td className="px-3 py-2 text-gray-800">
+                  <tr key={row.metric} className="border-t border-subtle">
+                    <td className="px-3 py-2 text-primary">
                       {row.metric === 'gdpGrowth'
                         ? 'GDP growth'
                         : row.metric === 'deficitPctGDP'
@@ -1039,7 +1039,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
                     </td>
                     <td className="px-3 py-2">{row.projected.toFixed(1)}</td>
                     <td className="px-3 py-2">{row.actual.toFixed(1)}</td>
-                    <td className={`px-3 py-2 ${row.delta >= 0 ? 'text-red-700' : 'text-green-700'}`}>
+                    <td className={`px-3 py-2 ${row.delta >= 0 ? 'text-bad' : 'text-good'}`}>
                       {row.delta >= 0 ? '+' : ''}
                       {row.delta.toFixed(1)}
                     </td>
@@ -1053,41 +1053,41 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
 
       <div className={`grid gap-4 ${pendingSummary ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="bg-bg-surface border border-border-strong p-4 text-sm">
-          <div className="font-semibold text-gray-700 mb-2">Baseline forecast</div>
+          <div className="font-semibold text-secondary mb-2">Baseline forecast</div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Avg GDP growth</span>
+            <span className="text-tertiary">Avg GDP growth</span>
             <span className="font-semibold">{baselineSummary.averageGDPGrowth.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Avg inflation</span>
+            <span className="text-tertiary">Avg inflation</span>
             <span className="font-semibold">{baselineSummary.averageInflation.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Avg unemployment</span>
+            <span className="text-tertiary">Avg unemployment</span>
             <span className="font-semibold">{baselineSummary.averageUnemployment.toFixed(1)}%</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Avg service quality</span>
+            <span className="text-tertiary">Avg service quality</span>
             <span className="font-semibold">{baselineSummary.averageServiceQuality.toFixed(1)}/100</span>
           </div>
         </div>
         {pendingSummary && (
           <div className="bg-bg-subtle border border-border-subtle p-4 text-sm">
-            <div className="font-semibold text-blue-900 mb-2">With pending budget changes</div>
+            <div className="font-semibold text-primary mb-2">With pending budget changes</div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Avg GDP growth</span>
+              <span className="text-tertiary">Avg GDP growth</span>
               <span className="font-semibold">{pendingSummary.averageGDPGrowth.toFixed(1)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Avg inflation</span>
+              <span className="text-tertiary">Avg inflation</span>
               <span className="font-semibold">{pendingSummary.averageInflation.toFixed(1)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Avg unemployment</span>
+              <span className="text-tertiary">Avg unemployment</span>
               <span className="font-semibold">{pendingSummary.averageUnemployment.toFixed(1)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-700">Avg service quality</span>
+              <span className="text-tertiary">Avg service quality</span>
               <span className="font-semibold">{pendingSummary.averageServiceQuality.toFixed(1)}/100</span>
             </div>
           </div>
@@ -1096,14 +1096,14 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
 
       {hiredAdvisers.length > 0 && (
         <div className="bg-bg-surface border border-border-strong p-4">
-          <div className="text-sm font-semibold text-gray-700 mb-3">Adviser-specific view</div>
+          <div className="text-sm font-semibold text-secondary mb-3">Adviser-specific view</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
             {hiredAdvisers.map((adviser) => (
-              <div key={adviser} className="border border-gray-200 rounded-sm p-2">
-                <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+              <div key={adviser} className="border border-subtle p-2">
+                <div className="text-xs uppercase tracking-wide text-muted font-semibold">
                   {adviser.replaceAll('_', ' ')}
                 </div>
-                <div className="text-gray-800">{adviserLens[adviser]}</div>
+                <div className="text-primary">{adviserLens[adviser]}</div>
               </div>
             ))}
           </div>
@@ -1120,7 +1120,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
           <button
             key={tab.id}
             onClick={() => setActiveChart(tab.id)}
-            className={`px-5 py-2 font-semibold rounded-sm transition-all ${activeChart === tab.id ? 'bg-red-700 text-white' : 'bg-bg-surface text-text-primary border border-border-strong hover:bg-bg-subtle'}`}
+            className={`px-5 py-2 font-semibold transition-all ${activeChart === tab.id ? 'bg-primary text-white' : 'bg-bg-surface text-text-primary border border-border-strong hover:bg-bg-subdued'}`}
           >
             {tab.label}
           </button>
@@ -1198,33 +1198,33 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             formatValue={(v: number) => `${v.toFixed(1)}%`}
           />
           <div className="bg-bg-surface border border-border-strong p-4 text-sm">
-            <div className="font-semibold text-gray-700 mb-3">Revenue and spending at horizon (£bn)</div>
+            <div className="font-semibold text-secondary mb-3">Revenue and spending at horizon (£bn)</div>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Revenue</span>
+                <span className="text-tertiary">Revenue</span>
                 <span className="font-semibold">£{(baselineFinal?.totalRevenue || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Spending</span>
+                <span className="text-tertiary">Spending</span>
                 <span className="font-semibold">£{(baselineFinal?.totalSpending || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Debt interest</span>
+                <span className="text-tertiary">Debt interest</span>
                 <span className="font-semibold">£{(baselineFinal?.debtInterest || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Fiscal headroom</span>
+                <span className="text-tertiary">Fiscal headroom</span>
                 <span className="font-semibold">£{(baselineFinal?.fiscalHeadroom || 0).toFixed(1)}bn</span>
               </div>
             </div>
           </div>
           <div className="bg-bg-surface border border-border-strong p-4 text-sm">
-            <div className="font-semibold text-gray-700 mb-3">Projected spending breakdown (£bn)</div>
+            <div className="font-semibold text-secondary mb-3">Projected spending breakdown (£bn)</div>
             <div className="space-y-1">
               {['nhs', 'education', 'defence', 'welfare', 'infrastructure', 'police', 'justice', 'other'].map(
                 (dept) => (
                   <div key={dept} className="flex justify-between">
-                    <span className="text-gray-600 capitalize">{dept}</span>
+                    <span className="text-tertiary capitalize">{dept}</span>
                     <span className="font-semibold">
                       £{((baselineFinal?.spendingBreakdown as any)?.[dept] || 0).toFixed(1)}bn
                     </span>
@@ -1266,29 +1266,29 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             formatValue={(v: number) => v.toFixed(1)}
           />
           <div className="bg-bg-surface border border-border-strong p-4 text-sm space-y-2">
-            <div className="font-semibold text-gray-700 mb-3">Market indicators at horizon</div>
+            <div className="font-semibold text-secondary mb-3">Market indicators at horizon</div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Bank Rate</span>
+              <span className="text-tertiary">Bank Rate</span>
               <span className="font-semibold">{(baselineFinal?.bankRate || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">2Y Gilt Yield</span>
+              <span className="text-tertiary">2Y Gilt Yield</span>
               <span className="font-semibold">{(baselineFinal?.giltYield2y || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">10Y Gilt Yield</span>
+              <span className="text-tertiary">10Y Gilt Yield</span>
               <span className="font-semibold">{(baselineFinal?.giltYield10y || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">30Y Gilt Yield</span>
+              <span className="text-tertiary">30Y Gilt Yield</span>
               <span className="font-semibold">{(baselineFinal?.giltYield30y || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">2Y Mortgage Rate</span>
+              <span className="text-tertiary">2Y Mortgage Rate</span>
               <span className="font-semibold">{(baselineFinal?.mortgageRate2y || 0).toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Sterling Index</span>
+              <span className="text-tertiary">Sterling Index</span>
               <span className="font-semibold">{(baselineFinal?.sterlingIndex || 0).toFixed(1)}</span>
             </div>
           </div>
@@ -1302,7 +1302,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
               <button
                 key={metric.key}
                 onClick={() => setSelectedServiceMetric(metric.key)}
-                className={`px-3 py-2 rounded-sm text-sm font-semibold transition-all ${selectedServiceMetric === metric.key ? 'bg-red-700 text-white' : 'bg-bg-surface text-text-primary border border-border-strong hover:bg-bg-subtle'}`}
+                className={`px-3 py-2 text-sm font-semibold transition-all ${selectedServiceMetric === metric.key ? 'bg-primary text-white' : 'bg-bg-surface text-text-primary border border-border-strong hover:bg-bg-subdued'}`}
               >
                 {metric.label}
               </button>
@@ -1321,7 +1321,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             formatValue={(v: number) => `${v.toFixed(1)}/100`}
           />
           <div className="bg-bg-surface border border-border-strong p-4">
-            <div className="text-sm font-semibold text-gray-700 mb-3">Projected public service quality indices</div>
+            <div className="text-sm font-semibold text-secondary mb-3">Projected public service quality indices</div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {serviceMetrics.map((metric) => {
                 const baseValue = (baselineFinal?.services as any)?.[metric.key] || 0;
@@ -1329,17 +1329,17 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
                 return (
                   <div key={metric.key}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">{metric.label}</span>
+                      <span className="text-tertiary">{metric.label}</span>
                       <span className="font-semibold">
                         {Math.round(baseValue)}/100{' '}
                         {pendingValue !== undefined && (
-                          <span className="text-xs text-blue-700">→ {Math.round(pendingValue)}</span>
+                          <span className="text-xs text-primary">→ {Math.round(pendingValue)}</span>
                         )}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-subdued h-3">
                       <div
-                        className={`h-3 rounded-full ${baseValue > 60 ? 'bg-green-500' : baseValue > 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        className={`h-3 ${baseValue > 60 ? 'bg-good' : baseValue > 40 ? 'bg-warning' : 'bg-bad'}`}
                         style={{ width: `${Math.max(0, Math.min(100, baseValue))}%` }}
                       />
                     </div>
@@ -1431,8 +1431,8 @@ const AnalysisTab: React.FC = () => {
     if (data.length < 2) {
       return (
         <div className="bg-bg-surface border border-border-strong p-4">
-          <div className="text-sm font-semibold text-gray-700 mb-2">{title}</div>
-          <div className="text-xs text-gray-500 italic">Not enough data yet. Advance a few months.</div>
+          <div className="text-sm font-semibold text-secondary mb-2">{title}</div>
+          <div className="text-xs text-muted italic">Not enough data yet. Advance a few months.</div>
         </div>
       );
     }
@@ -1494,13 +1494,13 @@ const AnalysisTab: React.FC = () => {
       <div className="bg-bg-surface border border-border-strong p-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="text-sm font-semibold text-gray-700">{title}</div>
+            <div className="text-sm font-semibold text-secondary">{title}</div>
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold" style={{ color }}>
               {formatValue(latestValue)}
             </div>
-            <div className={`text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-xs ${change >= 0 ? 'text-good' : 'text-bad'}`}>
               {change >= 0 ? '+' : ''}
               {formatValue(change)} this month
             </div>
@@ -1517,8 +1517,8 @@ const AnalysisTab: React.FC = () => {
             const val = yMax - frac * yRange;
             return (
               <g key={frac}>
-                <line x1={0} y1={y} x2={width} y2={y} stroke="#e5e7eb" strokeWidth={1} />
-                <text x={-5} y={y + 3} textAnchor="end" fill="#9ca3af" fontSize={10}>
+                <line x1={0} y1={y} x2={width} y2={y} stroke="var(--color-border-subtle)" strokeWidth={1} />
+                <text x={-5} y={y + 3} textAnchor="end" fill="var(--color-text-muted)" fontSize={10}>
                   {formatValue(val)}
                 </text>
               </g>
@@ -1532,14 +1532,14 @@ const AnalysisTab: React.FC = () => {
                 y1={chartHeight - ((target - yMin) / yRange) * chartHeight}
                 x2={width}
                 y2={chartHeight - ((target - yMin) / yRange) * chartHeight}
-                stroke="#ef4444"
+                stroke="var(--color-bad)"
                 strokeWidth={1.5}
                 strokeDasharray="6,3"
               />
               <text
                 x={width + 5}
                 y={chartHeight - ((target - yMin) / yRange) * chartHeight + 3}
-                fill="#ef4444"
+                fill="var(--color-bad)"
                 fontSize={10}
               >
                 {targetLabel || `Target: ${formatValue(target)}`}
@@ -1555,7 +1555,7 @@ const AnalysisTab: React.FC = () => {
             <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2} fill={color} />
           ))}
           {/* X-axis baseline */}
-          <line x1={0} y1={chartHeight} x2={width} y2={chartHeight} stroke="#9ca3af" strokeWidth={1} />
+          <line x1={0} y1={chartHeight} x2={width} y2={chartHeight} stroke="var(--color-border-strong)" strokeWidth={1} />
           {/* X-axis labels */}
           {data.map((d, i) => {
             if (i % xLabelStep === 0 || i === data.length - 1) {
@@ -1566,14 +1566,14 @@ const AnalysisTab: React.FC = () => {
                     y1={chartHeight}
                     x2={i * xStep}
                     y2={chartHeight + 5}
-                    stroke="#9ca3af"
+                    stroke="var(--color-border-strong)"
                     strokeWidth={1}
                   />
                   <text
                     x={i * xStep}
                     y={chartHeight + 18}
                     textAnchor="middle"
-                    fill="#4b5563"
+                    fill="var(--color-text-tertiary)"
                     fontSize={10}
                     fontWeight={500}
                   >
@@ -1585,7 +1585,7 @@ const AnalysisTab: React.FC = () => {
             return null;
           })}
         </svg>
-        <div className="text-xs text-gray-500 mt-1">Shaded band: rolling 12-month uncertainty (1σ)</div>
+        <div className="text-xs text-muted mt-1">Shaded band: rolling 12-month uncertainty (1σ)</div>
       </div>
     );
   };

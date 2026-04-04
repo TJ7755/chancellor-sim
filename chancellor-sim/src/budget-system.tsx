@@ -318,25 +318,25 @@ const ParliamentaryVoteModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white max-w-3xl w-full max-h-[90vh] overflow-y-auto ">
+      <div className="bg-elevated max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-border-strong">
         {/* House of Commons header */}
-        <div className="bg-green-900 text-white p-6">
+        <div className="bg-primary text-white p-6">
           <div className="text-center">
             <div className="text-sm uppercase tracking-widest opacity-80 mb-1">House of Commons</div>
-            <h2 className="text-3xl font-bold">Budget Division</h2>
+            <h2 className="text-3xl font-display">Budget Division</h2>
             <div className="text-sm mt-2 opacity-90">That the Financial Statement and Budget Report be approved</div>
           </div>
         </div>
 
         {/* Vote result banner */}
-        <div className={`p-6 text-center ${voteResult.passed ? 'bg-green-50' : 'bg-red-50'}`}>
-          <div className={`text-4xl font-bold ${voteResult.passed ? 'text-green-800' : 'text-red-800'}`}>
+        <div className={`p-6 text-center ${voteResult.passed ? 'bg-good-subtle' : 'bg-bad-subtle'}`}>
+          <div className={`text-4xl font-display ${voteResult.passed ? 'text-good' : 'text-bad'}`}>
             {voteResult.passed ? 'THE AYES HAVE IT' : 'THE NOES HAVE IT'}
           </div>
-          <div className="text-lg text-gray-700 mt-2">
+          <div className="text-lg text-secondary mt-2">
             Ayes: {voteResult.ayes} — Noes: {voteResult.noes}
           </div>
-          <div className="text-sm text-gray-600 mt-1">
+          <div className="text-sm text-tertiary mt-1">
             Government majority: {voteResult.governmentMajority > 0 ? '+' : ''}
             {voteResult.governmentMajority}
             {voteResult.abstentions > 0 && ` · ${voteResult.abstentions} abstentions`}
@@ -346,15 +346,15 @@ const ParliamentaryVoteModal: React.FC<{
         {/* Division numbers */}
         <div className="p-6">
           <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="bg-green-50 border-2 border-green-200 p-4 rounded-sm text-center">
-              <div className="text-sm text-green-800 font-semibold uppercase mb-1">Ayes Lobby</div>
-              <div className="text-5xl font-bold text-green-900">{voteResult.ayes}</div>
-              <div className="text-xs text-green-700 mt-2">Government frontbench + loyal backbenchers</div>
+            <div className="bg-good-subtle border border-good p-4 text-center">
+              <div className="text-sm text-good font-semibold uppercase mb-1">Ayes Lobby</div>
+              <div className="text-5xl font-display text-good">{voteResult.ayes}</div>
+              <div className="text-xs text-good mt-2">Government frontbench + loyal backbenchers</div>
             </div>
-            <div className="bg-red-50 border-2 border-red-200 p-4 rounded-sm text-center">
-              <div className="text-sm text-red-800 font-semibold uppercase mb-1">Noes Lobby</div>
-              <div className="text-5xl font-bold text-red-900">{voteResult.noes}</div>
-              <div className="text-xs text-red-700 mt-2">
+            <div className="bg-bad-subtle border border-bad p-4 text-center">
+              <div className="text-sm text-bad font-semibold uppercase mb-1">Noes Lobby</div>
+              <div className="text-5xl font-display text-bad">{voteResult.noes}</div>
+              <div className="text-xs text-bad mt-2">
                 Opposition + {voteResult.rebellCount - voteResult.abstentions} government dissenting vote
                 {voteResult.rebellCount - voteResult.abstentions !== 1 ? 's' : ''}
               </div>
@@ -362,14 +362,14 @@ const ParliamentaryVoteModal: React.FC<{
           </div>
 
           {/* Narrative */}
-          <div className="bg-gray-50 border border-gray-200 p-4 rounded-sm mb-4">
-            <p className="text-gray-800 leading-relaxed">{voteResult.narrativeSummary}</p>
+          <div className="bg-subdued border border-border-strong p-4 mb-4">
+            <p className="text-primary leading-relaxed">{voteResult.narrativeSummary}</p>
           </div>
 
           {/* Whip assessment */}
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-sm mb-4">
-            <div className="text-xs font-bold text-amber-800 uppercase mb-1">Chief Whip's Assessment</div>
-            <p className="text-amber-900 text-sm">{voteResult.whipAssessment}</p>
+          <div className="bg-warning-subtle border border-warning p-4 mb-4">
+            <div className="text-xs font-bold text-warning uppercase mb-1">Chief Whip's Assessment</div>
+            <p className="text-warning text-sm">{voteResult.whipAssessment}</p>
           </div>
 
           {/* Vote dynamics details */}
@@ -377,14 +377,14 @@ const ParliamentaryVoteModal: React.FC<{
             <div className="mb-4">
               <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-sm text-blue-700 hover:text-blue-900 font-semibold"
+                className="text-sm text-secondary hover:text-primary font-semibold"
               >
                 {showDetails ? 'Hide vote dynamics' : 'Show vote dynamics'}
               </button>
               {showDetails && (
                 <div className="mt-2 space-y-2">
                   {voteResult.keyRebels.map((rebel, idx) => (
-                    <div key={idx} className="bg-gray-50 border-l-3 border-red-400 pl-3 py-2 text-sm text-gray-700">
+                    <div key={idx} className="bg-subdued border-l-4 border-bad pl-3 py-2 text-sm text-secondary">
                       {rebel}
                     </div>
                   ))}
@@ -398,7 +398,7 @@ const ParliamentaryVoteModal: React.FC<{
             {voteResult.passed ? (
               <button
                 onClick={onContinue}
-                className="flex-1 bg-green-800 hover:bg-green-900 text-white font-bold py-3 px-6 rounded-sm transition-colors"
+                className="flex-1 bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 transition-colors"
               >
                 Budget Enacted — Continue
               </button>
@@ -406,7 +406,7 @@ const ParliamentaryVoteModal: React.FC<{
               <>
                 <button
                   onClick={onWithdraw}
-                  className="flex-1 bg-red-700 hover:bg-red-800 text-white font-bold py-3 px-6 rounded-sm transition-colors"
+                  className="flex-1 bg-bad hover:bg-bad-hover text-white font-bold py-3 px-6 transition-colors"
                 >
                   Withdraw Budget and Revise
                 </button>
@@ -426,35 +426,23 @@ const PMInterventionModal: React.FC<{
 }> = ({ onConfirm, onCancel }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-      <div className="bg-white max-w-2xl w-full  ">
+      <div className="bg-elevated max-w-2xl w-full border border-border-strong">
         {/* Header */}
-        <div className="bg-amber-600 text-white p-6">
+        <div className="bg-warning text-white p-6">
           <div className="text-center">
-            <h2 className="text-3xl font-bold">Force PM Intervention</h2>
+            <h2 className="text-3xl font-display">Force PM Intervention</h2>
             <div className="text-sm mt-2 opacity-90">Nuclear Option</div>
           </div>
         </div>
 
         {/* Warning Content */}
         <div className="p-6">
-          <div className="bg-red-50 border-2 border-red-300  p-4 mb-6">
+          <div className="bg-bad-subtle border border-bad p-4 mb-6">
             <div className="flex items-start gap-3">
-              <svg
-                className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <span className="text-bad text-xl flex-shrink-0 mt-0.5">⚠</span>
               <div>
-                <h3 className="font-bold text-red-900 text-lg mb-2">Severe Political Consequences</h3>
-                <p className="text-red-800 text-sm">
+                <h3 className="font-bold text-bad text-lg mb-2">Severe Political Consequences</h3>
+                <p className="text-bad text-sm">
                   The Prime Minister will personally intervene to force all 411 Labour MPs to vote for this budget. This
                   is an extreme measure that will have lasting political damage.
                 </p>
@@ -464,49 +452,42 @@ const PMInterventionModal: React.FC<{
 
           {/* Consequences List */}
           <div className="space-y-3 mb-6">
-            <h3 className="font-bold text-gray-900 text-lg mb-3">Immediate Consequences:</h3>
+            <h3 className="font-bold text-primary text-lg mb-3">Immediate Consequences:</h3>
 
-            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded p-3">
+            <div className="flex items-center gap-3 bg-bad-subtle border border-bad p-3">
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">PM Trust: -20 points</div>
-                <div className="text-sm text-gray-600">The Prime Minister's authority is severely undermined</div>
+                <div className="font-semibold text-primary">PM Trust: -20 points</div>
+                <div className="text-sm text-secondary">The Prime Minister's authority is severely undermined</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded p-3">
+            <div className="flex items-center gap-3 bg-bad-subtle border border-bad p-3">
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">Backbench Satisfaction: -15 points</div>
-                <div className="text-sm text-gray-600">MPs are furious at being coerced</div>
+                <div className="font-semibold text-primary">Backbench Satisfaction: -15 points</div>
+                <div className="text-sm text-secondary">MPs are furious at being coerced</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded p-3">
+            <div className="flex items-center gap-3 bg-bad-subtle border border-bad p-3">
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">Government Approval: -8 points</div>
-                <div className="text-sm text-gray-600">Public sees government as authoritarian and divided</div>
+                <div className="font-semibold text-primary">Government Approval: -8 points</div>
+                <div className="text-sm text-secondary">Public sees government as authoritarian and divided</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded p-3">
+            <div className="flex items-center gap-3 bg-warning-subtle border border-warning p-3">
               <div className="flex-1">
-                <div className="font-semibold text-gray-900">WARNING: Future rebellion risk +50%</div>
-                <div className="text-sm text-gray-600">MPs will be much more likely to rebel on future votes</div>
+                <div className="font-semibold text-primary">WARNING: Future rebellion risk +50%</div>
+                <div className="text-sm text-secondary">MPs will be much more likely to rebel on future votes</div>
               </div>
             </div>
           </div>
 
           {/* Guarantee */}
-          <div className="bg-green-50 border border-green-200  p-4 mb-6">
+          <div className="bg-good-subtle border border-good p-4 mb-6">
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="font-semibold text-green-900">
+              <span className="text-good text-lg">✓</span>
+              <div className="font-semibold text-good">
                 Guarantee: Budget WILL pass with all 411 Labour MPs voting aye
               </div>
             </div>
@@ -516,13 +497,13 @@ const PMInterventionModal: React.FC<{
           <div className="flex gap-4">
             <button
               onClick={onCancel}
-              className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold  transition-colors"
+              className="flex-1 px-6 py-3 bg-subdued hover:bg-bg-subdued text-primary font-semibold border border-border-strong transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="flex-1 px-6 py-3 bg-red-700 hover:bg-red-800 text-white font-bold  transition-colors "
+              className="flex-1 px-6 py-3 bg-bad hover:bg-bad-hover text-white font-bold transition-colors"
             >
               Confirm PM Intervention
             </button>
@@ -3511,63 +3492,42 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const renderWarning = (warning: AdviserWarning) => {
     const bgColour =
       warning.severity === 'critical'
-        ? 'bg-red-50 border-red-200'
+        ? 'bg-bad-subtle border-bad'
         : warning.severity === 'warning'
-          ? 'bg-amber-50 border-amber-200'
-          : 'bg-blue-50 border-blue-200';
+          ? 'bg-warning-subtle border-warning'
+          : 'bg-secondary-subtle border-secondary';
     const titleColour =
       warning.severity === 'critical'
-        ? 'text-red-900'
+        ? 'text-bad'
         : warning.severity === 'warning'
-          ? 'text-amber-900'
-          : 'text-blue-900';
+          ? 'text-warning'
+          : 'text-secondary';
     const messageColour =
       warning.severity === 'critical'
-        ? 'text-red-700'
+        ? 'text-bad'
         : warning.severity === 'warning'
-          ? 'text-amber-700'
-          : 'text-blue-700';
+          ? 'text-warning'
+          : 'text-secondary';
 
     return (
-      <div key={warning.id} className={`border  p-4 ${bgColour}`}>
+      <div key={warning.id} className={`border p-4 ${bgColour}`}>
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
             {warning.severity === 'critical' && (
-              <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <span className="text-bad text-lg">⚠</span>
             )}
             {warning.severity === 'warning' && (
-              <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
+              <span className="text-warning text-lg">⚠</span>
             )}
             {warning.severity === 'info' && (
-              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <span className="text-secondary text-lg">ℹ</span>
             )}
           </div>
           <div className="flex-1">
             <h4 className={`font-semibold ${titleColour}`}>{warning.title}</h4>
             <p className={`text-sm mt-1 ${messageColour}`}>{warning.message}</p>
             {warning.impact && <p className={`text-sm mt-2 ${messageColour} font-medium`}>Impact: {warning.impact}</p>}
-            <div className="mt-2 text-xs font-semibold text-grey-600 uppercase">
+            <div className="mt-2 text-xs font-semibold text-tertiary uppercase">
               {warning.category} · {warning.severity}
             </div>
           </div>
@@ -3579,16 +3539,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   const renderConstraint = (constraint: ManifestoConstraint) => {
     const statusColour = constraint.violated
       ? constraint.severity === 'critical'
-        ? 'text-red-600'
-        : 'text-amber-600'
-      : 'text-green-600';
+        ? 'text-bad'
+        : 'text-warning'
+      : 'text-good';
     const bgColour = constraint.violated
       ? constraint.severity === 'critical'
-        ? 'bg-red-50 border-red-200'
-        : 'bg-amber-50 border-amber-200'
-      : 'bg-green-50 border-green-200';
+        ? 'bg-bad-subtle border-bad'
+        : 'bg-warning-subtle border-warning'
+      : 'bg-good-subtle border-good';
 
-    // Determine if "Apply" button should be shown
     const canApply =
       constraint.violated &&
       [
@@ -3602,40 +3561,36 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       ].includes(constraint.id);
 
     return (
-      <div key={constraint.id} className={`border  p-4 ${bgColour}`}>
+      <div key={constraint.id} className={`border p-4 ${bgColour}`}>
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-2">
               {constraint.violated ? (
-                <svg className={`w-5 h-5 ${statusColour}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <span className={`${statusColour} text-lg`}>✕</span>
               ) : (
-                <svg className={`w-5 h-5 ${statusColour}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+                <span className={`${statusColour} text-lg`}>✓</span>
               )}
-              <h4 className="font-semibold text-grey-900">{constraint.description}</h4>
+              <h4 className="font-semibold text-primary">{constraint.description}</h4>
             </div>
             <div className="mt-1 flex gap-2">
               <span
-                className={`text-xs px-2 py-0.5 rounded ${
+                className={`text-xs px-2 py-0.5 ${
                   constraint.type === 'fiscal_rule'
-                    ? 'bg-purple-100 text-purple-700'
+                    ? 'bg-secondary-subtle text-secondary'
                     : constraint.type === 'spending_pledge'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-warning-subtle text-warning'
+                      : 'bg-bad-subtle text-bad'
                 }`}
               >
                 {constraint.type.replace('_', ' ')}
               </span>
               <span
-                className={`text-xs px-2 py-0.5 rounded ${
+                className={`text-xs px-2 py-0.5 ${
                   constraint.severity === 'critical'
-                    ? 'bg-red-100 text-red-700'
+                    ? 'bg-bad-subtle text-bad'
                     : constraint.severity === 'major'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-grey-100 text-grey-700'
+                      ? 'bg-warning-subtle text-warning'
+                      : 'bg-subdued text-tertiary'
                 }`}
               >
                 {constraint.severity}
@@ -3646,7 +3601,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {canApply && (
               <button
                 onClick={() => applyManifestoCommitment(constraint.id)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+                className="px-4 py-2 bg-secondary hover:bg-secondary-hover text-white text-sm font-semibold transition-colors"
                 title="Automatically adjust values to the minimum required to satisfy this commitment"
               >
                 Apply
@@ -3784,9 +3739,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       disabled={!isSpring}
                       className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
                         budgetType === 'spring'
-                          ? 'bg-white text-primary'
+                          ? 'bg-elevated text-primary'
                           : isSpring
-                            ? 'bg-white/20 hover:bg-white/30'
+                            ? 'bg-elevated/20 hover:bg-elevated/30'
                             : 'opacity-40 cursor-not-allowed'
                       }`}
                     >
@@ -3798,9 +3753,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       disabled={!isAutumn}
                       className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
                         budgetType === 'autumn'
-                          ? 'bg-white text-primary'
+                          ? 'bg-elevated text-primary'
                           : isAutumn
-                            ? 'bg-white/20 hover:bg-white/30'
+                            ? 'bg-elevated/20 hover:bg-elevated/30'
                             : 'opacity-40 cursor-not-allowed'
                       }`}
                     >
@@ -3810,7 +3765,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     <button
                       onClick={() => setBudgetType('emergency')}
                       className={`px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-all ${
-                        budgetType === 'emergency' ? 'bg-white text-primary' : 'bg-white/20 hover:bg-white/30'
+                        budgetType === 'emergency' ? 'bg-elevated text-primary' : 'bg-elevated/20 hover:bg-elevated/30'
                       }`}
                     >
                       Emergency
@@ -3947,26 +3902,26 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'del' && (
               <div className="space-y-4">
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900">Departmental Expenditure Limits (3-Year Plan)</h2>
-                  <p className="text-sm text-grey-600 mt-1">
+                  <h2 className="text-xl font-bold text-primary">Departmental Expenditure Limits (3-Year Plan)</h2>
+                  <p className="text-sm text-secondary mt-1">
                     Edit DEL plans at any time. Markets can react to out-year plans, but less than to current budgets
                     and headroom.
                   </p>
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div className="border border-border-subtle p-3">
-                      <div className="text-grey-600">Projected 3Y DEL total</div>
+                      <div className="text-secondary">Projected 3Y DEL total</div>
                       <div className="text-2xl font-bold">£{spendingReviewPlanTotal.toFixed(1)}bn</div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <div className="text-grey-600">Headroom envelope (3Y)</div>
+                      <div className="text-secondary">Headroom envelope (3Y)</div>
                       <div className="text-2xl font-bold">£{spendingReviewEnvelope.threeYearEnvelope.toFixed(1)}bn</div>
                     </div>
                     <div
-                      className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}
+                      className={`border p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-warning bg-warning-subtle' : 'border-good bg-good-subtle'}`}
                     >
-                      <div className="text-grey-600">Envelope check</div>
+                      <div className="text-secondary">Envelope check</div>
                       <div
-                        className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-amber-700' : 'text-green-700'}`}
+                        className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-warning' : 'text-good'}`}
                       >
                         {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope
                           ? 'Above envelope'
@@ -3974,16 +3929,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-grey-600">
+                  <div className="mt-3 text-xs text-secondary">
                     Indicative envelope = headroom minus AME pressures (£
                     {spendingReviewEnvelope.amePressures.toFixed(1)}bn) and prudence margin (£
                     {spendingReviewEnvelope.prudenceMargin.toFixed(1)}bn).
                   </div>
-                  <div className="mt-2 text-xs font-medium text-grey-700">
+                  <div className="mt-2 text-xs font-medium text-tertiary">
                     Spending Review plans are indicative guidelines and may be revised.
                   </div>
                   {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope && (
-                    <div className="mt-4 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-sm px-3 py-2">
+                    <div className="mt-4 text-sm text-warning bg-warning-subtle border border-warning px-3 py-2">
                       DEL plan is £{(spendingReviewPlanTotal - spendingReviewEnvelope.threeYearEnvelope).toFixed(1)}bn
                       above the 3-year envelope.
                     </div>
@@ -3996,12 +3951,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     <div key={key} className="bg-bg-surface border border-border-strong p-5">
                       <div className="flex justify-between items-center mb-3">
                         <div>
-                          <h3 className="text-lg font-bold text-grey-900">{dept.name}</h3>
-                          <div className="text-xs text-grey-600">
+                          <h3 className="text-lg font-bold text-primary">{dept.name}</h3>
+                          <div className="text-xs text-secondary">
                             Service quality and backlog context from latest turn
                           </div>
                         </div>
-                        <div className="text-xs text-grey-600">
+                        <div className="text-xs text-secondary">
                           Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}
                         </div>
                       </div>
@@ -4015,7 +3970,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                             : 0;
                         const breach = deptTotal - fairShare;
                         return (
-                          <div className={`text-xs mb-3 ${breach > 0 ? 'text-amber-700' : 'text-green-700'}`}>
+                          <div className={`text-xs mb-3 ${breach > 0 ? 'text-warning' : 'text-good'}`}>
                             {breach > 0
                               ? `Department indicative envelope breach: +£${breach.toFixed(1)}bn`
                               : 'Department within indicative envelope share'}
@@ -4025,8 +3980,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[0, 1, 2].map((yearIdx) => (
                           <div key={`${key}_year_${yearIdx}`} className="border border-border-subtle p-3">
-                            <div className="text-xs uppercase tracking-wide text-grey-600 mb-2">Year {yearIdx + 1}</div>
-                            <label className="text-xs text-grey-600 block mb-1">Resource DEL (£bn)</label>
+                            <div className="text-xs uppercase tracking-wide text-secondary mb-2">Year {yearIdx + 1}</div>
+                            <label className="text-xs text-secondary block mb-1">Resource DEL (£bn)</label>
                             <input
                               type="number"
                               className="w-full border border-border-strong px-2 py-1 text-sm"
@@ -4036,7 +3991,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                                 handleSpendingReviewPlanChange(key, 'resource', yearIdx, Number(e.target.value))
                               }
                             />
-                            <label className="text-xs text-grey-600 block mt-3 mb-1">Capital DEL (£bn)</label>
+                            <label className="text-xs text-secondary block mt-3 mb-1">Capital DEL (£bn)</label>
                             <input
                               type="number"
                               className="w-full border border-border-strong px-2 py-1 text-sm"
@@ -4047,7 +4002,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                               }
                             />
                             {yearIdx === 0 && (
-                              <div className="text-[11px] text-grey-500 mt-2">
+                              <div className="text-[11px] text-muted mt-2">
                                 Year 1 is synced to current budget values.
                               </div>
                             )}
@@ -4062,12 +4017,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
             {activeView === 'debt' && (
               <div className="bg-bg-surface border border-border-strong p-6 space-y-4">
-                <h2 className="text-xl font-bold text-grey-900">Debt Management</h2>
-                <p className="text-sm text-grey-600">
+                <h2 className="text-xl font-bold text-primary">Debt Management</h2>
+                <p className="text-sm text-secondary">
                   Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing
                   risk.
                 </p>
-                <div className="text-sm text-grey-700 bg-blue-50 border border-blue-200 rounded-sm p-3">
+                <div className="text-sm text-secondary bg-secondary-subtle border border-secondary p-3">
                   Active strategy:{' '}
                   <span className="font-semibold capitalize">{gameState.debtManagement.issuanceStrategy}</span> · Yield
                   effect:{' '}
@@ -4087,23 +4042,23 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">Refinancing risk</div>
+                    <div className="text-secondary">Refinancing risk</div>
                     <div className="text-2xl font-bold">{gameState.debtManagement.refinancingRisk.toFixed(1)}</div>
                   </div>
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">APF stock (QE/QT)</div>
+                    <div className="text-secondary">APF stock (QE/QT)</div>
                     <div className="text-2xl font-bold">
                       £{(gameState.markets.assetPurchaseFacility_bn || 0).toFixed(0)}bn
                     </div>
                   </div>
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">Debt interest</div>
+                    <div className="text-secondary">Debt interest</div>
                     <div className="text-2xl font-bold">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">Projected annual interest (Short)</div>
+                    <div className="text-secondary">Projected annual interest (Short)</div>
                     <div className="text-xl font-bold">
                       £
                       {(
@@ -4114,7 +4069,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   </div>
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">Projected annual interest (Balanced)</div>
+                    <div className="text-secondary">Projected annual interest (Balanced)</div>
                     <div className="text-xl font-bold">
                       £
                       {(
@@ -4125,7 +4080,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   </div>
                   <div className="border border-border-subtle p-3">
-                    <div className="text-grey-600">Projected annual interest (Long)</div>
+                    <div className="text-secondary">Projected annual interest (Long)</div>
                     <div className="text-xl font-bold">
                       £
                       {(
@@ -4144,8 +4099,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="space-y-6">
                 {/* Income Tax Rates */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Rates</h2>
-                  <p className="text-sm text-grey-600 mb-4">Revenue: £269bn · Affects 34 million taxpayers</p>
+                  <h2 className="text-xl font-bold text-primary mb-2">Income Tax Rates</h2>
+                  <p className="text-sm text-secondary mb-4">Revenue: £269bn · Affects 34 million taxpayers</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {renderTaxControl(taxes.get('incomeTaxBasic')!)}
                     {renderTaxControl(taxes.get('incomeTaxHigher')!)}
@@ -4154,14 +4109,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Welfare and Labour Market Levers</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Welfare and Labour Market Levers</h2>
+                  <p className="text-sm text-secondary mb-4">
                     AME measures: reducing taper or increasing work allowances and childcare support can lower
                     structural unemployment over time, but increase welfare spending.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Universal Credit taper rate</label>
+                      <label className="text-sm font-semibold text-tertiary">Universal Credit taper rate</label>
                       <input
                         type="number"
                         min={35}
@@ -4171,13 +4126,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Delta: {welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate >= 0 ? '+' : ''}
                         {(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate).toFixed(0)}pp
                       </div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Work allowance</label>
+                      <label className="text-sm font-semibold text-tertiary">Work allowance</label>
                       <input
                         type="number"
                         min={200}
@@ -4189,14 +4144,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         }
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Delta:{' '}
                         {welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly >= 0 ? '+' : ''}£
                         {(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly).toFixed(0)}/month
                       </div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Childcare support rate</label>
+                      <label className="text-sm font-semibold text-tertiary">Childcare support rate</label>
                       <input
                         type="number"
                         min={0}
@@ -4208,7 +4163,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         }
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Delta:{' '}
                         {welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate >= 0 ? '+' : ''}
                         {(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate).toFixed(0)}pp
@@ -4219,8 +4174,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Income Tax Thresholds & Allowances */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Thresholds and Allowances</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Income Tax Thresholds and Allowances</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous
                     revenue impact.
                   </p>
@@ -4233,14 +4188,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Threshold and Base Policy</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Threshold and Base Policy</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Choose uprating regime, anti-avoidance capacity, and housing-supply policy levers that influence
                     inflation, labour supply, and medium-term revenue.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Threshold uprating</label>
+                      <label className="text-sm font-semibold text-tertiary">Threshold uprating</label>
                       <select
                         value={thresholdUprating}
                         onChange={(e) => setThresholdUprating(e.target.value as typeof thresholdUprating)}
@@ -4251,7 +4206,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         <option value="earnings_linked">Earnings-linked</option>
                         <option value="custom">Custom thresholds</option>
                       </select>
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         {thresholdUprating === 'frozen' && 'Raises revenue through fiscal drag.'}
                         {thresholdUprating === 'cpi_linked' && 'Keeps thresholds moving with inflation.'}
                         {thresholdUprating === 'earnings_linked' &&
@@ -4260,7 +4215,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Full expensing</label>
+                      <label className="text-sm font-semibold text-tertiary">Full expensing</label>
                       <select
                         value={fullExpensing ? 'enabled' : 'disabled'}
                         onChange={(e) => setFullExpensing(e.target.value === 'enabled')}
@@ -4269,12 +4224,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         <option value="disabled">Disabled</option>
                         <option value="enabled">Enabled</option>
                       </select>
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Corp tax cost ~£3.5bn/yr, higher investment quality.
                       </div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">HMRC anti-avoidance spend</label>
+                      <label className="text-sm font-semibold text-tertiary">HMRC anti-avoidance spend</label>
                       <input
                         type="number"
                         min={0}
@@ -4284,10 +4239,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setAntiAvoidanceInvestment(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-sm text-grey-700 mt-2">£{antiAvoidanceInvestment.toFixed(1)}bn</div>
+                      <div className="text-sm text-tertiary mt-2">£{antiAvoidanceInvestment.toFixed(1)}bn</div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">HMRC systems investment</label>
+                      <label className="text-sm font-semibold text-tertiary">HMRC systems investment</label>
                       <input
                         type="number"
                         min={0.3}
@@ -4297,12 +4252,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setHmrcSystemsInvestment(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-sm text-grey-700 mt-2">£{hmrcSystemsInvestment.toFixed(1)}bn</div>
+                      <div className="text-sm text-tertiary mt-2">£{hmrcSystemsInvestment.toFixed(1)}bn</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Planning reform package</label>
+                      <label className="text-sm font-semibold text-tertiary">Planning reform package</label>
                       <select
                         value={planningReformPackage ? 'active' : 'inactive'}
                         onChange={(e) => setPlanningReformPackage(e.target.value === 'active')}
@@ -4313,7 +4268,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </select>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Infrastructure guarantees</label>
+                      <label className="text-sm font-semibold text-tertiary">Infrastructure guarantees</label>
                       <input
                         type="number"
                         min={0}
@@ -4323,10 +4278,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setInfrastructureGuarantees(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-sm text-grey-700 mt-2">£{infrastructureGuarantees.toFixed(1)}bn</div>
+                      <div className="text-sm text-tertiary mt-2">£{infrastructureGuarantees.toFixed(1)}bn</div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Demand-side support</label>
+                      <label className="text-sm font-semibold text-tertiary">Demand-side support</label>
                       <input
                         type="number"
                         min={0}
@@ -4336,10 +4291,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setHtbSupport(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-sm text-grey-700 mt-2">£{htbSupport.toFixed(1)}bn</div>
+                      <div className="text-sm text-tertiary mt-2">£{htbSupport.toFixed(1)}bn</div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Council house building grant</label>
+                      <label className="text-sm font-semibold text-tertiary">Council house building grant</label>
                       <input
                         type="number"
                         min={0}
@@ -4349,14 +4304,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setCouncilHousingGrant(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-sm text-grey-700 mt-2">£{councilHousingGrant.toFixed(1)}bn</div>
+                      <div className="text-sm text-tertiary mt-2">£{councilHousingGrant.toFixed(1)}bn</div>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Industrial Strategy</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Industrial Strategy</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Select interventions to activate at this fiscal event. Outcomes are uncertain and revealed after
                     delivery lags.
                   </p>
@@ -4370,8 +4325,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         <div key={intervention.id} className="border border-border-subtle p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="font-semibold text-grey-900">{intervention.name}</div>
-                              <div className="text-xs text-grey-600 mt-1">
+                              <div className="font-semibold text-primary">{intervention.name}</div>
+                              <div className="text-xs text-secondary mt-1">
                                 £{intervention.annualCost_bn.toFixed(1)}bn/yr · Lag {intervention.turnsToEffect} turns ·
                                 Success {(intervention.successProbability * 100).toFixed(0)}%
                               </div>
@@ -4386,7 +4341,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                                   return next;
                                 });
                               }}
-                              className={`px-3 py-1 rounded-sm text-xs font-semibold ${alreadyActive ? 'bg-grey-100 text-grey-500 cursor-not-allowed' : selected ? 'bg-blue-100 border border-blue-300 text-blue-800' : 'bg-grey-100 border border-grey-300 text-grey-800'}`}
+                              className={`px-3 py-1  text-xs font-semibold ${alreadyActive ? 'bg-subdued text-muted cursor-not-allowed' : selected ? 'bg-secondary-subtle border border-secondary text-secondary' : 'bg-subdued border border-border-strong text-tertiary'}`}
                             >
                               {alreadyActive ? 'Active' : selected ? 'Selected' : 'Select'}
                             </button>
@@ -4395,7 +4350,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       );
                     })}
                   </div>
-                  <div className="mt-3 text-sm text-grey-700">
+                  <div className="mt-3 text-sm text-tertiary">
                     Active annual cost: £{(gameState.industrialStrategy.totalAnnualCost_bn || 0).toFixed(1)}bn ·
                     Productivity boost: +{(gameState.industrialStrategy.productivityBoostAccumulated || 0).toFixed(2)}pp
                     · State aid risk: {(gameState.industrialStrategy.stateAidRisk || 0).toFixed(0)}
@@ -4404,8 +4359,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* National Insurance */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">National Insurance</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">National Insurance</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £164bn · Employee rate (Class 1) and employer contributions. Thresholds determine who pays.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4420,8 +4375,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* VAT */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">VAT and Indirect Consumption Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">VAT and Indirect Consumption Taxes</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are
                     politically charged.
                   </p>
@@ -4436,8 +4391,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Corporation Tax & Business */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Corporation Tax and Business Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Corporation Tax and Business Taxes</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect
                     business decisions.
                   </p>
@@ -4455,8 +4410,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Capital Gains Tax */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Capital Gains Tax</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Capital Gains Tax</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a
                     surcharge.
                   </p>
@@ -4472,8 +4427,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Inheritance Tax */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Inheritance Tax</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Inheritance Tax</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £7.5bn · Rate, nil-rate band, and residence nil-rate band. Only ~4% of estates pay IHT.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4485,8 +4440,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Property Taxes */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Property Transaction Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Property Transaction Taxes</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £14bn · Stamp duty rates, first-time buyer relief, and second-home surcharge.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4499,8 +4454,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Savings and Investment Reliefs */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Savings and Investment Reliefs</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Savings and Investment Reliefs</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings
                     incentives.
                   </p>
@@ -4513,8 +4468,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {/* Excise Duties */}
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Excise Duties</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Excise Duties</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle
                     duties.
                   </p>
@@ -4534,10 +4489,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'spending' && (
               <div className="space-y-4">
                 <div className="bg-bg-surface border border-border-strong p-4">
-                  <h3 className="text-lg font-bold text-grey-900">Local Government</h3>
+                  <h3 className="text-lg font-bold text-primary">Local Government</h3>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">
+                      <label className="text-sm font-semibold text-tertiary">
                         Local government grant settlement (£bn)
                       </label>
                       <input
@@ -4549,7 +4504,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setLocalGovernmentGrantSettlement(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Delta:{' '}
                         {localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30) >= 0
                           ? '+'
@@ -4562,7 +4517,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </div>
                     </div>
                     <div className="border border-border-subtle p-3">
-                      <label className="text-sm font-semibold text-grey-800">Council tax referendum cap (%)</label>
+                      <label className="text-sm font-semibold text-tertiary">Council tax referendum cap (%)</label>
                       <input
                         type="number"
                         min={3}
@@ -4572,26 +4527,26 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         onChange={(e) => setCouncilTaxReferendumCap(Number(e.target.value))}
                         className="w-full mt-2 border border-border-strong px-2 py-1 text-sm"
                       />
-                      <div className="text-xs text-grey-600 mt-2">
+                      <div className="text-xs text-secondary mt-2">
                         Higher caps reduce central grant pressure but increase household tax pressure.
                       </div>
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Core settlement</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Core settlement</div>
                       <div className="text-xl font-bold">
                         £{(gameState.devolution.localGov.coreSettlement_bn || 0).toFixed(1)}bn
                       </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Adult social care pressure</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Adult social care pressure</div>
                       <div className="text-xl font-bold">
                         £{(gameState.devolution.localGov.adultSocialCarePressure_bn || 0).toFixed(1)}bn
                       </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Funding gap</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Funding gap</div>
                       <div className="text-xl font-bold">
                         £
                         {Math.max(
@@ -4602,8 +4557,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         bn
                       </div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Stress index</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Stress index</div>
                       <div className="text-xl font-bold">
                         {(
                           gameState.devolution.localGov.councilFundingStress ||
@@ -4614,31 +4569,31 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   </div>
                   {(gameState.devolution.localGov.section114Count || 0) > 0 && (
-                    <div className="mt-3 text-sm text-red-800 bg-red-50 border border-red-200 rounded-sm px-3 py-2">
+                    <div className="mt-3 text-sm text-bad bg-bad-subtle border border-bad  px-3 py-2">
                       Section 114 notices this term: {gameState.devolution.localGov.section114Count}
                     </div>
                   )}
                 </div>
                 <div className="bg-bg-surface border border-border-strong p-4">
-                  <h3 className="text-lg font-bold text-grey-900 mb-2">Devolution and Barnett Consequentials</h3>
-                  <p className="text-sm text-grey-600 mb-3">
+                  <h3 className="text-lg font-bold text-primary mb-2">Devolution and Barnett Consequentials</h3>
+                  <p className="text-sm text-secondary mb-3">
                     Automatic consequential payments generated by England programme changes.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Scotland</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Scotland</div>
                       <div className="text-lg font-bold">£{barnettPreview.scotland.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Wales</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Wales</div>
                       <div className="text-lg font-bold">£{barnettPreview.wales.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Northern Ireland</div>
+                    <div className="border border-border-subtle  p-2">
+                      <div className="text-secondary">Northern Ireland</div>
                       <div className="text-lg font-bold">£{barnettPreview.northernIreland.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-blue-200 bg-blue-50 rounded-sm p-2">
-                      <div className="text-grey-600">Total Barnett</div>
+                    <div className="border border-secondary bg-secondary-subtle  p-2">
+                      <div className="text-secondary">Total Barnett</div>
                       <div className="text-lg font-bold">£{barnettPreview.total.toFixed(1)}bn</div>
                     </div>
                   </div>
@@ -4650,14 +4605,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   const change = totalProposed - totalCurrent;
 
                   return (
-                    <div key={department} className="bg-white   border border-grey-200">
+                    <div key={department} className="bg-elevated border border-border-subtle">
                       <button
                         onClick={() => toggleDepartment(department)}
-                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colors"
+                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-subdued transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <svg
-                            className={`w-5 h-5 text-grey-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            className={`w-5 h-5 text-secondary transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -4665,16 +4620,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                           <div className="text-left">
-                            <h3 className="text-lg font-bold text-grey-900">{department}</h3>
-                            <p className="text-sm text-grey-600">
+                            <h3 className="text-lg font-bold text-primary">{department}</h3>
+                            <p className="text-sm text-secondary">
                               {items.length} programme{items.length !== 1 ? 's' : ''}
                             </p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-grey-900">£{totalProposed.toFixed(1)}bn</div>
+                          <div className="text-2xl font-bold text-primary">£{totalProposed.toFixed(1)}bn</div>
                           {change !== 0 && (
-                            <div className={`text-sm font-semibold ${change > 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                            <div className={`text-sm font-semibold ${change > 0 ? 'text-secondary' : 'text-bad'}`}>
                               {change > 0 ? '+' : ''}£{change.toFixed(1)}bn
                             </div>
                           )}
@@ -4682,7 +4637,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </button>
 
                       {isExpanded && (
-                        <div className="px-6 pb-6 pt-2 border-t border-grey-100">
+                        <div className="px-6 pb-6 pt-2 border-t border-border-subtle">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {items.map((item) => renderSpendingControl(item))}
                           </div>
@@ -4698,24 +4653,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'impact' && (
               <div className="space-y-6">
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-4">Fiscal Position</h2>
+                  <h2 className="text-xl font-bold text-primary mb-4">Fiscal Position</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="border border-grey-200  p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Current Deficit</div>
-                      <div className="text-3xl font-bold text-grey-900">
+                    <div className="border border-border-subtle  p-4">
+                      <div className="text-sm text-secondary uppercase tracking-wide mb-2">Current Deficit</div>
+                      <div className="text-3xl font-bold text-primary">
                         £{fiscalImpact.currentDeficit.toFixed(1)}bn
                       </div>
-                      <div className="text-sm text-grey-600 mt-1">OBR March 2024 forecast</div>
+                      <div className="text-sm text-secondary mt-1">OBR March 2024 forecast</div>
                     </div>
-                    <div className="border border-grey-200  p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Projected Deficit</div>
+                    <div className="border border-border-subtle  p-4">
+                      <div className="text-sm text-secondary uppercase tracking-wide mb-2">Projected Deficit</div>
                       <div
                         className={`text-3xl font-bold ${
                           fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit
-                            ? 'text-red-600'
+                            ? 'text-bad'
                             : fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit
-                              ? 'text-green-600'
-                              : 'text-grey-900'
+                              ? 'text-good'
+                              : 'text-primary'
                         }`}
                       >
                         £{fiscalImpact.projectedDeficit.toFixed(1)}bn
@@ -4723,34 +4678,34 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <div
                         className={`text-sm font-semibold mt-1 ${
                           fiscalImpact.deficitChange > 0
-                            ? 'text-red-600'
+                            ? 'text-bad'
                             : fiscalImpact.deficitChange < 0
-                              ? 'text-green-600'
-                              : 'text-grey-600'
+                              ? 'text-good'
+                              : 'text-secondary'
                         }`}
                       >
                         {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn change
                       </div>
                     </div>
-                    <div className="border border-grey-200  p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Public Sector Net Debt</div>
-                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
-                      <div className="text-sm text-grey-600 mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
+                    <div className="border border-border-subtle  p-4">
+                      <div className="text-sm text-secondary uppercase tracking-wide mb-2">Public Sector Net Debt</div>
+                      <div className="text-3xl font-bold text-primary">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
+                      <div className="text-sm text-secondary mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
                     </div>
-                    <div className="border border-grey-200  p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
+                    <div className="border border-border-subtle  p-4">
+                      <div className="text-sm text-secondary uppercase tracking-wide mb-2">Fiscal Rules Status</div>
                       <div
-                        className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}
+                        className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-good' : 'text-bad'}`}
                       >
                         {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
                       </div>
                       <div
                         className={`text-sm font-semibold mt-1 ${
                           fiscalImpact.headroom > 10
-                            ? 'text-green-700'
+                            ? 'text-good'
                             : fiscalImpact.headroom > 0
-                              ? 'text-amber-700'
-                              : 'text-red-700'
+                              ? 'text-warning'
+                              : 'text-bad'
                         }`}
                       >
                         {getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}:{' '}
@@ -4761,12 +4716,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Policy Pipeline</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Policy Pipeline</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Announced measures take time to clear legislation and systems delivery.
                   </p>
                   {(gameState.legislativePipeline.queue || []).length === 0 ? (
-                    <div className="text-sm text-grey-600">No measures in the pipeline.</div>
+                    <div className="text-sm text-secondary">No measures in the pipeline.</div>
                   ) : (
                     <div className="space-y-2">
                       {(gameState.legislativePipeline.queue || [])
@@ -4778,13 +4733,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                             className="border border-border-subtle p-3 text-sm flex justify-between gap-3"
                           >
                             <div>
-                              <div className="font-semibold text-grey-900">{item.description}</div>
-                              <div className="text-grey-600">
+                              <div className="font-semibold text-primary">{item.description}</div>
+                              <div className="text-secondary">
                                 Effective turn {item.effectiveTurn} · Type {item.type.replace('_', ' ')}
                               </div>
                             </div>
                             <div
-                              className={`font-semibold ${item.status === 'delayed' ? 'text-red-700' : item.status === 'active' ? 'text-green-700' : 'text-amber-700'}`}
+                              className={`font-semibold ${item.status === 'delayed' ? 'text-bad' : item.status === 'active' ? 'text-good' : 'text-warning'}`}
                             >
                               {item.status}
                             </div>
@@ -4795,15 +4750,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">OBR Policy Costings</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">OBR Policy Costings</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Latest certified annual impacts from the independent forecast vintage.
                   </p>
                   {gameState.obr.latestForecast?.policyScorings?.length ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-grey-200 text-grey-600">
+                          <tr className="border-b border-border-subtle text-secondary">
                             <th className="text-left py-2">Measure</th>
                             <th className="text-right py-2">Annual impact</th>
                             <th className="text-right py-2">Certainty</th>
@@ -4811,7 +4766,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         </thead>
                         <tbody>
                           {gameState.obr.latestForecast.policyScorings.map((row, idx) => (
-                            <tr key={`${row.measureDescription}_${idx}`} className="border-b border-grey-100">
+                            <tr key={`${row.measureDescription}_${idx}`} className="border-b border-border-subtle">
                               <td className="py-2">{row.measureDescription}</td>
                               <td className="py-2 text-right font-semibold">
                                 {row.annualImpact_bn >= 0 ? '+' : ''}£{row.annualImpact_bn.toFixed(1)}bn
@@ -4823,7 +4778,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </table>
                     </div>
                   ) : (
-                    <div className="text-sm text-grey-600">
+                    <div className="text-sm text-secondary">
                       No OBR costing table available until the next Budget or Autumn Statement.
                     </div>
                   )}
@@ -4831,14 +4786,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
                 {warnings.length > 0 && (
                   <div className="bg-bg-surface border border-border-strong p-6">
-                    <h2 className="text-xl font-bold text-grey-900 mb-4">Adviser Warnings</h2>
+                    <h2 className="text-xl font-bold text-primary mb-4">Adviser Warnings</h2>
                     <div className="space-y-3">{warnings.map((warning) => renderWarning(warning))}</div>
                   </div>
                 )}
 
                 {warnings.length === 0 && (
-                  <div className="bg-green-50 border border-green-200  p-6">
-                    <div className="flex items-center gap-3 text-green-900">
+                  <div className="bg-good-subtle border border-good  p-6">
+                    <div className="flex items-center gap-3 text-good">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
@@ -4849,7 +4804,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </svg>
                       <div>
                         <h3 className="font-bold">No Warnings</h3>
-                        <p className="text-sm text-green-700">
+                        <p className="text-sm text-good">
                           Your budget proposals do not trigger any adviser warnings.
                         </p>
                       </div>
@@ -4863,16 +4818,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'constraints' && (
               <div className="space-y-6">
                 <div className="bg-bg-surface border border-border-strong p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Manifesto Commitments</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                  <h2 className="text-xl font-bold text-primary mb-2">Manifesto Commitments</h2>
+                  <p className="text-sm text-secondary mb-4">
                     Your manifesto commitments and fiscal rules. Breaking these will have serious political
                     consequences.
                   </p>
                   <div className="space-y-3">{constraints.map((constraint) => renderConstraint(constraint))}</div>
 
-                  <div className="mt-6 pt-6 border-t border-gray-200 space-y-3">
-                    <h3 className="text-lg font-bold text-gray-900">Change fiscal framework</h3>
-                    <p className="text-sm text-gray-600">
+                  <div className="mt-6 pt-6 border-t border-border-strong space-y-3">
+                    <h3 className="text-lg font-bold text-primary">Change fiscal framework</h3>
+                    <p className="text-sm text-secondary">
                       Changing the fiscal framework mid-term is a high-risk decision and will carry immediate
                       credibility and political costs on the next turn.
                     </p>
@@ -4880,7 +4835,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       <select
                         value={proposedFiscalRule}
                         onChange={(e) => setProposedFiscalRule(e.target.value as FiscalRuleId)}
-                        className="px-3 py-2 border border-gray-300 rounded-sm text-sm"
+                        className="px-3 py-2 border border-border-strong text-sm"
                       >
                         {FISCAL_RULES.map((rule) => (
                           <option key={rule.id} value={rule.id}>
@@ -4890,7 +4845,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </select>
                       <button
                         onClick={() => setShowFiscalRuleChangeModal(true)}
-                        className="px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-semibold rounded-sm"
+                        className="px-4 py-2 bg-primary hover:bg-primary-hover text-white font-semibold "
                         disabled={proposedFiscalRule === gameState.political.chosenFiscalRule}
                       >
                         Change fiscal framework
@@ -4899,10 +4854,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200  p-6">
+                <div className="bg-secondary-subtle border border-secondary  p-6">
                   <div className="flex items-start gap-3">
                     <svg
-                      className="w-6 h-6 text-blue-600 flex-shrink-0"
+                      className="w-6 h-6 text-secondary flex-shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -4915,13 +4870,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       />
                     </svg>
                     <div>
-                      <h3 className="font-bold text-blue-900 mb-1">About Fiscal Rules</h3>
-                      <p className="text-sm text-blue-700 mb-2">
+                      <h3 className="font-bold text-secondary mb-1">About Fiscal Rules</h3>
+                      <p className="text-sm text-secondary mb-2">
                         The Stability Rule requires the current budget (day-to-day spending) to be in balance by the
                         fifth year of the forecast. The Investment Rule requires public sector net financial liabilities
                         to be falling as a share of GDP by the fifth year.
                       </p>
-                      <p className="text-sm text-blue-700">
+                      <p className="text-sm text-secondary">
                         These targets are verified by the Office for Budget Responsibility (OBR) and are legally binding
                         under the Charter for Budget Responsibility. Breaching fiscal rules will trigger severe market
                         reaction and political crisis.
@@ -4935,10 +4890,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {visiblePolicyConflicts.length > 0 && (
               <div className="mt-6 space-y-3">
                 {visiblePolicyConflicts.map((conflict) => (
-                  <div key={conflict.id} className="bg-amber-50 border border-amber-300  p-4">
+                  <div key={conflict.id} className="bg-warning-subtle border border-warning  p-4">
                     <div className="flex items-start gap-3">
                       <svg
-                        className="w-5 h-5 text-amber-700 flex-shrink-0 mt-0.5"
+                        className="w-5 h-5 text-warning flex-shrink-0 mt-0.5"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -4951,12 +4906,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         />
                       </svg>
                       <div>
-                        <div className="text-sm font-bold text-amber-900">{conflict.title}</div>
-                        <div className="text-sm text-amber-800">{conflict.description}</div>
+                        <div className="text-sm font-bold text-warning">{conflict.title}</div>
+                        <div className="text-sm text-warning">{conflict.description}</div>
                       </div>
                       <button
                         onClick={() => setDismissedConflicts((prev) => new Set(prev).add(conflict.id))}
-                        className="text-xs text-amber-700 hover:text-amber-900 font-semibold"
+                        className="text-xs text-warning hover:text-warning font-semibold"
                       >
                         Dismiss
                       </button>
@@ -4970,19 +4925,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="mt-8 flex gap-4 justify-end">
               <button
                 onClick={resetBudget}
-                className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold  hover:bg-grey-50 transition-colors"
+                className="px-6 py-3 border-2 border-border-strong text-tertiary font-semibold  hover:bg-bg transition-colors"
               >
                 Reset to Baseline
               </button>
               <button
                 onClick={() => setShowPMInterventionModal(true)}
-                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold  transition-colors "
+                className="px-6 py-3 bg-warning hover:bg-warning-hover text-white font-bold  transition-colors "
               >
                 Force PM Intervention
               </button>
               <button
                 onClick={submitBudget}
-                className="px-6 py-3 bg-red-900 text-white font-semibold  hover:bg-red-800 transition-colors "
+                className="px-6 py-3 bg-primary text-white font-semibold  hover:bg-primary-hover transition-colors "
               >
                 Submit Budget for Parliamentary Approval
               </button>
@@ -5056,30 +5011,30 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
       {showFiscalRuleChangeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-xl w-full  ">
-            <div className="bg-red-700 text-white p-5">
-              <h2 className="text-2xl font-bold">Confirm fiscal framework change</h2>
+          <div className="bg-elevated max-w-xl w-full border border-border-strong">
+            <div className="bg-primary text-white p-5">
+              <h2 className="text-2xl font-display">Confirm fiscal framework change</h2>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-secondary">
                 You are changing from{' '}
                 <span className="font-semibold">{getFiscalRuleById(gameState.political.chosenFiscalRule).name}</span> to{' '}
                 <span className="font-semibold">{getFiscalRuleById(proposedFiscalRule).name}</span>.
               </p>
-              <div className="bg-amber-50 border border-amber-200 rounded-sm p-3 text-sm text-amber-900">
+              <div className="bg-warning-subtle border border-warning p-3 text-sm text-warning">
                 Consequences on next turn: credibility shock, one-off gilt yield shock with six-month decay, PM trust
                 fall, and backbench dissatisfaction.
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowFiscalRuleChangeModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-sm"
+                  className="flex-1 px-4 py-2 bg-subdued hover:bg-bg text-primary font-semibold border border-border-strong"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmFiscalRuleChange}
-                  className="flex-1 px-4 py-2 bg-red-700 hover:bg-red-800 text-white font-bold rounded-sm"
+                  className="flex-1 px-4 py-2 bg-primary hover:bg-primary-hover text-white font-bold"
                 >
                   Confirm change
                 </button>
@@ -5092,32 +5047,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       {/* Fiscal Rule Message Modal */}
       {fiscalRuleMessage && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-2xl w-full  ">
-            <div className="bg-purple-600 text-white p-6">
+          <div className="bg-elevated max-w-2xl w-full border border-border-strong">
+            <div className="bg-primary text-white p-6">
               <div className="text-center">
-                <h2 className="text-3xl font-bold">Fiscal Rule Commitment</h2>
+                <h2 className="text-3xl font-display">Fiscal Rule Commitment</h2>
                 <div className="text-sm mt-2 opacity-90">Complex Adjustment Required</div>
               </div>
             </div>
 
             <div className="p-6">
-              <div className="bg-blue-50 border-2 border-blue-300  p-4 mb-6">
+              <div className="bg-secondary-subtle border border-secondary p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <span className="text-secondary text-xl flex-shrink-0 mt-0.5">ℹ</span>
                   <div>
-                    <p className="text-blue-900">{fiscalRuleMessage}</p>
+                    <p className="text-secondary">{fiscalRuleMessage}</p>
                   </div>
                 </div>
               </div>
@@ -5125,7 +5068,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setFiscalRuleMessage(null)}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold  transition-colors"
+                  className="flex-1 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold transition-colors"
                 >
                   Understood
                 </button>
@@ -5138,36 +5081,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       {/* Broken Promises Alert Modal */}
       {brokenPromisesAlert && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-2xl w-full  ">
-            <div className="bg-red-600 text-white p-6">
+          <div className="bg-elevated max-w-2xl w-full border border-border-strong">
+            <div className="bg-primary text-white p-6">
               <div className="text-center">
-                <h2 className="text-3xl font-bold">Broken Promises Alert</h2>
+                <h2 className="text-3xl font-display">Broken Promises Alert</h2>
                 <div className="text-sm mt-2 opacity-90">MPs Will Remember This Betrayal</div>
               </div>
             </div>
 
             <div className="p-6">
-              <div className="bg-red-50 border-2 border-red-300  p-4 mb-6">
+              <div className="bg-bad-subtle border border-bad p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    />
-                  </svg>
+                  <span className="text-bad text-xl flex-shrink-0 mt-0.5">⚠</span>
                   <div>
-                    <p className="text-red-900 font-semibold">
+                    <p className="text-bad font-semibold">
                       You have broken {brokenPromisesAlert.count} promise{brokenPromisesAlert.count > 1 ? 's' : ''}{' '}
                       affecting {brokenPromisesAlert.mpCount} MP{brokenPromisesAlert.mpCount !== 1 ? 's' : ''}.
                     </p>
-                    <p className="text-red-800 mt-2">
+                    <p className="text-bad mt-2">
                       These MPs will remember this betrayal and become much more hostile to future budgets. Trust has
                       been severely damaged.
                     </p>
@@ -5178,7 +5109,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setBrokenPromisesAlert(null)}
-                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold  transition-colors"
+                  className="flex-1 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold transition-colors"
                 >
                   Understood
                 </button>
@@ -5191,35 +5122,23 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       {/* PM Intervention Success Modal */}
       {pmInterventionSuccess && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-          <div className="bg-white max-w-2xl w-full  ">
-            <div className="bg-green-600 text-white p-6">
+          <div className="bg-elevated max-w-2xl w-full border border-border-strong">
+            <div className="bg-primary text-white p-6">
               <div className="text-center">
-                <h2 className="text-3xl font-bold">PM Intervention Successful</h2>
+                <h2 className="text-3xl font-display">PM Intervention Successful</h2>
                 <div className="text-sm mt-2 opacity-90">Budget Forced Through Parliament</div>
               </div>
             </div>
 
             <div className="p-6">
-              <div className="bg-green-50 border-2 border-green-300  p-4 mb-6">
+              <div className="bg-good-subtle border border-good p-4 mb-6">
                 <div className="flex items-start gap-3">
-                  <svg
-                    className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+                  <span className="text-good text-xl flex-shrink-0 mt-0.5">✓</span>
                   <div>
-                    <p className="text-green-900 font-semibold">
+                    <p className="text-good font-semibold">
                       Budget has been forced through Parliament. All 411 Labour MPs have been compelled to vote aye.
                     </p>
-                    <p className="text-green-800 mt-2">The political consequences are severe.</p>
+                    <p className="text-good mt-2">The political consequences are severe.</p>
                   </div>
                 </div>
               </div>
@@ -5227,7 +5146,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setPMInterventionSuccess(false)}
-                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold  transition-colors"
+                  className="flex-1 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold transition-colors"
                 >
                   Understood
                 </button>

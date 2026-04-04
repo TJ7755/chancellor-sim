@@ -812,23 +812,23 @@ interface PMInterventionModalProps {
  */
 export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event, onComply, onDefy }) => {
   const getTrustColour = (trust: number): string => {
-    if (trust > 50) return 'text-green-600';
-    if (trust > 30) return 'text-orange-600';
-    return 'text-red-600';
+    if (trust > 50) return 'text-good';
+    if (trust > 30) return 'text-warning';
+    return 'text-bad';
   };
 
   const getTrustBgColour = (trust: number): string => {
-    if (trust > 50) return 'bg-green-600';
-    if (trust > 30) return 'bg-orange-600';
-    return 'bg-red-600';
+    if (trust > 50) return 'bg-good';
+    if (trust > 30) return 'bg-warning';
+    return 'bg-bad';
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white   max-w-2xl w-full p-8">
+      <div className="bg-elevated max-w-2xl w-full p-8">
         {/* Phone Icon */}
         <div className="flex justify-center mb-4">
-          <div className="w-20 h-20 bg-red-600  flex items-center justify-center animate-pulse">
+          <div className="w-20 h-20 bg-bad flex items-center justify-center">
             <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
@@ -841,32 +841,32 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event,
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-2">The Prime Minister is calling...</h2>
-        <p className="text-center text-gray-600 mb-6 text-lg">
+        <h2 className="text-3xl font-bold text-center text-primary-color mb-2">The Prime Minister is calling...</h2>
+        <p className="text-center text-tertiary-color mb-6 text-lg">
           {event.pmAnger === 'furious' && 'The PM is furious about recent policy decisions'}
           {event.pmAnger === 'angry' && 'The PM is not pleased with the current situation'}
           {event.pmAnger === 'concerned' && 'The PM has concerns about the direction of policy'}
         </p>
 
         {/* PM Trust Indicator */}
-        <div className="mb-6 p-4 bg-gray-50 ">
+        <div className="mb-6 p-4 bg-subdued">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-700">PM Trust Level</span>
+            <span className="text-sm font-medium text-secondary">PM Trust Level</span>
             <span className={`font-bold text-lg ${getTrustColour(event.pmTrust)}`}>
               {Math.round(event.pmTrust)}/100
             </span>
           </div>
-          <div className="w-full bg-gray-200  h-3">
-            <div className={`h-3  ${getTrustBgColour(event.pmTrust)}`} style={{ width: `${event.pmTrust}%` }} />
+          <div className="w-full bg-subdued h-3">
+            <div className={`h-3 ${getTrustBgColour(event.pmTrust)}`} style={{ width: `${event.pmTrust}%` }} />
           </div>
         </div>
 
         {/* PM's Demand */}
-        <div className="mb-6 p-6 border-2 border-red-300 bg-red-50 ">
-          <h3 className="font-bold text-red-900 mb-3 text-xl">{event.demandTitle}</h3>
-          <p className="text-red-800 leading-relaxed">{event.demandDescription}</p>
+        <div className="mb-6 p-6 border-2 border-bad bg-bad-subtle">
+          <h3 className="font-bold text-bad mb-3 text-xl">{event.demandTitle}</h3>
+          <p className="text-bad leading-relaxed">{event.demandDescription}</p>
           {event.complyPolicyDescription && (
-            <p className="text-sm text-red-900 mt-3 font-semibold">{event.complyPolicyDescription}</p>
+            <p className="text-sm text-bad mt-3 font-semibold">{event.complyPolicyDescription}</p>
           )}
         </div>
 
@@ -875,10 +875,10 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event,
           {/* Comply */}
           <button
             onClick={onComply}
-            className="p-5 border-2 border-green-600 bg-green-50 hover:bg-green-100  transition-all transform hover:scale-105"
+            className="p-5 border-2 border-good bg-good-subtle hover:bg-good-subtle"
           >
-            <div className="font-bold text-green-900 mb-3 text-lg">COMPLY WITH PM</div>
-            <div className="text-sm text-green-800 space-y-1 text-left">
+            <div className="font-bold text-good mb-3 text-lg">COMPLY WITH PM</div>
+            <div className="text-sm text-good space-y-1 text-left">
               <div>• PM Trust: +{event.consequencesIfComply.pmTrustChange}</div>
               <div>• Backbenchers: +{event.consequencesIfComply.backbenchSentimentChange}</div>
               <div>
@@ -891,10 +891,10 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event,
           {/* Defy */}
           <button
             onClick={onDefy}
-            className="p-5 border-2 border-red-600 bg-red-50 hover:bg-red-100  transition-all transform hover:scale-105"
+            className="p-5 border-2 border-bad bg-bad-subtle hover:bg-bad-subtle"
           >
-            <div className="font-bold text-red-900 mb-3 text-lg">DEFY PM</div>
-            <div className="text-sm text-red-800 space-y-1 text-left">
+            <div className="font-bold text-bad mb-3 text-lg">DEFY PM</div>
+            <div className="text-sm text-bad space-y-1 text-left">
               <div>• PM Trust: {event.consequencesIfDefy.pmTrustChange}</div>
               <div>• Backbenchers: {event.consequencesIfDefy.backbenchSentimentChange}</div>
               <div>• Reshuffle risk: {event.consequencesIfDefy.reshuffleRisk}%</div>
@@ -903,7 +903,7 @@ export const PMInterventionModal: React.FC<PMInterventionModalProps> = ({ event,
         </div>
 
         {/* Warning */}
-        <div className="text-xs text-center text-gray-500 italic">This choice will have permanent consequences</div>
+        <div className="text-xs text-center text-muted italic">This choice will have permanent consequences</div>
       </div>
     </div>
   );

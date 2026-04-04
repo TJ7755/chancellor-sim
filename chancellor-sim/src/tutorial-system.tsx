@@ -125,35 +125,35 @@ export const TutorialModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-      <div className="max-w-3xl w-full bg-white  rounded-sm border-t-4 border-blue-600 max-h-[90vh] overflow-y-auto">
-        <div className="bg-blue-600 text-white p-4 flex items-center justify-between sticky top-0">
+      <div className="max-w-3xl w-full bg-elevated border-t-4 border-primary max-h-[90vh] overflow-y-auto">
+        <div className="bg-primary text-inverse p-4 flex items-center justify-between sticky top-0">
           <div>
             <h2 className="text-2xl font-bold">How to Play</h2>
             <div className="text-sm opacity-90 mt-1">
               Section {currentSection + 1} of {TUTORIAL_SECTIONS.length}
             </div>
           </div>
-          <button onClick={onClose} className="text-white hover:bg-blue-700 px-3 py-1 rounded-sm text-xl font-bold">
+          <button onClick={onClose} className="text-inverse hover:bg-primary-hover px-3 py-1 text-xl font-bold">
             ×
           </button>
         </div>
 
         <div className="p-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">{section.title}</h3>
+          <h3 className="text-2xl font-bold text-primary-color mb-4">{section.title}</h3>
 
           <div className="space-y-3 mb-6">
             {section.content.map((paragraph, index) => (
-              <p key={index} className="text-gray-700 leading-relaxed">
+              <p key={index} className="text-secondary leading-relaxed">
                 {paragraph}
               </p>
             ))}
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-sm">
-            <h4 className="font-bold text-blue-900 mb-2">Key Points</h4>
+          <div className="bg-secondary-subtle border-l-4 border-secondary p-4">
+            <h4 className="font-bold text-secondary mb-2">Key Points</h4>
             <ul className="space-y-1">
               {section.keyPoints.map((point, index) => (
-                <li key={index} className="text-sm text-blue-800">
+                <li key={index} className="text-sm text-secondary">
                   • {point}
                 </li>
               ))}
@@ -161,14 +161,14 @@ export const TutorialModal: React.FC<{
           </div>
         </div>
 
-        <div className="border-t border-gray-200 p-4 flex items-center justify-between bg-gray-50 sticky bottom-0">
+        <div className="border-t border-subtle p-4 flex items-center justify-between bg-subdued sticky bottom-0">
           <button
             onClick={() => setCurrentSection(Math.max(0, currentSection - 1))}
             disabled={currentSection === 0}
-            className={`px-4 py-2 rounded-sm font-semibold ${
+            className={`px-4 py-2 font-semibold ${
               currentSection === 0
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-300 text-gray-800 hover:bg-gray-400'
+                ? 'bg-subdued text-muted cursor-not-allowed'
+                : 'bg-subdued text-primary-color hover:bg-border-strong'
             }`}
           >
             ← Previous
@@ -179,7 +179,7 @@ export const TutorialModal: React.FC<{
               <button
                 key={index}
                 onClick={() => setCurrentSection(index)}
-                className={`w-3 h-3 rounded-full ${index === currentSection ? 'bg-blue-600' : 'bg-gray-300'}`}
+                className={`w-3 h-3 ${index === currentSection ? 'bg-primary' : 'bg-subdued'}`}
                 aria-label={`Go to section ${index + 1}`}
               />
             ))}
@@ -193,7 +193,7 @@ export const TutorialModal: React.FC<{
                 onClose();
               }
             }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-sm hover:bg-blue-700 font-semibold"
+            className="bg-primary text-inverse px-4 py-2 hover:bg-primary-hover font-semibold"
           >
             {currentSection < TUTORIAL_SECTIONS.length - 1 ? 'Next →' : 'Start Playing'}
           </button>

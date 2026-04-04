@@ -121,7 +121,7 @@ export const PMMessagesScreen: React.FC = () => {
               </div>
 
               {/* Statistics */}
-              <div className="border-t border-border-custom pt-4 space-y-2">
+              <div className="border-t border-border-strong pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-secondary">Total Messages:</span>
                   <span className="font-mono text-sm font-semibold text-primary">{sortedMessages.length}</span>
@@ -142,7 +142,7 @@ export const PMMessagesScreen: React.FC = () => {
 
               {/* Active Demands */}
               {activeDemands.length > 0 && (
-                <div className="border-t border-border-custom mt-4 pt-4">
+                <div className="border-t border-border-strong mt-4 pt-4">
                   <h3 className="text-sm font-semibold text-primary mb-2">Active Demands</h3>
                   {activeDemands.map((demand, idx) => (
                     <div key={idx} className="mb-3 p-3 bg-bad-subtle border border-bad">
@@ -285,7 +285,7 @@ export const PMMessagesScreen: React.FC = () => {
                   )}
 
                   {/* Message Metadata */}
-                  <div className="mt-6 pt-6 border-t border-border-custom">
+                  <div className="mt-6 pt-6 border-t border-border-strong">
                     <div className="grid grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-xs text-muted mb-1">Message Type</p>

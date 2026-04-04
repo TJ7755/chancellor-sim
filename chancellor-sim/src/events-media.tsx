@@ -1795,13 +1795,13 @@ interface EventModalProps {
 export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDismiss }) => {
   return (
     <div
+      className="modal-overlay"
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.8)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1810,13 +1810,12 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDism
     >
       <div
         style={{
-          backgroundColor: 'var(--color-surface)',
+          backgroundColor: 'var(--color-bg-elevated)',
           padding: '30px',
-          borderRadius: '4px',
           maxWidth: '700px',
           maxHeight: '80vh',
           overflow: 'auto',
-          border: event.severity === 'crisis' ? '3px solid #dc2626' : '2px solid #ea580c',
+          border: event.severity === 'crisis' ? '3px solid var(--color-bad)' : '2px solid var(--color-warning)',
         }}
       >
         <div style={{ marginBottom: '20px' }}>
@@ -1824,10 +1823,9 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDism
             style={{
               display: 'inline-block',
               padding: '4px 12px',
-              borderRadius: '2px',
               backgroundColor:
-                event.severity === 'crisis' ? '#dc2626' : event.severity === 'major' ? '#ea580c' : '#64748b',
-              color: 'white',
+                event.severity === 'crisis' ? 'var(--color-bad)' : event.severity === 'major' ? 'var(--color-warning)' : 'var(--color-neutral)',
+              color: 'var(--color-text-inverse)',
               fontSize: '12px',
               fontWeight: 'bold',
               textTransform: 'uppercase',
@@ -1836,15 +1834,15 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDism
           >
             {event.severity === 'crisis' ? 'BREAKING: CRISIS' : event.severity === 'major' ? 'MAJOR EVENT' : 'EVENT'}
           </div>
-          <h2 style={{ margin: '8px 0 16px 0', fontSize: '24px', fontWeight: 'bold', color: 'var(--color-text)' }}>
+          <h2 style={{ margin: '8px 0 16px 0', fontSize: '24px', fontWeight: 'bold', color: 'var(--color-text-primary)' }}>
             {event.title}
           </h2>
-          <p style={{ fontSize: '16px', color: 'var(--color-text)', lineHeight: '1.6' }}>{event.description}</p>
+          <p style={{ fontSize: '16px', color: 'var(--color-text-primary)', lineHeight: '1.6' }}>{event.description}</p>
         </div>
 
         {event.responseOptions && event.responseOptions.length > 0 && (
           <div style={{ marginTop: '24px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--color-text)' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--color-text-primary)' }}>
               Your Response:
             </h3>
             {event.responseOptions.map((option, idx) => (
@@ -1857,22 +1855,21 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDism
                   padding: '16px',
                   marginBottom: '12px',
                   border: '1px solid var(--color-border)',
-                  borderRadius: '2px',
-                  backgroundColor: 'var(--color-surface)',
+                  backgroundColor: 'var(--color-bg-surface)',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.2s',
+                  transition: 'all 120ms ease',
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-accent)';
-                  e.currentTarget.style.backgroundColor = 'var(--color-accent-subtle)';
+                  e.currentTarget.style.borderColor = 'var(--color-primary)';
+                  e.currentTarget.style.backgroundColor = 'var(--color-primary-subtle)';
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.style.borderColor = 'var(--color-border)';
-                  e.currentTarget.style.backgroundColor = 'var(--color-surface)';
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-surface)';
                 }}
               >
-                <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '6px', color: 'var(--color-text)' }}>
+                <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '6px', color: 'var(--color-text-primary)' }}>
                   {option.label}
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>
@@ -1895,13 +1892,14 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onRespond, onDism
             style={{
               marginTop: '20px',
               padding: '12px 24px',
-              backgroundColor: 'var(--color-accent)',
-              color: 'var(--color-accent-text)',
+              backgroundColor: 'var(--color-primary)',
+              color: 'white',
               border: 'none',
-              borderRadius: '2px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em',
             }}
           >
             Continue
@@ -1942,7 +1940,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
       case 'Financial Times':
         return '#FFF1E5';
       case 'The Sun':
-        return '#FF0000';
+        return '#8b0000';
       case 'Daily Mail':
         return '#0F3460';
       default:
@@ -1956,13 +1954,13 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
 
   return (
     <div
+      className="modal-overlay"
       style={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.85)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1972,13 +1970,12 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
     >
       <div
         style={{
-          backgroundColor: newspaper.name === 'Financial Times' ? '#FFF1E5' : '#FFFFFF',
+          backgroundColor: newspaper.name === 'Financial Times' ? '#FFF1E5' : 'var(--color-bg-elevated)',
           width: '100%',
           maxWidth: '800px',
           maxHeight: '90vh',
           overflow: 'auto',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          border: isSpecialEdition ? '4px solid #dc2626' : 'none',
+          border: isSpecialEdition ? '4px solid var(--color-bad)' : '1px solid var(--color-border-strong)',
         }}
       >
         {/* Masthead */}
@@ -2023,8 +2020,8 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
         {isSpecialEdition && (
           <div
             style={{
-              backgroundColor: '#dc2626',
-              color: 'white',
+              backgroundColor: 'var(--color-bad)',
+              color: 'var(--color-text-inverse)',
               padding: '8px 30px',
               fontSize: '14px',
               fontWeight: 'bold',
@@ -2037,7 +2034,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
         )}
 
         {/* Article */}
-        <div style={{ padding: '30px', backgroundColor: 'var(--color-surface)' }}>
+        <div style={{ padding: '30px', backgroundColor: 'var(--color-bg-surface)' }}>
           {/* Headline */}
           <h1
             style={{
@@ -2046,7 +2043,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               lineHeight: '1.1',
               marginBottom: '16px',
               fontFamily: newspaper.style === 'tabloid' ? 'Arial Black, sans-serif' : 'Georgia, serif',
-              color: 'var(--color-text)',
+              color: 'var(--color-text-primary)',
             }}
           >
             {headline}
@@ -2057,7 +2054,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
             style={{
               fontSize: '18px',
               fontWeight: newspaper.style === 'tabloid' ? 'bold' : 'normal',
-              color: 'var(--color-text)',
+              color: 'var(--color-text-primary)',
               marginBottom: '24px',
               fontFamily: newspaper.style === 'tabloid' ? 'Arial, sans-serif' : 'Georgia, serif',
               fontStyle: newspaper.style === 'broadsheet' ? 'italic' : 'normal',
@@ -2072,7 +2069,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
             style={{
               fontSize: '16px',
               lineHeight: '1.7',
-              color: 'var(--color-text)',
+              color: 'var(--color-text-primary)',
               fontFamily: 'Georgia, serif',
             }}
           >
@@ -2089,7 +2086,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               marginTop: '24px',
               padding: '20px',
               backgroundColor: 'var(--color-bg)',
-              borderLeft: '4px solid var(--color-accent)',
+              borderLeft: '4px solid var(--color-primary)',
               fontFamily: 'Georgia, serif',
             }}
           >
@@ -2097,7 +2094,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               style={{
                 fontSize: '14px',
                 fontWeight: 'bold',
-                color: 'var(--color-accent)',
+                color: 'var(--color-primary)',
                 marginBottom: '8px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -2109,7 +2106,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               style={{
                 fontSize: '16px',
                 fontStyle: 'italic',
-                color: 'var(--color-text)',
+                color: 'var(--color-text-primary)',
                 marginBottom: '10px',
                 lineHeight: '1.6',
               }}
@@ -2136,7 +2133,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                   marginBottom: '12px',
-                  color: 'var(--color-text)',
+                  color: 'var(--color-text-primary)',
                 }}
               >
                 General News
@@ -2146,7 +2143,7 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
                   key={`${item.headline}_${idx}`}
                   style={{ marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid var(--color-border)' }}
                 >
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', lineHeight: 1.25 }}>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text-primary)', lineHeight: 1.25 }}>
                     {item.headline}
                   </div>
                   <div
@@ -2167,13 +2164,14 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
             style={{
               marginTop: '20px',
               padding: '12px 24px',
-              backgroundColor: 'var(--color-accent)',
-              color: 'var(--color-accent-text)',
+              backgroundColor: 'var(--color-primary)',
+              color: 'white',
               border: 'none',
-              borderRadius: '2px',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em',
             }}
           >
             Continue
@@ -2194,13 +2192,12 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({ events }) => {
     <div
       className="event-log-panel"
       style={{
-        backgroundColor: 'var(--color-surface)',
-        borderRadius: '4px',
+        backgroundColor: 'var(--color-bg-surface)',
         padding: '20px',
         border: '1px solid var(--color-border)',
       }}
     >
-      <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--color-text)' }}>
+      <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--color-text-primary)' }}>
         Recent Events
       </h3>
 
@@ -2216,12 +2213,11 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({ events }) => {
             marginBottom: '8px',
             backgroundColor: entry.resolved ? 'var(--color-bg)' : 'var(--color-warning-subtle)',
             borderLeft: `3px solid ${
-              entry.event.severity === 'crisis' ? '#dc2626' : entry.event.severity === 'major' ? '#ea580c' : '#94a3b8'
+              entry.event.severity === 'crisis' ? 'var(--color-bad)' : entry.event.severity === 'major' ? 'var(--color-warning)' : 'var(--color-border-strong)'
             }`,
-            borderRadius: '2px',
           }}
         >
-          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text)', marginBottom: '4px' }}>
+          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
             {entry.event.title}
           </div>
           <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>

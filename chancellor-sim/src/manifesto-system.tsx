@@ -1162,20 +1162,20 @@ export const ManifestoDisplay: React.FC<{
   };
 
   return (
-    <div className="bg-bg-surface border-2 border-primary p-6">
-      <div className="border-b-2 border-red-700 pb-3 mb-4">
-        <h2 className="text-2xl font-bold text-gray-900">Labour Manifesto 2024</h2>
-        <h3 className="text-lg font-semibold text-red-700 mt-1">{template.name}</h3>
-        <p className="text-sm text-gray-600 mt-2">{template.theme}</p>
+    <div className="bg-surface border-2 border-primary p-6">
+      <div className="border-b-2 border-primary pb-3 mb-4">
+        <h2 className="text-2xl font-bold text-primary-color">Labour Manifesto 2024</h2>
+        <h3 className="text-lg font-semibold text-primary-accent mt-1">{template.name}</h3>
+        <p className="text-sm text-secondary-color mt-2">{template.theme}</p>
       </div>
 
       {manifestoState.totalViolations > 0 && (
-        <div className="bg-red-50 border border-red-300 p-3 rounded-sm mb-4">
-          <p className="text-sm font-semibold text-red-800">
+        <div className="bg-bad-subtle border border-strong p-3 mb-4">
+          <p className="text-sm font-semibold text-bad">
             Manifesto Status: {manifestoState.totalViolations} pledge
             {manifestoState.totalViolations !== 1 ? 's' : ''} broken
           </p>
-          <p className="text-xs text-red-700 mt-1">
+          <p className="text-xs text-bad mt-1">
             Total approval cost: {manifestoState.approvalCostFromViolations} points
           </p>
         </div>
@@ -1193,7 +1193,7 @@ export const ManifestoDisplay: React.FC<{
 
         return (
           <div key={category} className="mb-4">
-            <h4 className="text-md font-semibold text-gray-800 mb-2 uppercase text-xs tracking-wide">
+            <h4 className="text-md font-semibold text-primary-color mb-2 uppercase text-xs tracking-wide">
               {categoryNames[category]}
             </h4>
             <div className="space-y-3">
@@ -1206,30 +1206,30 @@ export const ManifestoDisplay: React.FC<{
                     key={pledge.id}
                     className={`p-3 border-l-4 ${
                       pledge.violated
-                        ? 'border-red-600 bg-red-50'
+                        ? 'border-bad bg-bad-subtle'
                         : progressData?.statusColor === 'green'
-                          ? 'border-green-600 bg-green-50'
+                          ? 'border-good bg-good-subtle'
                           : progressData?.statusColor === 'amber'
-                            ? 'border-amber-500 bg-amber-50'
-                            : 'border-gray-300 bg-gray-50'
+                            ? 'border-warning bg-warning-subtle'
+                            : 'border-strong bg-subdued'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-sm font-semibold text-primary-color">
                               {pledge.violated && '[BROKEN] '}
                               {pledge.description}
                             </p>
-                            <p className="text-xs text-gray-600 mt-1">{pledge.detail}</p>
+                            <p className="text-xs text-secondary-color mt-1">{pledge.detail}</p>
                           </div>
                           {pledge.violated && (
                             <div className="text-right flex-shrink-0">
-                              <p className="text-xs text-red-700 font-semibold">
+                              <p className="text-xs text-bad font-semibold">
                                 -{Math.abs(pledge.breakCost_approval)} approval
                               </p>
-                              <p className="text-xs text-red-600">-{Math.abs(pledge.breakCost_pmTrust)} PM trust</p>
+                              <p className="text-xs text-bad">-{Math.abs(pledge.breakCost_pmTrust)} PM trust</p>
                             </div>
                           )}
                         </div>
@@ -1238,17 +1238,17 @@ export const ManifestoDisplay: React.FC<{
                         {progressData && (
                           <div className="mt-2">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-gray-700">{progressData.status}</span>
-                              <span className="text-xs font-medium text-gray-700">{progressData.progress}%</span>
+                              <span className="text-xs font-medium text-secondary-color">{progressData.status}</span>
+                              <span className="text-xs font-medium text-secondary-color">{progressData.progress}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-subdued h-2">
                               <div
-                                className={`h-2 rounded-full transition-all duration-300 ${
+                                className={`h-2 transition-all duration-300 ${
                                   progressData.statusColor === 'green'
-                                    ? 'bg-green-600'
+                                    ? 'bg-good'
                                     : progressData.statusColor === 'amber'
-                                      ? 'bg-amber-500'
-                                      : 'bg-red-600'
+                                      ? 'bg-warning'
+                                      : 'bg-bad'
                                 }`}
                                 style={{ width: `${progressData.progress}%` }}
                               />
@@ -1257,23 +1257,23 @@ export const ManifestoDisplay: React.FC<{
                         )}
 
                         {pledge.violated && pledge.turnViolated && (
-                          <p className="text-xs text-red-700 mt-2 font-medium">Broken in month {pledge.turnViolated}</p>
+                          <p className="text-xs text-bad mt-2 font-medium">Broken in month {pledge.turnViolated}</p>
                         )}
 
                         {/* One-Click Action Button */}
                         {pledge.oneClickAvailable && gameState && onExecuteOneClick && (
-                          <div className="mt-3 pt-2 border-t border-gray-200">
+                          <div className="mt-3 pt-2 border-t border-subtle">
                             {pledge.oneClickType === 'allocate-spending' && pledge.oneClickExecuted ? (
-                              <p className="text-xs text-green-700 font-medium">
+                              <p className="text-xs text-good font-medium">
                                 Spending allocated -- pledge fulfilled
                               </p>
                             ) : (
                               <button
                                 onClick={() => handleOneClick(pledge)}
-                                className={`text-xs font-medium px-3 py-1.5 rounded ${
+                                className={`text-xs font-medium px-3 py-1.5 ${
                                   pledge.violated
-                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                    ? 'bg-primary hover:bg-primary-hover text-inverse'
+                                    : 'bg-secondary hover:bg-secondary-hover text-inverse'
                                 } transition-colors`}
                                 title={pledge.oneClickDescription}
                               >
@@ -1281,7 +1281,7 @@ export const ManifestoDisplay: React.FC<{
                                 {pledge.oneClickCost && pledge.oneClickCost > 0 ? ` (£${pledge.oneClickCost}bn)` : ''}
                               </button>
                             )}
-                            <p className="text-xs text-gray-500 mt-1">{pledge.oneClickDescription}</p>
+                            <p className="text-xs text-muted-color mt-1">{pledge.oneClickDescription}</p>
                           </div>
                         )}
                       </div>
@@ -1304,14 +1304,14 @@ export const ManifestoWarnings: React.FC<{
   if (warnings.length === 0) return null;
 
   return (
-    <div className="bg-red-50 border-l-4 border-red-600 p-4 rounded-sm">
+    <div className="bg-bad-subtle border-l-4 border-bad p-4">
       <div className="flex items-start">
         <div className="flex-shrink-0">
-          <span className="text-xl font-bold text-red-800">!</span>
+          <span className="text-xl font-bold text-bad">!</span>
         </div>
         <div className="ml-3 flex-1">
-          <h3 className="text-sm font-bold text-red-800">Manifesto Violation Warning</h3>
-          <ul className="mt-2 text-sm text-red-700 space-y-1">
+          <h3 className="text-sm font-bold text-bad">Manifesto Violation Warning</h3>
+          <ul className="mt-2 text-sm text-bad space-y-1">
             {warnings.map((warning, index) => (
               <li key={index}>• {warning}</li>
             ))}

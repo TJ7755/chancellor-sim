@@ -355,16 +355,16 @@ export function getPartyName(party: PartyAffiliation): string {
  */
 export function getPartyColor(party: PartyAffiliation): string {
   const colors: Record<PartyAffiliation, string> = {
-    labour: 'bg-red-600',
-    conservative: 'bg-blue-600',
-    liberal_democrat: 'bg-orange-500',
-    snp: 'bg-yellow-500',
-    green: 'bg-green-600',
-    reform_uk: 'bg-cyan-600',
-    plaid_cymru: 'bg-emerald-600',
-    dup: 'bg-red-800',
-    sinn_fein: 'bg-green-800',
-    independent: 'bg-gray-600',
+    labour: 'bg-primary',
+    conservative: 'bg-secondary',
+    liberal_democrat: 'bg-warning',
+    snp: 'bg-warning',
+    green: 'bg-good',
+    reform_uk: 'bg-secondary',
+    plaid_cymru: 'bg-good',
+    dup: 'bg-primary',
+    sinn_fein: 'bg-good',
+    independent: 'bg-neutral',
   };
   return colors[party];
 }
@@ -1827,8 +1827,8 @@ export const MPCard: React.FC<{
   const getStanceBadge = () => {
     if (!stanceLabel) return null;
     const colors = {
-      support: 'bg-status-good-subtle text-status-good',
-      oppose: 'bg-status-bad-subtle text-status-bad',
+      support: 'bg-good-subtle text-good',
+      oppose: 'bg-bad-subtle text-bad',
       undecided: 'border-b border-border-strong text-muted',
     };
     const labels = {
@@ -1840,12 +1840,12 @@ export const MPCard: React.FC<{
   };
 
   const getPartyBadgeColor = () => {
-    if (mp.party === 'labour') return 'bg-accent text-accent-text';
-    return 'bg-secondary text-white';
+    if (mp.party === 'labour') return 'bg-primary-subtle text-primary';
+    return 'bg-secondary-subtle text-secondary';
   };
 
   return (
-    <div className="border-b border-border-custom py-3 px-4 flex items-center justify-between hover:bg-transparent transition-colors">
+    <div className="border-b border-border-strong py-3 px-4 flex items-center justify-between hover:bg-bg-surface transition-colors">
       {/* Left: Name, Party, Constituency */}
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <div className="font-semibold text-primary truncate w-40">{mp.name}</div>
@@ -1865,7 +1865,7 @@ export const MPCard: React.FC<{
           <span className="font-mono font-semibold text-primary">{votingRecord?.rebellionCount || 0}</span>
         </div>
         {brokenPromisesCount > 0 && (
-          <span className="text-status-bad font-semibold text-xs w-24 text-right">{brokenPromisesCount} broken</span>
+          <span className="text-bad font-semibold text-xs w-24 text-right">{brokenPromisesCount} broken</span>
         )}
       </div>
 
@@ -1876,7 +1876,7 @@ export const MPCard: React.FC<{
           {onLobby && (
             <button
               onClick={() => onLobby(mp.id)}
-              className="px-3 py-1 bg-accent hover:bg-accent/90 text-accent-text text-xs font-semibold"
+              className="px-3 py-1 bg-primary hover:bg-primary-hover text-inverse text-xs font-semibold"
             >
               Lobby
             </button>
@@ -1884,7 +1884,7 @@ export const MPCard: React.FC<{
           {onViewDetails && (
             <button
               onClick={() => onViewDetails(mp.id)}
-              className="px-3 py-1 border-b border-border-strong hover:bg-transparent text-primary text-xs font-semibold"
+              className="px-3 py-1 border border-border-strong hover:bg-bg-surface text-primary text-xs font-semibold"
             >
               Details
             </button>
@@ -1986,12 +1986,12 @@ export const MPManagementScreen: React.FC<{
   return (
     <div className="min-h-screen bg-default">
       {/* Header */}
-      <div className="bg-transparent border-b border-border-custom p-6">
+      <div className="bg-bg-surface border-b border-border-strong p-6">
         <div className="max-w-7xl mx-auto">
           {onBack && (
             <button
               onClick={onBack}
-              className="mb-4 text-primary hover:text-accent font-semibold flex items-center gap-2"
+              className="mb-4 text-primary hover:text-primary-hover font-semibold flex items-center gap-2"
             >
               Back to Dashboard
             </button>
@@ -2006,7 +2006,7 @@ export const MPManagementScreen: React.FC<{
 
       <div className="max-w-7xl mx-auto p-6">
         {/* Compact Filter Toolbar */}
-        <div className="bg-transparent border-b border-border-custom px-6 py-3 mb-6">
+        <div className="bg-bg-surface border-b border-border-strong px-6 py-3 mb-6">
           <div className="flex items-center gap-4">
             {/* Party Filter */}
             <div className="flex items-center gap-2">
@@ -2086,22 +2086,22 @@ export const MPManagementScreen: React.FC<{
           <div className="flex items-center gap-6 mt-3 pt-3 border-t border-border-subtle text-sm">
             <span className="text-tertiary">Current Budget Support:</span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 bg-status-good"></span>
+              <span className="inline-block w-2 h-2 bg-good"></span>
               <span className="font-semibold text-primary">Support: {stanceCounts.support}</span>
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 bg-status-bad"></span>
+              <span className="inline-block w-2 h-2 bg-bad"></span>
               <span className="font-semibold text-primary">Oppose: {stanceCounts.oppose}</span>
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block w-2 h-2 bg-muted"></span>
+              <span className="inline-block w-2 h-2 bg-neutral-subtle"></span>
               <span className="font-semibold text-primary">Undecided: {stanceCounts.undecided}</span>
             </span>
           </div>
         </div>
 
         {/* Deals and Promises - Compact Section */}
-        <div className="mb-6 border-t border-border-custom pt-4">
+        <div className="mb-6 border-t border-border-strong pt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
               <h3 className="text-xs uppercase tracking-wide text-tertiary mb-2">Active deals and promises</h3>
@@ -2145,7 +2145,7 @@ export const MPManagementScreen: React.FC<{
 
         {/* MP List - Table Header */}
         <div className="border-b border-border-strong bg-transparent">
-          <div className="border-b border-border-custom py-2 px-4 flex items-center justify-between text-xs uppercase tracking-wide text-tertiary bg-transparent">
+          <div className="border-b border-border-strong py-2 px-4 flex items-center justify-between text-xs uppercase tracking-wide text-tertiary bg-bg-surface">
             <div className="flex items-center gap-4 flex-1">
               <div className="w-40">Name</div>
               <div>Party</div>
@@ -2241,17 +2241,17 @@ export const LobbyingModal: React.FC<{
 
   if (result) {
     return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-        <div className="bg-transparent border-b border-border-strong  max-w-md w-full p-6">
+      <div className="fixed inset-0 bg-bg/80 flex items-center justify-center z-50 p-4">
+        <div className="bg-bg-elevated border border-border-strong max-w-md w-full p-6">
           <h2 className="font-display text-2xl font-semibold text-primary mb-4">
             {result.success ? 'Lobbying Successful' : 'Lobbying Failed'}
           </h2>
-          <p className={`text-base mb-6 ${result.success ? 'text-status-good' : 'text-status-bad'}`}>
+          <p className={`text-base mb-6 ${result.success ? 'text-good' : 'text-bad'}`}>
             {result.message}
           </p>
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-text font-semibold"
+            className="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-inverse font-semibold"
           >
             Close
           </button>
@@ -2261,12 +2261,12 @@ export const LobbyingModal: React.FC<{
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-transparent border-b border-border-strong  max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-bg/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-bg-elevated border border-border-strong max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="bg-accent text-accent-text p-6">
+        <div className="bg-primary text-inverse p-6">
           <h2 className="font-display text-2xl font-semibold">Lobby {mp.name}</h2>
-          <p className="text-accent-text/80 mt-1 font-mono">
+          <p className="text-inverse/80 mt-1 font-mono">
             {mp.constituency.name} · {getPartyName(mp.party)}
             {mp.faction && ` · ${getFactionName(mp.faction)}`}
           </p>
@@ -2281,7 +2281,7 @@ export const LobbyingModal: React.FC<{
               {mp.traits.principled > 6 && <li>• Highly principled - difficult to pressure</li>}
               {mp.constituency.marginality > 60 && <li>• Marginal seat - worried about constituents</li>}
               {brokenPromisesCount > 0 && (
-                <li className="text-status-bad font-semibold">
+                <li className="text-bad font-semibold">
                   • You have broken {brokenPromisesCount} {brokenPromisesCount === 1 ? 'promise' : 'promises'} to this
                   MP
                 </li>
@@ -2298,8 +2298,8 @@ export const LobbyingModal: React.FC<{
                 onClick={() => setSelectedApproach('promise')}
                 className={`w-full text-left p-4 border transition-all ${
                   selectedApproach === 'promise'
-                    ? 'border-accent bg-accent-subtle'
-                    : 'border-border-custom hover:border-accent'
+                    ? 'border-primary bg-primary-subtle'
+                    : 'border-border-strong hover:border-primary'
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -2351,8 +2351,8 @@ export const LobbyingModal: React.FC<{
                 onClick={() => setSelectedApproach('persuade')}
                 className={`w-full text-left p-4 border transition-all ${
                   selectedApproach === 'persuade'
-                    ? 'border-status-good bg-status-good-subtle'
-                    : 'border-border-custom hover:border-status-good'
+                    ? 'border-good bg-good-subtle'
+                    : 'border-border-strong hover:border-good'
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -2364,7 +2364,7 @@ export const LobbyingModal: React.FC<{
                   </div>
                   <div className="ml-4 text-right">
                     <div className="text-xs text-muted">Success Rate</div>
-                    <div className="font-mono font-semibold text-status-good">{displayedSuccessRate}%</div>
+                    <div className="font-mono font-semibold text-good">{displayedSuccessRate}%</div>
                   </div>
                 </div>
               </button>
@@ -2374,15 +2374,15 @@ export const LobbyingModal: React.FC<{
                 onClick={() => setSelectedApproach('threaten')}
                 className={`w-full text-left p-4 border transition-all ${
                   selectedApproach === 'threaten'
-                    ? 'border-status-bad bg-status-bad-subtle'
-                    : 'border-border-custom hover:border-status-bad'
+                    ? 'border-bad bg-bad-subtle'
+                    : 'border-border-strong hover:border-bad'
                 }`}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="font-semibold text-primary flex items-center gap-2">
                       Use Whips (Threaten)
-                      <span className="text-xs text-status-bad font-normal">Risky</span>
+                      <span className="text-xs text-bad font-normal">Risky</span>
                     </div>
                     <div className="text-sm text-secondary mt-1">
                       Apply pressure through party whips (may backfire and reduce backbench satisfaction)
@@ -2390,8 +2390,8 @@ export const LobbyingModal: React.FC<{
                   </div>
                   <div className="ml-4 text-right">
                     <div className="text-xs text-muted">Success Rate</div>
-                    <div className="font-mono font-semibold text-status-bad">{displayedSuccessRate}%</div>
-                    <div className="text-xs text-status-bad mt-1">30% backfire risk</div>
+                    <div className="font-mono font-semibold text-bad">{displayedSuccessRate}%</div>
+                    <div className="text-xs text-bad mt-1">30% backfire risk</div>
                   </div>
                 </div>
               </button>
@@ -2400,8 +2400,8 @@ export const LobbyingModal: React.FC<{
 
           {/* Consequences Warning */}
           {selectedApproach === 'promise' && (
-            <div className="bg-status-bad-subtle border-l-4 border-status-bad p-4">
-              <p className="text-sm text-status-bad">
+            <div className="bg-bad-subtle border-l-4 border-bad p-4">
+              <p className="text-sm text-bad">
                 <strong>Warning:</strong> If you break this promise, this MP will become hostile and future lobbying
                 will become much harder. All MPs who receive broken promises will remember.
               </p>
@@ -2413,7 +2413,7 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={handleLobby}
               disabled={isLobbying}
-              className={`flex-1 px-6 py-3 bg-accent hover:bg-accent/90 text-accent-text font-semibold ${
+              className={`flex-1 px-6 py-3 bg-primary hover:bg-primary-hover text-inverse font-semibold ${
                 isLobbying ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -2422,7 +2422,7 @@ export const LobbyingModal: React.FC<{
             <button
               onClick={onClose}
               disabled={isLobbying}
-              className="px-6 py-3 border-b border-border-strong hover:bg-transparent text-primary font-semibold"
+              className="px-6 py-3 border border-border-strong hover:bg-bg-surface text-primary font-semibold"
             >
               Cancel
             </button>
@@ -2463,10 +2463,10 @@ export const MPDetailModal: React.FC<{
   const brokenPromises = mpPromises.filter((p) => p.broken);
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-transparent max-w-4xl w-full max-h-[90vh] overflow-y-auto  border-b border-border-strong">
+    <div className="fixed inset-0 bg-bg/80 flex items-center justify-center z-50 p-4">
+      <div className="bg-bg-elevated max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-border-strong">
         {/* Header */}
-        <div className="bg-accent text-accent-text p-6">
+        <div className="bg-primary text-inverse p-6">
           <div className="flex justify-between items-start">
             <div>
               <h2 className="font-display text-3xl font-semibold">{mp.name}</h2>
@@ -2481,14 +2481,14 @@ export const MPDetailModal: React.FC<{
               </div>
               <div className="text-sm opacity-90 mt-1">{mp.constituency.name}</div>
             </div>
-            <button onClick={onClose} className="text-accent-text hover:text-accent-text/70 text-2xl font-bold">
+            <button onClick={onClose} className="text-inverse hover:text-inverse/70 text-2xl font-bold">
               ×
             </button>
           </div>
 
           {/* Minister badge */}
           {mp.isMinister && (
-            <div className="mt-3 inline-block bg-accent-text/20 px-3 py-1 text-sm">{mp.ministerialRole}</div>
+            <div className="mt-3 inline-block bg-inverse/20 px-3 py-1 text-sm">{mp.ministerialRole}</div>
           )}
 
           {/* Stance badge */}
@@ -2496,9 +2496,9 @@ export const MPDetailModal: React.FC<{
             <div className="mt-2 flex items-center gap-3">
               {(() => {
                 const colors = {
-                  support: 'bg-status-good text-white',
-                  oppose: 'bg-status-bad text-white',
-                  undecided: 'bg-muted text-white',
+                  support: 'bg-good text-inverse',
+                  oppose: 'bg-bad text-inverse',
+                  undecided: 'bg-neutral text-inverse',
                 };
                 const labels = {
                   support: 'Supporting Budget',
@@ -2513,7 +2513,7 @@ export const MPDetailModal: React.FC<{
               })()}
 
               {detailedStance && (
-                <div className="text-xs bg-accent-text/10 px-2 py-1">
+                <div className="text-xs bg-inverse/10 px-2 py-1">
                   Support Score: {detailedStance.score.toFixed(1)}
                 </div>
               )}
@@ -2521,14 +2521,14 @@ export const MPDetailModal: React.FC<{
           )}
 
           {detailedStance && (
-            <div className="mt-3 text-sm italic opacity-90 border-l-2 border-accent-text pl-3">
+            <div className="mt-3 text-sm italic opacity-90 border-l-2 border-inverse pl-3">
               &quot;{detailedStance.reason}&quot;
             </div>
           )}
         </div>
 
         {/* Tabs - Underline Style */}
-        <div className="flex border-b border-border-custom bg-transparent">
+        <div className="flex border-b border-border-strong bg-bg-surface">
           {[
             { id: 'profile', label: 'Profile' },
             { id: 'ideology', label: 'Ideology' },
@@ -2541,7 +2541,7 @@ export const MPDetailModal: React.FC<{
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex-1 px-4 py-3 font-semibold transition-colors border-b-2 ${
                 activeTab === tab.id
-                  ? 'text-accent border-accent bg-transparent'
+                  ? 'text-primary border-primary bg-bg-surface'
                   : 'text-tertiary border-transparent hover:text-primary'
               }`}
             >
@@ -2578,7 +2578,7 @@ export const MPDetailModal: React.FC<{
                   <h3 className="font-display font-semibold text-primary mb-2">Committee Memberships</h3>
                   <div className="flex flex-wrap gap-2">
                     {mp.committees.map((committee, idx) => (
-                      <span key={idx} className="px-3 py-1 bg-accent-subtle text-accent text-sm border border-accent">
+                      <span key={idx} className="px-3 py-1 bg-primary-subtle text-primary text-sm border border-primary">
                         {committee}
                       </span>
                     ))}
@@ -2592,9 +2592,9 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Rebelliousness</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-transparent h-2">
+                      <div className="w-32 bg-bg-subdued h-2">
                         <div
-                          className="bg-status-bad h-2"
+                          className="bg-bad h-2"
                           style={{ width: `${(mp.traits.rebelliousness / 10) * 100}%` }}
                         ></div>
                       </div>
@@ -2606,8 +2606,8 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Principled</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-transparent h-2">
-                        <div className="bg-accent h-2" style={{ width: `${(mp.traits.principled / 10) * 100}%` }}></div>
+                      <div className="w-32 bg-bg-subdued h-2">
+                        <div className="bg-primary h-2" style={{ width: `${(mp.traits.principled / 10) * 100}%` }}></div>
                       </div>
                       <span className="text-sm font-semibold text-primary font-mono">
                         {mp.traits.principled.toFixed(1)}/10
@@ -2617,7 +2617,7 @@ export const MPDetailModal: React.FC<{
                   <div className="flex justify-between items-center">
                     <span className="text-secondary">Ambition</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 bg-transparent h-2">
+                      <div className="w-32 bg-bg-subdued h-2">
                         <div
                           className="bg-secondary h-2"
                           style={{ width: `${(mp.traits.ambition / 10) * 100}%` }}
@@ -2638,11 +2638,11 @@ export const MPDetailModal: React.FC<{
             <div className="space-y-6">
               <div>
                 <h3 className="font-display font-semibold text-primary mb-3">Political Compass</h3>
-                <div className="bg-transparent p-6 border-b border-border-strong">
-                  <div className="relative w-full h-64 border-2 border-border-custom">
+                <div className="bg-bg-surface p-6 border border-border-strong">
+                  <div className="relative w-full h-64 border-2 border-border-strong">
                     {/* Axes */}
-                    <div className="absolute top-1/2 left-0 w-full h-px bg-border"></div>
-                    <div className="absolute top-0 left-1/2 w-px h-full bg-border"></div>
+                    <div className="absolute top-1/2 left-0 w-full h-px bg-border-strong"></div>
+                    <div className="absolute top-0 left-1/2 w-px h-full bg-border-strong"></div>
 
                     {/* Labels */}
                     <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-tertiary">Authoritarian</div>
@@ -2652,7 +2652,7 @@ export const MPDetailModal: React.FC<{
 
                     {/* MP Position */}
                     <div
-                      className="absolute w-4 h-4 bg-status-bad border-2 border-white  -translate-x-1/2 -translate-y-1/2"
+                      className="absolute w-4 h-4 bg-bad border-2 border-elevated -translate-x-1/2 -translate-y-1/2"
                       style={{
                         left: `${((mp.ideology.economicAxis + 10) / 20) * 100}%`,
                         top: `${((mp.ideology.socialAxis + 10) / 20) * 100}%`,
@@ -2695,7 +2695,7 @@ export const MPDetailModal: React.FC<{
               <div>
                 <h3 className="font-display font-semibold text-primary mb-3">Fiscal Position</h3>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 bg-transparent h-4">
+                  <div className="flex-1 bg-bg-subdued h-4">
                     <div
                       className="bg-warning h-4"
                       style={{ width: `${(mp.ideology.fiscalConservatism / 10) * 100}%` }}
@@ -2720,15 +2720,15 @@ export const MPDetailModal: React.FC<{
           {activeTab === 'voting' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-status-good-subtle border border-status-good p-4">
-                  <div className="text-sm text-status-good">Loyalty Score</div>
-                  <div className="text-3xl font-mono font-semibold text-status-good">
+                <div className="bg-good-subtle border border-good p-4">
+                  <div className="text-sm text-good">Loyalty Score</div>
+                  <div className="text-3xl font-mono font-semibold text-good">
                     {votingRecord?.loyaltyScore || 100}%
                   </div>
                 </div>
-                <div className="bg-status-bad-subtle border border-status-bad p-4">
-                  <div className="text-sm text-status-bad">Rebellions</div>
-                  <div className="text-3xl font-mono font-semibold text-status-bad">
+                <div className="bg-bad-subtle border border-bad p-4">
+                  <div className="text-sm text-bad">Rebellions</div>
+                  <div className="text-3xl font-mono font-semibold text-bad">
                     {votingRecord?.rebellionCount || 0}
                   </div>
                 </div>
@@ -2749,10 +2749,10 @@ export const MPDetailModal: React.FC<{
                                 <span
                                   className={`px-2 py-0.5 text-xs font-semibold ${
                                     vote.choice === 'aye'
-                                      ? 'bg-status-good-subtle text-status-good'
+                                      ? 'bg-good-subtle text-good'
                                       : vote.choice === 'noe'
-                                        ? 'bg-status-bad-subtle text-status-bad'
-                                        : 'bg-muted text-white'
+                                        ? 'bg-bad-subtle text-bad'
+                                        : 'bg-neutral-subtle text-muted'
                                   }`}
                                 >
                                   {vote.choice.toUpperCase()}
@@ -2782,17 +2782,17 @@ export const MPDetailModal: React.FC<{
             <div className="space-y-6">
               {brokenPromises.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-status-bad mb-3 flex items-center gap-2">
+                  <h3 className="font-display font-semibold text-bad mb-3 flex items-center gap-2">
                     <span>Broken Promises</span>
-                    <span className="bg-status-bad text-white text-xs px-2 py-1">{brokenPromises.length}</span>
+                    <span className="bg-bad text-inverse text-xs px-2 py-1">{brokenPromises.length}</span>
                   </h3>
                   <div className="space-y-2">
                     {brokenPromises.map((promise) => (
-                      <div key={promise.id} className="bg-status-bad-subtle border-2 border-status-bad p-4">
+                      <div key={promise.id} className="bg-bad-subtle border-2 border-bad p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-lg font-bold text-status-bad">X</div>
+                          <div className="text-lg font-bold text-bad">X</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-status-bad">
+                            <div className="font-semibold text-bad">
                               {getPromiseCategoryName(promise.category)}
                             </div>
                             <div className="text-sm text-secondary mt-1">{promise.description}</div>
@@ -2829,14 +2829,14 @@ export const MPDetailModal: React.FC<{
 
               {fulfilledPromises.length > 0 && (
                 <div>
-                  <h3 className="font-display font-semibold text-status-good mb-3">Fulfilled Promises</h3>
+                  <h3 className="font-display font-semibold text-good mb-3">Fulfilled Promises</h3>
                   <div className="space-y-2">
                     {fulfilledPromises.map((promise) => (
-                      <div key={promise.id} className="bg-status-good-subtle border border-status-good p-4">
+                      <div key={promise.id} className="bg-good-subtle border border-good p-4">
                         <div className="flex items-start gap-3">
-                          <div className="text-xs font-bold text-white bg-status-good px-2 py-1">KEPT</div>
+                          <div className="text-xs font-bold text-inverse bg-good px-2 py-1">KEPT</div>
                           <div className="flex-1">
-                            <div className="font-semibold text-status-good">
+                            <div className="font-semibold text-good">
                               {getPromiseCategoryName(promise.category)}
                             </div>
                             <div className="text-sm text-secondary mt-1">{promise.description}</div>
@@ -2868,20 +2868,20 @@ export const MPDetailModal: React.FC<{
                   <div
                     className={`border p-3 ${
                       mp.constituency.marginality > 70
-                        ? 'bg-status-bad-subtle border-status-bad'
+                        ? 'bg-bad-subtle border-bad'
                         : mp.constituency.marginality > 50
                           ? 'bg-warning-subtle border-warning'
-                          : 'bg-status-good-subtle border-status-good'
+                          : 'bg-good-subtle border-good'
                     }`}
                   >
                     <div className="text-sm text-tertiary">Marginality</div>
                     <div
                       className={`text-lg font-semibold font-mono ${
                         mp.constituency.marginality > 70
-                          ? 'text-status-bad'
+                          ? 'text-bad'
                           : mp.constituency.marginality > 50
                             ? 'text-warning'
-                            : 'text-status-good'
+                            : 'text-good'
                       }`}
                     >
                       {mp.constituency.marginality.toFixed(0)}%
@@ -2947,10 +2947,10 @@ export const MPDetailModal: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="border-t border-border-custom p-4 bg-transparent">
+        <div className="border-t border-border-strong p-4 bg-bg-surface">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-accent hover:bg-accent/90 text-accent-text font-semibold"
+            className="w-full px-4 py-2 bg-primary hover:bg-primary-hover text-inverse font-semibold"
           >
             Close
           </button>

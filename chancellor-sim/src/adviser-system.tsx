@@ -986,12 +986,12 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
 
   if (advisersList.length === 0) {
     return (
-      <div className="bg-slate-50 border border-slate-200  p-4 mb-4">
+      <div className="bg-subdued border border-border-strong p-4 mb-4">
         <div className="flex items-center gap-2 mb-2">
-          <Brain className="w-5 h-5 text-slate-400" />
-          <h3 className="font-semibold text-slate-700">Economic Advisers</h3>
+          <Brain className="w-5 h-5 text-muted" />
+          <h3 className="font-semibold text-secondary">Economic Advisers</h3>
         </div>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-muted">
           No advisers appointed. Consider hiring economic advice from the adviser management screen.
         </p>
       </div>
@@ -1013,8 +1013,8 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
   return (
     <div className="bg-bg-surface border border-border-strong p-4 mb-4">
       <div className="flex items-center gap-2 mb-3">
-        <Brain className="w-5 h-5 text-slate-700" />
-        <h3 className="font-semibold text-slate-900">Adviser Assessment</h3>
+        <Brain className="w-5 h-5 text-primary" />
+        <h3 className="font-semibold text-primary">Adviser Assessment</h3>
       </div>
 
       <div className="space-y-3">
@@ -1032,19 +1032,19 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     {getSeverityIcon(opinion.overallAssessment)}
-                    <span className="font-medium text-sm text-slate-900">{hired.profile.name}</span>
+                    <span className="font-medium text-sm text-primary">{hired.profile.name}</span>
                   </div>
-                  <span className="text-xs text-slate-500">{hired.profile.title}</span>
+                  <span className="text-xs text-muted">{hired.profile.title}</span>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded ${getSeverityBadgeClass(opinion.overallAssessment)}`}>
+                <span className={`text-xs px-2 py-1 ${getSeverityBadgeClass(opinion.overallAssessment)}`}>
                   {getSeverityLabel(opinion.overallAssessment)}
                 </span>
               </div>
 
-              <p className="text-sm text-slate-700 mt-2 line-clamp-2">{opinion.summary}</p>
+              <p className="text-sm text-secondary mt-2 line-clamp-2">{opinion.summary}</p>
 
               {opinion.warnings.length > 0 && (
-                <div className="mt-2 flex items-center gap-1 text-xs text-amber-700">
+                <div className="mt-2 flex items-center gap-1 text-xs text-warning">
                   <AlertTriangle className="w-3 h-3" />
                   <span>
                     {opinion.warnings.length} warning{opinion.warnings.length !== 1 ? 's' : ''}
@@ -1052,7 +1052,7 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
                 </div>
               )}
 
-              <div className="mt-2 text-xs text-blue-600 font-medium">Click for detailed analysis →</div>
+              <div className="mt-2 text-xs text-primary font-medium">Click for detailed analysis →</div>
             </div>
           );
         })}
@@ -1074,40 +1074,40 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white   max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-elevated max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="border-b border-slate-200 p-6">
+        <div className="border-b border-border-strong p-6">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 {getSeverityIcon(opinion.overallAssessment, 'w-6 h-6')}
-                <h2 className="text-2xl font-bold text-slate-900">{opinion.headline}</h2>
+                <h2 className="text-2xl font-bold text-primary">{opinion.headline}</h2>
               </div>
-              <div className="flex items-center gap-3 text-sm text-slate-600">
-                <span className="font-medium text-slate-900">{hired.profile.name}</span>
+              <div className="flex items-center gap-3 text-sm text-secondary">
+                <span className="font-medium text-primary">{hired.profile.name}</span>
                 <span>•</span>
                 <span>{hired.profile.title}</span>
                 <span>•</span>
-                <span className={`px-2 py-1 rounded text-xs ${getRelationshipBadgeClass(hired.relationship)}`}>
+                <span className={`px-2 py-1 text-xs ${getRelationshipBadgeClass(hired.relationship)}`}>
                   {hired.relationship.charAt(0).toUpperCase() + hired.relationship.slice(1)} relationship
                 </span>
               </div>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <button onClick={onClose} className="text-muted hover:text-secondary transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-200 px-6">
+        <div className="border-b border-border-strong px-6">
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('analysis')}
               className={`py-3 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'analysis'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-secondary hover:text-primary'
               }`}
             >
               Analysis & Warnings
@@ -1116,8 +1116,8 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
               onClick={() => setActiveTab('recommendations')}
               className={`py-3 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'recommendations'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-secondary hover:text-primary'
               }`}
             >
               Recommendations
@@ -1126,8 +1126,8 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
               onClick={() => setActiveTab('profile')}
               className={`py-3 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'profile'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-secondary hover:text-primary'
               }`}
             >
               Adviser Profile
@@ -1140,26 +1140,26 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
           {activeTab === 'analysis' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Summary Assessment</h3>
-                <p className="text-slate-700">{opinion.summary}</p>
+                <h3 className="text-lg font-semibold text-primary mb-2">Summary Assessment</h3>
+                <p className="text-secondary">{opinion.summary}</p>
               </div>
 
               {opinion.warnings.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Warnings</h3>
+                  <h3 className="text-lg font-semibold text-primary mb-3">Warnings</h3>
                   <div className="space-y-3">
                     {opinion.warnings.map((warning, idx) => (
                       <div
                         key={idx}
-                        className={`border-l-4 ${getSeverityBorderClass(warning.severity)} bg-slate-50 p-4 rounded-r-md`}
+                        className={`border-l-4 ${getSeverityBorderClass(warning.severity)} bg-subdued p-4`}
                       >
                         <div className="flex items-start gap-2 mb-1">
                           {getSeverityIcon(warning.severity)}
-                          <h4 className="font-semibold text-slate-900">{warning.title}</h4>
+                          <h4 className="font-semibold text-primary">{warning.title}</h4>
                         </div>
-                        <p className="text-sm text-slate-700 ml-6">{warning.description}</p>
+                        <p className="text-sm text-secondary ml-6">{warning.description}</p>
                         {warning.consequences && (
-                          <p className="text-sm text-slate-600 ml-6 mt-2 italic">
+                          <p className="text-sm text-tertiary ml-6 mt-2 italic">
                             Consequences: {warning.consequences}
                           </p>
                         )}
@@ -1171,20 +1171,20 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
 
               {opinion.detailedAnalysis.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-3">Detailed Analysis</h3>
+                  <h3 className="text-lg font-semibold text-primary mb-3">Detailed Analysis</h3>
                   <div className="space-y-4">
                     {opinion.detailedAnalysis.map((analysis, idx) => (
                       <div key={idx} className="border border-border-strong p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
                             {getSeverityIcon(analysis.severity, 'w-5 h-5')}
-                            <h4 className="font-semibold text-slate-900">{analysis.title}</h4>
+                            <h4 className="font-semibold text-primary">{analysis.title}</h4>
                           </div>
-                          <span className="text-xs text-slate-500 uppercase">{analysis.area}</span>
+                          <span className="text-xs text-muted uppercase">{analysis.area}</span>
                         </div>
-                        <p className="text-sm text-slate-700">{analysis.description}</p>
+                        <p className="text-sm text-secondary">{analysis.description}</p>
                         {analysis.quantitativeReasoning && (
-                          <p className="text-xs text-slate-600 mt-2 font-mono bg-slate-50 p-2 rounded">
+                          <p className="text-xs text-tertiary mt-2 font-mono bg-subdued p-2">
                             {analysis.quantitativeReasoning}
                           </p>
                         )}
@@ -1195,18 +1195,18 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
               )}
 
               {opinion.prediction && (
-                <div className="bg-bg-subtle border border-border-subtle p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Prediction</h4>
-                  <div className="flex items-center gap-2 text-sm text-blue-800 mb-2">
+                <div className="bg-subdued border border-border-subtle p-4">
+                  <h4 className="font-semibold text-secondary mb-2">Prediction</h4>
+                  <div className="flex items-center gap-2 text-sm text-secondary mb-2">
                     <span className="font-medium">Timeframe: {opinion.prediction.timeframe}</span>
                     <span>•</span>
                     <span
-                      className={`px-2 py-0.5 rounded text-xs ${getLikelihoodBadgeClass(opinion.prediction.likelihood)}`}
+                      className={`px-2 py-0.5 text-xs ${getLikelihoodBadgeClass(opinion.prediction.likelihood)}`}
                     >
                       {opinion.prediction.likelihood.replace('_', ' ')}
                     </span>
                   </div>
-                  <p className="text-sm text-blue-800">{opinion.prediction.outcome}</p>
+                  <p className="text-sm text-secondary">{opinion.prediction.outcome}</p>
                 </div>
               )}
             </div>
@@ -1215,25 +1215,25 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
           {activeTab === 'recommendations' && (
             <div className="space-y-4">
               {opinion.recommendations.length === 0 ? (
-                <p className="text-slate-600">
+                <p className="text-tertiary">
                   No specific recommendations at this time. Continue monitoring the situation.
                 </p>
               ) : (
                 opinion.recommendations.map((rec, idx) => (
                   <div
                     key={idx}
-                    className={`border-l-4 ${getPriorityBorderClass(rec.priority)} bg-slate-50 p-4 rounded-r-md`}
+                    className={`border-l-4 ${getPriorityBorderClass(rec.priority)} bg-subdued p-4`}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       {getPriorityIcon(rec.priority)}
-                      <span className={`text-xs px-2 py-1 rounded ${getPriorityBadgeClass(rec.priority)}`}>
+                      <span className={`text-xs px-2 py-1 ${getPriorityBadgeClass(rec.priority)}`}>
                         {rec.priority}
                       </span>
                     </div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{rec.action}</h4>
-                    <p className="text-sm text-slate-700 mb-2">{rec.rationale}</p>
+                    <h4 className="font-semibold text-primary mb-1">{rec.action}</h4>
+                    <p className="text-sm text-secondary mb-2">{rec.rationale}</p>
                     {rec.expectedOutcome && (
-                      <p className="text-sm text-slate-600 italic">Expected outcome: {rec.expectedOutcome}</p>
+                      <p className="text-sm text-tertiary italic">Expected outcome: {rec.expectedOutcome}</p>
                     )}
                   </div>
                 ))
@@ -1244,22 +1244,22 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Background</h3>
-                <p className="text-slate-700">{hired.profile.background}</p>
+                <h3 className="text-lg font-semibold text-primary mb-2">Background</h3>
+                <p className="text-secondary">{hired.profile.background}</p>
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Description</h3>
-                <p className="text-slate-700">{hired.profile.description}</p>
+                <h3 className="text-lg font-semibold text-primary mb-2">Description</h3>
+                <p className="text-secondary">{hired.profile.description}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-green-900 mb-2">Strengths</h3>
+                  <h3 className="text-lg font-semibold text-good mb-2">Strengths</h3>
                   <ul className="space-y-1">
                     {hired.profile.strengths.map((strength, idx) => (
-                      <li key={idx} className="flex gap-2 text-sm text-slate-700">
-                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <li key={idx} className="flex gap-2 text-sm text-secondary">
+                        <CheckCircle className="w-4 h-4 text-good flex-shrink-0 mt-0.5" />
                         <span>{strength}</span>
                       </li>
                     ))}
@@ -1267,11 +1267,11 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-semibold text-amber-900 mb-2">Weaknesses</h3>
+                  <h3 className="text-lg font-semibold text-warning mb-2">Weaknesses</h3>
                   <ul className="space-y-1">
                     {hired.profile.weaknesses.map((weakness, idx) => (
-                      <li key={idx} className="flex gap-2 text-sm text-slate-700">
-                        <XCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <li key={idx} className="flex gap-2 text-sm text-secondary">
+                        <XCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
                         <span>{weakness}</span>
                       </li>
                     ))}
@@ -1279,34 +1279,34 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
                 </div>
               </div>
 
-              <div className="bg-slate-50 border border-border-strong p-4">
-                <h3 className="text-lg font-semibold text-slate-900 mb-3">Track Record</h3>
+              <div className="bg-subdued border border-border-strong p-4">
+                <h3 className="text-lg font-semibold text-primary mb-3">Track Record</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-slate-600">Advice followed:</span>
-                    <span className="ml-2 font-semibold text-green-700">{hired.adviceFollowedCount}</span>
+                    <span className="text-tertiary">Advice followed:</span>
+                    <span className="ml-2 font-semibold text-good">{hired.adviceFollowedCount}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600">Advice ignored:</span>
-                    <span className="ml-2 font-semibold text-amber-700">{hired.adviceIgnoredCount}</span>
+                    <span className="text-tertiary">Advice ignored:</span>
+                    <span className="ml-2 font-semibold text-warning">{hired.adviceIgnoredCount}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600">Accurate predictions:</span>
-                    <span className="ml-2 font-semibold text-green-700">{hired.accuratePredictions}</span>
+                    <span className="text-tertiary">Accurate predictions:</span>
+                    <span className="ml-2 font-semibold text-good">{hired.accuratePredictions}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600">Inaccurate predictions:</span>
-                    <span className="ml-2 font-semibold text-red-700">{hired.inaccuratePredictions}</span>
+                    <span className="text-tertiary">Inaccurate predictions:</span>
+                    <span className="ml-2 font-semibold text-bad">{hired.inaccuratePredictions}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-600">Accuracy rate:</span>
-                    <span className="ml-2 font-semibold text-blue-700">
+                    <span className="text-tertiary">Accuracy rate:</span>
+                    <span className="ml-2 font-semibold text-secondary">
                       {accuracyRate > 0 ? `${(accuracyRate * 100).toFixed(0)}%` : 'Insufficient data'}
                     </span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-slate-600">Appointed:</span>
-                    <span className="ml-2 font-semibold text-slate-900">Month {hired.hiredMonth}</span>
+                    <span className="text-tertiary">Appointed:</span>
+                    <span className="ml-2 font-semibold text-primary">Month {hired.hiredMonth}</span>
                   </div>
                 </div>
               </div>
@@ -1315,10 +1315,10 @@ export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onCl
         </div>
 
         {/* Footer */}
-        <div className="border-t border-slate-200 p-4 bg-slate-50">
+        <div className="border-t border-border-strong p-4 bg-subdued">
           <button
             onClick={onClose}
-            className="w-full bg-slate-900 text-white py-2 px-4 rounded-md hover:bg-slate-800 transition-colors font-medium"
+            className="w-full bg-primary text-text-inverse py-2 px-4 hover:bg-primary-hover transition-colors font-medium"
           >
             Close
           </button>
@@ -1376,17 +1376,17 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
   const canHireMore = hiredAdvisersSize < maxAdvisers;
 
   return (
-    <div className="min-h-screen bg-slate-100 p-6">
+    <div className="min-h-screen bg-bg p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
-          <button onClick={onBack} className="text-slate-600 hover:text-slate-900 font-medium flex items-center gap-2">
+          <button onClick={onBack} className="text-secondary hover:text-primary font-medium flex items-center gap-2">
             ← Back to Game
           </button>
         </div>
 
-        <div className="bg-white   p-6 mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Economic Adviser Management</h1>
-          <p className="text-slate-600">
+        <div className="bg-elevated p-6 mb-6">
+          <h1 className="text-3xl font-bold text-primary mb-2">Economic Adviser Management</h1>
+          <p className="text-tertiary">
             Appoint up to {maxAdvisers} economic advisers to provide guidance on policy decisions. Currently appointed:{' '}
             {hiredAdvisersSize}/{maxAdvisers}
           </p>
@@ -1394,52 +1394,52 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
 
         {/* Currently Hired Advisers */}
         {hiredAdvisersSize > 0 && (
-          <div className="bg-white   p-6 mb-6">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Current Advisory Team</h2>
+          <div className="bg-elevated p-6 mb-6">
+            <h2 className="text-xl font-bold text-primary mb-4">Current Advisory Team</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {hiredAdvisersList.map((hired) => (
-                <div key={hired.profile.type} className="border border-slate-200  p-4">
+                <div key={hired.profile.type} className="border border-border-strong p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="font-bold text-slate-900">{hired.profile.name}</h3>
-                      <p className="text-sm text-slate-600">{hired.profile.title}</p>
+                      <h3 className="font-bold text-primary">{hired.profile.name}</h3>
+                      <p className="text-sm text-tertiary">{hired.profile.title}</p>
                     </div>
-                    <span className={`text-xs px-2 py-1 rounded ${getRelationshipBadgeClass(hired.relationship)}`}>
+                    <span className={`text-xs px-2 py-1 ${getRelationshipBadgeClass(hired.relationship)}`}>
                       {hired.relationship}
                     </span>
                   </div>
 
                   <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Advice followed:</span>
+                      <span className="text-tertiary">Advice followed:</span>
                       <span className="font-semibold">{hired.adviceFollowedCount}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Advice ignored:</span>
+                      <span className="text-tertiary">Advice ignored:</span>
                       <span className="font-semibold">{hired.adviceIgnoredCount}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Months in post:</span>
+                      <span className="text-tertiary">Months in post:</span>
                       <span className="font-semibold">{currentMonth - hired.hiredMonth}</span>
                     </div>
                   </div>
 
                   {confirmFire === hired.profile.type ? (
                     <div className="space-y-2">
-                      <p className="text-sm text-red-700 font-medium">Confirm dismissal?</p>
+                      <p className="text-sm text-bad font-medium">Confirm dismissal?</p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
                             onFire(hired.profile.type);
                             setConfirmFire(null);
                           }}
-                          className="flex-1 bg-red-600 text-white py-1 px-3 rounded text-sm hover:bg-red-700 transition-colors"
+                          className="flex-1 bg-bad text-text-inverse py-1 px-3 text-sm hover:bg-primary-active transition-colors"
                         >
                           Yes, dismiss
                         </button>
                         <button
                           onClick={() => setConfirmFire(null)}
-                          className="flex-1 bg-slate-200 text-slate-700 py-1 px-3 rounded text-sm hover:bg-slate-300 transition-colors"
+                          className="flex-1 bg-subdued text-secondary py-1 px-3 text-sm hover:bg-border-subtle transition-colors"
                         >
                           Cancel
                         </button>
@@ -1448,7 +1448,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
                   ) : (
                     <button
                       onClick={() => setConfirmFire(hired.profile.type)}
-                      className="w-full bg-red-100 text-red-700 py-2 px-4 rounded hover:bg-red-200 transition-colors text-sm font-medium"
+                      className="w-full bg-bad-subtle text-bad py-2 px-4 hover:bg-bad-subtle/80 transition-colors text-sm font-medium"
                     >
                       Dismiss Adviser
                     </button>
@@ -1460,13 +1460,13 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
         )}
 
         {/* Available Advisers */}
-        <div className="bg-white   p-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">
+        <div className="bg-elevated p-6">
+          <h2 className="text-xl font-bold text-primary mb-4">
             {canHireMore ? 'Available Advisers' : 'All Adviser Slots Filled'}
           </h2>
 
           {!canHireMore && (
-            <p className="text-slate-600 mb-4">You must dismiss an existing adviser before hiring a new one.</p>
+            <p className="text-tertiary mb-4">You must dismiss an existing adviser before hiring a new one.</p>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1481,25 +1481,25 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
               }
               return true;
             }).map((profile) => (
-              <div key={profile.type} className="border border-slate-200  p-4 hover:border-slate-300 transition-colors">
-                <h3 className="font-bold text-slate-900 mb-1">{profile.name}</h3>
-                <p className="text-sm text-slate-600 mb-3">{profile.title}</p>
-                <p className="text-sm text-slate-700 mb-4 line-clamp-3">{profile.description}</p>
+              <div key={profile.type} className="border border-border-strong p-4 hover:bg-subdued transition-colors">
+                <h3 className="font-bold text-primary mb-1">{profile.name}</h3>
+                <p className="text-sm text-tertiary mb-3">{profile.title}</p>
+                <p className="text-sm text-secondary mb-4 line-clamp-3">{profile.description}</p>
 
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedAdviser(profile)}
-                    className="flex-1 bg-slate-100 text-slate-700 py-2 px-3 rounded text-sm hover:bg-slate-200 transition-colors"
+                    className="flex-1 bg-subdued text-secondary py-2 px-3 text-sm hover:bg-border-subtle transition-colors"
                   >
                     View Details
                   </button>
                   <button
                     onClick={() => onHire(profile.type)}
                     disabled={!canHireMore}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 px-3 text-sm font-medium transition-colors ${
                       canHireMore
-                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                        ? 'bg-secondary text-text-inverse hover:bg-secondary-hover'
+                        : 'bg-subdued text-muted cursor-not-allowed'
                     }`}
                   >
                     Appoint
@@ -1514,15 +1514,15 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
       {/* Detail Modal */}
       {selectedAdviser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white   max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+          <div className="bg-elevated max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">{selectedAdviser.name}</h2>
-                <p className="text-slate-600">{selectedAdviser.title}</p>
+                <h2 className="text-2xl font-bold text-primary">{selectedAdviser.name}</h2>
+                <p className="text-tertiary">{selectedAdviser.title}</p>
               </div>
               <button
                 onClick={() => setSelectedAdviser(null)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-muted hover:text-secondary transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -1530,22 +1530,22 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
 
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Background</h3>
-                <p className="text-slate-700 text-sm">{selectedAdviser.background}</p>
+                <h3 className="font-semibold text-primary mb-2">Background</h3>
+                <p className="text-secondary text-sm">{selectedAdviser.background}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold text-slate-900 mb-2">Description</h3>
-                <p className="text-slate-700 text-sm">{selectedAdviser.description}</p>
+                <h3 className="font-semibold text-primary mb-2">Description</h3>
+                <p className="text-secondary text-sm">{selectedAdviser.description}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold text-green-900 mb-2">Strengths</h3>
+                  <h3 className="font-semibold text-good mb-2">Strengths</h3>
                   <ul className="space-y-1">
                     {selectedAdviser.strengths.map((strength, idx) => (
-                      <li key={idx} className="flex gap-2 text-sm text-slate-700">
-                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <li key={idx} className="flex gap-2 text-sm text-secondary">
+                        <CheckCircle className="w-4 h-4 text-good flex-shrink-0 mt-0.5" />
                         <span>{strength}</span>
                       </li>
                     ))}
@@ -1553,11 +1553,11 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-amber-900 mb-2">Weaknesses</h3>
+                  <h3 className="font-semibold text-warning mb-2">Weaknesses</h3>
                   <ul className="space-y-1">
                     {selectedAdviser.weaknesses.map((weakness, idx) => (
-                      <li key={idx} className="flex gap-2 text-sm text-slate-700">
-                        <XCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <li key={idx} className="flex gap-2 text-sm text-secondary">
+                        <XCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
                         <span>{weakness}</span>
                       </li>
                     ))}
@@ -1569,7 +1569,7 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setSelectedAdviser(null)}
-                className="flex-1 bg-slate-200 text-slate-700 py-2 px-4 rounded hover:bg-slate-300 transition-colors"
+                className="flex-1 bg-subdued text-secondary py-2 px-4 hover:bg-border-subtle transition-colors"
               >
                 Close
               </button>
@@ -1579,10 +1579,10 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
                   setSelectedAdviser(null);
                 }}
                 disabled={!canHireMore}
-                className={`flex-1 py-2 px-4 rounded font-medium transition-colors ${
+                className={`flex-1 py-2 px-4 font-medium transition-colors ${
                   canHireMore
-                    ? 'bg-blue-600 text-white hover:bg-blue-700'
-                    : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                    ? 'bg-secondary text-text-inverse hover:bg-secondary-hover'
+                    : 'bg-subdued text-muted cursor-not-allowed'
                 }`}
               >
                 Appoint {selectedAdviser.name}
@@ -1602,15 +1602,15 @@ export const AdviserManagementScreen: React.FC<AdviserManagementScreenProps> = (
 function getSeverityIcon(severity: OpinionSeverity, className: string = 'w-5 h-5') {
   switch (severity) {
     case 'critical':
-      return <AlertTriangle className={`${className} text-red-600`} />;
+      return <AlertTriangle className={`${className} text-bad`} />;
     case 'warning':
-      return <AlertTriangle className={`${className} text-amber-600`} />;
+      return <AlertTriangle className={`${className} text-warning`} />;
     case 'caution':
-      return <Info className={`${className} text-yellow-600`} />;
+      return <Info className={`${className} text-warning`} />;
     case 'supportive':
-      return <CheckCircle className={`${className} text-green-600`} />;
+      return <CheckCircle className={`${className} text-good`} />;
     default:
-      return <Info className={`${className} text-slate-600`} />;
+      return <Info className={`${className} text-tertiary`} />;
   }
 }
 
@@ -1621,89 +1621,89 @@ function getSeverityLabel(severity: OpinionSeverity): string {
 function getSeverityBadgeClass(severity: OpinionSeverity): string {
   switch (severity) {
     case 'critical':
-      return 'bg-red-100 text-red-800';
+      return 'bg-bad-subtle text-bad';
     case 'warning':
-      return 'bg-amber-100 text-amber-800';
+      return 'bg-warning-subtle text-warning';
     case 'caution':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-warning-subtle text-warning';
     case 'supportive':
-      return 'bg-green-100 text-green-800';
+      return 'bg-good-subtle text-good';
     default:
-      return 'bg-slate-100 text-slate-800';
+      return 'bg-neutral-subtle text-neutral';
   }
 }
 
 function getSeverityBorderClass(severity: OpinionSeverity): string {
   switch (severity) {
     case 'critical':
-      return 'border-red-500';
+      return 'border-bad';
     case 'warning':
-      return 'border-amber-500';
+      return 'border-warning';
     case 'caution':
-      return 'border-yellow-500';
+      return 'border-warning';
     case 'supportive':
-      return 'border-green-500';
+      return 'border-good';
     default:
-      return 'border-slate-500';
+      return 'border-neutral';
   }
 }
 
 function getRelationshipBadgeClass(relationship: 'excellent' | 'good' | 'strained' | 'poor'): string {
   switch (relationship) {
     case 'excellent':
-      return 'bg-green-100 text-green-800';
+      return 'bg-good-subtle text-good';
     case 'good':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-secondary-subtle text-secondary';
     case 'strained':
-      return 'bg-amber-100 text-amber-800';
+      return 'bg-warning-subtle text-warning';
     case 'poor':
-      return 'bg-red-100 text-red-800';
+      return 'bg-bad-subtle text-bad';
   }
 }
 
 function getLikelihoodBadgeClass(likelihood: 'almost_certain' | 'likely' | 'possible' | 'unlikely'): string {
   switch (likelihood) {
     case 'almost_certain':
-      return 'bg-red-100 text-red-800';
+      return 'bg-bad-subtle text-bad';
     case 'likely':
-      return 'bg-amber-100 text-amber-800';
+      return 'bg-warning-subtle text-warning';
     case 'possible':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-warning-subtle text-warning';
     case 'unlikely':
-      return 'bg-slate-100 text-slate-800';
+      return 'bg-neutral-subtle text-neutral';
   }
 }
 
 function getPriorityIcon(priority: 'immediate' | 'important' | 'consider') {
   switch (priority) {
     case 'immediate':
-      return <AlertTriangle className="w-5 h-5 text-red-600" />;
+      return <AlertTriangle className="w-5 h-5 text-bad" />;
     case 'important':
-      return <TrendingUp className="w-5 h-5 text-amber-600" />;
+      return <TrendingUp className="w-5 h-5 text-warning" />;
     case 'consider':
-      return <Info className="w-5 h-5 text-blue-600" />;
+      return <Info className="w-5 h-5 text-secondary" />;
   }
 }
 
 function getPriorityBadgeClass(priority: 'immediate' | 'important' | 'consider'): string {
   switch (priority) {
     case 'immediate':
-      return 'bg-red-100 text-red-800 font-medium';
+      return 'bg-bad-subtle text-bad font-medium';
     case 'important':
-      return 'bg-amber-100 text-amber-800 font-medium';
+      return 'bg-warning-subtle text-warning font-medium';
     case 'consider':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-secondary-subtle text-secondary';
   }
 }
 
 function getPriorityBorderClass(priority: 'immediate' | 'important' | 'consider'): string {
   switch (priority) {
     case 'immediate':
-      return 'border-red-500';
+      return 'border-bad';
     case 'important':
-      return 'border-amber-500';
+      return 'border-warning';
     case 'consider':
-      return 'border-blue-500';
+      return 'border-secondary';
   }
 }
 
