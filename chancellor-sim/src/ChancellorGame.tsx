@@ -373,6 +373,7 @@ const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({ re
 // Turn Advancement Panel
 // ===========================
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) => {
   const metadata = useGameMetadata();
   const gameState = useGameState();

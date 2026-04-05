@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, CheckCircle, TrendingUp, Info, Brain, XCircle } from 'lucide-react';
 import { ADVISER_OPINIONS, AdviserOpinionTemplate } from './data/adviser-opinions';
+import {
+  AdviserConflict,
+  ConflictResolutionRecord,
+  AdviserSynergy,
+  AdviserIntervention,
+} from './game-integration';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -29,6 +35,14 @@ export interface AdviserBiasParameters {
   marketSensitivity: number; // 0-1 concern about gilt yields/market reactions
 }
 
+export interface AdviserRedLine {
+  field: string;
+  threshold: number;
+  direction: 'above' | 'below';
+  loyaltyPenalty: number;
+  description: string;
+}
+
 export interface AdviserProfile {
   type: AdviserType;
   name: string;
@@ -39,6 +53,12 @@ export interface AdviserProfile {
   weaknesses: string[];
   biasParameters: AdviserBiasParameters;
   narrativeStyle: 'formal' | 'pragmatic' | 'urgent' | 'academic' | 'political';
+  pmRelationshipModifier: number;
+  ideologicalRedLines: AdviserRedLine[];
+  conflictsWith: string[];
+  synergyWith: string[];
+  interventionCooldownTurns: number;
+  scandalProbabilityPerTurn: number;
 }
 
 export interface AdviserOpinion {
@@ -81,6 +101,21 @@ export interface Prediction {
   outcome: string;
 }
 
+export interface HiredAdviserState {
+  loyaltyScore: number;
+  ignoredRecommendationStreak: number;
+  totalIgnoredRecommendations: number;
+  totalFollowedRecommendations: number;
+  turnsInPost: number;
+  isBriefingAgainst: boolean;
+  activeInterventionCooldown: number;
+  resignationWarningIssued: boolean;
+  provenTrackRecord: boolean;
+  lastRecommendationCategory: string | null;
+  lastRecommendationFollowed: boolean | null;
+  redLineBreachStreak: number;
+}
+
 export interface HiredAdviser {
   profile: AdviserProfile;
   hiredMonth: number;
@@ -89,6 +124,7 @@ export interface HiredAdviser {
   accuratePredictions: number;
   inaccuratePredictions: number;
   relationship: 'excellent' | 'good' | 'strained' | 'poor';
+  state: HiredAdviserState;
 }
 
 export interface AdviserSystemState {
@@ -97,6 +133,10 @@ export interface AdviserSystemState {
   currentOpinions: Map<AdviserType, AdviserOpinion>;
   showDetailedView: AdviserType | null;
   adviserEvents: AdviserEvent[];
+  activeConflicts: AdviserConflict[];
+  conflictResolutionHistory: ConflictResolutionRecord[];
+  activeSynergies: AdviserSynergy[];
+  pendingInterventions: AdviserIntervention[];
 }
 
 export interface AdviserEvent {
@@ -209,6 +249,15 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.9,
     },
     narrativeStyle: 'formal',
+    pmRelationshipModifier: 2,
+    ideologicalRedLines: [
+      { field: 'fiscal.deficitPctGDP', threshold: 6, direction: 'above', loyaltyPenalty: 5, description: 'Deficit exceeds 6% of GDP — this is fiscally irresponsible' },
+      { field: 'fiscal.incomeTaxBasicRate', threshold: 25, direction: 'above', loyaltyPenalty: 3, description: 'Basic rate above 25% — this undermines the tax base' },
+    ],
+    conflictsWith: ['political_operator'],
+    synergyWith: ['fiscal_hawk'],
+    interventionCooldownTurns: 8,
+    scandalProbabilityPerTurn: 0.01,
   },
   {
     type: 'political_operator',
@@ -242,6 +291,14 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.4,
     },
     narrativeStyle: 'political',
+    pmRelationshipModifier: -1,
+    ideologicalRedLines: [
+      { field: 'political.backbenchSatisfaction', threshold: 40, direction: 'below', loyaltyPenalty: 4, description: 'Backbench is dangerously restless — this is exactly what I warned about' },
+    ],
+    conflictsWith: ['treasury_mandarin'],
+    synergyWith: ['social_democrat'],
+    interventionCooldownTurns: 5,
+    scandalProbabilityPerTurn: 0.03,
   },
   {
     type: 'heterodox_economist',
@@ -275,6 +332,15 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.3,
     },
     narrativeStyle: 'academic',
+    pmRelationshipModifier: 0,
+    ideologicalRedLines: [
+      { field: 'fiscal.spending', threshold: 10, direction: 'above', loyaltyPenalty: 4, description: 'Spending cuts above 10% in any department — this will devastate public services' },
+      { field: 'fiscal.corporationTaxRate', threshold: 30, direction: 'above', loyaltyPenalty: 2, description: 'Corporation tax above 30% — this is excessive and counterproductive' },
+    ],
+    conflictsWith: ['fiscal_hawk'],
+    synergyWith: [],
+    interventionCooldownTurns: 6,
+    scandalProbabilityPerTurn: 0.015,
   },
   {
     type: 'fiscal_hawk',
@@ -308,6 +374,15 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.95,
     },
     narrativeStyle: 'urgent',
+    pmRelationshipModifier: 1,
+    ideologicalRedLines: [
+      { field: 'fiscal.deficitPctGDP', threshold: 4, direction: 'above', loyaltyPenalty: 6, description: 'Deficit above 4% of GDP — we are on an unsustainable trajectory' },
+      { field: 'fiscal.debtPctGDP', threshold: 100, direction: 'above', loyaltyPenalty: 4, description: 'Debt above 100% of GDP — this is a psychological barrier for markets' },
+    ],
+    conflictsWith: ['heterodox_economist', 'social_democrat'],
+    synergyWith: ['treasury_mandarin'],
+    interventionCooldownTurns: 8,
+    scandalProbabilityPerTurn: 0.01,
   },
   {
     type: 'social_democrat',
@@ -341,6 +416,15 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.35,
     },
     narrativeStyle: 'urgent',
+    pmRelationshipModifier: 0,
+    ideologicalRedLines: [
+      { field: 'services.nhsQuality', threshold: 35, direction: 'below', loyaltyPenalty: 3, description: 'A service quality metric has fallen below 35 — this is a humanitarian concern' },
+      { field: 'fiscal.spending', threshold: 5, direction: 'above', loyaltyPenalty: 5, description: 'Welfare spending cut above 5% — this will devastate the most vulnerable' },
+    ],
+    conflictsWith: ['fiscal_hawk'],
+    synergyWith: ['political_operator'],
+    interventionCooldownTurns: 6,
+    scandalProbabilityPerTurn: 0.02,
   },
   {
     type: 'technocratic_centrist',
@@ -374,6 +458,15 @@ export const ADVISER_PROFILES: AdviserProfile[] = [
       marketSensitivity: 0.7,
     },
     narrativeStyle: 'pragmatic',
+    pmRelationshipModifier: 1,
+    ideologicalRedLines: [
+      { field: 'political.credibilityIndex', threshold: 45, direction: 'below', loyaltyPenalty: 3, description: 'Credibility below 45 — we are losing institutional trust' },
+      { field: 'economic.inflationCPI', threshold: 6, direction: 'above', loyaltyPenalty: 4, description: 'Inflation above 6% — this is eroding living standards' },
+    ],
+    conflictsWith: [],
+    synergyWith: [],
+    interventionCooldownTurns: 7,
+    scandalProbabilityPerTurn: 0.01,
   },
 ];
 
@@ -928,14 +1021,6 @@ export function updateAdviserRelationship(hired: HiredAdviser, adviceFollowed: b
   return updated;
 }
 
-export function checkAdviserResignation(hired: HiredAdviser): boolean {
-  // Poor relationship + lots of ignored advice = resignation risk
-  if (hired.relationship === 'poor' && hired.adviceIgnoredCount > 8) {
-    return Math.random() < 0.3; // 30% chance each check
-  }
-  return false;
-}
-
 export function updateAdviserAccuracy(hired: HiredAdviser, predictionAccurate: boolean): HiredAdviser {
   const updated = { ...hired };
 
@@ -965,13 +1050,11 @@ interface AdviserSidebarProps {
 }
 
 export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinions, onShowDetail }) => {
-  // Handle both Map and plain object
   let advisersList: HiredAdviser[] = [];
   const advisersData: any = advisers;
   if (advisersData instanceof Map) {
     advisersList = Array.from(advisersData.values());
   } else if (Array.isArray(advisersData)) {
-    // Handle serialized Map entries
     if (advisersData.length > 0 && Array.isArray(advisersData[0]) && advisersData[0].length === 2) {
       advisersList = advisersData.map((entry: any) => entry[1]);
     } else {
@@ -981,22 +1064,63 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
     advisersList = Object.values(advisersData);
   }
 
-  // Filter out any potential invalid entries
   advisersList = advisersList.filter((h) => h && h.profile);
 
-  if (advisersList.length === 0) {
-    return (
-      <div className="bg-subdued border border-border-strong p-4 mb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <Brain className="w-5 h-5 text-muted" />
-          <h3 className="font-semibold text-secondary">Economic Advisers</h3>
-        </div>
-        <p className="text-sm text-muted">
-          No advisers appointed. Consider hiring economic advice from the adviser management screen.
-        </p>
-      </div>
-    );
+  const criticalCount = advisersList.filter((h) => {
+    const opinion = opinions instanceof Map ? opinions.get(h.profile.type) : (opinions as any)?.[h.profile.type];
+    return opinion?.overallAssessment === 'critical';
+  }).length;
+
+  const warningCount = advisersList.filter((h) => {
+    const opinion = opinions instanceof Map ? opinions.get(h.profile.type) : (opinions as any)?.[h.profile.type];
+    return opinion?.overallAssessment === 'warning';
+  }).length;
+
+  return (
+    <button
+      onClick={() => onShowDetail(advisersList[0]?.profile.type || null)}
+      className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-white bg-elevated/20 hover:bg-elevated/30 transition-colors uppercase tracking-wide"
+      aria-label="Open adviser assessment"
+    >
+      <Brain className="w-4 h-4" />
+      <span>Advisers</span>
+      {(criticalCount > 0 || warningCount > 0) && (
+        <span className={`text-xs px-1.5 py-0.5 ${criticalCount > 0 ? 'bg-bad text-white' : 'bg-warning text-white'}`}>
+          {criticalCount > 0 ? `${criticalCount} critical` : `${warningCount} warning${warningCount > 1 ? 's' : ''}`}
+        </span>
+      )}
+    </button>
+  );
+};
+
+interface AdviserAssessmentPanelProps {
+  advisers: Map<AdviserType, HiredAdviser>;
+  opinions: Map<AdviserType, AdviserOpinion>;
+  onSelectAdviser: (type: AdviserType) => void;
+  onClose: () => void;
+}
+
+export const AdviserAssessmentPanel: React.FC<AdviserAssessmentPanelProps> = ({
+  advisers,
+  opinions,
+  onSelectAdviser,
+  onClose,
+}) => {
+  let advisersList: HiredAdviser[] = [];
+  const advisersData: any = advisers;
+  if (advisersData instanceof Map) {
+    advisersList = Array.from(advisersData.values());
+  } else if (Array.isArray(advisersData)) {
+    if (advisersData.length > 0 && Array.isArray(advisersData[0]) && advisersData[0].length === 2) {
+      advisersList = advisersData.map((entry: any) => entry[1]);
+    } else {
+      advisersList = advisersData as any;
+    }
+  } else if (typeof advisersData === 'object' && advisersData !== null) {
+    advisersList = Object.values(advisersData);
   }
+
+  advisersList = advisersList.filter((h) => h && h.profile);
 
   const getOpinion = (type: AdviserType) => {
     if (opinions instanceof Map) {
@@ -1011,51 +1135,71 @@ export const AdviserSidebar: React.FC<AdviserSidebarProps> = ({ advisers, opinio
   };
 
   return (
-    <div className="bg-bg-surface border border-border-strong p-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Brain className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-primary">Adviser Assessment</h3>
-      </div>
+    <div className="fixed inset-0 bg-black/60 flex items-start justify-end z-50" onClick={onClose}>
+      <div
+        className="w-[480px] max-h-[90vh] bg-bg-elevated border-l border-border-strong overflow-hidden flex flex-col animate-fade-in"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Adviser Assessment Panel"
+      >
+        <div className="border-b border-border-strong px-6 py-4 flex items-center justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-tertiary mb-0.5">HM Treasury</div>
+            <h2 className="text-lg font-semibold text-primary">Adviser Assessment</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted hover:text-primary transition-colors p-1"
+            aria-label="Close panel"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      <div className="space-y-3">
-        {advisersList.map((hired) => {
-          const opinion = getOpinion(hired.profile.type);
-          if (!opinion) return null;
+        <div className="flex-1 overflow-y-auto">
+          <div className="divide-y divide-border-subtle">
+            {advisersList.map((hired) => {
+              const opinion = getOpinion(hired.profile.type);
+              if (!opinion) return null;
 
-          return (
-            <div
-              key={hired.profile.type}
-              className="border border-border-strong p-3 hover:bg-bg-subtle cursor-pointer transition-colors"
-              onClick={() => onShowDetail(hired.profile.type)}
-            >
-              <div className="flex items-start justify-between mb-1">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    {getSeverityIcon(opinion.overallAssessment)}
-                    <span className="font-medium text-sm text-primary">{hired.profile.name}</span>
+              return (
+                <div
+                  key={hired.profile.type}
+                  className="px-6 py-4 cursor-pointer group hover:bg-bg-subtle transition-colors"
+                  onClick={() => onSelectAdviser(hired.profile.type)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onSelectAdviser(hired.profile.type);
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-sm font-semibold text-primary">{hired.profile.name}</span>
+                      <div className="text-xs text-muted">{hired.profile.title}</div>
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 ${getSeverityBadgeClass(opinion.overallAssessment)}`}>
+                      {getSeverityLabel(opinion.overallAssessment)}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted">{hired.profile.title}</span>
+                  <p className="text-xs text-secondary leading-relaxed line-clamp-3">{opinion.summary}</p>
+                  {opinion.warnings.length > 0 && (
+                    <div className="mt-2 flex items-center gap-1 text-xs text-warning">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>{opinion.warnings.length} warning{opinion.warnings.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  )}
+                  <div className="mt-2 text-xs text-tertiary group-hover:text-primary transition-colors">
+                    View full analysis
+                  </div>
                 </div>
-                <span className={`text-xs px-2 py-1 ${getSeverityBadgeClass(opinion.overallAssessment)}`}>
-                  {getSeverityLabel(opinion.overallAssessment)}
-                </span>
-              </div>
-
-              <p className="text-sm text-secondary mt-2 line-clamp-2">{opinion.summary}</p>
-
-              {opinion.warnings.length > 0 && (
-                <div className="mt-2 flex items-center gap-1 text-xs text-warning">
-                  <AlertTriangle className="w-3 h-3" />
-                  <span>
-                    {opinion.warnings.length} warning{opinion.warnings.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              )}
-
-              <div className="mt-2 text-xs text-primary font-medium">Click for detailed analysis →</div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1068,7 +1212,7 @@ interface AdviserModalProps {
 }
 
 export const AdviserModal: React.FC<AdviserModalProps> = ({ hired, opinion, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'analysis' | 'recommendations' | 'profile'>('analysis');
+  const [activeTab, setActiveTab] = useState<'analysis' | 'recommendations' | 'profile'>('recommendations');
 
   const accuracyRate = getAdviserAccuracyRate(hired);
 
@@ -1718,6 +1862,10 @@ export function createInitialAdviserSystem(): AdviserSystemState {
     currentOpinions: new Map(),
     showDetailedView: null,
     adviserEvents: [],
+    activeConflicts: [],
+    conflictResolutionHistory: [],
+    activeSynergies: [],
+    pendingInterventions: [],
   };
 }
 
@@ -1737,6 +1885,20 @@ export function hireAdviser(
     accuratePredictions: 0,
     inaccuratePredictions: 0,
     relationship: 'good',
+    state: {
+      loyaltyScore: 75,
+      ignoredRecommendationStreak: 0,
+      totalIgnoredRecommendations: 0,
+      totalFollowedRecommendations: 0,
+      turnsInPost: 0,
+      isBriefingAgainst: false,
+      activeInterventionCooldown: 0,
+      resignationWarningIssued: false,
+      provenTrackRecord: false,
+      lastRecommendationCategory: null,
+      lastRecommendationFollowed: null,
+      redLineBreachStreak: 0,
+    },
   };
 
   const newHiredAdvisers = new Map(system.hiredAdvisers);
@@ -1768,4 +1930,266 @@ export function fireAdviser(system: AdviserSystemState, adviserType: AdviserType
     availableAdvisers: newAvailableAdvisers,
     currentOpinions: newCurrentOpinions,
   };
+}
+
+// ============================================================================
+// SYNERGY CALCULATION
+// ============================================================================
+
+export function calculateActiveSynergies(hiredAdviserIds: string[]): AdviserSynergy[] {
+  const synergies: AdviserSynergy[] = [];
+  const has = (id: string) => hiredAdviserIds.includes(id);
+
+  if (has('treasury_mandarin') && has('fiscal_hawk')) {
+    synergies.push({
+      adviserIds: ['treasury_mandarin', 'fiscal_hawk'],
+      synergyKey: 'institutional_orthodoxy',
+      description: 'Both advisers reinforce a culture of fiscal discipline.',
+      bonusDescription: '+6 credibility per turn, debt interest reduced by an additional 3%',
+    });
+  }
+
+  if (has('political_operator') && has('social_democrat')) {
+    synergies.push({
+      adviserIds: ['political_operator', 'social_democrat'],
+      synergyKey: 'electoral_coalition',
+      description: "Both advisers focus on keeping the party's core coalition intact.",
+      bonusDescription: '+4 approval per turn, +5 backbench satisfaction per turn',
+    });
+  }
+
+  const economicCouncilMembers = ['treasury_mandarin', 'heterodox_economist', 'technocratic_centrist'];
+  const economicCouncilCount = economicCouncilMembers.filter(has).length;
+  if (economicCouncilCount >= 3) {
+    synergies.push({
+      adviserIds: economicCouncilMembers,
+      synergyKey: 'economic_council',
+      description: 'A balanced economic advisory team generates emergent insight.',
+      bonusDescription: '+0.08pp GDP growth, +4 credibility per turn',
+    });
+  }
+
+  return synergies;
+}
+
+// ============================================================================
+// CONFLICT CHECKING
+// ============================================================================
+
+export function checkAdviserConflicts(
+  hiredAdviserIds: string[],
+  turn: number,
+  existingConflicts: AdviserConflict[]
+): AdviserConflict | null {
+  const has = (id: string) => hiredAdviserIds.includes(id);
+
+  const conflictPairs: Array<[string, string, string]> = [
+    ['treasury_mandarin', 'political_operator', 'Sir Humphrey Cavendish and Sarah Chen have sent you conflicting briefings on the upcoming fiscal statement. Sir Humphrey insists on a conservative, institution-first framing. Chen argues this will cost you the next election. You must decide whose advice to follow in your public communications.'],
+    ['fiscal_hawk', 'heterodox_economist', 'Lord Braithwaite and Dr Okonkwo are in open disagreement about your growth strategy. Braithwaite is demanding you rule out any further borrowing for investment. Okonkwo argues this would be economically illiterate. The disagreement has reached the financial press.'],
+    ['fiscal_hawk', 'social_democrat', "Lord Braithwaite has formally objected to Rebecca Thornton's proposed service investment package, describing it in a memo — now leaked — as 'fiscally delinquent'. Thornton has responded by briefing that Braithwaite's approach will produce a lost decade in public services. You must take a position."],
+  ];
+
+  for (const [idA, idB, description] of conflictPairs) {
+    if (!has(idA) || !has(idB)) continue;
+
+    const lastResolved = existingConflicts
+      .filter((c) => c.resolved && ((c.adviserIdA === idA && c.adviserIdB === idB) || (c.adviserIdA === idB && c.adviserIdB === idA)))
+      .sort((a, b) => b.turnTriggered - a.turnTriggered)[0];
+
+    if (lastResolved && turn - lastResolved.turnTriggered < 12) continue;
+
+    if (Math.random() < 0.15) {
+      return {
+        id: `conflict_${idA}_${idB}_${turn}`,
+        adviserIdA: idA,
+        adviserIdB: idB,
+        description,
+        turnTriggered: turn,
+        resolved: false,
+        sidesWithAdviser: null,
+      };
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// INTERVENTION GENERATION
+// ============================================================================
+
+export function generateAdviserIntervention(
+  adviserId: string,
+  turn: number
+): AdviserIntervention | null {
+  const profile = ADVISER_PROFILES.find((p) => p.type === adviserId);
+  if (!profile) return null;
+
+  switch (adviserId) {
+    case 'treasury_mandarin':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Emergency Credibility Package',
+        description: 'The markets are watching. A coordinated package of fiscal signalling and institutional reassurance could restore confidence, but it requires you to publicly commit to tighter near-term targets.',
+        mechanicalEffect: { credibilityChange: 18, pmTrustChange: 4, fiscalHeadroomChange_bn: -2.5 },
+        acceptLabel: 'Issue the statement',
+        declineLabel: 'Reject the advice',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    case 'political_operator':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Parliamentary Management Operation',
+        description: "I can work the tea rooms. A targeted round of meetings, concessions, and quiet promises would bring the backbench back onside — but it will cost you some approval with the public when it leaks, and it will leak.",
+        mechanicalEffect: { backbenchSatisfactionChange: 14, approvalChange: -4, whipStrengthChange: 8 },
+        acceptLabel: 'Work the rooms',
+        declineLabel: 'Too risky',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    case 'heterodox_economist':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Demand Stimulus Package',
+        description: "The economy is undershooting its potential. A targeted demand stimulus — properly designed — would lift growth without entrenching inflation. Conventional wisdom says otherwise. Conventional wisdom gave you the last decade.",
+        mechanicalEffect: { gdpGrowthBoost: 0.18, inflationRisk: 0.4, boostDurationTurns: 4, credibilityChange: -6 },
+        acceptLabel: 'Authorise the stimulus',
+        declineLabel: 'Too unorthodox',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    case 'fiscal_hawk':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Emergency Deficit Reduction Protocol',
+        description: "The trajectory is unacceptable. I am recommending an immediate cross-departmental efficiency review with binding targets. It will be unpopular. It will also prevent a gilt crisis.",
+        mechanicalEffect: { fiscalHeadroomChange_bn: 4.5, credibilityChange: 10, approvalChange: -6, backbenchSatisfactionChange: -8 },
+        acceptLabel: 'Initiate the review',
+        declineLabel: 'Not now',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    case 'social_democrat':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Public Services Emergency Investment',
+        description: "Two of our public services are in crisis. A targeted emergency investment — announced as a one-off — would arrest the decline and shore up our electoral coalition with the people who actually depend on these services.",
+        mechanicalEffect: { serviceQualityTarget: 'two_lowest', serviceQualityChange: 12, approvalChange: 5, fiscalHeadroomChange_bn: -3 },
+        acceptLabel: 'Authorise emergency funding',
+        declineLabel: 'We cannot afford it',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    case 'technocratic_centrist':
+      return {
+        id: `intervention_${adviserId}_${turn}`,
+        adviserId,
+        adviserName: profile.name,
+        title: 'Cross-Party Fiscal Consultation',
+        description: "A structured consultation with the opposition finance spokespeople and the OBR would signal institutional maturity and take fiscal policy partially out of the political line of fire. It is not exciting. That is the point.",
+        mechanicalEffect: { credibilityChange: 14, pmTrustChange: 5, backbenchSatisfactionChange: 4, approvalChange: 2 },
+        acceptLabel: 'Initiate consultation',
+        declineLabel: 'Not politically viable',
+        resolved: false,
+        accepted: null,
+        turn,
+      };
+    default:
+      return null;
+  }
+}
+
+// ============================================================================
+// RESIGNATION CHECK
+// ============================================================================
+
+export interface ResignationResult {
+  shouldResign: boolean;
+  reason: string;
+  adviserType: AdviserType;
+  adviserName: string;
+}
+
+export function checkAdviserResignation(
+  hiredAdviser: HiredAdviser,
+  conflictResolutionHistory: ConflictResolutionRecord[],
+  turn: number
+): ResignationResult | null {
+  const { profile, state } = hiredAdviser;
+  const adviserType = profile.type as AdviserType;
+
+  if (state.loyaltyScore < 15) {
+    return {
+      shouldResign: true,
+      reason: `${profile.name} has resigned. Their loyalty has collapsed — they can no longer defend your fiscal strategy in public or private.`,
+      adviserType,
+      adviserName: profile.name,
+    };
+  }
+
+  if (state.ignoredRecommendationStreak >= 6) {
+    return {
+      shouldResign: true,
+      reason: `${profile.name} has resigned after ${state.ignoredRecommendationStreak} consecutive months of their advice being ignored. "I cannot continue in a role where my counsel is systematically disregarded."`,
+      adviserType,
+      adviserName: profile.name,
+    };
+  }
+
+  const lossesAgainst = conflictResolutionHistory.filter(
+    (r) => r.sidesWithAdviser !== profile.type && (r.conflictId.includes(profile.type))
+  ).length;
+  if (lossesAgainst >= 3) {
+    return {
+      shouldResign: true,
+      reason: `${profile.name} has resigned. Having been overruled in ${lossesAgainst} adviser conflicts, they no longer believe their voice carries weight in your decision-making.`,
+      adviserType,
+      adviserName: profile.name,
+    };
+  }
+
+  if (state.redLineBreachStreak >= 5) {
+    return {
+      shouldResign: true,
+      reason: `${profile.name} has resigned. Their core principles have been violated for ${state.redLineBreachStreak} consecutive months. "I cannot be associated with a policy direction I fundamentally oppose."`,
+      adviserType,
+      adviserName: profile.name,
+    };
+  }
+
+  return null;
+}
+
+export function shouldIssueResignationWarning(hiredAdviser: HiredAdviser): boolean {
+  const { state } = hiredAdviser;
+  if (state.resignationWarningIssued) return false;
+  if (state.loyaltyScore >= 15 && state.loyaltyScore <= 25) return true;
+  if (state.ignoredRecommendationStreak === 5) return true;
+  return false;
+}
+
+export function generateResignationWarning(hiredAdviser: HiredAdviser): string {
+  const { profile } = hiredAdviser;
+  const warnings = [
+    `"I need to be frank with you, Chancellor. I am finding it increasingly difficult to defend the current direction." — ${profile.name}`,
+    `"I am not sure I can continue much longer if things do not change." — ${profile.name}`,
+    `"My ability to advise you effectively is being compromised. I hope you will reflect on that." — ${profile.name}`,
+  ];
+  return warnings[Math.floor(Math.random() * warnings.length)];
 }

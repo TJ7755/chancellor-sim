@@ -521,4 +521,308 @@ export const ADVISER_OPINIONS: AdviserOpinionTemplate[] = [
       'Current credits are too easy to game. We should pivot towards direct grants for deep-tech innovation.',
     recommendationAction: 'Modernise the R&D tax credit eligibility criteria.',
   },
+
+  // ===========================================================================
+  // NEW: LOW LOYALTY WARNINGS
+  // ===========================================================================
+
+  // Treasury Mandarin — Low Loyalty
+  {
+    id: 'mandarin_low_loyalty',
+    adviserType: 'treasury_mandarin',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Adviser Confidence Waning',
+    description: 'Sir Humphrey is becoming increasingly uneasy about the direction of fiscal policy. His confidence in the current strategy is eroding.',
+  },
+
+  // Political Operator — Low Loyalty
+  {
+    id: 'pol_low_loyalty',
+    adviserType: 'political_operator',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Chen Losing Faith',
+    description: 'Sarah Chen is signalling that she no longer believes the current approach is politically sustainable.',
+  },
+
+  // Heterodox Economist — Low Loyalty
+  {
+    id: 'hetero_low_loyalty',
+    adviserType: 'heterodox_economist',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Okonkwo Growing Frustrated',
+    description: 'Dr Okonkwo has expressed frustration that her analysis is not being reflected in policy decisions.',
+  },
+
+  // Fiscal Hawk — Low Loyalty
+  {
+    id: 'hawk_low_loyalty',
+    adviserType: 'fiscal_hawk',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Braithwaite Deeply Concerned',
+    description: 'Lord Braithwaite has privately indicated that he finds the current fiscal trajectory alarming.',
+  },
+
+  // Social Democrat — Low Loyalty
+  {
+    id: 'soc_low_loyalty',
+    adviserType: 'social_democrat',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Thornton Losing Patience',
+    description: 'Rebecca Thornton is increasingly vocal about her concerns that social priorities are being sidelined.',
+  },
+
+  // Technocratic Centrist — Low Loyalty
+  {
+    id: 'centrist_low_loyalty',
+    adviserType: 'technocratic_centrist',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Ashworth Questioning Role',
+    description: 'James Ashworth has hinted that he is not sure his advice is having the intended effect.',
+  },
+
+  // ===========================================================================
+  // NEW: ACTIVE SYNERGY DETECTED
+  // ===========================================================================
+
+  // Treasury Mandarin — Synergy (Institutional Orthodoxy)
+  {
+    id: 'mandarin_synergy_orthodoxy',
+    adviserType: 'treasury_mandarin',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Reinforced Fiscal Discipline',
+    description: 'Working alongside Lord Braithwaite, the combined effect on market credibility is significant. The orthodoxy we represent is reassuring investors.',
+  },
+
+  // Fiscal Hawk — Synergy (Institutional Orthodoxy)
+  {
+    id: 'hawk_synergy_orthodoxy',
+    adviserType: 'fiscal_hawk',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Credibility Reinforced',
+    description: 'Sir Humphrey and I are aligned on the fundamentals. The market is responding to our joint emphasis on discipline.',
+  },
+
+  // Political Operator — Synergy (Electoral Coalition)
+  {
+    id: 'pol_synergy_coalition',
+    adviserType: 'political_operator',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'political',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Coalition Management Working',
+    description: 'Rebecca and I are covering both the policy and political bases. The coalition is holding together better than expected.',
+  },
+
+  // Social Democrat — Synergy (Electoral Coalition)
+  {
+    id: 'soc_synergy_coalition',
+    adviserType: 'social_democrat',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'political',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Coalition Voices Heard',
+    description: 'Sarah and I are ensuring that the electoral coalition is not taken for granted. The messaging is landing.',
+  },
+
+  // Treasury Mandarin — Synergy (Economic Council)
+  {
+    id: 'mandarin_synergy_council',
+    adviserType: 'treasury_mandarin',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Balanced Economic Advice',
+    description: 'The three-way economic advisory arrangement is producing more nuanced analysis than any of us could generate alone.',
+  },
+
+  // Heterodox Economist — Synergy (Economic Council)
+  {
+    id: 'hetero_synergy_council',
+    adviserType: 'heterodox_economist',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Emergent Economic Insight',
+    description: 'The combination of orthodox and heterodox perspectives in this team is generating genuinely useful policy synthesis.',
+  },
+
+  // Technocratic Centrist — Synergy (Economic Council)
+  {
+    id: 'centrist_synergy_council',
+    adviserType: 'technocratic_centrist',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Synthesis Working Well',
+    description: 'The economic council dynamic is producing better-informed decisions. The balance of perspectives is valuable.',
+  },
+
+  // ===========================================================================
+  // NEW: CONFLICT AFTERMATH
+  // ===========================================================================
+
+  // Treasury Mandarin — Lost Conflict
+  {
+    id: 'mandarin_conflict_loss',
+    adviserType: 'treasury_mandarin',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Institutional Voice Overruled',
+    description: 'Sir Humphrey has noted with concern that his institutional perspective was not preferred in the recent policy debate.',
+  },
+
+  // Political Operator — Lost Conflict
+  {
+    id: 'pol_conflict_loss',
+    adviserType: 'political_operator',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Political Reality Ignored',
+    description: 'Sarah Chen is frustrated that the political realities she identified were not given sufficient weight.',
+  },
+
+  // Fiscal Hawk — Lost Conflict
+  {
+    id: 'hawk_conflict_loss',
+    adviserType: 'fiscal_hawk',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Market Warning Dismissed',
+    description: 'Lord Braithwaite has expressed deep disappointment that his market-focused concerns were set aside.',
+  },
+
+  // Heterodox Economist — Lost Conflict
+  {
+    id: 'hetero_conflict_loss',
+    adviserType: 'heterodox_economist',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Unorthodox Analysis Rejected',
+    description: 'Dr Okonkwo is disappointed that her alternative economic analysis was not given serious consideration.',
+  },
+
+  // Social Democrat — Lost Conflict
+  {
+    id: 'soc_conflict_loss',
+    adviserType: 'social_democrat',
+    trigger: { metric: 'approval', operator: '>', value: 0 },
+    category: 'political',
+    itemType: 'warning',
+    severity: 'warning',
+    title: 'Social Priorities Deprioritised',
+    description: 'Rebecca Thornton has made clear her frustration that social priorities were overridden in the recent decision.',
+  },
+
+  // ===========================================================================
+  // NEW: POSITIVE TRACK RECORD
+  // ===========================================================================
+
+  // Treasury Mandarin — Proven Track Record
+  {
+    id: 'mandarin_track_record',
+    adviserType: 'treasury_mandarin',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Steady Hand Confirmed',
+    description: 'Sir Humphrey notes that his consistent advice has produced measurable results. The Treasury approach is vindicated by the data.',
+  },
+
+  // Political Operator — Proven Track Record
+  {
+    id: 'pol_track_record',
+    adviserType: 'political_operator',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'political',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Political Instincts Vindicated',
+    description: 'Sarah Chen points to a strong record of accurate political forecasting. Her instincts have repeatedly proven correct.',
+  },
+
+  // Heterodox Economist — Proven Track Record
+  {
+    id: 'hetero_track_record',
+    adviserType: 'heterodox_economist',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Alternative Framework Validated',
+    description: 'Dr Okonkwo notes that her unconventional approach has delivered results that orthodox models would have missed.',
+  },
+
+  // Fiscal Hawk — Proven Track Record
+  {
+    id: 'hawk_track_record',
+    adviserType: 'fiscal_hawk',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Prudence Rewarded',
+    description: 'Lord Braithwaite observes that the disciplined approach he has advocated is producing the stability he predicted.',
+  },
+
+  // Social Democrat — Proven Track Record
+  {
+    id: 'soc_track_record',
+    adviserType: 'social_democrat',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Investment Case Strengthened',
+    description: 'Rebecca Thornton notes that the evidence increasingly supports her argument that investment in people pays dividends.',
+  },
+
+  // Technocratic Centrist — Proven Track Record
+  {
+    id: 'centrist_track_record',
+    adviserType: 'technocratic_centrist',
+    trigger: { metric: 'growth', operator: '>', value: -10 },
+    category: 'growth',
+    itemType: 'analysis',
+    severity: 'supportive',
+    title: 'Evidence-Based Approach Confirmed',
+    description: 'James Ashworth observes that the empirical, evidence-led approach he has championed continues to produce balanced outcomes.',
+  },
 ];

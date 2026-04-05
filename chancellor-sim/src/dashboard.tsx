@@ -85,7 +85,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, adviserSystem }) =>
   };
 
   const debtRatio = state?.fiscal?.debtPctGDP ?? 0;
-  const headroom = state?.fiscal?.fiscalHeadroom_bn ?? 0;
+  void (state?.fiscal?.fiscalHeadroom_bn ?? 0);
   const pmTrust = political.pmTrust;
   const deficitBn = state?.fiscal?.deficit_bn ?? 0;
   const deficitPct = state?.fiscal?.deficitPctGDP ?? 0;

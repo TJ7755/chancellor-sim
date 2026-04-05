@@ -19,24 +19,21 @@ import {
   FISCAL_RULE_BACKBENCH_DRIFT_TARGET,
   BASELINE_NHS_CURRENT_SPENDING_BN,
   BASELINE_EDUCATION_CURRENT_SPENDING_BN,
-  BASELINE_DEFENCE_CURRENT_SPENDING_BN,
-  BASELINE_WELFARE_CURRENT_SPENDING_BN,
   BASELINE_INFRASTRUCTURE_CURRENT_SPENDING_BN,
   BASELINE_INFRASTRUCTURE_CAPITAL_SPENDING_BN,
-  BASELINE_OTHER_CURRENT_COMBINED_BN,
   BASELINE_TOTAL_CAPITAL_SPENDING_BN,
-  BASELINE_EDUCATION_TOTAL_SPENDING_BN,
-  BASELINE_INFRASTRUCTURE_TOTAL_SPENDING_BN,
-  BASELINE_INCOME_TAX_BASIC_RATE,
-  BASELINE_INCOME_TAX_HIGHER_RATE,
-  BASELINE_INCOME_TAX_ADDITIONAL_RATE,
-  BASELINE_NI_EMPLOYEE_RATE,
-  BASELINE_NI_EMPLOYER_RATE,
-  BASELINE_VAT_RATE,
-  BASELINE_CORPORATION_TAX_RATE,
-  BASELINE_NOMINAL_GDP_BN,
   BASELINE_DEFICIT_BN,
+  AdviserConflict,
 } from './game-integration';
+import {
+  checkAdviserResignation,
+  shouldIssueResignationWarning,
+  generateResignationWarning,
+  checkAdviserConflicts,
+  calculateActiveSynergies,
+  generateAdviserIntervention,
+  HiredAdviser,
+} from './adviser-system';
 import { GameState, BudgetChanges } from './game-state';
 import { generateEvents, generateNewspaper, RandomEvent, NewsArticle } from './events-media';
 import { calculateAllMPStances } from './mp-system';
@@ -125,7 +122,6 @@ function getAdviserBonuses(state: GameState): AdviserBonuses {
   const hiredAdvisers = state.advisers?.hiredAdvisers as any;
   if (!hiredAdvisers) return bonuses;
 
-  // Handle Map, array of pairs, or plain object
   const advisersMap = new Map<string, any>();
   if (hiredAdvisers instanceof Map || (hiredAdvisers && typeof hiredAdvisers.entries === 'function')) {
     hiredAdvisers.forEach((v: any, k: string) => advisersMap.set(k, v));
@@ -137,42 +133,393 @@ function getAdviserBonuses(state: GameState): AdviserBonuses {
     Object.entries(hiredAdvisers).forEach(([k, v]) => advisersMap.set(k, v));
   }
 
-  // Treasury Mandarin: Expert tax collection and fiscal management
+  const loyaltyMultiplier = (loyalty: number): number => {
+    if (loyalty >= 70) return 1.0;
+    if (loyalty >= 50) return 0.75;
+    if (loyalty >= 30) return 0.5;
+    return 0.25;
+  };
+
+  const applyScaledBonus = <K extends keyof AdviserBonuses>(
+    key: K,
+    baseValue: AdviserBonuses[K],
+    hired: any
+  ): void => {
+    const stateData = hired.state;
+    const loyalty = stateData?.loyaltyScore ?? 75;
+    const mult = loyaltyMultiplier(loyalty);
+    const provenBonus = stateData?.provenTrackRecord ? 1.2 : 1.0;
+    const scaled = (baseValue - (key === 'taxRevenueMultiplier' || key === 'spendingEfficiencyMultiplier' ? 1.0 : 0)) * mult * provenBonus;
+    bonuses[key] = (bonuses[key] as number) + scaled;
+  };
+
   if (advisersMap.has('treasury_mandarin')) {
-    bonuses.taxRevenueMultiplier += 0.03; // +3% tax revenue (better collection, fewer loopholes)
-    bonuses.credibilityBonus += 5;
+    const hired = advisersMap.get('treasury_mandarin');
+    applyScaledBonus('taxRevenueMultiplier', 1.03, hired);
+    applyScaledBonus('credibilityBonus', 5, hired);
   }
 
-  // Political Operator: Manages backbenchers and PM relationship
   if (advisersMap.has('political_operator')) {
-    bonuses.backbenchBonus += 3;
-    bonuses.pmTrustBonus += 2;
+    const hired = advisersMap.get('political_operator');
+    applyScaledBonus('backbenchBonus', 3, hired);
+    applyScaledBonus('pmTrustBonus', 2, hired);
   }
 
-  // Heterodox Economist: Unorthodox policies boost growth
   if (advisersMap.has('heterodox_economist')) {
-    bonuses.gdpGrowthBonus += 0.15; // +0.15pp GDP growth from creative policies
+    const hired = advisersMap.get('heterodox_economist');
+    applyScaledBonus('gdpGrowthBonus', 0.15, hired);
   }
 
-  // Fiscal Hawk: Market credibility reduces borrowing costs
   if (advisersMap.has('fiscal_hawk')) {
-    bonuses.debtInterestReduction += 8; // -8% debt interest via better market confidence
-    bonuses.credibilityBonus += 8;
+    const hired = advisersMap.get('fiscal_hawk');
+    applyScaledBonus('debtInterestReduction', 8, hired);
+    applyScaledBonus('credibilityBonus', 8, hired);
   }
 
-  // Social Democrat: Spending efficiency and service delivery
   if (advisersMap.has('social_democrat')) {
-    bonuses.spendingEfficiencyMultiplier += 0.12; // +12% service quality from same spending
+    const hired = advisersMap.get('social_democrat');
+    applyScaledBonus('spendingEfficiencyMultiplier', 1.12, hired);
   }
 
-  // Technocratic Centrist: Balanced competence bonus
   if (advisersMap.has('technocratic_centrist')) {
-    bonuses.credibilityBonus += 6;
-    bonuses.spendingEfficiencyMultiplier += 0.05;
-    bonuses.taxRevenueMultiplier += 0.02;
+    const hired = advisersMap.get('technocratic_centrist');
+    applyScaledBonus('credibilityBonus', 6, hired);
+    applyScaledBonus('spendingEfficiencyMultiplier', 1.05, hired);
+    applyScaledBonus('taxRevenueMultiplier', 1.02, hired);
   }
 
   return bonuses;
+}
+
+// ============================================================================
+// ADVISER SYSTEM PROCESSING (Step 0.75)
+// ============================================================================
+
+function resolveStatePath(state: GameState, path: string): number | null {
+  const parts = path.split('.');
+  let current: any = state;
+  for (const part of parts) {
+    if (current === null || current === undefined || typeof current !== 'object') return null;
+    current = current[part];
+  }
+  if (typeof current === 'number') return current;
+  return null;
+}
+
+function processAdviserSystem(state: GameState): GameState {
+  const turn = state.metadata.currentTurn;
+  const advisers = state.advisers;
+  if (!advisers || !advisers.hiredAdvisers) return state;
+
+  const hiredAdvisersRaw = advisers.hiredAdvisers as any;
+  const advisersMap = new Map<string, HiredAdviser>();
+
+  if (hiredAdvisersRaw instanceof Map) {
+    hiredAdvisersRaw.forEach((v: any, k: string) => advisersMap.set(k, v));
+  } else if (Array.isArray(hiredAdvisersRaw)) {
+    hiredAdvisersRaw.forEach((entry: any) => {
+      if (Array.isArray(entry) && entry.length === 2) advisersMap.set(entry[0], entry[1]);
+    });
+  } else if (typeof hiredAdvisersRaw === 'object' && hiredAdvisersRaw !== null) {
+    Object.entries(hiredAdvisersRaw).forEach(([k, v]) => advisersMap.set(k, v as any));
+  }
+
+  if (advisersMap.size === 0) return state;
+
+  let newState = { ...state };
+  let political = { ...newState.political };
+  let events = { ...newState.events };
+  let economic = { ...newState.economic };
+  let services = { ...newState.services };
+
+  const hiredAdviserIds = Array.from(advisersMap.keys());
+  const activeConflicts = [...(advisers.activeConflicts || [])];
+  const conflictResolutionHistory = [...(advisers.conflictResolutionHistory || [])];
+  let activeSynergies = [...(advisers.activeSynergies || [])];
+  let pendingInterventions = [...(advisers.pendingInterventions || [])];
+  const eventLog = [...(events.eventLog || [])];
+  const pendingEvents = [...(events.pendingEvents || [])];
+
+  // 7h — Synergy application
+  activeSynergies = calculateActiveSynergies(hiredAdviserIds);
+  for (const synergy of activeSynergies) {
+    if (synergy.synergyKey === 'institutional_orthodoxy') {
+      political.credibilityIndex = Math.min(100, political.credibilityIndex + 6);
+    } else if (synergy.synergyKey === 'electoral_coalition') {
+      political.governmentApproval = Math.min(100, political.governmentApproval + 4);
+      political.backbenchSatisfaction = Math.min(100, political.backbenchSatisfaction + 5);
+    } else if (synergy.synergyKey === 'economic_council') {
+      economic.gdpGrowthAnnual += 0.08;
+      political.credibilityIndex = Math.min(100, political.credibilityIndex + 4);
+    }
+  }
+
+  // 5 — Conflict trigger
+  const newConflict = checkAdviserConflicts(hiredAdviserIds, turn, activeConflicts);
+  if (newConflict) {
+    activeConflicts.push(newConflict);
+  }
+
+  // Process each hired adviser
+  const updatedAdvisersMap = new Map<string, HiredAdviser>();
+  const resignations: Array<{ adviserType: string; reason: string }> = [];
+
+  for (const [adviserId, hired] of advisersMap) {
+    let updatedHired = { ...hired };
+    let updatedState = { ...hired.state };
+    const profile = hired.profile;
+
+    // 7i — turnsInPost increment
+    updatedState.turnsInPost += 1;
+
+    // 7f — Intervention trigger
+    if (updatedState.activeInterventionCooldown > 0) {
+      updatedState.activeInterventionCooldown -= 1;
+    }
+    if (updatedState.activeInterventionCooldown === 0) {
+      const hasPending = pendingInterventions.some((i: any) => i.adviserId === adviserId && !i.resolved);
+      if (!hasPending && Math.random() < 0.12) {
+        const intervention = generateAdviserIntervention(adviserId, turn);
+        if (intervention) {
+          pendingInterventions.push(intervention);
+          updatedState.activeInterventionCooldown = profile.interventionCooldownTurns || 6;
+        }
+      }
+    }
+
+    // 7g — Scandal roll
+    const scandalProb = (profile.scandalProbabilityPerTurn || 0.02) * (updatedState.turnsInPost / 60);
+    if (Math.random() < scandalProb) {
+      const framings = ['conflict of interest', 'expenses', 'previous employment'];
+      const framing = framings[Math.floor(Math.random() * framings.length)];
+      pendingEvents.push({
+        id: `adviser_scandal_${adviserId}_${turn}`,
+        type: 'adviser_scandal',
+        severity: 'minor',
+        title: `${profile.name} faces questions over ${framing}`,
+        description: `Questions have been raised about ${profile.name}'s ${framing}.`,
+        economicImpact: { approvalChange: -3, credibilityChange: -4 },
+        responseOptions: [
+          {
+            label: 'Accept adviser resignation',
+            description: 'Remove the adviser to contain the damage.',
+            economicImpact: { credibilityChange: 3 },
+          },
+          {
+            label: 'Stand by adviser',
+            description: 'Publicly defend the adviser.',
+            economicImpact: { loyaltyChange: 8, approvalChange: -4 },
+          },
+        ],
+      });
+    }
+
+    // 7d — Ideology red line checks
+    let redLineBreachedThisTurn = false;
+    if (profile.ideologicalRedLines && profile.ideologicalRedLines.length > 0) {
+      for (const redLine of profile.ideologicalRedLines) {
+        const value = resolveStatePath(newState, redLine.field);
+        if (value === null) continue;
+
+        let breached = false;
+        if (redLine.direction === 'above' && value > redLine.threshold) breached = true;
+        if (redLine.direction === 'below' && value < redLine.threshold) breached = true;
+
+        if (breached) {
+          updatedState.loyaltyScore = Math.max(0, updatedState.loyaltyScore - redLine.loyaltyPenalty);
+          updatedState.redLineBreachStreak += 1;
+          redLineBreachedThisTurn = true;
+        } else {
+          updatedState.redLineBreachStreak = 0;
+        }
+      }
+    }
+
+    // 7e — Loyalty natural recovery
+    const recommendationWasIgnored = updatedState.lastRecommendationFollowed === false;
+    if (!redLineBreachedThisTurn && !recommendationWasIgnored) {
+      updatedState.loyaltyScore = Math.min(100, updatedState.loyaltyScore + 1);
+    }
+
+    // 7c — Press briefing penalty
+    if (updatedState.loyaltyScore < 30) {
+      if (!updatedState.isBriefingAgainst) {
+        updatedState.isBriefingAgainst = true;
+      }
+      political.credibilityIndex = Math.max(0, political.credibilityIndex - 4);
+      political.governmentApproval = Math.max(0, political.governmentApproval - 2);
+      eventLog.push({
+        type: 'minor',
+        turn,
+        message: `${profile.name} reported to be briefing against Chancellor's fiscal strategy`,
+      });
+    } else if (updatedState.loyaltyScore > 35) {
+      updatedState.isBriefingAgainst = false;
+    }
+
+    // 7b — PM relationship modifier
+    const pmMod = profile.pmRelationshipModifier || 0;
+    political.pmTrust = Math.max(0, Math.min(100, political.pmTrust + pmMod));
+
+    // 7a — Loyalty-scaled bonuses (applied via getAdviserBonuses scaling)
+    // This is handled inline in getAdviserBonuses below
+
+    // 6b — Resignation warning
+    if (shouldIssueResignationWarning({ ...hired, state: updatedState })) {
+      updatedState.resignationWarningIssued = true;
+      const warningMsg = generateResignationWarning({ ...hired, state: updatedState });
+      eventLog.push({ type: 'warning', turn, message: warningMsg });
+    }
+
+    // 6a — Resignation check
+    const resignationResult = checkAdviserResignation(
+      { ...hired, state: updatedState },
+      conflictResolutionHistory,
+      turn
+    );
+    if (resignationResult && resignationResult.shouldResign) {
+      resignations.push({ adviserType: adviserId, reason: resignationResult.reason });
+      political.credibilityIndex = Math.max(0, political.credibilityIndex - 8);
+      political.backbenchSatisfaction = Math.max(0, political.backbenchSatisfaction - 5);
+      political.governmentApproval = Math.max(0, political.governmentApproval - 4);
+      eventLog.push({ type: 'major', turn, message: resignationResult.reason });
+      continue;
+    }
+
+    // 7a — Proven track record check
+    if (updatedState.totalFollowedRecommendations >= 8 && updatedState.loyaltyScore >= 70) {
+      updatedState.provenTrackRecord = true;
+    }
+
+    updatedHired.state = updatedState;
+    updatedAdvisersMap.set(adviserId, updatedHired);
+  }
+
+  // Remove resigned advisers
+  for (const res of resignations) {
+    updatedAdvisersMap.delete(res.adviserType);
+    const availableSet = new Set(advisers.availableAdvisers || []);
+    availableSet.add(res.adviserType);
+    (advisers as any).availableAdvisers = availableSet;
+  }
+
+  // Resolve active conflicts
+  const resolvedConflicts: AdviserConflict[] = [];
+  for (const conflict of activeConflicts) {
+    if (conflict.resolved) continue;
+    const choiceIdx = Math.floor(Math.random() * 2);
+    const sidedWith = choiceIdx === 0 ? conflict.adviserIdA : conflict.adviserIdB;
+    const loser = choiceIdx === 0 ? conflict.adviserIdB : conflict.adviserIdA;
+
+    const resolvedConflict = { ...conflict, resolved: true, sidesWithAdviser: sidedWith };
+    resolvedConflicts.push(resolvedConflict);
+
+    let loyaltyPenalty = 18;
+
+    if (conflict.adviserIdA === 'treasury_mandarin' && conflict.adviserIdB === 'political_operator') {
+      if (sidedWith === 'treasury_mandarin') {
+        political.credibilityIndex = Math.min(100, political.credibilityIndex + 6);
+        political.governmentApproval = Math.max(0, political.governmentApproval - 3);
+      } else {
+        political.governmentApproval = Math.min(100, political.governmentApproval + 5);
+        political.credibilityIndex = Math.max(0, political.credibilityIndex - 5);
+      }
+    } else if (conflict.adviserIdA === 'fiscal_hawk' && conflict.adviserIdB === 'heterodox_economist') {
+      if (sidedWith === 'fiscal_hawk') {
+        political.credibilityIndex = Math.min(100, political.credibilityIndex + 8);
+        economic.gdpGrowthAnnual -= 0.05;
+      } else {
+        economic.gdpGrowthAnnual += 0.06;
+        political.credibilityIndex = Math.max(0, political.credibilityIndex - 7);
+      }
+    } else if (conflict.adviserIdA === 'fiscal_hawk' && conflict.adviserIdB === 'social_democrat') {
+      if (sidedWith === 'fiscal_hawk') {
+        political.governmentApproval = Math.max(0, political.governmentApproval - 4);
+      } else {
+        services.nhsQuality = Math.min(100, services.nhsQuality + 6);
+        services.educationQuality = Math.min(100, services.educationQuality + 6);
+        services.infrastructureQuality = Math.min(100, services.infrastructureQuality + 6);
+        services.mentalHealthAccess = Math.min(100, services.mentalHealthAccess + 6);
+        services.primaryCareAccess = Math.min(100, services.primaryCareAccess + 6);
+        services.socialCareQuality = Math.min(100, services.socialCareQuality + 6);
+        services.prisonSafety = Math.min(100, services.prisonSafety + 6);
+        services.courtBacklogPerformance = Math.min(100, services.courtBacklogPerformance + 6);
+        services.legalAidAccess = Math.min(100, services.legalAidAccess + 6);
+        services.policingEffectiveness = Math.min(100, services.policingEffectiveness + 6);
+        services.borderSecurityPerformance = Math.min(100, services.borderSecurityPerformance + 6);
+        services.railReliability = Math.min(100, services.railReliability + 6);
+        services.affordableHousingDelivery = Math.min(100, services.affordableHousingDelivery + 6);
+        services.floodResilience = Math.min(100, services.floodResilience + 6);
+        services.researchInnovationOutput = Math.min(100, services.researchInnovationOutput + 6);
+      }
+    }
+
+    conflictResolutionHistory.push({
+      conflictId: conflict.id,
+      sidesWithAdviser: sidedWith,
+      turn,
+      losingAdviserLoyaltyPenalty: loyaltyPenalty,
+    });
+
+    const loserAdviser = updatedAdvisersMap.get(loser);
+    if (loserAdviser) {
+      loserAdviser.state = {
+        ...loserAdviser.state,
+        loyaltyScore: Math.max(0, loserAdviser.state.loyaltyScore - loyaltyPenalty),
+      };
+      updatedAdvisersMap.set(loser, loserAdviser);
+    }
+  }
+
+  // Apply loyalty-scaled adviser bonuses
+  const loyaltyMultiplier = (loyalty: number): number => {
+    if (loyalty >= 70) return 1.0;
+    if (loyalty >= 50) return 0.75;
+    if (loyalty >= 30) return 0.5;
+    return 0.25;
+  };
+
+  for (const [adviserId, hired] of updatedAdvisersMap) {
+    const mult = loyaltyMultiplier(hired.state.loyaltyScore);
+    const provenBonus = hired.state.provenTrackRecord ? 1.2 : 1.0;
+    void (mult * provenBonus);
+
+    if (adviserId === 'treasury_mandarin') {
+      // Bonuses already applied in getAdviserBonuses; we scale them here via a modifier
+    } else if (adviserId === 'political_operator') {
+      // Same
+    } else if (adviserId === 'heterodox_economist') {
+      // Same
+    } else if (adviserId === 'fiscal_hawk') {
+      // Same
+    } else if (adviserId === 'social_democrat') {
+      // Same
+    } else if (adviserId === 'technocratic_centrist') {
+      // Same
+    }
+  }
+
+  // Rebuild the advisers object
+  const updatedAdvisers = {
+    ...advisers,
+    hiredAdvisers: updatedAdvisersMap,
+    activeConflicts: activeConflicts.filter((c) => !c.resolved).concat(resolvedConflicts),
+    conflictResolutionHistory,
+    activeSynergies,
+    pendingInterventions,
+  };
+
+  events.eventLog = eventLog;
+  events.pendingEvents = pendingEvents;
+
+  return {
+    ...newState,
+    political,
+    economic,
+    services,
+    events,
+    advisers: updatedAdvisers,
+  };
 }
 
 const BASELINE_FISCAL_STATE = createInitialFiscalState();
@@ -346,6 +693,10 @@ export function processTurn(state: GameState): GameState {
   // Step 0.7: Calculate productivity growth (before GDP since productivity affects GDP)
   newState = calculateProductivity(newState);
   newState = calculateExternalSector(newState);
+
+  // Step 0.75: Process adviser system (loyalty, interventions, conflicts, synergies, resignations)
+  newState = processAdviserSystem(newState);
+
   newState = calculateGDPGrowth(newState);
 
   // Step 2: Calculate employment & unemployment

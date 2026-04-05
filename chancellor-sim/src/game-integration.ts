@@ -1700,6 +1700,58 @@ export interface Adviser {
   hired: boolean;
 }
 
+export interface AdviserConflict {
+  id: string;
+  adviserIdA: string;
+  adviserIdB: string;
+  description: string;
+  turnTriggered: number;
+  resolved: boolean;
+  sidesWithAdviser: string | null;
+}
+
+export interface ConflictResolutionRecord {
+  conflictId: string;
+  sidesWithAdviser: string;
+  turn: number;
+  losingAdviserLoyaltyPenalty: number;
+}
+
+export interface AdviserSynergy {
+  adviserIds: string[];
+  synergyKey: string;
+  description: string;
+  bonusDescription: string;
+}
+
+export interface AdviserInterventionEffect {
+  credibilityChange?: number;
+  backbenchSatisfactionChange?: number;
+  approvalChange?: number;
+  pmTrustChange?: number;
+  gdpGrowthBoost?: number;
+  inflationRisk?: number;
+  fiscalHeadroomChange_bn?: number;
+  serviceQualityTarget?: string;
+  serviceQualityChange?: number;
+  whipStrengthChange?: number;
+  boostDurationTurns?: number;
+}
+
+export interface AdviserIntervention {
+  id: string;
+  adviserId: string;
+  adviserName: string;
+  title: string;
+  description: string;
+  mechanicalEffect: AdviserInterventionEffect;
+  acceptLabel: string;
+  declineLabel: string;
+  resolved: boolean;
+  accepted: boolean | null;
+  turn: number;
+}
+
 export interface AdviserSystem {
   advisers: Adviser[];
   maxAdvisers: number;
@@ -1708,6 +1760,10 @@ export interface AdviserSystem {
   currentOpinions?: Map<string, any>;
   showDetailedView?: string | null;
   adviserEvents?: any[];
+  activeConflicts?: AdviserConflict[];
+  conflictResolutionHistory?: ConflictResolutionRecord[];
+  activeSynergies?: AdviserSynergy[];
+  pendingInterventions?: AdviserIntervention[];
 }
 
 export function createInitialAdviserSystem(): AdviserSystem {
@@ -1726,6 +1782,10 @@ export function createInitialAdviserSystem(): AdviserSystem {
     currentOpinions: new Map(),
     showDetailedView: null,
     adviserEvents: [],
+    activeConflicts: [],
+    conflictResolutionHistory: [],
+    activeSynergies: [],
+    pendingInterventions: [],
   };
 }
 
