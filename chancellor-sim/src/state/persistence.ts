@@ -24,14 +24,6 @@ export function serialiseGameState(state: GameState): unknown {
         state.mpSystem.currentBudgetSupport instanceof Map
           ? Array.from(state.mpSystem.currentBudgetSupport.entries())
           : state.mpSystem.currentBudgetSupport,
-      selectedMPForDetail: null,
-      filterSettings: {
-        party: undefined,
-        faction: undefined,
-        region: undefined,
-        stance: undefined,
-        searchQuery: '',
-      },
     },
     advisers: {
       ...state.advisers,
@@ -47,7 +39,6 @@ export function serialiseGameState(state: GameState): unknown {
         state.advisers.currentOpinions instanceof Map
           ? Array.from(state.advisers.currentOpinions.entries())
           : state.advisers.currentOpinions,
-      showDetailedView: null,
     },
   };
 }

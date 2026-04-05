@@ -168,9 +168,6 @@ function validateMPSystem(state: any): string[] {
   if (slice.activeGroups !== undefined && !Array.isArray(slice.activeGroups)) {
     errors.push('mpSystem.activeGroups must be an array if present');
   }
-  if (slice.filterSettings !== undefined && typeof slice.filterSettings !== 'object') {
-    errors.push('mpSystem.filterSettings must be an object if present');
-  }
   return errors;
 }
 
@@ -629,8 +626,6 @@ export function migrateSave(parsed: unknown): SaveMigrationResult {
           promises: [],
           concernProfiles: new Map(),
           activeGroups: [],
-          selectedMPForDetail: null,
-          filterSettings: {},
           currentBudgetSupport: new Map(),
         };
       if (!migratedState.simulation) migratedState.simulation = { monthlySnapshots: [], lastTurnDelta: {} };

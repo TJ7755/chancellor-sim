@@ -7,10 +7,8 @@ import {
   GameStateProvider,
   useGameState,
   useGameActions,
-  useGameMetadata,
-  DifficultyMode,
 } from './game-state';
-import { MANIFESTO_TEMPLATES, ManifestoDisplay, OneClickActionResult } from './manifesto-system';
+import { ManifestoDisplay, OneClickActionResult } from './manifesto-system';
 import { TutorialModal, HelpButton } from './tutorial-system';
 import BudgetSystem from './budget-system';
 import { AdviserManagementScreen, AdviserType } from './adviser-system';
@@ -21,445 +19,18 @@ import { Newspaper, EventModal } from './events-media';
 import { SpendingReviewModal } from './SpendingReviewModal';
 import { Dashboard } from './dashboard';
 import type { NewsArticle, EventResponseOption } from './events-media';
-import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
+import { getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
 import { ShortcutsHelpModal } from './ui/shell/ShortcutsHelpModal';
 import { ErrorBoundary } from './ui/ErrorBoundary';
-import { calcScore, calculateGrade } from './domain/game/scoring';
 import { generateResearchAlignedHistoricalBaseline, clamp } from './data/dashboard-history';
+import GameStartScreen from './ui/GameStartScreen';
+import GameOverModal from './ui/GameOverModal';
+import NavigationSidebar from './ui/NavigationSidebar';
+import Masthead from './ui/Masthead';
+import TurnDeltaPanel from './ui/TurnDeltaPanel';
 
 const ANALYSIS_HISTORICAL_BASELINE = generateResearchAlignedHistoricalBaseline();
-
-// ===========================
-// Game Start Screen
-// ===========================
-
-const GameStartScreen: React.FC<{
-  onStart: (manifestoId: string, fiscalRuleId: FiscalRuleId, difficultyMode: DifficultyMode) => void;
-}> = ({ onStart }) => {
-  const [selectedManifesto, setSelectedManifesto] = useState<string>('random');
-  const [selectedFiscalRule, setSelectedFiscalRule] = useState<FiscalRuleId>('starmer-reeves');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyMode>('realistic');
-  const [step, setStep] = useState<'manifesto' | 'fiscal-rules'>('manifesto');
-
-  if (step === 'fiscal-rules') {
-    return (
-      <div className="min-h-screen bg-default flex items-center justify-center p-6">
-        <div className="max-w-5xl w-full border border-border-strong bg-bg-surface">
-          <div className="bg-primary text-white px-8 py-6 border-b border-border-strong">
-            <div className="text-xs uppercase tracking-widest text-white/60 mb-1">HM Treasury</div>
-            <h1 className="font-display text-3xl font-semibold">Choose Your Fiscal Framework</h1>
-          </div>
-
-          <div className="p-8">
-            <p className="text-secondary leading-relaxed mb-2">
-              Your first act as Chancellor is to set the fiscal rules that will govern your Chancellorship. Markets will
-              react immediately. The rules you set will determine your room for manoeuvre for the entire parliament.
-            </p>
-            <p className="text-sm text-muted mb-8">
-              Changing your fiscal rules later will be seen as weakness and severely damage market confidence.
-            </p>
-
-            <div className="space-y-0 border border-border-strong mb-8">
-              {FISCAL_RULES.map((rule, idx) => {
-                const isSelected = selectedFiscalRule === rule.id;
-                const marketColor = rule.marketReaction.giltYieldBps <= 0 ? 'text-good' : 'text-bad';
-                const politicalColor = rule.politicalReaction.backbenchChange >= 0 ? 'text-good' : 'text-bad';
-
-                return (
-                  <button
-                    key={rule.id}
-                    onClick={() => setSelectedFiscalRule(rule.id)}
-                    className={`w-full text-left px-6 py-5 transition-all border-b border-border-subtle last:border-b-0 ${
-                      isSelected
-                        ? 'bg-primary-subtle border-l-4 border-l-primary'
-                        : 'hover:bg-bg-subdued border-l-4 border-l-transparent'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-display text-lg font-semibold text-text-primary">{rule.name}</div>
-                        <div className="text-sm text-secondary mt-1">{rule.shortDescription}</div>
-                        {isSelected && (
-                          <div className="mt-3">
-                            <p className="text-sm text-secondary">{rule.detailedDescription}</p>
-                            <p className="text-xs text-muted italic mt-2">{rule.historicalPrecedent}</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="ml-6 text-right flex-shrink-0 w-44">
-                        <div className={`text-xs font-mono font-semibold ${marketColor}`}>
-                          Gilt Yields: {rule.marketReaction.giltYieldBps > 0 ? '+' : ''}
-                          {rule.marketReaction.giltYieldBps}bps
-                        </div>
-                        <div className={`text-xs font-mono ${marketColor}`}>
-                          Sterling: {rule.marketReaction.sterlingPercent > 0 ? '+' : ''}
-                          {rule.marketReaction.sterlingPercent}%
-                        </div>
-                        <div className={`text-xs font-mono ${politicalColor} mt-1`}>
-                          Backbench: {rule.politicalReaction.backbenchChange > 0 ? '+' : ''}
-                          {rule.politicalReaction.backbenchChange}
-                        </div>
-                        <div className="text-xs font-mono text-muted mt-1">
-                          Credibility: {rule.marketReaction.credibilityChange > 0 ? '+' : ''}
-                          {rule.marketReaction.credibilityChange}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mb-8">
-              <div className="treasury-kicker mb-3">Simulation Difficulty</div>
-              <div className="grid grid-cols-3 gap-0 border border-border-strong">
-                {(['forgiving', 'standard', 'realistic'] as DifficultyMode[]).map((mode, idx) => {
-                  const isSelected = selectedDifficulty === mode;
-                  const modeColors = {
-                    forgiving: { border: 'border-good', bg: 'bg-good-subtle', text: 'text-good', label: 'Forgiving' },
-                    standard: {
-                      border: 'border-secondary',
-                      bg: 'bg-secondary-subtle',
-                      text: 'text-financial',
-                      label: 'Standard',
-                    },
-                    realistic: {
-                      border: 'border-primary',
-                      bg: 'bg-primary-subtle',
-                      text: 'text-primary',
-                      label: 'Realistic',
-                    },
-                  };
-                  const colors = modeColors[mode];
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => setSelectedDifficulty(mode)}
-                      className={`px-5 py-4 text-left border-r border-border-subtle last:border-r-0 transition-all ${
-                        isSelected
-                          ? `${colors.bg} border-l-4 border-l-${colors.border.replace('border-', '')}`
-                          : 'border-l-4 border-l-transparent hover:bg-bg-subdued'
-                      }`}
-                    >
-                      <div className={`font-semibold ${colors.text}`}>{colors.label}</div>
-                      <div className="text-xs text-secondary mt-1">
-                        {mode === 'forgiving'
-                          ? 'Lower volatility, later crisis triggers'
-                          : mode === 'standard'
-                            ? 'Balanced realism and playability'
-                            : 'Higher volatility, stricter discipline'}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              <button onClick={() => setStep('manifesto')} className="btn btn-secondary">
-                Back
-              </button>
-              <button
-                onClick={() =>
-                  onStart(
-                    selectedManifesto === 'random' ? '' : selectedManifesto,
-                    selectedFiscalRule,
-                    selectedDifficulty
-                  )
-                }
-                className="flex-1 btn btn-primary text-base"
-              >
-                Announce Fiscal Framework and Begin
-              </button>
-            </div>
-
-            <div className="mt-4 px-4 py-3 bg-warning-subtle border border-warning text-warning text-xs">
-              Markets will react in real time when you announce your fiscal framework. Gilt yields, sterling, and
-              credibility will adjust immediately.
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-default flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full border border-border-strong bg-bg-surface">
-        <div className="bg-primary text-white px-8 py-6 border-b border-border-strong">
-          <div className="text-xs uppercase tracking-widest text-white/60 mb-1">HM Treasury</div>
-          <h1 className="font-display text-3xl font-semibold">Chancellor of the Exchequer</h1>
-          <p className="text-sm text-white/70 mt-1">Simulation · July 2024 – June 2029</p>
-        </div>
-
-        <div className="p-8">
-          <div className="mb-8">
-            <h3 className="font-display text-2xl font-semibold text-text-primary mb-4">Welcome, Chancellor</h3>
-            <p className="text-secondary leading-relaxed mb-3">
-              It is July 2024. Labour has won a historic landslide with a majority of 174 seats. Your task is to manage
-              the UK economy and public finances for the full five-year term.
-            </p>
-            <p className="text-secondary leading-relaxed mb-3">
-              You must balance economic growth, sound public finances, quality public services, and political survival.
-              The Prime Minister will not hesitate to sack you. Backbenchers will revolt. Markets will punish
-              irresponsibility.
-            </p>
-            <p className="text-secondary leading-relaxed">
-              <strong>This simulation is brutally realistic.</strong> Every policy has trade-offs. Breaking manifesto
-              pledges has consequences.
-            </p>
-          </div>
-
-          <div className="mb-8">
-            <div className="treasury-kicker mb-3">Select Your Manifesto</div>
-
-            <div className="space-y-0 border border-border-strong">
-              <button
-                onClick={() => setSelectedManifesto('random')}
-                className={`w-full text-left px-6 py-4 transition-all border-b border-border-subtle ${
-                  selectedManifesto === 'random'
-                    ? 'bg-primary-subtle border-l-4 border-l-primary'
-                    : 'hover:bg-bg-subdued border-l-4 border-l-transparent'
-                }`}
-              >
-                <div className="font-semibold text-text-primary">Random Manifesto</div>
-                <div className="text-sm text-secondary mt-1">
-                  System will randomly select one of the five manifesto templates
-                </div>
-              </button>
-
-              {MANIFESTO_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => setSelectedManifesto(template.id)}
-                  className={`w-full text-left px-6 py-4 transition-all border-b border-border-subtle last:border-b-0 ${
-                    selectedManifesto === template.id
-                      ? 'bg-primary-subtle border-l-4 border-l-primary'
-                      : 'hover:bg-bg-subdued border-l-4 border-l-transparent'
-                  }`}
-                >
-                  <div className="font-semibold text-text-primary">{template.name}</div>
-                  <div className="text-sm text-secondary mt-1">{template.theme}</div>
-                  <div className="text-xs text-muted mt-1 font-mono">{template.pledges.length} pledges</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button onClick={() => setStep('fiscal-rules')} className="w-full btn btn-primary text-base">
-            Next: Choose Fiscal Framework
-          </button>
-
-          <div className="mt-6 px-4 py-3 bg-warning-subtle border border-warning text-warning text-sm">
-            <strong>Difficulty: Realistic</strong> — Realistic UK fiscal constraints. Economic relationships are
-            unforgiving but fair.
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ===========================
-// Game Over Modal
-// ===========================
-
-const GameOverModal: React.FC<{ reason: string; onRestart: () => void }> = ({ reason, onRestart }) => {
-  const gameState = useGameState();
-  const metadata = gameState.metadata;
-
-  const survived = metadata.currentTurn >= 60;
-
-  const score = calcScore(gameState);
-  const { grade, gradeLabel, gradeColor } = calculateGrade(score);
-  const borderColor = survived ? 'border-good' : 'border-bad';
-  const headerBg = survived ? 'bg-good' : 'bg-bad';
-
-  return (
-    <div className="fixed inset-0 modal-overlay flex items-center justify-center p-6 z-50">
-      <div className={`max-w-2xl w-full border-t-4 ${borderColor} bg-bg-surface`}>
-        <div className={`${headerBg} text-white px-8 py-6`}>
-          <h2 className="font-display text-3xl font-semibold">{survived ? 'Term Complete' : 'Chancellorship Ended'}</h2>
-        </div>
-
-        <div className="p-8">
-          <p className="text-lg text-text-primary leading-relaxed mb-6">{reason}</p>
-
-          <div className="text-center border-y border-border-strong py-6 mb-6">
-            <div className="text-label text-tertiary mb-2">Performance Rating</div>
-            <div className={`font-display text-6xl font-bold ${gradeColor}`}>{grade}</div>
-            <div className={`text-base font-semibold ${gradeColor} mt-1`}>{gradeLabel}</div>
-            <div className="text-sm text-muted mt-1 font-mono">Score: {score}/100</div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-0 border border-border-strong mb-6">
-            <div className="px-6 py-4 border-b border-r border-border-subtle">
-              <div className="text-sm text-secondary">Months in Office</div>
-              <div className="font-mono text-2xl font-semibold text-text-primary">{metadata.currentTurn}</div>
-            </div>
-            <div className="px-6 py-4 border-b border-border-subtle">
-              <div className="text-sm text-secondary">Term Progress</div>
-              <div className="font-mono text-2xl font-semibold text-text-primary">
-                {Math.round((metadata.currentTurn / 60) * 100)}%
-              </div>
-            </div>
-            <div className="px-6 py-4 border-r border-border-subtle">
-              <div className="text-sm text-secondary">Final Approval</div>
-              <div className="font-mono text-2xl font-semibold text-text-primary">
-                {Math.round(gameState.political.governmentApproval)}%
-              </div>
-            </div>
-            <div className="px-6 py-4">
-              <div className="text-sm text-secondary">Final Deficit</div>
-              <div className="font-mono text-2xl font-semibold text-text-primary">
-                {gameState.fiscal.deficitPctGDP.toFixed(1)}%
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h3 className="font-display text-base font-semibold text-text-primary mb-3">Final Economic State</h3>
-            <div className="grid grid-cols-3 gap-x-6 gap-y-2 text-sm">
-              <div>
-                <span className="text-secondary">GDP Growth:</span>{' '}
-                <span className="font-mono font-semibold">{gameState.economic.gdpGrowthAnnual.toFixed(1)}%</span>
-              </div>
-              <div>
-                <span className="text-secondary">Inflation:</span>{' '}
-                <span className="font-mono font-semibold">{gameState.economic.inflationCPI.toFixed(1)}%</span>
-              </div>
-              <div>
-                <span className="text-secondary">Unemployment:</span>{' '}
-                <span className="font-mono font-semibold">{gameState.economic.unemploymentRate.toFixed(1)}%</span>
-              </div>
-              <div>
-                <span className="text-secondary">Debt/GDP:</span>{' '}
-                <span className="font-mono font-semibold">{gameState.fiscal.debtPctGDP.toFixed(1)}%</span>
-              </div>
-              <div>
-                <span className="text-secondary">10Y Gilt:</span>{' '}
-                <span className="font-mono font-semibold">{gameState.markets.giltYield10y.toFixed(2)}%</span>
-              </div>
-              <div>
-                <span className="text-secondary">PM Trust:</span>{' '}
-                <span className="font-mono font-semibold">{Math.round(gameState.political.pmTrust)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h3 className="font-display text-base font-semibold text-text-primary mb-2">Manifesto Adherence</h3>
-            <p className="text-sm text-secondary">
-              {gameState.manifesto.totalViolations === 0
-                ? 'You kept all manifesto pledges. Impressive.'
-                : `You broke ${gameState.manifesto.totalViolations} manifesto pledge${gameState.manifesto.totalViolations !== 1 ? 's' : ''}.`}
-            </p>
-          </div>
-
-          <button
-            onClick={onRestart}
-            className={`w-full btn ${survived ? 'btn-primary bg-good hover:bg-good' : 'btn-primary'}`}
-          >
-            Start New Game
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ===========================
-// Turn Advancement Panel
-// ===========================
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) => {
-  const metadata = useGameMetadata();
-  const gameState = useGameState();
-
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
-  const termProgress = Math.round((metadata.currentTurn / 60) * 100);
-
-  return (
-    <div className="treasury-masthead">
-      <div className="relative px-6 py-6 md:px-8">
-        <div className="treasury-toolbar">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-white/65">HM Treasury</div>
-            <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-1">
-              <h1 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
-                {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
-              </h1>
-              <div className="pb-1 text-sm uppercase tracking-[0.22em] text-white/70">
-                Month {metadata.currentTurn + 1} of 60
-              </div>
-            </div>
-            <p className="mt-3 max-w-2xl text-sm text-white/78 md:text-base">
-              Chancellor {metadata.playerName || 'Reeves'} is navigating fiscal rules, market nerves and the Prime
-              Minister’s patience.
-            </p>
-          </div>
-
-          <button
-            onClick={onAdvanceTurn}
-            className="btn rounded-none border border-white/25 bg-white/10 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white backdrop-blur hover:bg-white/20"
-          >
-            Advance Month
-          </button>
-        </div>
-
-        <div className="treasury-data-strip mt-6">
-          <div className="treasury-data-cell">
-            <div className="treasury-kicker text-white/70">Government Approval</div>
-            <div className="mt-2 font-mono text-2xl font-semibold text-white">
-              {gameState.political.governmentApproval.toFixed(0)}
-            </div>
-          </div>
-          <div className="treasury-data-cell">
-            <div className="treasury-kicker text-white/70">Fiscal Headroom</div>
-            <div className="mt-2 font-mono text-2xl font-semibold text-white">
-              £{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn
-            </div>
-          </div>
-          <div className="treasury-data-cell">
-            <div className="treasury-kicker text-white/70">10Y Gilt</div>
-            <div className="mt-2 font-mono text-2xl font-semibold text-white">
-              {gameState.markets.giltYield10y.toFixed(2)}%
-            </div>
-          </div>
-          <div className="treasury-data-cell">
-            <div className="treasury-kicker text-white/70">PM Trust</div>
-            <div className="mt-2 font-mono text-2xl font-semibold text-white">
-              {gameState.political.pmTrust.toFixed(0)}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="h-1.5 bg-black/25">
-        <div className="h-full bg-white/65 transition-all duration-300" style={{ width: `${termProgress}%` }} />
-      </div>
-    </div>
-  );
-};
-
-// ===========================
-// Navigation Bar
-// ===========================
 
 type View = 'dashboard' | 'budget' | 'analysis' | 'advisers' | 'mps' | 'pm-messages' | 'manifesto';
 
@@ -473,178 +44,683 @@ const VIEW_SHORTCUTS: Record<string, View> = {
   '7': 'manifesto',
 };
 
-interface NavigationBarProps {
-  currentView: View;
-  onViewChange: (view: View) => void;
-  adviserCount: number;
-  manifestoViolations: number;
-  onSaveLoad: () => void;
-  onAdvanceTurn: () => void;
-}
+// ===========================
+// Analysis Tab - Charts and Trends
+// ===========================
 
-const NavigationBar: React.FC<NavigationBarProps> = ({
-  currentView,
-  onViewChange,
-  adviserCount,
-  manifestoViolations,
-  onSaveLoad,
-  onAdvanceTurn,
-}) => {
+const AnalysisTab: React.FC = () => {
   const gameState = useGameState();
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof document !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
+  const snapshots = gameState.simulation.monthlySnapshots;
+  const [activeView, setActiveView] = useState<'data' | 'projections' | 'changes'>('data');
+  const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'political' | 'markets'>('economic');
 
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+  const fullSnapshots = useMemo(() => {
+    if (!snapshots || snapshots.length === 0) {
+      return ANALYSIS_HISTORICAL_BASELINE;
     }
+
+    const firstGameDate = snapshots[0].date;
+    const baselineBeforeGame = ANALYSIS_HISTORICAL_BASELINE.filter((snapshot) => snapshot.date < firstGameDate);
+    return [...baselineBeforeGame, ...snapshots];
+  }, [snapshots]);
+
+  const fiscalRule = getFiscalRuleById(gameState.political.chosenFiscalRule);
+  const compliance = gameState.political.fiscalRuleCompliance || {
+    overallCompliant: true,
+    consecutiveBreaches: 0,
+    currentBudgetMet: true,
+    overallBalanceMet: true,
+    deficitCeilingMet: true,
+    debtTargetMet: true,
+    debtFallingMet: true,
   };
 
-  const tabs: { id: View; label: string; badge?: number }[] = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'budget', label: 'Budget' },
-    { id: 'analysis', label: 'Analysis' },
-    { id: 'advisers', label: 'Advisers', badge: adviserCount > 0 ? adviserCount : undefined },
-    { id: 'mps', label: 'MPs' },
-    { id: 'manifesto', label: 'Manifesto', badge: manifestoViolations > 0 ? manifestoViolations : undefined },
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const formatDate = (dateStr: string) => {
+    const [year, month] = dateStr.split('-');
+    return `${monthNames[parseInt(month) - 1]} ${year.slice(2)}`;
+  };
+
+  const chartTabs = [
+    { id: 'economic' as const, label: 'Economic' },
+    { id: 'fiscal' as const, label: 'Fiscal' },
+    { id: 'political' as const, label: 'Political' },
+    { id: 'markets' as const, label: 'Markets' },
   ];
 
-  return (
-    <nav className="treasury-rail overflow-hidden">
-      {/* Header with Cabinet Control / Treasury Briefing at top */}
-      <div className="border-b border-border-strong px-4 py-4 bg-bg-elevated">
-        <div className="treasury-kicker text-[10px]">Cabinet Control</div>
-        <div className="font-display text-lg font-semibold text-primary">Treasury Briefing</div>
-      </div>
+  const buildUncertaintyBands = (values: number[], floor: number): number[] => {
+    return values.map((_, index) => {
+      const start = Math.max(0, index - 11);
+      const sample = values.slice(start, index + 1);
+      if (sample.length < 3) return floor;
+      const mean = sample.reduce((sum, value) => sum + value, 0) / sample.length;
+      const variance = sample.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / sample.length;
+      return Math.max(floor, Math.sqrt(variance));
+    });
+  };
 
-      {/* Key Metrics Panel */}
-      <div className="border-b border-border-strong px-4 py-3 bg-bg-surface">
-        <div className="treasury-kicker text-[10px] mb-2">Key Indicators</div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-baseline">
-            <span className="text-[11px] text-secondary">Gov Approval</span>
-            <span className={`font-mono text-sm font-semibold ${gameState.political.governmentApproval > 50 ? 'text-good' : gameState.political.governmentApproval > 35 ? 'text-primary' : 'text-bad'}`}>
-              {gameState.political.governmentApproval.toFixed(0)}%
-            </span>
+  const withBands = (rawData: { label: string; value: number }[], floor: number) => {
+    const bands = buildUncertaintyBands(
+      rawData.map((entry) => entry.value),
+      floor
+    );
+    return rawData.map((entry, index) => ({ ...entry, band: bands[index] }));
+  };
+
+  const MiniChart: React.FC<{
+    data: { label: string; value: number; band?: number }[];
+    color: string;
+    height?: number;
+    target?: number;
+    targetLabel?: string;
+    formatValue?: (v: number) => string;
+    title: string;
+  }> = ({ data, color, height = 200, target, targetLabel, formatValue = (v) => v.toFixed(1), title }) => {
+    if (data.length < 2) {
+      return (
+        <div className="bg-bg-surface border border-border-strong p-4">
+          <div className="text-sm font-semibold text-secondary mb-2">{title}</div>
+          <div className="text-xs text-muted italic">Not enough data yet. Advance a few months.</div>
+        </div>
+      );
+    }
+
+    const values = data.map((d) => d.value);
+    const upperValues = data.map((d) => d.value + (d.band || 0));
+    const lowerValues = data.map((d) => d.value - (d.band || 0));
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    min = Math.min(min, ...lowerValues);
+    max = Math.max(max, ...upperValues);
+    if (target !== undefined) {
+      min = Math.min(min, target);
+      max = Math.max(max, target);
+    }
+    const range = max - min || 1;
+    const padding = range * 0.1;
+    const yMin = min - padding;
+    const yMax = max + padding;
+    const yRange = yMax - yMin;
+
+    const width = 600;
+    const chartHeight = height;
+    const xStep = width / (data.length - 1);
+
+    const points = data.map((d, i) => ({
+      x: i * xStep,
+      y: chartHeight - ((d.value - yMin) / yRange) * chartHeight,
+    }));
+
+    const upperPoints = data.map((d, i) => ({
+      x: i * xStep,
+      y: chartHeight - ((d.value + (d.band || 0) - yMin) / yRange) * chartHeight,
+    }));
+
+    const lowerPoints = data.map((d, i) => ({
+      x: i * xStep,
+      y: chartHeight - ((d.value - (d.band || 0) - yMin) / yRange) * chartHeight,
+    }));
+
+    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const bandPathD =
+      upperPoints.length > 1
+        ? `${upperPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')} ` +
+          `${lowerPoints
+            .slice()
+            .reverse()
+            .map((p, i) => `${i === 0 ? 'L' : 'L'} ${p.x} ${p.y}`)
+            .join(' ')} Z`
+        : '';
+
+    const latestValue = data[data.length - 1]?.value;
+    const previousValue = data.length > 1 ? data[data.length - 2]?.value : latestValue;
+    const change = latestValue - previousValue;
+
+    const xLabelStep = data.length > 72 ? 12 : 6;
+
+    return (
+      <div className="bg-bg-surface border border-border-strong p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <div className="text-sm font-semibold text-secondary">{title}</div>
           </div>
-          <div className="flex justify-between items-baseline">
-            <span className="text-[11px] text-secondary">Fiscal Headroom</span>
-            <span className={`font-mono text-sm font-semibold ${gameState.fiscal.fiscalHeadroom_bn > 10 ? 'text-good' : gameState.fiscal.fiscalHeadroom_bn > 0 ? 'text-warning' : 'text-bad'}`}>
-              £{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn
-            </span>
-          </div>
-          <div className="flex justify-between items-baseline">
-            <span className="text-[11px] text-secondary">10Y Gilt</span>
-            <span className={`font-mono text-sm font-semibold ${gameState.markets.giltYield10y < 4 ? 'text-good' : gameState.markets.giltYield10y < 6 ? 'text-primary' : 'text-bad'}`}>
-              {gameState.markets.giltYield10y.toFixed(2)}%
-            </span>
-          </div>
-          <div className="flex justify-between items-baseline">
-            <span className="text-[11px] text-secondary">PM Trust</span>
-            <span className={`font-mono text-sm font-semibold ${gameState.political.pmTrust > 50 ? 'text-good' : gameState.political.pmTrust > 30 ? 'text-primary' : 'text-bad'}`}>
-              {gameState.political.pmTrust.toFixed(0)}
-            </span>
+          <div className="text-right">
+            <div className="text-2xl font-bold" style={{ color }}>
+              {formatValue(latestValue)}
+            </div>
+            <div className={`text-xs ${change >= 0 ? 'text-good' : 'text-bad'}`}>
+              {change >= 0 ? '+' : ''}
+              {formatValue(change)} this month
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Date and Turn Info */}
-      <div className="border-b border-border-subtle px-4 py-2 bg-bg-subdued">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-secondary">
-            {new Date(
-              gameState.metadata.currentYear,
-              gameState.metadata.currentMonth - 1
-            ).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
-          </span>
-          <span className="text-xs text-muted">Turn {gameState.metadata.currentTurn + 1}/60</span>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex-1 overflow-hidden">
-        <div className="border-b border-border-subtle py-2">
-          {tabs.map((tab) => {
-            const shortcutKey = Object.entries(VIEW_SHORTCUTS).find(([, view]) => view === tab.id)?.[0];
-            const isActive = currentView === tab.id;
+        <svg
+          viewBox={`-10 -10 ${width + 20} ${chartHeight + 36}`}
+          className="w-full"
+          style={{ height: `${chartHeight + 24}px` }}
+        >
+          {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
+            const y = frac * chartHeight;
+            const val = yMax - frac * yRange;
             return (
-              <button
-                key={tab.id}
-                onClick={() => onViewChange(tab.id)}
-                className={`w-full text-left px-4 py-2 flex items-center justify-between transition-colors ${
-                  isActive ? 'bg-primary-subtle border-l-2 border-l-primary' : 'hover:bg-bg-subdued border-l-2 border-l-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-mono border ${
-                    isActive ? 'border-primary bg-primary text-white' : 'border-border text-muted'
-                  }`}>
-                    {shortcutKey}
-                  </span>
-                  <span className={`text-sm ${isActive ? 'font-semibold text-primary' : 'text-secondary'}`}>
-                    {tab.label}
-                  </span>
-                </div>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="treasury-badge">{tab.badge}</span>
-                )}
-              </button>
+              <g key={frac}>
+                <line x1={0} y1={y} x2={width} y2={y} stroke="var(--color-border-subtle)" strokeWidth={1} />
+                <text x={-5} y={y + 3} textAnchor="end" fill="var(--color-text-muted)" fontSize={10}>
+                  {formatValue(val)}
+                </text>
+              </g>
             );
           })}
+          {target !== undefined && (
+            <>
+              <line
+                x1={0}
+                y1={chartHeight - ((target - yMin) / yRange) * chartHeight}
+                x2={width}
+                y2={chartHeight - ((target - yMin) / yRange) * chartHeight}
+                stroke="var(--color-bad)"
+                strokeWidth={1.5}
+                strokeDasharray="6,3"
+              />
+              <text
+                x={width + 5}
+                y={chartHeight - ((target - yMin) / yRange) * chartHeight + 3}
+                fill="var(--color-bad)"
+                fontSize={10}
+              >
+                {targetLabel || `Target: ${formatValue(target)}`}
+              </text>
+            </>
+          )}
+          {bandPathD && <path d={bandPathD} fill={color} fillOpacity={0.12} stroke="none" />}
+          <path d={pathD} fill="none" stroke={color} strokeWidth={2.5} />
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2} fill={color} />
+          ))}
+          <line x1={0} y1={chartHeight} x2={width} y2={chartHeight} stroke="var(--color-border-strong)" strokeWidth={1} />
+          {data.map((d, i) => {
+            if (i % xLabelStep === 0 || i === data.length - 1) {
+              return (
+                <g key={i}>
+                  <line
+                    x1={i * xStep}
+                    y1={chartHeight}
+                    x2={i * xStep}
+                    y2={chartHeight + 5}
+                    stroke="var(--color-border-strong)"
+                    strokeWidth={1}
+                  />
+                  <text
+                    x={i * xStep}
+                    y={chartHeight + 18}
+                    textAnchor="middle"
+                    fill="var(--color-text-tertiary)"
+                    fontSize={10}
+                    fontWeight={500}
+                  >
+                    {d.label}
+                  </text>
+                </g>
+              );
+            }
+            return null;
+          })}
+        </svg>
+        <div className="text-xs text-muted mt-1">Shaded band: rolling 12-month uncertainty (1 sigma)</div>
+      </div>
+    );
+  };
 
+  return (
+    <div className="p-6 space-y-6 bg-bg-default min-h-screen">
+      <div className="border-b border-border-custom">
+        <div className="flex gap-6">
           <button
-            onClick={() => onViewChange('pm-messages')}
-            className={`w-full text-left px-4 py-2 flex items-center justify-between transition-colors ${
-              currentView === 'pm-messages' ? 'bg-primary-subtle border-l-2 border-l-primary' : 'hover:bg-bg-subdued border-l-2 border-l-transparent'
+            onClick={() => setActiveView('data')}
+            className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
+              activeView === 'data'
+                ? 'text-accent border-accent'
+                : 'text-tertiary border-transparent hover:text-primary'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center justify-center w-5 h-5 text-[10px] font-mono border ${
-                currentView === 'pm-messages' ? 'border-primary bg-primary text-white' : 'border-border text-muted'
-              }`}>
-                6
-              </span>
-              <span className={`text-sm ${currentView === 'pm-messages' ? 'font-semibold text-primary' : 'text-secondary'}`}>
-                Prime Minister
-              </span>
-            </div>
-            {gameState?.pmRelationship?.unreadCount > 0 && (
-              <span className="treasury-badge">{gameState.pmRelationship.unreadCount}</span>
-            )}
+            Data
+          </button>
+          <button
+            onClick={() => setActiveView('projections')}
+            className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
+              activeView === 'projections'
+                ? 'text-accent border-accent'
+                : 'text-tertiary border-transparent hover:text-primary'
+            }`}
+          >
+            Projections
+          </button>
+          <button
+            onClick={() => setActiveView('changes')}
+            className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
+              activeView === 'changes'
+                ? 'text-accent border-accent'
+                : 'text-tertiary border-transparent hover:text-primary'
+            }`}
+          >
+            Changes
           </button>
         </div>
       </div>
 
-      {/* Bottom Actions */}
-      <div className="border-t border-border-strong px-4 py-3 bg-bg-elevated">
-        <button
-          onClick={onAdvanceTurn}
-          className="w-full btn btn-primary mb-2 text-xs py-2"
-        >
-          Advance Month
-        </button>
-        <div className="flex gap-2">
-          <button
-            onClick={toggleDarkMode}
-            className="btn btn-ghost flex-1 text-xs py-1.5"
-            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkMode ? 'Light' : 'Dark'}
-          </button>
-          <button onClick={onSaveLoad} className="btn btn-secondary flex-1 text-xs py-1.5">
-            Save
-          </button>
-        </div>
-      </div>
-    </nav>
+      {activeView === 'data' && (
+        <>
+          <div className="bg-transparent border-b border-border-strong p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="font-display text-lg font-semibold text-primary">Fiscal Framework: {fiscalRule.name}</h3>
+                <p className="text-sm text-secondary">{fiscalRule.shortDescription}</p>
+              </div>
+              <div
+                className={`px-4 py-2 text-sm font-semibold border ${
+                  compliance.overallCompliant
+                    ? 'bg-status-good-subtle text-status-good border-status-good'
+                    : 'bg-status-bad-subtle text-status-bad border-status-bad'
+                }`}
+              >
+                {compliance.overallCompliant ? 'COMPLIANT' : `NON-COMPLIANT (${compliance.consecutiveBreaches} months)`}
+              </div>
+            </div>
+            <div className="grid grid-cols-5 gap-3 text-sm">
+              {fiscalRule.rules.currentBudgetBalance && (
+                <div
+                  className={`p-2 text-center border ${compliance.currentBudgetMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
+                >
+                  <div className="font-semibold">{compliance.currentBudgetMet ? 'Met' : 'Breached'}</div>
+                  <div className="text-xs">Current Budget Balance</div>
+                </div>
+              )}
+              {fiscalRule.rules.overallBalance && (
+                <div
+                  className={`p-2 text-center border ${compliance.overallBalanceMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
+                >
+                  <div className="font-semibold">{compliance.overallBalanceMet ? 'Met' : 'Breached'}</div>
+                  <div className="text-xs">Overall Balance</div>
+                </div>
+              )}
+              {fiscalRule.rules.deficitCeiling !== undefined && (
+                <div
+                  className={`p-2 text-center border ${compliance.deficitCeilingMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
+                >
+                  <div className="font-semibold">{compliance.deficitCeilingMet ? 'Met' : 'Breached'}</div>
+                  <div className="text-xs">Deficit &lt; {fiscalRule.rules.deficitCeiling}%</div>
+                </div>
+              )}
+              {fiscalRule.rules.debtTarget !== undefined && (
+                <div
+                  className={`p-2 text-center border ${compliance.debtTargetMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
+                >
+                  <div className="font-semibold">{compliance.debtTargetMet ? 'Met' : 'Breached'}</div>
+                  <div className="text-xs">Debt Target ({fiscalRule.rules.debtTarget}%)</div>
+                </div>
+              )}
+              {fiscalRule.rules.debtFalling && (
+                <div
+                  className={`p-2 text-center border ${compliance.debtFallingMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
+                >
+                  <div className="font-semibold">{compliance.debtFallingMet ? 'Met' : 'Breached'}</div>
+                  <div className="text-xs">Debt Falling</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 border-b border-border-custom">
+            {chartTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveChart(tab.id)}
+                className={`px-5 py-2 font-semibold transition-colors border-b-2 ${
+                  activeChart === tab.id
+                    ? 'text-accent border-accent'
+                    : 'text-tertiary border-transparent hover:text-primary'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {activeChart === 'economic' && (
+            <div className="grid grid-cols-2 gap-4">
+              <MiniChart
+                title="GDP Growth (Annual %)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.gdpGrowth })),
+                  0.2
+                )}
+                color="var(--color-accent)"
+                target={1.5}
+                targetLabel="Trend: 1.5%"
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <MiniChart
+                title="CPI Inflation (%)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.inflation })),
+                  0.15
+                )}
+                color="var(--color-status-bad)"
+                target={2.0}
+                targetLabel="Target: 2.0%"
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <MiniChart
+                title="Unemployment Rate (%)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.unemployment })),
+                  0.1
+                )}
+                color="var(--color-secondary)"
+                target={4.25}
+                targetLabel="NAIRU: 4.25%"
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <MiniChart
+                title="Wage Growth (Annual %)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({
+                    label: formatDate(s.date),
+                    value: clamp(1.4 + s.inflation * 0.65 - (s.unemployment - 4.25) * 0.45, -1.5, 9.5),
+                  })),
+                  0.25
+                )}
+                color="var(--color-status-good)"
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <div className="col-span-2">
+                <MiniChart
+                  title="Nominal GDP (GBP bn) - the base used for all deficit and debt ratios"
+                  data={withBands(
+                    fullSnapshots.map((s) => ({ label: formatDate(s.date), value: (s as any).gdpNominal ?? 0 })),
+                    5
+                  )}
+                  color="var(--color-accent)"
+                  formatValue={(v) => {
+                    if (v >= 1000) return `GBP ${(v / 1000).toFixed(2)}tn`;
+                    return `GBP ${Math.round(v)}bn`;
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {activeChart === 'fiscal' && (
+            <div className="grid grid-cols-2 gap-4">
+              <MiniChart
+                title="Budget Deficit (% of GDP)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.deficit })),
+                  0.15
+                )}
+                color="var(--color-status-bad)"
+                target={fiscalRule.rules.deficitCeiling}
+                targetLabel={
+                  fiscalRule.rules.deficitCeiling ? `Ceiling: ${fiscalRule.rules.deficitCeiling}%` : undefined
+                }
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <MiniChart
+                title="Public Debt (% of GDP)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.debt })),
+                  0.3
+                )}
+                color="var(--color-warning)"
+                target={fiscalRule.rules.debtTarget}
+                targetLabel={fiscalRule.rules.debtTarget ? `Target: ${fiscalRule.rules.debtTarget}%` : undefined}
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+              <div className="bg-transparent border-b border-border-strong p-4">
+                <div className="text-sm font-semibold text-primary mb-3">Revenue vs Spending (GBP bn)</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-secondary">Nominal GDP:</span>
+                    <span className="font-semibold text-accent">
+                      {gameState.economic.gdpNominal_bn >= 1000
+                        ? `GBP ${(gameState.economic.gdpNominal_bn / 1000).toFixed(3)}tn`
+                        : `GBP ${Math.round(gameState.economic.gdpNominal_bn)}bn`}
+                    </span>
+                  </div>
+                  <hr className="my-1 border-border-custom" />
+                  <div className="flex justify-between">
+                    <span className="text-sm text-secondary">Total Revenue:</span>
+                    <span className="font-semibold text-status-good">
+                      GBP {gameState.fiscal.totalRevenue_bn.toFixed(1)}bn
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-secondary">Total Spending:</span>
+                    <span className="font-semibold text-status-bad">
+                      GBP {gameState.fiscal.totalSpending_bn.toFixed(1)}bn
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-secondary">Debt Interest:</span>
+                    <span className="font-semibold text-warning">GBP {gameState.fiscal.debtInterest_bn.toFixed(1)}bn</span>
+                  </div>
+                  <hr className="my-1 border-border-custom" />
+                  <div className="flex justify-between font-bold">
+                    <span className="text-sm">Net Deficit:</span>
+                    <span className={gameState.fiscal.deficit_bn > 0 ? 'text-status-bad' : 'text-status-good'}>
+                      GBP {Math.abs(gameState.fiscal.deficit_bn).toFixed(1)}bn{' '}
+                      {gameState.fiscal.deficit_bn > 0 ? 'deficit' : 'surplus'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-secondary">Fiscal Headroom:</span>
+                    <span className="font-semibold">GBP {gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-transparent border-b border-border-strong p-4">
+                <div className="text-sm font-semibold text-primary mb-3">Spending Breakdown (GBP bn)</div>
+                <div className="space-y-1 text-sm">
+                  {Object.entries(gameState.fiscal.spending)
+                    .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
+                    .map(([dept, amount]: [string, number]) => (
+                      <div key={dept} className="flex justify-between">
+                        <span className="text-secondary capitalize">{dept}</span>
+                        <span className="font-semibold">GBP {amount.toFixed(1)}bn</span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeChart === 'political' && (
+            <div className="grid grid-cols-2 gap-4">
+              <MiniChart
+                title="Government Approval (%)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.approval })),
+                  1.0
+                )}
+                color="var(--color-accent)"
+                target={38}
+                targetLabel="Danger: 38%"
+                formatValue={(v) => `${v.toFixed(0)}%`}
+              />
+              <div className="bg-transparent border-b border-border-strong p-4">
+                <div className="text-sm font-semibold text-primary mb-3">Political Health</div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-secondary">PM Trust</span>
+                      <span className="font-semibold">{Math.round(gameState.political.pmTrust)}/100</span>
+                    </div>
+                    <div className="w-full bg-transparent h-2">
+                      <div
+                        className={`h-2 ${gameState.political.pmTrust > 50 ? 'bg-status-good' : gameState.political.pmTrust > 30 ? 'bg-warning' : 'bg-status-bad'}`}
+                        style={{ width: `${gameState.political.pmTrust}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-secondary">Backbench Satisfaction</span>
+                      <span className="font-semibold">{Math.round(gameState.political.backbenchSatisfaction)}/100</span>
+                    </div>
+                    <div className="w-full bg-transparent h-2">
+                      <div
+                        className={`h-2 ${gameState.political.backbenchSatisfaction > 50 ? 'bg-status-good' : gameState.political.backbenchSatisfaction > 30 ? 'bg-warning' : 'bg-status-bad'}`}
+                        style={{ width: `${gameState.political.backbenchSatisfaction}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-secondary">Credibility Index</span>
+                      <span className="font-semibold">{Math.round(gameState.political.credibilityIndex)}/100</span>
+                    </div>
+                    <div className="w-full bg-transparent h-2">
+                      <div className="h-2 bg-accent" style={{ width: `${gameState.political.credibilityIndex}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-secondary">Strike Risk</span>
+                      <span className="font-semibold">{Math.round(gameState.political.strikeRisk)}%</span>
+                    </div>
+                    <div className="w-full bg-transparent h-2">
+                      <div
+                        className={`h-2 ${gameState.political.strikeRisk < 30 ? 'bg-status-good' : gameState.political.strikeRisk < 60 ? 'bg-warning' : 'bg-status-bad'}`}
+                        style={{ width: `${gameState.political.strikeRisk}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-border-custom">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-secondary">Credit Rating</span>
+                      <span className="font-bold">
+                        {gameState.political.creditRating || 'AA-'} (
+                        {gameState.political.creditRatingOutlook || 'stable'})
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-secondary">Manifesto Breaches</span>
+                      <span
+                        className={`font-bold ${gameState.manifesto.totalViolations > 0 ? 'text-status-bad' : 'text-status-good'}`}
+                      >
+                        {gameState.manifesto.totalViolations}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeChart === 'markets' && (
+            <div className="grid grid-cols-2 gap-4">
+              <MiniChart
+                title="10-Year Gilt Yield (%)"
+                data={withBands(
+                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.giltYield })),
+                  0.08
+                )}
+                color="var(--color-warning)"
+                target={5.5}
+                targetLabel="Danger: 5.5%"
+                formatValue={(v) => `${v.toFixed(2)}%`}
+              />
+              <div className="bg-transparent border-b border-border-strong p-4">
+                <div className="text-sm font-semibold text-primary mb-3">Market Indicators</div>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">Bank Rate</span>
+                    <span className="font-bold">{gameState.markets.bankRate.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">2Y Gilt Yield</span>
+                    <span className="font-bold">{gameState.markets.giltYield2y.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">10Y Gilt Yield</span>
+                    <span className="font-bold">{gameState.markets.giltYield10y.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">30Y Gilt Yield</span>
+                    <span className="font-bold">{gameState.markets.giltYield30y.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">2Y Mortgage Rate</span>
+                    <span className="font-bold">{gameState.markets.mortgageRate2y.toFixed(2)}%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-secondary">Sterling Index</span>
+                    <span
+                      className={`font-bold ${gameState.markets.sterlingIndex >= 100 ? 'text-status-good' : 'text-status-bad'}`}
+                    >
+                      {gameState.markets.sterlingIndex.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-transparent border-b border-border-strong p-4">
+            <div className="text-sm font-semibold text-primary mb-3">Public Services Quality Indices</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { label: 'NHS Quality', value: gameState.services.nhsQuality },
+                { label: 'Education Quality', value: gameState.services.educationQuality },
+                { label: 'Infrastructure Quality', value: gameState.services.infrastructureQuality },
+                { label: 'Mental Health Access', value: gameState.services.mentalHealthAccess },
+                { label: 'Primary Care Access', value: gameState.services.primaryCareAccess },
+                { label: 'Social Care Quality', value: gameState.services.socialCareQuality },
+                { label: 'Prison Safety', value: gameState.services.prisonSafety },
+                { label: 'Court Performance', value: gameState.services.courtBacklogPerformance },
+                { label: 'Legal Aid Access', value: gameState.services.legalAidAccess },
+                { label: 'Policing Effectiveness', value: gameState.services.policingEffectiveness },
+                { label: 'Border Performance', value: gameState.services.borderSecurityPerformance },
+                { label: 'Rail Reliability', value: gameState.services.railReliability },
+                { label: 'Affordable Housing Delivery', value: gameState.services.affordableHousingDelivery },
+                { label: 'Flood Resilience', value: gameState.services.floodResilience },
+                { label: 'Innovation Output', value: gameState.services.researchInnovationOutput },
+              ].map((metric) => (
+                <div key={metric.label}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-secondary">{metric.label}</span>
+                    <span className="font-semibold">{Math.round(metric.value)}/100</span>
+                  </div>
+                  <div className="w-full bg-transparent h-2">
+                    <div
+                      className={`h-2 ${metric.value > 60 ? 'bg-status-good' : metric.value > 40 ? 'bg-warning' : 'bg-status-bad'}`}
+                      style={{ width: `${metric.value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeView === 'projections' && (
+        <ProjectionsView gameState={gameState} formatDate={formatDate} MiniChart={MiniChart} withBands={withBands} />
+      )}
+
+      {activeView === 'changes' && (
+        gameState.simulation.lastTurnDelta ? (
+          <TurnDeltaPanel lastTurnDelta={gameState.simulation.lastTurnDelta} />
+        ) : (
+          <div className="bg-bg-surface border border-border-strong p-8 text-center">
+            <div className="text-sm text-muted italic">No changes to display yet. Advance at least one month to see month-on-month changes.</div>
+          </div>
+        )
+      )}
+    </div>
   );
 };
 
@@ -1003,35 +1079,35 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             formatValue={(v: number) => `${v.toFixed(1)}%`}
           />
           <div className="bg-bg-surface border border-border-strong p-4 text-sm">
-            <div className="font-semibold text-secondary mb-3">Revenue and spending at horizon (£bn)</div>
+            <div className="font-semibold text-secondary mb-3">Revenue and spending at horizon (GBP bn)</div>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-tertiary">Revenue</span>
-                <span className="font-semibold">£{(baselineFinal?.totalRevenue || 0).toFixed(1)}bn</span>
+                <span className="font-semibold">GBP {(baselineFinal?.totalRevenue || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-tertiary">Spending</span>
-                <span className="font-semibold">£{(baselineFinal?.totalSpending || 0).toFixed(1)}bn</span>
+                <span className="font-semibold">GBP {(baselineFinal?.totalSpending || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-tertiary">Debt interest</span>
-                <span className="font-semibold">£{(baselineFinal?.debtInterest || 0).toFixed(1)}bn</span>
+                <span className="font-semibold">GBP {(baselineFinal?.debtInterest || 0).toFixed(1)}bn</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-tertiary">Fiscal headroom</span>
-                <span className="font-semibold">£{(baselineFinal?.fiscalHeadroom || 0).toFixed(1)}bn</span>
+                <span className="font-semibold">GBP {(baselineFinal?.fiscalHeadroom || 0).toFixed(1)}bn</span>
               </div>
             </div>
           </div>
           <div className="bg-bg-surface border border-border-strong p-4 text-sm">
-            <div className="font-semibold text-secondary mb-3">Projected spending breakdown (£bn)</div>
+            <div className="font-semibold text-secondary mb-3">Projected spending breakdown (GBP bn)</div>
             <div className="space-y-1">
               {['nhs', 'education', 'defence', 'welfare', 'infrastructure', 'police', 'justice', 'other'].map(
                 (dept) => (
                   <div key={dept} className="flex justify-between">
                     <span className="text-tertiary capitalize">{dept}</span>
                     <span className="font-semibold">
-                      £{((baselineFinal?.spendingBreakdown as any)?.[dept] || 0).toFixed(1)}bn
+                      GBP {((baselineFinal?.spendingBreakdown as any)?.[dept] || 0).toFixed(1)}bn
                     </span>
                   </div>
                 )
@@ -1138,7 +1214,7 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
                       <span className="font-semibold">
                         {Math.round(baseValue)}/100{' '}
                         {pendingValue !== undefined && (
-                          <span className="text-xs text-primary">→ {Math.round(pendingValue)}</span>
+                          <span className="text-xs text-primary">- {Math.round(pendingValue)}</span>
                         )}
                       </span>
                     </div>
@@ -1154,679 +1230,6 @@ const ProjectionsView: React.FC<ProjectionsViewProps> = ({ gameState, formatDate
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-};
-
-// ===========================
-// Analysis Tab - Charts and Trends
-// ===========================
-
-const AnalysisTab: React.FC = () => {
-  const gameState = useGameState();
-  const snapshots = gameState.simulation.monthlySnapshots;
-  const [activeView, setActiveView] = useState<'data' | 'projections'>('data');
-  const [activeChart, setActiveChart] = useState<'economic' | 'fiscal' | 'political' | 'markets'>('economic');
-
-  const fullSnapshots = useMemo(() => {
-    if (!snapshots || snapshots.length === 0) {
-      return ANALYSIS_HISTORICAL_BASELINE;
-    }
-
-    const firstGameDate = snapshots[0].date;
-    const baselineBeforeGame = ANALYSIS_HISTORICAL_BASELINE.filter((snapshot) => snapshot.date < firstGameDate);
-    return [...baselineBeforeGame, ...snapshots];
-  }, [snapshots]);
-
-  const fiscalRule = getFiscalRuleById(gameState.political.chosenFiscalRule);
-  const compliance = gameState.political.fiscalRuleCompliance || {
-    overallCompliant: true,
-    consecutiveBreaches: 0,
-    currentBudgetMet: true,
-    overallBalanceMet: true,
-    deficitCeilingMet: true,
-    debtTargetMet: true,
-    debtFallingMet: true,
-  };
-
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  const formatDate = (dateStr: string) => {
-    const [year, month] = dateStr.split('-');
-    return `${monthNames[parseInt(month) - 1]} ${year.slice(2)}`;
-  };
-
-  const chartTabs = [
-    { id: 'economic' as const, label: 'Economic' },
-    { id: 'fiscal' as const, label: 'Fiscal' },
-    { id: 'political' as const, label: 'Political' },
-    { id: 'markets' as const, label: 'Markets' },
-  ];
-
-  const buildUncertaintyBands = (values: number[], floor: number): number[] => {
-    return values.map((_, index) => {
-      const start = Math.max(0, index - 11);
-      const sample = values.slice(start, index + 1);
-      if (sample.length < 3) return floor;
-      const mean = sample.reduce((sum, value) => sum + value, 0) / sample.length;
-      const variance = sample.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / sample.length;
-      return Math.max(floor, Math.sqrt(variance));
-    });
-  };
-
-  const withBands = (rawData: { label: string; value: number }[], floor: number) => {
-    const bands = buildUncertaintyBands(
-      rawData.map((entry) => entry.value),
-      floor
-    );
-    return rawData.map((entry, index) => ({ ...entry, band: bands[index] }));
-  };
-
-  // Helper to render a simple line chart using SVG
-  const MiniChart: React.FC<{
-    data: { label: string; value: number; band?: number }[];
-    color: string;
-    height?: number;
-    target?: number;
-    targetLabel?: string;
-    formatValue?: (v: number) => string;
-    title: string;
-  }> = ({ data, color, height = 200, target, targetLabel, formatValue = (v) => v.toFixed(1), title }) => {
-    if (data.length < 2) {
-      return (
-        <div className="bg-bg-surface border border-border-strong p-4">
-          <div className="text-sm font-semibold text-secondary mb-2">{title}</div>
-          <div className="text-xs text-muted italic">Not enough data yet. Advance a few months.</div>
-        </div>
-      );
-    }
-
-    const values = data.map((d) => d.value);
-    const upperValues = data.map((d) => d.value + (d.band || 0));
-    const lowerValues = data.map((d) => d.value - (d.band || 0));
-    let min = Math.min(...values);
-    let max = Math.max(...values);
-    min = Math.min(min, ...lowerValues);
-    max = Math.max(max, ...upperValues);
-    if (target !== undefined) {
-      min = Math.min(min, target);
-      max = Math.max(max, target);
-    }
-    const range = max - min || 1;
-    const padding = range * 0.1;
-    const yMin = min - padding;
-    const yMax = max + padding;
-    const yRange = yMax - yMin;
-
-    const width = 600;
-    const chartHeight = height;
-    const xStep = width / (data.length - 1);
-
-    const points = data.map((d, i) => ({
-      x: i * xStep,
-      y: chartHeight - ((d.value - yMin) / yRange) * chartHeight,
-    }));
-
-    const upperPoints = data.map((d, i) => ({
-      x: i * xStep,
-      y: chartHeight - ((d.value + (d.band || 0) - yMin) / yRange) * chartHeight,
-    }));
-
-    const lowerPoints = data.map((d, i) => ({
-      x: i * xStep,
-      y: chartHeight - ((d.value - (d.band || 0) - yMin) / yRange) * chartHeight,
-    }));
-
-    const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-    const bandPathD =
-      upperPoints.length > 1
-        ? `${upperPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')} ` +
-          `${lowerPoints
-            .slice()
-            .reverse()
-            .map((p, i) => `${i === 0 ? 'L' : 'L'} ${p.x} ${p.y}`)
-            .join(' ')} Z`
-        : '';
-
-    const latestValue = data[data.length - 1]?.value;
-    const previousValue = data.length > 1 ? data[data.length - 2]?.value : latestValue;
-    const change = latestValue - previousValue;
-
-    const xLabelStep = data.length > 72 ? 12 : 6;
-
-    return (
-      <div className="bg-bg-surface border border-border-strong p-4">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <div className="text-sm font-semibold text-secondary">{title}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold" style={{ color }}>
-              {formatValue(latestValue)}
-            </div>
-            <div className={`text-xs ${change >= 0 ? 'text-good' : 'text-bad'}`}>
-              {change >= 0 ? '+' : ''}
-              {formatValue(change)} this month
-            </div>
-          </div>
-        </div>
-        <svg
-          viewBox={`-10 -10 ${width + 20} ${chartHeight + 36}`}
-          className="w-full"
-          style={{ height: `${chartHeight + 24}px` }}
-        >
-          {/* Grid lines */}
-          {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
-            const y = frac * chartHeight;
-            const val = yMax - frac * yRange;
-            return (
-              <g key={frac}>
-                <line x1={0} y1={y} x2={width} y2={y} stroke="var(--color-border-subtle)" strokeWidth={1} />
-                <text x={-5} y={y + 3} textAnchor="end" fill="var(--color-text-muted)" fontSize={10}>
-                  {formatValue(val)}
-                </text>
-              </g>
-            );
-          })}
-          {/* Target line */}
-          {target !== undefined && (
-            <>
-              <line
-                x1={0}
-                y1={chartHeight - ((target - yMin) / yRange) * chartHeight}
-                x2={width}
-                y2={chartHeight - ((target - yMin) / yRange) * chartHeight}
-                stroke="var(--color-bad)"
-                strokeWidth={1.5}
-                strokeDasharray="6,3"
-              />
-              <text
-                x={width + 5}
-                y={chartHeight - ((target - yMin) / yRange) * chartHeight + 3}
-                fill="var(--color-bad)"
-                fontSize={10}
-              >
-                {targetLabel || `Target: ${formatValue(target)}`}
-              </text>
-            </>
-          )}
-          {/* Uncertainty band (rolling 12-month 1σ) */}
-          {bandPathD && <path d={bandPathD} fill={color} fillOpacity={0.12} stroke="none" />}
-          {/* Data line */}
-          <path d={pathD} fill="none" stroke={color} strokeWidth={2.5} />
-          {/* Data points */}
-          {points.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r={i === points.length - 1 ? 4 : 2} fill={color} />
-          ))}
-          {/* X-axis baseline */}
-          <line x1={0} y1={chartHeight} x2={width} y2={chartHeight} stroke="var(--color-border-strong)" strokeWidth={1} />
-          {/* X-axis labels */}
-          {data.map((d, i) => {
-            if (i % xLabelStep === 0 || i === data.length - 1) {
-              return (
-                <g key={i}>
-                  <line
-                    x1={i * xStep}
-                    y1={chartHeight}
-                    x2={i * xStep}
-                    y2={chartHeight + 5}
-                    stroke="var(--color-border-strong)"
-                    strokeWidth={1}
-                  />
-                  <text
-                    x={i * xStep}
-                    y={chartHeight + 18}
-                    textAnchor="middle"
-                    fill="var(--color-text-tertiary)"
-                    fontSize={10}
-                    fontWeight={500}
-                  >
-                    {d.label}
-                  </text>
-                </g>
-              );
-            }
-            return null;
-          })}
-        </svg>
-        <div className="text-xs text-muted mt-1">Shaded band: rolling 12-month uncertainty (1σ)</div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="p-6 space-y-6 bg-bg-default min-h-screen">
-      {/* Main View Tabs - Underline Style */}
-      <div className="border-b border-border-custom">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveView('data')}
-            className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
-              activeView === 'data'
-                ? 'text-accent border-accent'
-                : 'text-tertiary border-transparent hover:text-primary'
-            }`}
-          >
-            Data
-          </button>
-          <button
-            onClick={() => setActiveView('projections')}
-            className={`px-4 py-3 font-semibold transition-colors border-b-2 ${
-              activeView === 'projections'
-                ? 'text-accent border-accent'
-                : 'text-tertiary border-transparent hover:text-primary'
-            }`}
-          >
-            Projections
-          </button>
-        </div>
-      </div>
-
-      {activeView === 'data' && (
-        <>
-          {/* Fiscal Rules Status */}
-          <div className="bg-transparent border-b border-border-strong p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-primary">Fiscal Framework: {fiscalRule.name}</h3>
-                <p className="text-sm text-secondary">{fiscalRule.shortDescription}</p>
-              </div>
-              <div
-                className={`px-4 py-2 text-sm font-semibold border ${
-                  compliance.overallCompliant
-                    ? 'bg-status-good-subtle text-status-good border-status-good'
-                    : 'bg-status-bad-subtle text-status-bad border-status-bad'
-                }`}
-              >
-                {compliance.overallCompliant ? 'COMPLIANT' : `NON-COMPLIANT (${compliance.consecutiveBreaches} months)`}
-              </div>
-            </div>
-            <div className="grid grid-cols-5 gap-3 text-sm">
-              {fiscalRule.rules.currentBudgetBalance && (
-                <div
-                  className={`p-2 text-center border ${compliance.currentBudgetMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
-                >
-                  <div className="font-semibold">{compliance.currentBudgetMet ? 'Met' : 'Breached'}</div>
-                  <div className="text-xs">Current Budget Balance</div>
-                </div>
-              )}
-              {fiscalRule.rules.overallBalance && (
-                <div
-                  className={`p-2 text-center border ${compliance.overallBalanceMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
-                >
-                  <div className="font-semibold">{compliance.overallBalanceMet ? 'Met' : 'Breached'}</div>
-                  <div className="text-xs">Overall Balance</div>
-                </div>
-              )}
-              {fiscalRule.rules.deficitCeiling !== undefined && (
-                <div
-                  className={`p-2 text-center border ${compliance.deficitCeilingMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
-                >
-                  <div className="font-semibold">{compliance.deficitCeilingMet ? 'Met' : 'Breached'}</div>
-                  <div className="text-xs">Deficit &lt; {fiscalRule.rules.deficitCeiling}%</div>
-                </div>
-              )}
-              {fiscalRule.rules.debtTarget !== undefined && (
-                <div
-                  className={`p-2 text-center border ${compliance.debtTargetMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
-                >
-                  <div className="font-semibold">{compliance.debtTargetMet ? 'Met' : 'Breached'}</div>
-                  <div className="text-xs">Debt Target ({fiscalRule.rules.debtTarget}%)</div>
-                </div>
-              )}
-              {fiscalRule.rules.debtFalling && (
-                <div
-                  className={`p-2 text-center border ${compliance.debtFallingMet ? 'bg-status-good-subtle text-status-good border-status-good' : 'bg-status-bad-subtle text-status-bad border-status-bad'}`}
-                >
-                  <div className="font-semibold">{compliance.debtFallingMet ? 'Met' : 'Breached'}</div>
-                  <div className="text-xs">Debt Falling</div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Chart category tabs - Underline style */}
-          <div className="flex gap-2 border-b border-border-custom">
-            {chartTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveChart(tab.id)}
-                className={`px-5 py-2 font-semibold transition-colors border-b-2 ${
-                  activeChart === tab.id
-                    ? 'text-accent border-accent'
-                    : 'text-tertiary border-transparent hover:text-primary'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Charts */}
-          {activeChart === 'economic' && (
-            <div className="grid grid-cols-2 gap-4">
-              <MiniChart
-                title="GDP Growth (Annual %)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.gdpGrowth })),
-                  0.2
-                )}
-                color="var(--color-accent)"
-                target={1.5}
-                targetLabel="Trend: 1.5%"
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <MiniChart
-                title="CPI Inflation (%)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.inflation })),
-                  0.15
-                )}
-                color="var(--color-status-bad)"
-                target={2.0}
-                targetLabel="Target: 2.0%"
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <MiniChart
-                title="Unemployment Rate (%)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.unemployment })),
-                  0.1
-                )}
-                color="var(--color-secondary)"
-                target={4.25}
-                targetLabel="NAIRU: 4.25%"
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <MiniChart
-                title="Wage Growth (Annual %)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({
-                    label: formatDate(s.date),
-                    value: clamp(1.4 + s.inflation * 0.65 - (s.unemployment - 4.25) * 0.45, -1.5, 9.5),
-                  })),
-                  0.25
-                )}
-                color="var(--color-status-good)"
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <div className="col-span-2">
-                <MiniChart
-                  title="Nominal GDP (£bn) — the base used for all deficit and debt ratios"
-                  data={withBands(
-                    fullSnapshots.map((s) => ({ label: formatDate(s.date), value: (s as any).gdpNominal ?? 0 })),
-                    5
-                  )}
-                  color="var(--color-accent)"
-                  formatValue={(v) => {
-                    if (v >= 1000) return `£${(v / 1000).toFixed(2)}tn`;
-                    return `£${Math.round(v)}bn`;
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {activeChart === 'fiscal' && (
-            <div className="grid grid-cols-2 gap-4">
-              <MiniChart
-                title="Budget Deficit (% of GDP)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.deficit })),
-                  0.15
-                )}
-                color="var(--color-status-bad)"
-                target={fiscalRule.rules.deficitCeiling}
-                targetLabel={
-                  fiscalRule.rules.deficitCeiling ? `Ceiling: ${fiscalRule.rules.deficitCeiling}%` : undefined
-                }
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <MiniChart
-                title="Public Debt (% of GDP)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.debt })),
-                  0.3
-                )}
-                color="var(--color-warning)"
-                target={fiscalRule.rules.debtTarget}
-                targetLabel={fiscalRule.rules.debtTarget ? `Target: ${fiscalRule.rules.debtTarget}%` : undefined}
-                formatValue={(v) => `${v.toFixed(1)}%`}
-              />
-              <div className="bg-transparent border-b border-border-strong p-4">
-                <div className="text-sm font-semibold text-primary mb-3">Revenue vs Spending (£bn)</div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-secondary">Nominal GDP:</span>
-                    <span className="font-semibold text-accent">
-                      {gameState.economic.gdpNominal_bn >= 1000
-                        ? `£${(gameState.economic.gdpNominal_bn / 1000).toFixed(3)}tn`
-                        : `£${Math.round(gameState.economic.gdpNominal_bn)}bn`}
-                    </span>
-                  </div>
-                  <hr className="my-1 border-border-custom" />
-                  <div className="flex justify-between">
-                    <span className="text-sm text-secondary">Total Revenue:</span>
-                    <span className="font-semibold text-status-good">
-                      £{gameState.fiscal.totalRevenue_bn.toFixed(1)}bn
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-secondary">Total Spending:</span>
-                    <span className="font-semibold text-status-bad">
-                      £{gameState.fiscal.totalSpending_bn.toFixed(1)}bn
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-secondary">Debt Interest:</span>
-                    <span className="font-semibold text-warning">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</span>
-                  </div>
-                  <hr className="my-1 border-border-custom" />
-                  <div className="flex justify-between font-bold">
-                    <span className="text-sm">Net Deficit:</span>
-                    <span className={gameState.fiscal.deficit_bn > 0 ? 'text-status-bad' : 'text-status-good'}>
-                      £{Math.abs(gameState.fiscal.deficit_bn).toFixed(1)}bn{' '}
-                      {gameState.fiscal.deficit_bn > 0 ? 'deficit' : 'surplus'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-secondary">Fiscal Headroom:</span>
-                    <span className="font-semibold">£{gameState.fiscal.fiscalHeadroom_bn.toFixed(1)}bn</span>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-transparent border-b border-border-strong p-4">
-                <div className="text-sm font-semibold text-primary mb-3">Spending Breakdown (£bn)</div>
-                <div className="space-y-1 text-sm">
-                  {Object.entries(gameState.fiscal.spending)
-                    .sort(([, a]: [string, number], [, b]: [string, number]) => b - a)
-                    .map(([dept, amount]: [string, number]) => (
-                      <div key={dept} className="flex justify-between">
-                        <span className="text-secondary capitalize">{dept}</span>
-                        <span className="font-semibold">£{amount.toFixed(1)}bn</span>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeChart === 'political' && (
-            <div className="grid grid-cols-2 gap-4">
-              <MiniChart
-                title="Government Approval (%)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.approval })),
-                  1.0
-                )}
-                color="var(--color-accent)"
-                target={38}
-                targetLabel="Danger: 38%"
-                formatValue={(v) => `${v.toFixed(0)}%`}
-              />
-              <div className="bg-transparent border-b border-border-strong p-4">
-                <div className="text-sm font-semibold text-primary mb-3">Political Health</div>
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-secondary">PM Trust</span>
-                      <span className="font-semibold">{Math.round(gameState.political.pmTrust)}/100</span>
-                    </div>
-                    <div className="w-full bg-transparent h-2">
-                      <div
-                        className={`h-2 ${gameState.political.pmTrust > 50 ? 'bg-status-good' : gameState.political.pmTrust > 30 ? 'bg-warning' : 'bg-status-bad'}`}
-                        style={{ width: `${gameState.political.pmTrust}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-secondary">Backbench Satisfaction</span>
-                      <span className="font-semibold">{Math.round(gameState.political.backbenchSatisfaction)}/100</span>
-                    </div>
-                    <div className="w-full bg-transparent h-2">
-                      <div
-                        className={`h-2 ${gameState.political.backbenchSatisfaction > 50 ? 'bg-status-good' : gameState.political.backbenchSatisfaction > 30 ? 'bg-warning' : 'bg-status-bad'}`}
-                        style={{ width: `${gameState.political.backbenchSatisfaction}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-secondary">Credibility Index</span>
-                      <span className="font-semibold">{Math.round(gameState.political.credibilityIndex)}/100</span>
-                    </div>
-                    <div className="w-full bg-transparent h-2">
-                      <div className="h-2 bg-accent" style={{ width: `${gameState.political.credibilityIndex}%` }} />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-secondary">Strike Risk</span>
-                      <span className="font-semibold">{Math.round(gameState.political.strikeRisk)}%</span>
-                    </div>
-                    <div className="w-full bg-transparent h-2">
-                      <div
-                        className={`h-2 ${gameState.political.strikeRisk < 30 ? 'bg-status-good' : gameState.political.strikeRisk < 60 ? 'bg-warning' : 'bg-status-bad'}`}
-                        style={{ width: `${gameState.political.strikeRisk}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div className="pt-2 border-t border-border-custom">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-secondary">Credit Rating</span>
-                      <span className="font-bold">
-                        {gameState.political.creditRating || 'AA-'} (
-                        {gameState.political.creditRatingOutlook || 'stable'})
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-secondary">Manifesto Breaches</span>
-                      <span
-                        className={`font-bold ${gameState.manifesto.totalViolations > 0 ? 'text-status-bad' : 'text-status-good'}`}
-                      >
-                        {gameState.manifesto.totalViolations}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeChart === 'markets' && (
-            <div className="grid grid-cols-2 gap-4">
-              <MiniChart
-                title="10-Year Gilt Yield (%)"
-                data={withBands(
-                  fullSnapshots.map((s) => ({ label: formatDate(s.date), value: s.giltYield })),
-                  0.08
-                )}
-                color="var(--color-warning)"
-                target={5.5}
-                targetLabel="Danger: 5.5%"
-                formatValue={(v) => `${v.toFixed(2)}%`}
-              />
-              <div className="bg-transparent border-b border-border-strong p-4">
-                <div className="text-sm font-semibold text-primary mb-3">Market Indicators</div>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Bank Rate</span>
-                    <span className="font-bold">{gameState.markets.bankRate.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">2Y Gilt Yield</span>
-                    <span className="font-bold">{gameState.markets.giltYield2y.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">10Y Gilt Yield</span>
-                    <span className="font-bold">{gameState.markets.giltYield10y.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">30Y Gilt Yield</span>
-                    <span className="font-bold">{gameState.markets.giltYield30y.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">2Y Mortgage Rate</span>
-                    <span className="font-bold">{gameState.markets.mortgageRate2y.toFixed(2)}%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-secondary">Sterling Index</span>
-                    <span
-                      className={`font-bold ${gameState.markets.sterlingIndex >= 100 ? 'text-status-good' : 'text-status-bad'}`}
-                    >
-                      {gameState.markets.sterlingIndex.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Service Quality */}
-          <div className="bg-transparent border-b border-border-strong p-4">
-            <div className="text-sm font-semibold text-primary mb-3">Public Services Quality Indices</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { label: 'NHS Quality', value: gameState.services.nhsQuality },
-                { label: 'Education Quality', value: gameState.services.educationQuality },
-                { label: 'Infrastructure Quality', value: gameState.services.infrastructureQuality },
-                { label: 'Mental Health Access', value: gameState.services.mentalHealthAccess },
-                { label: 'Primary Care Access', value: gameState.services.primaryCareAccess },
-                { label: 'Social Care Quality', value: gameState.services.socialCareQuality },
-                { label: 'Prison Safety', value: gameState.services.prisonSafety },
-                { label: 'Court Performance', value: gameState.services.courtBacklogPerformance },
-                { label: 'Legal Aid Access', value: gameState.services.legalAidAccess },
-                { label: 'Policing Effectiveness', value: gameState.services.policingEffectiveness },
-                { label: 'Border Performance', value: gameState.services.borderSecurityPerformance },
-                { label: 'Rail Reliability', value: gameState.services.railReliability },
-                { label: 'Affordable Housing Delivery', value: gameState.services.affordableHousingDelivery },
-                { label: 'Flood Resilience', value: gameState.services.floodResilience },
-                { label: 'Innovation Output', value: gameState.services.researchInnovationOutput },
-              ].map((metric) => (
-                <div key={metric.label}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-secondary">{metric.label}</span>
-                    <span className="font-semibold">{Math.round(metric.value)}/100</span>
-                  </div>
-                  <div className="w-full bg-transparent h-2">
-                    <div
-                      className={`h-2 ${metric.value > 60 ? 'bg-status-good' : metric.value > 40 ? 'bg-warning' : 'bg-status-bad'}`}
-                      style={{ width: `${metric.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-
-      {activeView === 'projections' && (
-        <ProjectionsView gameState={gameState} formatDate={formatDate} MiniChart={MiniChart} withBands={withBands} />
       )}
     </div>
   );
@@ -1918,7 +1321,6 @@ const GameInner: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [detailMPId, handleAdvanceTurn, lobbyingMPId, showNewspaper, showSaveLoad, showShortcuts]);
 
-  // Game start screen
   if (!metadata.gameStarted) {
     return (
       <GameStartScreen
@@ -1929,7 +1331,6 @@ const GameInner: React.FC = () => {
     );
   }
 
-  // Game over modal
   if (metadata.gameOver) {
     return (
       <>
@@ -1939,17 +1340,13 @@ const GameInner: React.FC = () => {
     );
   }
 
-  // Check for active PM intervention
   const activePMIntervention = gameState.political.pmInterventionsPending?.[0];
 
-  // Check for pending events that need response
   const pendingEvents = gameState.events?.pendingEvents || [];
   const activeEvent = pendingEvents[0];
 
-  // Get current newspaper
   const currentNewspaper = (gameState.events as any)?.currentNewspaper as NewsArticle | null;
 
-  // Count hired advisers - handle both Map (runtime) and plain object (after JSON parse)
   const hiredAdvisers = (gameState.advisers as any)?.hiredAdvisers;
   const adviserCount =
     hiredAdvisers instanceof Map
@@ -1958,7 +1355,6 @@ const GameInner: React.FC = () => {
         ? Object.keys(hiredAdvisers).length
         : 0;
 
-  // Handle event response
   const handleEventResponse = (response: EventResponseOption) => {
     if (activeEvent) {
       const responseIndex = activeEvent.responseOptions?.indexOf(response) ?? -1;
@@ -1968,7 +1364,6 @@ const GameInner: React.FC = () => {
     }
   };
 
-  // Main game
   return (
     <div className="treasury-shell">
       {showShortcuts && <ShortcutsHelpModal onClose={() => setShowShortcuts(false)} />}
@@ -1980,12 +1375,15 @@ const GameInner: React.FC = () => {
         </div>
       )}
 
+      <Masthead onAdvanceTurn={handleAdvanceTurn} />
+
       <div className="treasury-shell-grid">
-        <NavigationBar
+        <NavigationSidebar
           currentView={currentView}
           onViewChange={setCurrentView}
           adviserCount={adviserCount}
           manifestoViolations={gameState.manifesto.totalViolations}
+          pmUnreadCount={gameState?.pmRelationship?.unreadCount || 0}
           onSaveLoad={() => setShowSaveLoad(true)}
           onAdvanceTurn={handleAdvanceTurn}
         />
@@ -2054,7 +1452,6 @@ const GameInner: React.FC = () => {
         </div>
       </div>
 
-      {/* Lobbying Modal */}
       {lobbyingMPId &&
         (() => {
           const mp = gameState.mpSystem.allMPs.get(lobbyingMPId);
@@ -2077,7 +1474,6 @@ const GameInner: React.FC = () => {
           );
         })()}
 
-      {/* MP Detail Modal */}
       {detailMPId &&
         (() => {
           const mp = gameState.mpSystem.allMPs.get(detailMPId);
@@ -2097,24 +1493,20 @@ const GameInner: React.FC = () => {
           );
         })()}
 
-      {/* Newspaper Modal - shown after each turn */}
       {showNewspaper && currentNewspaper && (
         <Newspaper article={currentNewspaper} onClose={() => setShowNewspaper(false)} />
       )}
 
-      {/* Event Response Modal - shown when major events need player response */}
       {activeEvent && activeEvent.requiresResponse && !showNewspaper && (
         <EventModal
           event={activeEvent}
           onRespond={handleEventResponse}
           onDismiss={() => {
-            // For events without response options, just dismiss
             actions.respondToEvent(activeEvent.id, 0);
           }}
         />
       )}
 
-      {/* PM Intervention Modal */}
       {activePMIntervention && !showNewspaper && !activeEvent?.requiresResponse && (
         <PMInterventionModal
           event={activePMIntervention}
@@ -2131,7 +1523,6 @@ const GameInner: React.FC = () => {
         />
       )}
 
-      {/* Save/Load Modal */}
       {showSaveLoad && (
         <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-8">
           <div className="bg-transparent border-b border-border-strong  max-w-md w-full p-6">

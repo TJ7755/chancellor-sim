@@ -1758,7 +1758,6 @@ export interface AdviserSystem {
   hiredAdvisers?: Map<string, any>;
   availableAdvisers?: Set<string>;
   currentOpinions?: Map<string, any>;
-  showDetailedView?: string | null;
   adviserEvents?: any[];
   activeConflicts?: AdviserConflict[];
   conflictResolutionHistory?: ConflictResolutionRecord[];
@@ -1780,7 +1779,6 @@ export function createInitialAdviserSystem(): AdviserSystem {
       'technocratic_centrist',
     ]),
     currentOpinions: new Map(),
-    showDetailedView: null,
     adviserEvents: [],
     activeConflicts: [],
     conflictResolutionHistory: [],

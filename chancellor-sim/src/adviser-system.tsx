@@ -131,7 +131,6 @@ export interface AdviserSystemState {
   hiredAdvisers: Map<AdviserType, HiredAdviser>;
   availableAdvisers: Set<AdviserType>;
   currentOpinions: Map<AdviserType, AdviserOpinion>;
-  showDetailedView: AdviserType | null;
   adviserEvents: AdviserEvent[];
   activeConflicts: AdviserConflict[];
   conflictResolutionHistory: ConflictResolutionRecord[];
@@ -1860,7 +1859,6 @@ export function createInitialAdviserSystem(): AdviserSystemState {
     hiredAdvisers: new Map(),
     availableAdvisers: new Set(ADVISER_PROFILES.map((p) => p.type)),
     currentOpinions: new Map(),
-    showDetailedView: null,
     adviserEvents: [],
     activeConflicts: [],
     conflictResolutionHistory: [],
