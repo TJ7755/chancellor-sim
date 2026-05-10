@@ -1,0 +1,659 @@
+This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
+
+The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
+
+## Design Thinking
+
+Before coding, understand the context and commit to a BOLD aesthetic direction:
+- **Purpose**: What problem does this interface solve? Who uses it?
+- **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
+- **Constraints**: Technical requirements (framework, performance, accessibility).
+- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+
+**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work - the key is intentionality, not intensity.
+
+Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
+- Production-grade and functional
+- Visually striking and memorable
+- Cohesive with a clear aesthetic point-of-view
+- Meticulously refined in every detail
+
+## Frontend Aesthetics Guidelines
+
+Focus on:
+- **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics; unexpected, characterful font choices. Pair a distinctive display font with a refined body font.
+- **Color & Theme**: Commit to a cohesive aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
+- **Motion**: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
+- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
+- **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
+
+NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character.
+
+Interpret creatively and make unexpected choices that feel genuinely designed for the context. No design should be the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices (Space Grotesk, for example) across generations.
+
+**IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
+
+## Additional Production Rules (Appended to Prompt)
+
+These rules extend the existing design skill guide. They are mandatory.
+
+---
+
+## Global Output Rules
+
+1. Emoji Ban  
+No emojis are allowed in ANY agent output, generated UI, documentation, comments, or interface text unless the user explicitly requests them.
+
+2. British English Only  
+All written English must follow British English spelling and conventions.
+Examples:
+- colour, behaviour, centre, organise
+- programme (except when referring to software program identifiers)
+- licence (noun) / license (verb)
+
+This applies to:
+- UI copy
+- variable names where appropriate
+- comments
+- documentation
+- error messages
+- placeholder text
+
+3. SVG Rule
+SVG is allowed only for:
+- Icons
+- Simple symbolic UI indicators
+
+SVG must NOT be used to build entire layouts, backgrounds, or decorative scenes unless explicitly requested.
+
+All layout and visual structure should rely on:
+- CSS
+- HTML structure
+- component composition
+
+---
+
+## Information Density Decision (Required Before Implementation)
+
+The agent MUST explicitly decide the information density model based on the user's context.
+
+Possible modes:
+
+### SaaS-Style Density
+Compact, efficient interfaces designed for productivity.
+
+Best for:
+- Dashboards
+- Analytics tools
+- Finance software
+- Developer platforms
+- Workflow-heavy applications
+
+Implementation guidance:
+- Dense but structured layouts
+- Clear hierarchy
+- Progressive disclosure
+- Data-first design
+- Minimise navigation friction
+
+### Agency-Style Density
+Low-density, visually expressive design.
+
+Best for:
+- Landing pages
+- Marketing sites
+- Brand storytelling
+- Product launches
+
+Implementation guidance:
+- Large typography
+- Strong visual rhythm
+- Generous whitespace
+- Minimal simultaneous information
+
+### Layered Density (Modern Standard)
+Hybrid model.
+
+Structure:
+1. Minimal entry surface
+2. Moderate working interface
+3. High-density expert views
+
+This model is preferred when building full applications.
+
+The density decision must influence:
+- spacing
+- typography scale
+- component complexity
+- interaction patterns
+
+---
+
+## Keyboard-First Interaction Model (Required)
+
+All interfaces must support strong keyboard usability.
+
+Include:
+
+Global Shortcuts
+Examples:
+- Cmd/Ctrl + K → command palette
+- / → quick search
+- ? → open shortcuts panel
+- Esc → close modals or overlays
+- Cmd/Ctrl + Enter → primary action
+- Arrow keys → navigate lists
+- Tab → logical focus order
+
+Component-Level Shortcuts
+Examples:
+- Tables support arrow navigation
+- Dashboards allow section jumping
+- Panels can be collapsed via keyboard
+- Forms support keyboard submission and navigation
+
+Accessibility Requirements
+- Visible focus states
+- Logical tab order
+- No keyboard traps
+- ARIA where appropriate
+
+Keyboard navigation must feel intentional and engineered, not an afterthought.
+
+---
+
+## TailwindCSS Preference
+
+If the stack supports Tailwind, it should be the preferred styling system.
+
+Reason:
+- Consistent spacing scale
+- Faster iteration
+- Strong design token control
+- Reduced CSS drift
+
+Tailwind Implementation Rules:
+- Use design tokens via config
+- Avoid arbitrary values unless justified
+- Maintain a consistent spacing rhythm
+- Create reusable component patterns
+
+Do not produce chaotic utility soup.
+
+---
+
+## Hard Bans (Derived from Common Developer Complaints)
+
+These patterns frequently appear in poor AI-generated frontends and must NEVER occur.
+
+### Design System Failures
+Banned:
+- Inconsistent spacing scales
+- Random font size usage
+- Multiple conflicting component styles
+- Unclear visual hierarchy
+
+AI-generated UIs often collapse when scaled because they lack a system. :contentReference[oaicite:2]{index=2}
+
+The agent must maintain:
+- a spacing system
+- typography scale
+- predictable layout logic
+
+---
+
+### Visual Hierarchy Errors
+Banned:
+- Emphasising low-value information
+- Large empty decorative containers
+- Oversized UI elements with little meaning
+
+These are common issues in AI-generated dashboards. :contentReference[oaicite:3]{index=3}
+
+Important data must always receive the strongest visual weight.
+
+---
+
+### Generic "AI Slop" Patterns
+Hard bans:
+- Purple glow gradients on white layouts
+- Overused startup aesthetic
+- Generic SaaS cards repeated everywhere
+- Copy-paste dashboard layout patterns
+
+Every design must feel intentional and context-specific.
+
+---
+
+### Code Quality Problems
+Banned:
+- Excessively complex code for simple UI
+- Non-functional examples
+- Broken components
+- Placeholder code that does not run
+- Over-engineered animation logic
+
+Developers frequently complain that AI-generated code becomes difficult to maintain or scale. :contentReference[oaicite:4]{index=4}
+
+Generated code must be:
+- production ready
+- maintainable
+- structured
+
+---
+
+### Growth Failure Pattern
+Banned:
+Interfaces that look acceptable initially but collapse as features are added.
+
+This is a common complaint about AI-generated frontends in real products. :contentReference[oaicite:5]{index=5}
+
+To prevent this:
+- design systems must scale
+- components must be reusable
+- layout must anticipate expansion
+
+---
+
+## Accessibility Requirements (Non-Optional)
+
+The agent must ensure:
+
+- semantic HTML
+- keyboard navigation
+- proper labels
+- contrast compliance
+- screen reader support
+
+AI-generated UI frequently ignores accessibility unless explicitly instructed.
+
+This must never happen.
+
+---
+
+## Real Data Rule
+
+Avoid designing around empty placeholders.
+
+Instead:
+- simulate realistic data
+- design for real content lengths
+- ensure layouts handle edge cases
+
+Interfaces built around empty data often break hierarchy and usability.
+
+---
+
+## Motion Discipline
+
+Animations must:
+- reinforce hierarchy
+- guide attention
+- avoid distraction
+
+One strong entrance sequence is better than many weak animations.
+
+Never:
+- animate everything
+- use random motion
+- break usability
+
+---
+
+## Final Principle
+
+The interface must feel intentionally designed by a skilled frontend engineer, not generated by a tool.
+
+Consistency, hierarchy, and usability must always override decoration.
+
+## Design System Enforcement (Mandatory Before Coding)
+
+Before writing any UI code, the agent MUST define a design system.  
+Implementation cannot begin until these tokens are established.
+
+This prevents inconsistent UI, scaling failures, and generic AI output.
+
+---
+
+## Step 1 — Define Core Design Tokens
+
+The agent must explicitly define the following:
+
+### Spacing Scale
+A consistent spacing system used across the interface.
+
+Example structure:
+- 4px base grid (or equivalent scale)
+- spacing-1
+- spacing-2
+- spacing-3
+- spacing-4
+- spacing-6
+- spacing-8
+- spacing-12
+- spacing-16
+
+Rules:
+- No random spacing values
+- Layout must strictly use the defined scale
+
+---
+
+### Typography Ramp
+
+The agent must define:
+
+Display
+Heading
+Subheading
+Body
+Small text
+UI labels
+
+Each must specify:
+- font family
+- size
+- line height
+- letter spacing
+
+Hierarchy must be clear and intentional.
+
+Banned:
+Random font scaling across components.
+
+---
+
+### Colour System
+
+Define:
+
+Primary colour
+Accent colour
+Surface colours
+Background colours
+Border colours
+Success / Warning / Error states
+
+Rules:
+- Colour contrast must meet accessibility standards
+- Colours must support both UI hierarchy and meaning
+- Avoid decorative-only palettes
+
+If dark mode is used:
+Define both systems upfront.
+
+---
+
+### Border Radius Scale
+
+Define a consistent radius system.
+
+Example:
+- radius-sm
+- radius-md
+- radius-lg
+- radius-xl
+
+Banned:
+Random rounding values.
+
+---
+
+### Shadow System
+
+Define shadow tiers:
+
+- shadow-sm
+- shadow-md
+- shadow-lg
+- shadow-xl
+
+Use them intentionally for:
+- elevation
+- hierarchy
+- depth
+
+Do not apply shadows randomly.
+
+---
+
+## Step 2 — Layout Structure Definition
+
+Before writing code, define the layout model:
+
+Grid system
+Container widths
+Breakpoints
+Content alignment strategy
+Component spacing logic
+
+Layouts must be predictable and scalable.
+
+---
+
+## Step 3 — Component Rules
+
+Each UI component must follow:
+
+- consistent padding
+- predictable behaviour
+- reusable structure
+- scalable styling
+
+Components must not introduce new spacing or typography values unless justified.
+
+---
+
+## Step 4 — Interaction System
+
+Define interaction rules before implementation:
+
+Hover behaviour
+Focus behaviour
+Active states
+Animation timing scale
+Transition durations
+
+Animations must share consistent timing tokens.
+
+---
+
+## Step 5 — Token Implementation
+
+Tokens must be implemented as:
+
+CSS variables
+Tailwind config tokens
+or framework-equivalent design tokens
+
+Hard requirement:
+Design tokens must control the UI globally.
+
+No isolated styling allowed.
+
+---
+
+## Anti-AI Slop Safeguard
+
+The agent must check for the following before finishing:
+
+- spacing consistency across the page
+- typography hierarchy clarity
+- component reusability
+- keyboard usability
+- accessibility compliance
+- scalable layout behaviour
+
+If any of these fail, the design must be revised before output.
+
+---
+
+## Output Order (Strict)
+
+When generating the frontend, the agent must output in this order:
+
+1. Chosen aesthetic direction
+2. Information density decision
+3. Design system tokens
+4. Layout structure
+5. Interaction model
+6. Implementation code
+
+## Frontend Taste Calibration (Mandatory Before Aesthetic Selection)
+- soft fabric-like surfaces
+- monolithic slabs
+- architectural spacing
+
+These should shape borders, shadows, texture, and depth.
+
+### 6. The Signature Move
+Every design must have one memorable move.
+Examples:
+- an unusual navigation structure
+- a striking hero composition
+- a distinctive information hierarchy
+- a surprising but useful interaction model
+- a clear visual rhythm that nobody would confuse with template sludge
+
+If there is no signature move, the design is too generic.
+
+### 7. Taste Check Before Implementation
+Before coding, the agent must answer:
+- Does this feel purpose-built?
+- Does this avoid default AI aesthetics?
+- Would a skilled human designer respect this?
+- Does the design still work if the content changes?
+- Is the interaction model elegant under keyboard-only use?
+
+If the answer to any of these is no, revise the concept first.
+
+---
+
+## Keyboard Shortcut Expansion
+
+The agent must implement comprehensive keyboard shortcuts wherever the interface benefits from navigation, speed, or control.
+
+Required patterns include:
+- Command palette access
+- Search access
+- Modal dismissal
+- Primary action triggering
+- Section navigation
+- Table and list traversal
+- Pane switching
+- Collapse and expand controls
+- Filter cycling
+- Multi-select actions where relevant
+
+Shortcuts must be discoverable, documented in-product, and consistent.
+They must never conflict with browser or operating system defaults unless there is a strong reason.
+
+---
+
+## Output Discipline
+
+The agent must keep all output:
+- emoji-free
+- written in British English
+- free of filler
+- free of generic AI phrasing
+- grounded in the actual user brief
+
+The agent must not add decorative nonsense, motivational fluff, or unnecessary explanatory waffle.
+
+---
+
+## Final Preflight Check
+
+Before shipping code, the agent must verify:
+- the aesthetic thesis is clear
+- the information density model is explicit
+- the design system tokens are defined
+- keyboard shortcuts are present
+- accessibility is handled
+- the code is production-grade
+- the result does not look like generic AI output
+
+## Appendix: Anti-Card and Anti-Gradient Enforcement + Strengthened Anti-Slop Measures
+
+This appendix is mandatory and must be read and applied in full before any frontend implementation begins. It extends and overrides any conflicting guidance in the main document where necessary. Its purpose is to eliminate the two most persistent and destructive failure modes observed in LLM-generated interfaces: excessive card-based layouts and decorative gradients. These patterns produce the exact generic, floating, modular “AI slop” that the core document was written to prevent.
+
+All rules below are non-negotiable and form part of the Design System Enforcement and Anti-AI Slop Safeguard sections.
+
+### 1. Cardless Design Mandate (Primary Visual Rule)
+Default to a completely cardless interface. Cards (defined as any self-contained, bordered, shadowed, or background-isolated rectangular container that visually floats or nests) are banned as the default structural element.
+
+- Never use cards as the primary visual motif.
+- Never nest cards inside other cards.
+- Never wrap every section, panel, or content block in a card-like container.
+- Replace cards with stronger architectural primitives: monolithic slabs, full-width sections, integrated panels, fieldsets, or naked content areas separated only by spatial composition (whitespace, subtle dividers, background colour blocks, or deliberate overlap).
+- Containment must be achieved through layout grid behaviour, generous negative space, asymmetry, or intentional density contrast — never through repeated bordered/shadowed boxes.
+- Edge-case allowance: cards may be used only when semantically required for grouping a small set of highly interactive elements (e.g., a tightly coupled form group or data tile set) and only if they are architecturally integrated into the larger layout rather than floating as islands. In such cases they must use the exact border-radius and shadow tokens defined in the design system and must not introduce new visual hierarchy.
+
+This rule directly addresses the user’s explicit aversion to “cards inside cards” and the entire page becoming a card. It forces spatial composition, asymmetry, overlap, and monolithic forms as required by the main document’s Spatial Composition and Frontend Taste Calibration guidelines.
+
+### 2. Gradient Ban
+All decorative or surface-level gradients are strictly prohibited.
+
+- Surfaces (backgrounds, panels, cards if exceptionally allowed, buttons, headers) must use solid colours only, or non-gradient techniques: grain/noise overlays, subtle fabric-like textures (via CSS), layered transparencies, or architectural box-shadows.
+- Linear, radial, or conic gradients are banned except for tiny accent elements no larger than 1–2 px (e.g., a progress-bar fill or a 1 px hover underline).
+- Explicitly forbidden: purple gradients, peach gradients, warm beige gradients, “glassmorphic” or “neubrutalist” gradient overlays, and any gradient used to simulate depth on large surfaces.
+- Colour system must remain flat and solid unless the aesthetic direction explicitly justifies a non-gradient texture (e.g., paper grain for an editorial aesthetic or lacquered wood for an instrument-related tool).
+
+This ban prevents the clichéd, soft, wellness-app aesthetics that frequently appear in onboarding flows and productivity interfaces.
+
+### 3. Mandatory Negative Example Rejection Step
+Immediately after choosing the aesthetic direction (but before defining design tokens), the agent must perform and visibly output a “Negative Example Rejection” analysis using the following exact format:
+
+**Negative Example Rejection**  
+The generic failure mode this design explicitly rejects is: [one-sentence description of the exact pattern the model was about to produce, e.g., “three-panel floating card layout with soft beige backgrounds, generous whitespace, and nested rounded rectangles typical of generic productivity onboarding”].  
+This interface will instead achieve memorability through: [specific non-card, non-gradient technique tied to the signature move].
+
+This step forces the model to name the precise monstrosity it is avoiding before proceeding.
+
+### 4. Strengthened Signature Move Requirement
+Every design must have one clear, memorable signature move. This move must:
+- Directly break the card paradigm (e.g., grid-breaking overlap, diagonal flow, monolithic slab layout, custom spatial rhythm, or unexpected layering).
+- Be derived from the domain context (see section 5 below).
+- Be explicitly justified in one sentence before design tokens are defined: “The signature move is [description] and it ensures the interface feels purpose-built rather than modular.”
+
+### 5. Enhanced Domain-Derived Taste Calibration
+Before selecting the aesthetic direction, the agent must first derive visual language from real-world references specific to the product domain. For any music/creative-practice tool (or similar tactile domain), list 3–5 concrete physical or cultural references (e.g., lacquered piano keys, annotated music stands, wooden practice journals, metronome ticks, heavy manuscript paper) and explicitly state how each informs colour, texture, typography, or spatial decisions.  
+
+This calibration must be output visibly and must shape the choice of fonts, surfaces, and motion. It prevents defaulting to soft-fabric productivity aesthetics and ensures the design feels genuinely context-specific.
+
+### 6. Updated Preflight Check (Now Visible and Mandatory)
+Before outputting any code, the agent must run and display this exact preflight checklist with yes/no answers and one-sentence justifications:
+
+**Preflight Check**  
+- Aesthetic thesis is clear and extreme: [yes/no]  
+- Information density model is explicit and applied: [yes/no]  
+- Design system tokens are defined and used globally: [yes/no]  
+- Cardless design mandate is satisfied (no floating or nested cards): [yes/no]  
+- Gradient ban is satisfied (no decorative gradients on surfaces): [yes/no]  
+- Signature move is present and non-card-based: [yes/no]  
+- Keyboard usability and accessibility are engineered: [yes/no]  
+- Layout will scale without collapse: [yes/no]  
+- Would a skilled human designer respect this as intentional work: [yes/no]  
+
+If any answer is no, the design must be revised before code is generated.
+
+### 7. Integration into Output Order
+Insert the following new step into the existing strict output order, placed immediately after “3. Design system tokens” and before “4. Layout structure”:
+
+3a. Negative Example Rejection + Domain-Derived Taste Calibration + Signature Move Justification
+
+The full revised output order is therefore:
+1. Chosen aesthetic direction  
+2. Information density decision  
+3. Design system tokens  
+3a. Negative Example Rejection + Domain-Derived Taste Calibration + Signature Move Justification  
+4. Layout structure  
+5. Interaction model  
+6. Implementation code
+
+### 8. Final Enforcement Language
+This appendix has equal weight to the main document. Any generated interface that violates the cardless mandate or gradient ban is considered failed output, regardless of how closely it follows other rules. The agent must treat these constraints as absolute filters before producing code. The result must feel like a cohesive, purpose-built architectural composition — never a collection of floating modular components.
+
+All other rules from the main document (British English, emoji ban, Tailwind preference, keyboard-first model, accessibility, real data, motion discipline, etc.) remain in force and are reinforced by this appendix.
+

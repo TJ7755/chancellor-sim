@@ -21,7 +21,7 @@ import { PMMessagesScreen } from './pm-messages-screen';
 import { PMInterventionModal } from './political-system';
 import { Newspaper, EventModal, EventLogPanel } from './events-media';
 import { SpendingReviewModal } from './SpendingReviewModal';
-import { Dashboard } from './dashboard';
+import { Dashboard, EconomicPanel, FiscalPanel, PoliticalPanel, ServicesPanel, MarketsPanel } from './dashboard';
 import type { NewsArticle, EventResponseOption } from './events-media';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById } from './game-integration';
 import { generateProjections, summariseProjections, ProjectionBudgetDraft } from './projections-engine';
@@ -710,7 +710,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
           <button
             onClick={() => onViewChange('advisers')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
+            className={`px-6 py-2 font-semibold rounded-sm transition-all flex items-center gap-2 ${
               currentView === 'advisers'
                 ? 'bg-red-700 text-white shadow-md'
                 : 'text-gray-700 hover:bg-gray-100'
@@ -718,7 +718,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           >
             Advisers
             {adviserCount > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
                 {adviserCount}
               </span>
             )}
@@ -737,7 +737,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
           <button
             onClick={() => onViewChange('manifesto')}
-            className={`px-6 py-2 font-semibold rounded-sm transition-all ${
+            className={`px-6 py-2 font-semibold rounded-sm transition-all flex items-center gap-2 ${
               currentView === 'manifesto'
                 ? 'bg-red-700 text-white shadow-md'
                 : 'text-gray-700 hover:bg-gray-100'
@@ -745,7 +745,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           >
             Manifesto
             {manifestoViolations > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+              <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
                 {manifestoViolations}
               </span>
             )}
@@ -753,7 +753,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
 
           <button
             onClick={() => onViewChange('pm-messages')}
-            className={`px-6 py-2 font-bold rounded-sm transition-all ${
+            className={`px-6 py-2 font-bold rounded-sm transition-all flex items-center gap-2 ${
               currentView === 'pm-messages'
                 ? 'bg-blue-700 text-white shadow-md'
                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
@@ -761,7 +761,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({
           >
             PM
             {gameState?.pmRelationship?.unreadCount > 0 && (
-              <span className="ml-2 bg-yellow-400 text-blue-900 text-xs font-bold rounded-full px-2 py-0.5">
+              <span className="bg-yellow-400 text-blue-900 text-xs font-bold rounded-full px-2 py-0.5">
                 {gameState.pmRelationship.unreadCount}
               </span>
             )}
@@ -1489,6 +1489,9 @@ const AnalysisTab: React.FC = () => {
               }}
             />
           </div>
+          <div className="col-span-2 mt-4">
+            <EconomicPanel state={gameState} />
+          </div>
         </div>
       )}
 
@@ -1559,6 +1562,9 @@ const AnalysisTab: React.FC = () => {
                   </div>
                 ))}
             </div>
+          </div>
+          <div className="col-span-2 mt-4">
+            <FiscalPanel state={gameState} mode="normal" />
           </div>
         </div>
       )}
@@ -1640,6 +1646,10 @@ const AnalysisTab: React.FC = () => {
               </div>
             </div>
           </div>
+          <div className="col-span-2 mt-4 space-y-4">
+            <PoliticalPanel state={gameState} />
+            <ServicesPanel state={gameState} />
+          </div>
         </div>
       )}
 
@@ -1683,6 +1693,9 @@ const AnalysisTab: React.FC = () => {
                 </span>
               </div>
             </div>
+          </div>
+          <div className="col-span-2 mt-4">
+            <MarketsPanel state={gameState} />
           </div>
         </div>
       )}

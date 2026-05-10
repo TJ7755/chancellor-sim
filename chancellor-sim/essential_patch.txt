@@ -1,0 +1,85 @@
+export const EssentialMetricsGrid: React.FC<{ state: any; mode?: string }> = ({ state, mode }) => {
+  const formatPercent = (val: number) => `${val.toFixed(1)}%`;
+  const formatCurrency = (val: number) => `£${val.toFixed(1)}bn`;
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-2">
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">GDP Growth</h3>
+        <div className={`text-4xl font-bold number-font mb-2 ${(state.economic?.gdpGrowthAnnual ?? 0) > 2.0 ? 'text-green-700' : (state.economic?.gdpGrowthAnnual ?? 0) > 0.5 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.economic?.gdpGrowthAnnual ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          Target: 1.5%
+        </div>
+      </div>
+
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">CPI Inflation</h3>
+        <div className={`text-4xl font-bold number-font mb-2 ${Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 0.5 ? 'text-green-700' : Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 1.5 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.economic?.inflationCPI ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          Target: 2.0%
+        </div>
+      </div>
+
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Borrowing (Deficit)</h3>
+        <div className={`text-4xl font-bold number-font mb-2 ${(state.fiscal?.deficitPctGDP ?? 0) < 3.0 ? 'text-green-700' : 'text-red-700'}`}>
+          {formatCurrency(state.fiscal?.deficit_bn ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          {formatPercent(state.fiscal?.deficitPctGDP ?? 0)} of GDP
+        </div>
+      </div>
+
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Debt Stock</h3>
+        <div className={`text-4xl font-bold number-font mb-2 ${(state.fiscal?.debtPctGDP ?? 0) < 90 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.fiscal?.debtPctGDP ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          of GDP
+        </div>
+      </div>
+
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Gov Approval</h3>
+        <div className="text-4xl font-bold number-font text-gray-900 mb-2">
+          {formatPercent(state.political?.approval ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          Current Standing
+        </div>
+      </div>
+
+      <div className="hm-panel text-center flex flex-col justify-center bg-gray-50 border-dashed border-2 border-gray-300">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Detailed Analysis</h3>
+        <div className="text-sm text-gray-600 mb-4 px-4">
+          View full economic, fiscal, political and market data in the Analysis tab.
+        </div>
+      </div>
+      
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Fiscal Headroom</h3>
+        <div className="text-4xl font-bold number-font text-gray-900 mb-2">
+          {formatCurrency(state.fiscal?.fiscalSpace_bn ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          Buffer against rules
+        </div>
+      </div>
+      
+      <div className="hm-panel">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">Bank Rate</h3>
+        <div className="text-4xl font-bold number-font text-gray-900 mb-2">
+          {formatPercent(state.markets?.bankRate ?? 0)}
+        </div>
+        <div className="text-sm text-gray-500">
+          Current Bank Rate
+        </div>
+      </div>
+    </div>
+  );
+};

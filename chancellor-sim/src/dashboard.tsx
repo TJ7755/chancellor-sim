@@ -517,9 +517,9 @@ const MetricCard: React.FC<MetricCardProps> = ({ label, value, status = 'neutral
 /**
  * Economic Metrics Panel
  */
-const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
+export const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+    <div className="hm-panel-compact">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Economic Indicators</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
@@ -576,11 +576,11 @@ const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
 /**
  * Fiscal Metrics Panel
  */
-const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mode }) => {
+export const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mode }) => {
   const isExpanded = mode === 'budget';
 
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+    <div className="hm-panel-compact">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">
         {mode === 'budget' ? 'Fiscal Position (Budget Mode)' : 'Fiscal Position'}
       </h2>
@@ -629,12 +629,12 @@ const FiscalPanel: React.FC<{ state: any; mode: DashboardMode }> = ({ state, mod
 /**
  * Political Metrics Panel (using mock data)
  */
-const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
+export const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
   const pmTrust = state.political?.pmTrust ?? MOCK_POLITICAL.pmTrust;
   const governmentApproval = state.political?.governmentApproval ?? MOCK_POLITICAL.publicApproval;
   const backbenchSatisfaction = state.political?.backbenchSatisfaction ?? MOCK_POLITICAL.backbenchSentiment;
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+    <div className="hm-panel-compact">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Political Capital</h2>
       <div className="grid grid-cols-3 gap-4">
         <MetricCard
@@ -660,7 +660,7 @@ const PoliticalPanel: React.FC<{ state: any }> = ({ state }) => {
 /**
  * Services Metrics Panel
  */
-const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
+export const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
   const expandedMetrics = [
     { key: 'mentalHealthAccess', label: 'Mental Health Access' },
     { key: 'primaryCareAccess', label: 'Primary Care Access' },
@@ -677,7 +677,7 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
   ];
 
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+    <div className="hm-panel-compact">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Public Services</h2>
       <div className="grid grid-cols-2 gap-x-4 gap-y-4">
         {/* Headline metrics */}
@@ -717,9 +717,9 @@ const ServicesPanel: React.FC<{ state: any }> = ({ state }) => {
 /**
  * Markets Panel
  */
-const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
+export const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
   return (
-    <div className="bg-white rounded-sm shadow-sm border border-gray-100 p-5">
+    <div className="hm-panel-compact">
       <h2 className="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-200 pb-2">Markets & Rates</h2>
       <div className="grid grid-cols-2 gap-4">
         <MetricCard
@@ -750,7 +750,7 @@ const MarketsPanel: React.FC<{ state: any }> = ({ state }) => {
 /**
  * Economic Overview Chart (GDP, Inflation, Unemployment)
  */
-const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
+export const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
   const chartData = useMemo(() => {
     return history.map((snap) => ({
       date: formatDate(snap.date),
@@ -762,7 +762,7 @@ const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history })
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="hm-panel-compact">
       <h3 className="text-lg font-bold text-gray-900 mb-4">Economic Overview (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 60 }}>
@@ -834,7 +834,7 @@ const EconomicChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history })
 /**
  * Fiscal Chart (Deficit and Debt)
  */
-const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
+export const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
   const chartData = useMemo(() => {
     return history.map((snap) => ({
       date: formatDate(snap.date),
@@ -844,7 +844,7 @@ const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) =
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="hm-panel-compact">
       <h3 className="text-lg font-bold text-gray-900 mb-4">Fiscal Position (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={350}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 60, left: 20, bottom: 60 }}>
@@ -907,7 +907,7 @@ const FiscalChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) =
 /**
  * Markets Chart (Yields and Rates)
  */
-const MarketsChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
+export const MarketsChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) => {
   const chartData = useMemo(() => {
     return history.map((snap) => ({
       date: formatDate(snap.date),
@@ -917,7 +917,7 @@ const MarketsChart: React.FC<{ history: HistoricalSnapshot[] }> = ({ history }) 
   }, [history]);
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="hm-panel-compact">
       <h3 className="text-lg font-bold text-gray-900 mb-4">Interest Rates (2014-Present)</h3>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -1049,30 +1049,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
           </div>
         )}
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-          <EconomicPanel state={state} />
-          <FiscalPanel state={state} mode={currentMode} />
-          <PoliticalPanel state={state} />
-          <ServicesPanel state={state} />
-          <MarketsPanel state={state} />
-        </div>
-
-        {/* Charts Section */}
-        <div className="space-y-6">
-          {/* Economic Chart - Always visible */}
-          <EconomicChart history={fullHistory} />
-
-          {/* Fiscal Chart - Prominent in budget mode */}
-          {(currentMode === 'budget' || currentMode === 'normal' || currentMode === 'crisis') && (
-            <FiscalChart history={fullHistory} />
-          )}
-
-          {/* Markets Chart - Visible in normal/crisis modes */}
-          {(currentMode === 'normal' || currentMode === 'crisis') && (
-            <MarketsChart history={fullHistory} />
-          )}
-        </div>
+        {/* Essential Metrics Grid */}
+        <EssentialMetricsGrid state={state} mode={currentMode} />
 
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500">
@@ -1086,3 +1064,88 @@ export const Dashboard: React.FC<DashboardProps> = ({ state, mode: propMode, onM
 };
 
 export default Dashboard;
+export const EssentialMetricsGrid: React.FC<{ state: any; mode?: string }> = ({ state, mode }) => {
+  const formatPercent = (val: number) => `${val.toFixed(1)}%`;
+  const formatCurrency = (val: number) => `£${val.toFixed(1)}bn`;
+  
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 mt-1">
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">GDP Growth</h3>
+        <div className={`text-2xl font-bold number-font mb-0.5 ${(state.economic?.gdpGrowthAnnual ?? 0) > 2.0 ? 'text-green-700' : (state.economic?.gdpGrowthAnnual ?? 0) > 0.5 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.economic?.gdpGrowthAnnual ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Target: 1.5%
+        </div>
+      </div>
+
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">CPI Inflation</h3>
+        <div className={`text-2xl font-bold number-font mb-0.5 ${Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 0.5 ? 'text-green-700' : Math.abs((state.economic?.inflationCPI ?? 0) - 2.0) < 1.5 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.economic?.inflationCPI ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Target: 2.0%
+        </div>
+      </div>
+
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Borrowing (Deficit)</h3>
+        <div className={`text-2xl font-bold number-font mb-0.5 ${(state.fiscal?.deficitPctGDP ?? 0) < 3.0 ? 'text-green-700' : 'text-red-700'}`}>
+          {formatCurrency(state.fiscal?.deficit_bn ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          {formatPercent(state.fiscal?.deficitPctGDP ?? 0)} of GDP
+        </div>
+      </div>
+
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Debt Stock</h3>
+        <div className={`text-2xl font-bold number-font mb-0.5 ${(state.fiscal?.debtPctGDP ?? 0) < 90 ? 'text-gray-900' : 'text-red-700'}`}>
+          {formatPercent(state.fiscal?.debtPctGDP ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          of GDP
+        </div>
+      </div>
+
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Gov Approval</h3>
+        <div className="text-2xl font-bold number-font text-gray-900 mb-0.5">
+          {formatPercent(state.political?.governmentApproval ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Current Standing
+        </div>
+      </div>
+
+      <div className="hm-panel-compact text-center flex flex-col justify-center bg-gray-50 border-dashed border-2 border-gray-300">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detailed Analysis</h3>
+        <div className="text-xs text-gray-600 px-2">
+          View full economic, fiscal, political and market data in the Analysis tab.
+        </div>
+      </div>
+      
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Fiscal Headroom</h3>
+        <div className="text-2xl font-bold number-font text-gray-900 mb-0.5">
+          {formatCurrency(state.fiscal?.fiscalHeadroom_bn ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Buffer against rules
+        </div>
+      </div>
+      
+      <div className="hm-panel-compact">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Bank Rate</h3>
+        <div className="text-2xl font-bold number-font text-gray-900 mb-0.5">
+          {formatPercent(state.markets?.bankRate ?? 0)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Current Bank Rate
+        </div>
+      </div>
+    </div>
+  );
+};
