@@ -46,7 +46,8 @@ export function readBudgetDraft(turn?: number): BudgetDraft | null {
     }
 
     return parsed as BudgetDraft;
-  } catch {
+  } catch (error) {
+    console.warn('[BudgetDraft] Failed to read draft from localStorage:', error);
     return null;
   }
 }
@@ -55,8 +56,8 @@ export function writeBudgetDraft(draft: BudgetDraft): void {
   try {
     localStorage.setItem(BUDGET_DRAFT_STORAGE_KEY, JSON.stringify(draft));
     emitBudgetDraftUpdate();
-  } catch {
-    // Ignore storage failures; draft state remains in memory.
+  } catch (error) {
+    console.warn('[BudgetDraft] Failed to persist draft to localStorage:', error);
   }
 }
 
@@ -64,8 +65,8 @@ export function clearBudgetDraft(): void {
   try {
     localStorage.removeItem(BUDGET_DRAFT_STORAGE_KEY);
     emitBudgetDraftUpdate();
-  } catch {
-    // Ignore storage failures; clearing the persisted draft is best-effort.
+  } catch (error) {
+    console.warn('[BudgetDraft] Failed to clear draft from localStorage:', error);
   }
 }
 

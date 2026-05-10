@@ -165,8 +165,6 @@ export interface MPSystemState {
   promises: Map<string, MPPromise>;
   concernProfiles: Map<string, MPConcernProfile>;
   activeGroups: MPGroup[];
-  selectedMPForDetail: string | null;
-  filterSettings: MPFilterSettings;
   currentBudgetSupport: Map<string, DetailedMPStance>;
 }
 
@@ -325,8 +323,6 @@ export function createInitialMPSystem(): MPSystemState {
     promises: new Map(),
     concernProfiles: new Map(),
     activeGroups: [],
-    selectedMPForDetail: null,
-    filterSettings: {},
     currentBudgetSupport: new Map(),
   };
 }

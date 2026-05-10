@@ -2,7 +2,6 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import {
   AdviserSystemState,
   generateAdviserOpinions,
-  AdviserSidebar,
   AdviserModal,
   AdviserType,
   SimulationState,
@@ -3778,6 +3777,75 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
       </div>
 
+      {/* Adviser Briefing Ribbon */}
+      {(() => {
+        const hiredAdvisers = adviserSystem?.hiredAdvisers;
+        let advisersList: any[] = [];
+        let hasAdvisers = false;
+        if (hiredAdvisers instanceof Map) {
+          hasAdvisers = hiredAdvisers.size > 0;
+          advisersList = Array.from(hiredAdvisers.values());
+        } else if (typeof hiredAdvisers === 'object' && hiredAdvisers !== null) {
+          const keys = Object.keys(hiredAdvisers);
+          hasAdvisers = keys.length > 0;
+          advisersList = Object.values(hiredAdvisers);
+        }
+
+        if (!hasAdvisers) return null;
+
+        const getOpinion = (type: string) => {
+          if (adviserOpinions instanceof Map) {
+            return adviserOpinions.get(type as AdviserType);
+          } else if (typeof adviserOpinions === 'object' && adviserOpinions !== null) {
+            return (adviserOpinions as any)[type];
+          }
+          return undefined;
+        };
+
+        const severityColour = (severity: string) => {
+          switch (severity) {
+            case 'critical':
+              return 'bg-bad text-white';
+            case 'warning':
+              return 'bg-warning text-white';
+            case 'caution':
+              return 'bg-warning/60 text-white';
+            case 'supportive':
+              return 'bg-good text-white';
+            default:
+              return 'bg-border-strong text-secondary';
+          }
+        };
+
+        return (
+          <div className="border-b border-border-strong bg-bg-elevated/80">
+            <div className="px-6 py-2.5 flex items-center gap-4">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="w-1 h-4 bg-primary" />
+                <span className="text-xs uppercase tracking-widest text-tertiary font-semibold">Adviser Briefing</span>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {advisersList.map((hired: any) => {
+                  if (!hired?.profile) return null;
+                  const opinion = getOpinion(hired.profile.type);
+                  if (!opinion) return null;
+                  return (
+                    <button
+                      key={hired.profile.type}
+                      onClick={() => setShowAdviserDetail(hired.profile.type)}
+                      className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity ${severityColour(opinion.overallAssessment)}`}
+                    >
+                      <span>{hired.profile.name.split(' ').pop()}</span>
+                      <span className="opacity-70">{opinion.warnings.length > 0 ? `(${opinion.warnings.length}!)` : ''}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Fiscal Impact Summary Bar */}
       <div className="border-b border-border-strong bg-bg-elevated sticky top-0 z-10">
         <div className="px-6 py-3">
@@ -4943,29 +5011,6 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               </button>
             </div>
           </div>
-
-          {/* Adviser Sidebar */}
-          {(() => {
-            const hiredAdvisers = adviserSystem?.hiredAdvisers;
-            let hasAdvisers = false;
-            if (hiredAdvisers instanceof Map) {
-              hasAdvisers = hiredAdvisers.size > 0;
-            } else if (typeof hiredAdvisers === 'object' && hiredAdvisers !== null) {
-              hasAdvisers = Object.keys(hiredAdvisers).length > 0;
-            }
-
-            return hasAdvisers ? (
-              <div className="w-96 flex-shrink-0">
-                <div className="sticky top-24">
-                  <AdviserSidebar
-                    advisers={hiredAdvisers as any}
-                    opinions={adviserOpinions}
-                    onShowDetail={setShowAdviserDetail}
-                  />
-                </div>
-              </div>
-            ) : null;
-          })()}
         </div>
       </div>
 

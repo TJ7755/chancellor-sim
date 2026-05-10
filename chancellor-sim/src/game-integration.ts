@@ -4,6 +4,46 @@
 // This file bridges the existing system files with the new unified game state
 
 // ===========================
+// Baseline Constants (July 2024 starting values)
+// ===========================
+// These are the source of truth for all baseline/reference values used in
+// turn-processor calculations. They must match the factory function values
+// in createInitialFiscalState() and createInitialEconomicState().
+
+export const BASELINE_NHS_CURRENT_SPENDING_BN = 168.4;
+export const BASELINE_EDUCATION_CURRENT_SPENDING_BN = 104.0;
+export const BASELINE_DEFENCE_CURRENT_SPENDING_BN = 39.0;
+export const BASELINE_WELFARE_CURRENT_SPENDING_BN = 290.0;
+export const BASELINE_INFRASTRUCTURE_CURRENT_SPENDING_BN = 20.0;
+export const BASELINE_POLICE_CURRENT_SPENDING_BN = 18.5;
+export const BASELINE_JUSTICE_CURRENT_SPENDING_BN = 12.7;
+export const BASELINE_OTHER_CURRENT_SPENDING_BN = 306.0;
+
+export const BASELINE_NHS_CAPITAL_SPENDING_BN = 12.0;
+export const BASELINE_EDUCATION_CAPITAL_SPENDING_BN = 12.0;
+export const BASELINE_DEFENCE_CAPITAL_SPENDING_BN = 16.6;
+export const BASELINE_INFRASTRUCTURE_CAPITAL_SPENDING_BN = 80.0;
+export const BASELINE_POLICE_CAPITAL_SPENDING_BN = 0.5;
+export const BASELINE_JUSTICE_CAPITAL_SPENDING_BN = 0.3;
+export const BASELINE_OTHER_CAPITAL_SPENDING_BN = 20.0;
+
+export const BASELINE_TOTAL_CAPITAL_SPENDING_BN = 141.4;
+export const BASELINE_OTHER_CURRENT_COMBINED_BN = 337.2;
+export const BASELINE_EDUCATION_TOTAL_SPENDING_BN = 116;
+export const BASELINE_INFRASTRUCTURE_TOTAL_SPENDING_BN = 100;
+
+export const BASELINE_INCOME_TAX_BASIC_RATE = 20;
+export const BASELINE_INCOME_TAX_HIGHER_RATE = 40;
+export const BASELINE_INCOME_TAX_ADDITIONAL_RATE = 45;
+export const BASELINE_NI_EMPLOYEE_RATE = 8;
+export const BASELINE_NI_EMPLOYER_RATE = 13.8;
+export const BASELINE_VAT_RATE = 20;
+export const BASELINE_CORPORATION_TAX_RATE = 25;
+
+export const BASELINE_NOMINAL_GDP_BN = 2750;
+export const BASELINE_DEFICIT_BN = 87;
+
+// ===========================
 // Fiscal Rules Framework
 // ===========================
 
@@ -1535,13 +1575,11 @@ export interface PoliticalState {
   pmTrustHistory?: number[];
   reshuffleEvent?: any;
   polling?: any;
-  opinionFactors?: any;
   manifestoBreaches?: {
     taxLocks: number;
     spendingPledges: number;
     fiscalRules: number;
   };
-  significantEvents?: any[];
   creditRating?: 'AAA' | 'AA+' | 'AA' | 'AA-' | 'A+' | 'A';
   creditRatingOutlook?: 'stable' | 'negative' | 'positive';
 }
@@ -1575,7 +1613,6 @@ export function createInitialPoliticalState(): PoliticalState {
     backbenchers: [],
     pmTrustHistory: [75],
     manifestoBreaches: { taxLocks: 0, spendingPledges: 0, fiscalRules: 0 },
-    significantEvents: [],
     creditRating: 'AA-',
     creditRatingOutlook: 'negative',
   };
@@ -1663,14 +1700,69 @@ export interface Adviser {
   hired: boolean;
 }
 
+export interface AdviserConflict {
+  id: string;
+  adviserIdA: string;
+  adviserIdB: string;
+  description: string;
+  turnTriggered: number;
+  resolved: boolean;
+  sidesWithAdviser: string | null;
+}
+
+export interface ConflictResolutionRecord {
+  conflictId: string;
+  sidesWithAdviser: string;
+  turn: number;
+  losingAdviserLoyaltyPenalty: number;
+}
+
+export interface AdviserSynergy {
+  adviserIds: string[];
+  synergyKey: string;
+  description: string;
+  bonusDescription: string;
+}
+
+export interface AdviserInterventionEffect {
+  credibilityChange?: number;
+  backbenchSatisfactionChange?: number;
+  approvalChange?: number;
+  pmTrustChange?: number;
+  gdpGrowthBoost?: number;
+  inflationRisk?: number;
+  fiscalHeadroomChange_bn?: number;
+  serviceQualityTarget?: string;
+  serviceQualityChange?: number;
+  whipStrengthChange?: number;
+  boostDurationTurns?: number;
+}
+
+export interface AdviserIntervention {
+  id: string;
+  adviserId: string;
+  adviserName: string;
+  title: string;
+  description: string;
+  mechanicalEffect: AdviserInterventionEffect;
+  acceptLabel: string;
+  declineLabel: string;
+  resolved: boolean;
+  accepted: boolean | null;
+  turn: number;
+}
+
 export interface AdviserSystem {
   advisers: Adviser[];
   maxAdvisers: number;
   hiredAdvisers?: Map<string, any>;
   availableAdvisers?: Set<string>;
   currentOpinions?: Map<string, any>;
-  showDetailedView?: string | null;
   adviserEvents?: any[];
+  activeConflicts?: AdviserConflict[];
+  conflictResolutionHistory?: ConflictResolutionRecord[];
+  activeSynergies?: AdviserSynergy[];
+  pendingInterventions?: AdviserIntervention[];
 }
 
 export function createInitialAdviserSystem(): AdviserSystem {
@@ -1687,8 +1779,11 @@ export function createInitialAdviserSystem(): AdviserSystem {
       'technocratic_centrist',
     ]),
     currentOpinions: new Map(),
-    showDetailedView: null,
     adviserEvents: [],
+    activeConflicts: [],
+    conflictResolutionHistory: [],
+    activeSynergies: [],
+    pendingInterventions: [],
   };
 }
 

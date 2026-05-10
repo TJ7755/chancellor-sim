@@ -114,4 +114,47 @@ describe('save validation', () => {
     expect(result.success).toBe(false);
     expect(result.error).toContain('currentTurn');
   });
+
+  it('accepts a save missing optional newer slices', () => {
+    const minimalState = {
+      metadata: { currentTurn: 0, gameStarted: true, gameOver: false, difficultyMode: 'standard' },
+      economic: { gdpNominal_bn: 2750, gdpGrowthAnnual: 1.5, inflationCPI: 2.0, unemploymentRate: 4.25, wageGrowthAnnual: 5.0 },
+      fiscal: { deficitPctGDP: 3.0, debtPctGDP: 95, totalRevenue_bn: 1100, totalSpending_bn: 1150, fiscalHeadroom_bn: 10 },
+      political: { governmentApproval: 45, chancellorApproval: 50, backbenchSatisfaction: 60, pmTrust: 65, credibilityIndex: 55 },
+    };
+    const serialisedState = JSON.stringify(minimalState);
+    const raw = JSON.stringify(buildSaveEnvelope(minimalState as any, serialisedState));
+
+    const result = validateSave(raw);
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a save with a malformed markets slice', () => {
+    const badState = {
+      ...baseState,
+      markets: { bankRate: 'not-a-number', giltYield10y: 4.1 },
+    };
+    const serialisedState = JSON.stringify(badState);
+    const raw = JSON.stringify(buildSaveEnvelope(badState, serialisedState));
+
+    const result = validateSave(raw);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('markets.bankRate');
+  });
+
+  it('rejects a save with a malformed distributional slice', () => {
+    const badState = {
+      ...baseState,
+      distributional: { giniCoefficient: 'corrupted', povertyRate: 17.5, bottomQuintileRealIncomeGrowth: 0 },
+    };
+    const serialisedState = JSON.stringify(badState);
+    const raw = JSON.stringify(buildSaveEnvelope(badState, serialisedState));
+
+    const result = validateSave(raw);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('distributional.giniCoefficient');
+  });
 });

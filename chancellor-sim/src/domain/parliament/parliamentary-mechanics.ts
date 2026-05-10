@@ -1,6 +1,5 @@
 import type { GameState } from '../../game-state';
 import type { DetailedTaxItem, DetailedSpendingItem } from '../../game-integration';
-import type { DetailedMPStance } from '../../mp-system';
 
 export function applyPendingBudgetChange(
   fiscal: GameState['fiscal'],
