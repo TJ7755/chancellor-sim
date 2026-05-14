@@ -500,6 +500,7 @@ export interface GameActions {
   recordSocialMediaTemplates: (templateIds: string[], turn: number) => void;
   setSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
   updateSpendingReviewPlans: (plans: SpendingReviewState['departments']) => void;
+  cancelSpendingReview: () => void;
   setDebtIssuanceStrategy: (strategy: DebtManagementState['issuanceStrategy']) => void;
 }
 
@@ -3070,6 +3071,16 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
   }, []);
 
+  const cancelSpendingReview = useCallback(() => {
+    setGameState((prevState) => ({
+      ...prevState,
+      spendingReview: {
+        ...prevState.spendingReview,
+        inReview: false,
+      },
+    }));
+  }, []);
+
   const setDebtIssuanceStrategy = useCallback((strategy: DebtManagementState['issuanceStrategy']) => {
     setGameState((prevState) => ({
       ...prevState,
@@ -3100,6 +3111,7 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
     recordSocialMediaTemplates,
     setSpendingReviewPlans,
     updateSpendingReviewPlans,
+    cancelSpendingReview,
     setDebtIssuanceStrategy,
   };
 

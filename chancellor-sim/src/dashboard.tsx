@@ -569,6 +569,13 @@ export const EconomicPanel: React.FC<{ state: any }> = ({ state }) => {
           status={((state.economic?.wageGrowthAnnual ?? 0) - (state.economic?.inflationCPI ?? 0)) > 0 ? 'good' : 'bad'}
         />
       </div>
+
+      <div className="hm-panel-compact text-center flex flex-col justify-center bg-gray-50 border-dashed border-2 border-gray-300">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detailed Analysis</h3>
+        <div className="text-xs text-gray-600 px-2">
+          View full economic, fiscal, political and market data in the Analysis tab.
+        </div>
+      </div>
     </div>
   );
 };
@@ -1120,13 +1127,7 @@ export const EssentialMetricsGrid: React.FC<{ state: any; mode?: string }> = ({ 
         </div>
       </div>
 
-      <div className="hm-panel-compact text-center flex flex-col justify-center bg-gray-50 border-dashed border-2 border-gray-300">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detailed Analysis</h3>
-        <div className="text-xs text-gray-600 px-2">
-          View full economic, fiscal, political and market data in the Analysis tab.
-        </div>
-      </div>
-      
+
       <div className="hm-panel-compact">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Fiscal Headroom</h3>
         <div className="text-2xl font-bold number-font text-gray-900 mb-0.5">
@@ -1144,6 +1145,13 @@ export const EssentialMetricsGrid: React.FC<{ state: any; mode?: string }> = ({ 
         </div>
         <div className="text-xs text-gray-500">
           Current Bank Rate
+        </div>
+      </div>
+
+      <div className="hm-panel-compact text-center flex flex-col justify-center bg-gray-50 border-dashed border-2 border-gray-300">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Detailed Analysis</h3>
+        <div className="text-xs text-gray-600 px-2">
+          View full economic, fiscal, political and market data in the Analysis tab.
         </div>
       </div>
     </div>

@@ -3243,10 +3243,17 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // Format display value
     const formatValue = (val: number): string => {
-      if (isThreshold && tax.currentRate >= 100000) {
-        return `£${(val / 1000).toFixed(0)}k`;
+      if (isThreshold) {
+        if (Math.abs(val) >= 1000000) {
+          return `£${(val / 1000000).toFixed(1)}m`;
+        }
+        return `£${Math.round(val).toLocaleString('en-GB')}`;
       }
-      if (tax.unit === '£') return val.toFixed(0);
+
+      if (tax.unit === '£') {
+        return `£${Math.round(val).toLocaleString('en-GB')}`;
+      }
+
       if (tax.unit === 'p/litre') return val.toFixed(2);
       return val.toFixed(1);
     };
@@ -3269,19 +3276,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           </div>
           <div className="text-right">
             <div className="text-2xl font-bold text-grey-900">
-              {isThreshold && tax.currentRate >= 100000
-                ? `£${(tax.proposedRate / 1000).toFixed(0)}k`
-                : `${formatValue(tax.proposedRate)}`
-              }
-              {!(isThreshold && tax.currentRate >= 100000) && (
+              {formatValue(tax.proposedRate)}
+              {!isThreshold && (
                 <span className="text-sm font-normal text-grey-600 ml-1">{tax.unit}</span>
               )}
             </div>
             {change !== 0 && (
               <div className={`text-sm font-semibold ${changeColour}`}>
                 {change > 0 ? '+' : ''}{isThreshold && tax.currentRate >= 100000
-                  ? `£${(change / 1000).toFixed(1)}k`
-                  : `${formatValue(change)}${tax.unit}`
+                  ? `£${(change / 1000000).toFixed(1)}m`
+                  : `${formatValue(change)}${!isThreshold ? tax.unit : ''}`
                 }
               </div>
             )}
@@ -3306,7 +3310,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <span className="text-sm text-grey-600 min-w-[4rem]">{tax.unit}</span>
           </div>
           <div className="text-xs text-grey-500">
-            Current: <span className="font-semibold text-grey-700">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
+            Current: <span className="font-semibold text-grey-700">{formatValue(tax.currentRate)}{!isThreshold ? tax.unit : ''}</span>
           </div>
         </div>
 

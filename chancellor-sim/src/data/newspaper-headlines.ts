@@ -1020,7 +1020,7 @@ export const NEWSPAPER_HEADLINES: HeadlineEntry[] = [
             },
             'centre-left': {
                 headline: 'Law and Order in Crisis',
-                subheading: 'Police numbers fail to keep pace with rising tide of anti-social behavior.'
+                subheading: 'Police numbers fail to keep pace with rising tide of anti-social behaviour.'
             },
             'centre-right': {
                 headline: 'Safety First: The Need for Robust Policing',

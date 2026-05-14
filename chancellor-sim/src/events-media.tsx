@@ -629,6 +629,22 @@ const EVENT_TEMPLATES: EventTemplate[] = [
 
 let eventIdCounter = 0;
 
+function resolveStateDate(state: any): Date {
+  if (state?.currentDate instanceof Date && !Number.isNaN(state.currentDate.getTime())) {
+    return state.currentDate;
+  }
+
+  if (state?.metadata?.currentDate instanceof Date && !Number.isNaN(state.metadata.currentDate.getTime())) {
+    return state.metadata.currentDate;
+  }
+
+  if (state?.metadata?.currentYear !== undefined && state?.metadata?.currentMonth !== undefined) {
+    return new Date(state.metadata.currentYear, state.metadata.currentMonth - 1, 1);
+  }
+
+  return new Date(2024, 6, 1);
+}
+
 export function generateEvents(state: any): RandomEvent[] {
   const events: RandomEvent[] = [];
 
@@ -645,7 +661,7 @@ export function generateEvents(state: any): RandomEvent[] {
         ...event,
         id: `event_${eventIdCounter++}_${Date.now()}`,
         month: state.metadata?.currentMonth ?? 1,
-        date: new Date(state.metadata?.currentYear ?? 2024, (state.metadata?.currentMonth ?? 1) - 1)
+        date: resolveStateDate(state)
       });
     }
   }
@@ -1545,7 +1561,7 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
     secondaryPageHeadlines,
     oppositionQuote,
     month: state.metadata?.currentMonth ?? 1,
-    date: new Date(state.metadata?.currentYear ?? 2024, (state.metadata?.currentMonth ?? 1) - 1),
+    date: resolveStateDate(state),
     isSpecialEdition: !!event
   };
 }

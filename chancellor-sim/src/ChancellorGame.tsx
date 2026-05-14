@@ -1912,12 +1912,12 @@ const GameInner: React.FC = () => {
                 fiscalRuleMet: gameState.political.fiscalRuleCompliance?.overallCompliant ?? true,
               }}
               onExecuteOneClick={(result: OneClickActionResult) => {
-                if (typeof (actions as any).applyOneClickManifestoAction === 'function') {
-                  (actions as any).applyOneClickManifestoAction(result);
-                } else {
-                  // TODO: wire up once applyOneClickManifestoAction is added to GameActions
-                  console.warn('[Manifesto] One-click action not yet wired to game actions:', result);
+                if (!result.success) {
+                  console.warn('[Manifesto] One-click action failed:', result.message);
+                  return;
                 }
+
+                actions.executeManifestoOneClick(result.pledgeId);
               }}
             />
           </div>
@@ -1999,6 +1999,7 @@ const GameInner: React.FC = () => {
           spendingReview={gameState.spendingReview}
           fiscalHeadroom_bn={gameState.fiscal.fiscalHeadroom_bn}
           onConfirm={(plans) => actions.setSpendingReviewPlans(plans)}
+          onCancel={() => actions.cancelSpendingReview()}
         />
       )}
 

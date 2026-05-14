@@ -117,7 +117,7 @@ export const ADVISER_OPINIONS: AdviserOpinionTemplate[] = [
         severity: 'critical',
         title: 'Sovereign Debt Crisis Imminent',
         description: 'Debt exceeding 100% of GDP is a psychological barrier for markets. We look like Italy without the sunshine.',
-        consequences: 'Total loss of market access. IMF bailout program.'
+        consequences: 'Total loss of market access. IMF bailout programme.'
     },
 
     // ===========================================================================
