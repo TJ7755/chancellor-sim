@@ -211,7 +211,7 @@ const INTERACTION_TEMPLATES: InteractionTemplate[] = [
         approaches: ['threaten'],
         outcomes: ['success'],
         maxRebelliousness: 2,
-        text: '{name} looks visibly shaken. "I... I didn\'t realize it was so serious. I\'ll vote as instructed."'
+        text: "{name} looks visibly shaken. \"I... I didn't realise it was so serious. I'll vote as instructed.\""
     },
     {
         id: 'promise_failure_unreliable',

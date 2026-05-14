@@ -5,6 +5,7 @@ interface SpendingReviewModalProps {
   spendingReview: SpendingReviewState;
   fiscalHeadroom_bn: number;
   onConfirm: (departments: SpendingReviewState['departments']) => void;
+  onCancel: () => void;
 }
 
 const departmentOrder: Array<keyof SpendingReviewState['departments']> = [
@@ -21,6 +22,7 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
   spendingReview,
   fiscalHeadroom_bn,
   onConfirm,
+  onCancel,
 }) => {
   const [departments, setDepartments] = useState<SpendingReviewState['departments']>(() => {
     const next = { ...spendingReview.departments };
@@ -113,6 +115,12 @@ export const SpendingReviewModal: React.FC<SpendingReviewModalProps> = ({
           })}
         </div>
         <div className="p-5 border-t border-gray-200 flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-sm hover:bg-gray-50"
+          >
+            Cancel
+          </button>
           <button
             onClick={() => onConfirm(departments)}
             className="px-4 py-2 bg-blue-700 text-white rounded-sm hover:bg-blue-800"
