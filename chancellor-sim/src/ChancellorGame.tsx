@@ -1765,6 +1765,9 @@ const GameInner: React.FC = () => {
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [saveSlotName, setSaveSlotName] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveLoadMessage, setSaveLoadMessage] = useState<string | null>(null);
+  const [manifestoActionMessage, setManifestoActionMessage] = useState<string | null>(null);
+  const [dismissedNewspaperKey, setDismissedNewspaperKey] = useState<string | null>(null);
   const [lobbyingMPId, setLobbyingMPId] = useState<string | null>(null);
   const [detailMPId, setDetailMPId] = useState<string | null>(null);
 
@@ -1798,6 +1801,9 @@ const GameInner: React.FC = () => {
 
   // Get current newspaper
   const currentNewspaper = (gameState.events as any)?.currentNewspaper as NewsArticle | null;
+  const currentNewspaperKey = currentNewspaper
+    ? `${currentNewspaper.month}:${currentNewspaper.headline}`
+    : null;
 
   // Count hired advisers - handle both Map (runtime) and plain object (after JSON parse)
   const hiredAdvisers = (gameState.advisers as any)?.hiredAdvisers;
@@ -1813,8 +1819,6 @@ const GameInner: React.FC = () => {
   // Handle advancing turn and showing newspaper
   const handleAdvanceTurn = () => {
     actions.advanceTurn();
-    // Show newspaper after a short delay so state updates first
-    setTimeout(() => setShowNewspaper(true), 100);
   };
 
   // Handle event response
@@ -1842,6 +1846,29 @@ const GameInner: React.FC = () => {
       {gameState.parliamentary.lordsDelayActive && (
         <div className="bg-amber-100 border-y border-amber-300 px-6 py-2 text-amber-900 text-sm">
           Lords Scrutiny: {gameState.parliamentary.lordsDelayTurnsRemaining} turns remaining. Delayed bill type: {gameState.parliamentary.lordsDelayBillType || 'budget package'}.
+        </div>
+      )}
+
+      {currentNewspaper && currentNewspaperKey !== dismissedNewspaperKey && !showNewspaper && (
+        <div className="bg-slate-900 text-white border-b border-slate-700 px-6 py-3 flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-wide text-slate-300">{currentNewspaper.newspaper.name}</div>
+            <div className="font-semibold truncate">{currentNewspaper.headline}</div>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => setShowNewspaper(true)}
+              className="px-3 py-1.5 bg-white text-slate-900 rounded-sm text-sm font-semibold hover:bg-slate-100"
+            >
+              Read
+            </button>
+            <button
+              onClick={() => setDismissedNewspaperKey(currentNewspaperKey)}
+              className="px-3 py-1.5 border border-slate-500 text-slate-200 rounded-sm text-sm font-semibold hover:bg-slate-800"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -1912,14 +1939,19 @@ const GameInner: React.FC = () => {
                 fiscalRuleMet: gameState.political.fiscalRuleCompliance?.overallCompliant ?? true,
               }}
               onExecuteOneClick={(result: OneClickActionResult) => {
-                if (typeof (actions as any).applyOneClickManifestoAction === 'function') {
-                  (actions as any).applyOneClickManifestoAction(result);
+                if (result.success) {
+                  actions.executeManifestoOneClick(result.pledgeId);
+                  setManifestoActionMessage(result.message);
                 } else {
-                  // TODO: wire up once applyOneClickManifestoAction is added to GameActions
-                  console.warn('[Manifesto] One-click action not yet wired to game actions:', result);
+                  setManifestoActionMessage(result.message);
                 }
               }}
             />
+            {manifestoActionMessage && (
+              <div className="mt-4 bg-amber-50 border border-amber-300 rounded-sm px-4 py-3 text-sm text-amber-900">
+                {manifestoActionMessage}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2015,7 +2047,8 @@ const GameInner: React.FC = () => {
                   value={saveSlotName}
                   onChange={(e) => {
                     setSaveSlotName(e.target.value);
-                    setLoadError(null); // Clear error when typing
+                    setLoadError(null);
+                    setSaveLoadMessage(null);
                   }}
                   placeholder="e.g. my-save-1"
                   className="w-full border border-gray-300 rounded-sm px-3 py-2 text-sm"
@@ -2025,13 +2058,24 @@ const GameInner: React.FC = () => {
                     {loadError}
                   </div>
                 )}
+                {saveLoadMessage && (
+                  <div className="mt-2 bg-green-50 border border-green-300 rounded-sm px-3 py-2 text-sm text-green-800">
+                    {saveLoadMessage}
+                  </div>
+                )}
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
                     if (saveSlotName.trim()) {
-                      actions.saveGame(saveSlotName.trim());
-                      setShowSaveLoad(false);
+                      const result = actions.saveGame(saveSlotName.trim());
+                      if (!result.success) {
+                        setLoadError(result.error || 'Save failed.');
+                        setSaveLoadMessage(null);
+                        return;
+                      }
+                      setLoadError(null);
+                      setSaveLoadMessage('Game saved.');
                     }
                   }}
                   className="flex-1 bg-red-700 text-white py-2 rounded-sm font-semibold hover:bg-red-800"
@@ -2044,9 +2088,11 @@ const GameInner: React.FC = () => {
                       const loaded = actions.loadGame(saveSlotName.trim());
                       if (!loaded) {
                         setLoadError('No save found with that name.');
+                        setSaveLoadMessage(null);
                       } else {
                         setShowSaveLoad(false);
                         setLoadError(null);
+                        setSaveLoadMessage(null);
                       }
                     }
                   }}
