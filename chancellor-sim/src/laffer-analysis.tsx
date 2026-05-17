@@ -16,7 +16,7 @@ function getTaxAvoidanceScale(state: GameState): number {
   return 1.0;
 }
 
-function estimateTaxRevenueAtRate(
+export function estimateTaxRevenueAtRate(
   taxType: LafferTaxType,
   trialRate: number,
   state: GameState,
@@ -34,46 +34,49 @@ function estimateTaxRevenueAtRate(
     case 'incomeTaxBasic': {
       const base = baseIncome + (trialRate - 20) * 7 + (fiscal.incomeTaxHigherRate - 40) * 2 + (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
       const effectiveMarginalRate = trialRate + fiscal.nationalInsuranceRate;
-      const behaviouralFactor = 1 - Math.pow(Math.max(0, (effectiveMarginalRate - 60) / 100), 1.5);
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1) * Math.max(0.25, behaviouralFactor));
+      const behaviouralFactor = 1 - Math.pow(Math.max(0, (effectiveMarginalRate - 48) / 52), 2.1);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1) * Math.max(0.03, behaviouralFactor));
     }
     case 'incomeTaxHigher': {
       const base = baseIncome + (fiscal.incomeTaxBasicRate - 20) * 7 + (trialRate - 40) * 2 + (fiscal.incomeTaxAdditionalRate - 45) * 0.2;
       const effectiveMarginalRate = trialRate + fiscal.nationalInsuranceRate;
-      const behaviouralFactor = 1 - Math.pow(Math.max(0, (effectiveMarginalRate - 62) / 100), 1.5);
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1) * Math.max(0.2, behaviouralFactor));
+      const behaviouralFactor = 1 - Math.pow(Math.max(0, (effectiveMarginalRate - 55) / 45), 2.0);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1) * Math.max(0.03, behaviouralFactor));
     }
     case 'incomeTaxAdditional': {
       const excessRate = Math.max(0, trialRate - 50);
-      const avoidanceLoss = excessRate > 0 ? 54 * (Math.pow(1.016, excessRate) - 1) * taxAvoidanceScale : 0;
+      const avoidanceLoss = excessRate > 0 ? 54 * (Math.pow(1.06, excessRate) - 1) * taxAvoidanceScale : 0;
       const base = baseIncome + (fiscal.incomeTaxBasicRate - 20) * 7 + (fiscal.incomeTaxHigherRate - 40) * 2 + (trialRate - 45) * 0.2 - avoidanceLoss;
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1));
+      const behaviouralFactor = 1 - Math.pow(Math.max(0, (trialRate - 55) / 45), 2.0);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.1) * Math.max(0.02, behaviouralFactor));
     }
     case 'employeeNI': {
       const excessRate = Math.max(0, trialRate - 12);
-      const avoidanceLoss = excessRate > 0 ? 34 * (Math.pow(1.02, excessRate) - 1) * taxAvoidanceScale : 0;
+      const avoidanceLoss = excessRate > 0 ? 34 * (Math.pow(1.045, excessRate) - 1) * taxAvoidanceScale : 0;
       const base = baseNI + (trialRate - 8) * 6 + (fiscal.employerNIRate - 13.8) * 8.5 - avoidanceLoss;
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0));
+      const behaviouralFactor = 1 - Math.pow(Math.max(0, (trialRate - 18) / 82), 1.8);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0) * Math.max(0.08, behaviouralFactor));
     }
     case 'employerNI': {
       const excessRate = Math.max(0, trialRate - 15);
-      const avoidanceLoss = excessRate > 0 ? 44 * (Math.pow(1.025, excessRate) - 1) * taxAvoidanceScale : 0;
+      const avoidanceLoss = excessRate > 0 ? 44 * (Math.pow(1.05, excessRate) - 1) * taxAvoidanceScale : 0;
       const base = baseNI + (fiscal.nationalInsuranceRate - 8) * 6 + (trialRate - 13.8) * 8.5 - avoidanceLoss;
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0));
+      const behaviouralFactor = 1 - Math.pow(Math.max(0, (trialRate - 18) / 82), 1.8);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0) * Math.max(0.08, behaviouralFactor));
     }
     case 'vat': {
       const excessRate = Math.max(0, trialRate - 20);
-      const behaviouralLoss = excessRate > 0 ? (baseVAT + (trialRate - 20) * 7.5) * (Math.pow(1.02, excessRate) - 1) * taxAvoidanceScale : 0;
+      const behaviouralLoss = excessRate > 0 ? (baseVAT + (trialRate - 20) * 7.5) * (Math.pow(1.035, excessRate) - 1) * taxAvoidanceScale : 0;
       const base = baseVAT + (trialRate - 20) * 7.5 - behaviouralLoss;
-      const lafferFactor = 1 - Math.pow(Math.max(0, (trialRate - 24) / 80), 1.35);
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0) * Math.max(0.3, lafferFactor));
+      const lafferFactor = 1 - Math.pow(Math.max(0, (trialRate - 24) / 76), 1.6);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.0) * Math.max(0.08, lafferFactor));
     }
     case 'corporationTax': {
       const excessRate = Math.max(0, trialRate - 30);
-      const avoidanceLoss = excessRate > 0 ? (baseCorp + (trialRate - 25) * 3.2) * (Math.pow(1.035, excessRate) - 1) * taxAvoidanceScale : 0;
+      const avoidanceLoss = excessRate > 0 ? (baseCorp + (trialRate - 25) * 3.2) * (Math.pow(1.06, excessRate) - 1) * taxAvoidanceScale : 0;
       const base = baseCorp + (trialRate - 25) * 3.2 - avoidanceLoss;
-      const lafferFactor = 1 - Math.pow(Math.max(0, (trialRate - 32) / 75), 1.4);
-      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.05) * Math.max(0.25, lafferFactor));
+      const lafferFactor = 1 - Math.pow(Math.max(0, (trialRate - 32) / 68), 1.7);
+      return Math.max(0, base * Math.pow(nominalGDPRatio, 1.05) * Math.max(0.08, lafferFactor));
     }
     default:
       return 0;

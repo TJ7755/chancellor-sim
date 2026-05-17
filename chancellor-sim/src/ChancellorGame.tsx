@@ -163,7 +163,14 @@ const generateResearchAlignedHistoricalBaseline = (): AnalysisHistoricalSnapshot
     );
   }
 
-  return history;
+  const july2024NominalGDP = 2750;
+  const finalHistoryGDP = history[history.length - 1]?.gdpNominal || july2024NominalGDP;
+  const scale = july2024NominalGDP / finalHistoryGDP;
+
+  return history.map((snapshot) => ({
+    ...snapshot,
+    gdpNominal: Math.round(snapshot.gdpNominal * scale),
+  }));
 };
 
 const ANALYSIS_HISTORICAL_BASELINE = generateResearchAlignedHistoricalBaseline();
@@ -633,7 +640,7 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
           {monthNames[metadata.currentMonth - 1]} {metadata.currentYear}
         </div>
         <div className="text-sm opacity-75">
-          Month {metadata.currentTurn + 1} of 60 • Term Progress:{' '}
+          Month {metadata.currentTurn + 1} of 60 - Term progress:{' '}
           {Math.round((metadata.currentTurn / 60) * 100)}%
         </div>
       </div>
@@ -642,7 +649,7 @@ const TurnPanel: React.FC<{ onAdvanceTurn: () => void }> = ({ onAdvanceTurn }) =
         onClick={onAdvanceTurn}
         className="bg-white text-red-700 font-bold py-3 px-8 rounded-sm hover:bg-gray-100 transition-colors text-lg"
       >
-        Advance to Next Month →
+        Advance to Next Month
       </button>
     </div>
   );

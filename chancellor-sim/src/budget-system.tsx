@@ -11,7 +11,7 @@ import { GameState, SpendingReviewState, useGameActions, useGameState, serialize
 import { simulateEnhancedParliamentaryVote, detectBrokenPromises } from './mp-system';
 import { batchRecordBudgetVotes, markPromiseBroken } from './mp-storage';
 import { FISCAL_RULES, FiscalRuleId, getFiscalRuleById, calculateRuleHeadroom, getRuleHeadroomLabel, PolicyRiskModifier } from './game-integration';
-import { calculateLafferPoint, getLafferTaxTypeForControlId } from './laffer-analysis';
+import { calculateLafferPoint, estimateTaxRevenueAtRate, getLafferTaxTypeForControlId } from './laffer-analysis';
 import { INDUSTRIAL_INTERVENTION_CATALOGUE } from './data/industrial-interventions';
 
 // ============================================================================
@@ -726,11 +726,11 @@ const INITIAL_TAXES = {
   stampDuty: {
     id: 'stampDuty',
     name: 'Stamp Duty Land Tax',
-    currentRate: 0, // Variable rate structure
-    proposedRate: 0,
+    currentRate: 5,
+    proposedRate: 5,
     currentRevenue: 14,
     projectedRevenue: 14,
-    unit: 'System'
+    unit: '%'
   },
   fuelDuty: {
     id: 'fuelDuty',
@@ -1776,6 +1776,17 @@ const WELFARE_SPENDING_ITEM_IDS = [
   'childBenefit',
 ];
 
+const BARNETT_COMPARABLE_SPENDING_ITEM_IDS = [
+  ...NHS_SPENDING_ITEM_IDS,
+  ...EDUCATION_SPENDING_ITEM_IDS,
+  'railSubsidy',
+  'nationalRoads',
+  'localRoads',
+  'hs2',
+  'localGovernmentGrants',
+  'housingCapital',
+];
+
 const SPENDING_REVIEW_DEPARTMENT_ORDER: Array<keyof SpendingReviewState['departments']> = [
   'nhs',
   'education',
@@ -2044,6 +2055,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [
     gameState.metadata.currentTurn,
     pmComplianceEventCount,
+    gameState.fiscal,
     gameState.fiscal.ucTaperRate,
     gameState.fiscal.workAllowanceMonthly,
     gameState.fiscal.childcareSupportRate,
@@ -2109,6 +2121,22 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     () => sumSpendingItems(spending, NHS_SPENDING_ITEM_IDS, 'currentBudget'),
     [spending]
   );
+  const barnettPreview = useMemo(() => {
+    const comparableChange = BARNETT_COMPARABLE_SPENDING_ITEM_IDS.reduce((sum, id) => {
+      const item = spending.get(id);
+      return sum + (item ? item.proposedBudget - item.currentBudget : 0);
+    }, 0);
+    const multiplier = gameState.devolution.barnettConsequentialMultiplier || 1;
+    const scotland = comparableChange * 0.0998 * multiplier;
+    const wales = comparableChange * 0.0597 * multiplier;
+    const northernIreland = comparableChange * 0.0348 * multiplier;
+    return {
+      scotland,
+      wales,
+      northernIreland,
+      total: scotland + wales + northernIreland,
+    };
+  }, [spending, gameState.devolution.barnettConsequentialMultiplier]);
 
   // ============================================================================
   // CALCULATIONS
@@ -2119,13 +2147,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     let totalRevenueChange = 0;
     taxes.forEach((tax) => {
       if (tax.currentRate !== tax.proposedRate) {
-        const rateChange = tax.proposedRate - tax.currentRate;
-        const reckoner = TAX_RECKONERS[tax.id as keyof typeof TAX_RECKONERS];
-        if (reckoner) {
-          if (THRESHOLD_TAX_IDS.has(tax.id)) {
-            totalRevenueChange += reckoner * (rateChange / 1000);
-          } else {
-            totalRevenueChange += reckoner * rateChange;
+        const lafferTaxType = getLafferTaxTypeForControlId(tax.id);
+        if (lafferTaxType) {
+          totalRevenueChange +=
+            estimateTaxRevenueAtRate(lafferTaxType, tax.proposedRate, gameState as any) -
+            estimateTaxRevenueAtRate(lafferTaxType, tax.currentRate, gameState as any);
+        } else {
+          const rateChange = tax.proposedRate - tax.currentRate;
+          const reckoner = TAX_RECKONERS[tax.id as keyof typeof TAX_RECKONERS];
+          if (reckoner) {
+            if (THRESHOLD_TAX_IDS.has(tax.id)) {
+              totalRevenueChange += reckoner * (rateChange / 1000);
+            } else {
+              totalRevenueChange += reckoner * rateChange;
+            }
           }
         }
       }
@@ -2147,9 +2182,6 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         Math.max(0, (gameState.fiscal.childcareSupportRate - 30) / 10) * 1.2
       );
 
-    const thresholdPolicyRevenueDelta =
-      (thresholdUprating === 'frozen' ? 3.5 : thresholdUprating === 'earnings_linked' ? -1.5 : 0) -
-      ((gameState.fiscal.thresholdUprating || 'frozen') === 'frozen' ? 3.5 : (gameState.fiscal.thresholdUprating || 'frozen') === 'earnings_linked' ? -1.5 : 0);
     const fullExpensingRevenueDelta = (fullExpensing ? -3.5 : 0) - (gameState.fiscal.fullExpensing ? -3.5 : 0);
     const antiAvoidanceRevenueDelta = ((antiAvoidanceInvestment - 0.3) * 1.1) - (((gameState.fiscal.antiAvoidanceInvestment_bn || 0.3) - 0.3) * 1.1);
     const hmrcSystemsRevenueDelta = ((hmrcSystemsInvestment - 0.3) * 0.6) - (((gameState.fiscal.hmrcSystemsInvestment_bn || 0.3) - 0.3) * 0.6);
@@ -2158,6 +2190,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       return sum + (intervention?.annualCost_bn || 0);
     }, 0);
     const localGovernmentGrantDelta = localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30);
+    const barnettDelta = barnettPreview.total - (gameState.fiscal.barnettConsequentials_bn || 0);
 
     // Baseline fiscal position (from game state - reflects any previous budget submissions)
     const currentDeficit = gameState.fiscal.deficit_bn; // Current deficit from game state
@@ -2168,8 +2201,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       totalSpendingChange +
       welfareLeverSpendingDelta +
       selectedIndustrialCostDelta +
-      localGovernmentGrantDelta -
-      (totalRevenueChange + thresholdPolicyRevenueDelta + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta);
+      localGovernmentGrantDelta +
+      barnettDelta -
+      (totalRevenueChange + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta);
     const projectedDebt = currentDebt + projectedDeficit;
     const debtGDPRatio = (projectedDebt / nominalGDP) * 100;
 
@@ -2178,8 +2212,8 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
     // Calculate what fiscal metrics would be AFTER the proposed changes
     // Use current gameState fiscal data + proposed changes
-    const proposedTotalRevenue = gameState.fiscal.totalRevenue_bn + totalRevenueChange + thresholdPolicyRevenueDelta + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta;
-    const proposedTotalSpending = gameState.fiscal.totalSpending_bn + totalSpendingChange + welfareLeverSpendingDelta + selectedIndustrialCostDelta + localGovernmentGrantDelta;
+    const proposedTotalRevenue = gameState.fiscal.totalRevenue_bn + totalRevenueChange + fullExpensingRevenueDelta + antiAvoidanceRevenueDelta + hmrcSystemsRevenueDelta;
+    const proposedTotalSpending = gameState.fiscal.totalSpending_bn + totalSpendingChange + welfareLeverSpendingDelta + selectedIndustrialCostDelta + localGovernmentGrantDelta + barnettDelta;
 
     // Calculate actual capital spending change from spending items (not arbitrary 15%)
     let capitalSpendingChange = 0;
@@ -2272,19 +2306,16 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
   }, [
     taxes,
     spending,
-    gameState.political.chosenFiscalRule,
-    gameState.fiscal,
-    gameState.economic,
+    gameState,
     welfareLevers.ucTaperRate,
     welfareLevers.workAllowanceMonthly,
     welfareLevers.childcareSupportRate,
-    thresholdUprating,
     fullExpensing,
     antiAvoidanceInvestment,
     hmrcSystemsInvestment,
     selectedIndustrialInterventions,
     localGovernmentGrantSettlement,
-    gameState.devolution.localGov.centralGrant_bn,
+    barnettPreview.total,
   ]);
 
   const warnings = useMemo((): AdviserWarning[] => {
@@ -3068,14 +3099,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     // Calculate revenue adjustment from all OTHER tax changes
-    // (taxes beyond the 7 rates the turn processor models: income tax x3, NI x2, VAT, corp tax)
-    const mainTaxIds = new Set([
+    // Taxes modelled directly by the turn processor must not also be added through the
+    // lump-sum reckoner adjustment. Double-counting tax changes: very clever, if the goal
+    // is fiscal nonsense.
+    const directlyModelledTaxIds = new Set([
       'incomeTaxBasic', 'incomeTaxHigher', 'incomeTaxAdditional',
       'employeeNI', 'employerNI', 'vat', 'corporationTax',
+      'stampDuty', 'sdltAdditionalSurcharge', 'sdltFirstTimeBuyerThreshold',
+      'annualInvestmentAllowance', 'rdTaxCredit',
     ]);
     let otherTaxRevenue = 0;
     taxes.forEach((tax) => {
-      if (!mainTaxIds.has(tax.id) && tax.proposedRate !== tax.currentRate) {
+      if (!directlyModelledTaxIds.has(tax.id) && tax.proposedRate !== tax.currentRate) {
         const rateChange = tax.proposedRate - tax.currentRate;
         const reckoner = TAX_RECKONERS[tax.id];
         if (reckoner) {
@@ -3223,7 +3258,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
   const renderTaxControl = (tax: TaxChange) => {
     const change = tax.proposedRate - tax.currentRate;
-    const changeColour = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-grey-600';
+    const changeColour = change > 0 ? 'text-red-600' : change < 0 ? 'text-green-600' : 'text-gray-600';
     const { min: minRate, max: maxRate } = getTaxRateLimits(tax);
 
     // Determine input step based on tax type and magnitude
@@ -3261,20 +3296,20 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const lafferPeak = lafferTaxType ? calculateLafferPoint(lafferTaxType, gameState as any) : null;
 
     return (
-      <div key={tax.id} className="bg-white border border-grey-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div key={tax.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h4 className="font-semibold text-grey-900">{tax.name}</h4>
-            {revenueLabel && <p className="text-sm text-grey-600">{revenueLabel}</p>}
+            <h4 className="font-semibold text-gray-900">{tax.name}</h4>
+            {revenueLabel && <p className="text-sm text-gray-600">{revenueLabel}</p>}
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-grey-900">
+            <div className="text-2xl font-bold text-gray-900">
               {isThreshold && tax.currentRate >= 100000
                 ? `£${(tax.proposedRate / 1000).toFixed(0)}k`
                 : `${formatValue(tax.proposedRate)}`
               }
               {!(isThreshold && tax.currentRate >= 100000) && (
-                <span className="text-sm font-normal text-grey-600 ml-1">{tax.unit}</span>
+                <span className="text-sm font-normal text-gray-600 ml-1">{tax.unit}</span>
               )}
             </div>
             {change !== 0 && (
@@ -3289,7 +3324,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-grey-600 uppercase tracking-wide">Proposed value</label>
+          <label className="text-xs text-gray-600 uppercase tracking-wide">Proposed value</label>
           <div className="flex items-center gap-2">
             <input
               type="number"
@@ -3301,18 +3336,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 const parsed = parseFloat(e.target.value);
                 handleTaxChange(tax.id, Number.isFinite(parsed) ? parsed : tax.currentRate);
               }}
-              className="w-full border border-grey-300 rounded px-3 py-2 text-grey-900"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-gray-900"
             />
-            <span className="text-sm text-grey-600 min-w-[4rem]">{tax.unit}</span>
+            <span className="text-sm text-gray-600 min-w-[4rem]">{tax.unit}</span>
           </div>
-          <div className="text-xs text-grey-500">
-            Current: <span className="font-semibold text-grey-700">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
+          <div className="text-xs text-gray-500">
+            Current: <span className="font-semibold text-gray-700">{formatValue(tax.currentRate)}{isThreshold && tax.currentRate >= 100000 ? '' : tax.unit}</span>
           </div>
         </div>
 
         {change !== 0 && (
-          <div className="mt-3 pt-3 border-t border-grey-100">
-            <div className="text-sm text-grey-700">
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="text-sm text-gray-700">
               Estimated revenue impact: <span className={`font-semibold ${changeColour}`}>
                 {calculateRevenueImpact(tax) >= 0 ? '+' : ''}£{calculateRevenueImpact(tax).toFixed(2)}bn
               </span>
@@ -3331,6 +3366,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
   const calculateRevenueImpact = (tax: TaxChange): number => {
     const rateChange = tax.proposedRate - tax.currentRate;
+    const lafferTaxType = getLafferTaxTypeForControlId(tax.id);
+    if (lafferTaxType) {
+      return estimateTaxRevenueAtRate(lafferTaxType, tax.proposedRate, gameState as any) -
+        estimateTaxRevenueAtRate(lafferTaxType, tax.currentRate, gameState as any);
+    }
+
     const reckoner = TAX_RECKONERS[tax.id as keyof typeof TAX_RECKONERS];
     if (!reckoner) return 0;
 
@@ -3345,7 +3386,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     const isDebtInterest = item.id === 'debtInterest';
     const change = item.proposedBudget - item.currentBudget;
     const changePct = item.currentBudget > 0 ? (change / item.currentBudget) * 100 : 0;
-    const changeColour = change > 0 ? 'text-blue-600' : change < 0 ? 'text-red-600' : 'text-grey-600';
+    const changeColour = change > 0 ? 'text-blue-600' : change < 0 ? 'text-red-600' : 'text-gray-600';
 
     // Calculate target value for manifesto commitments
     let targetBudget: number | null = null;
@@ -3376,13 +3417,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     }
 
     return (
-      <div key={item.id} className={`bg-white border rounded-lg p-4 transition-shadow ${isDebtInterest ? 'border-grey-300 bg-grey-50/50 opacity-90' : 'border-grey-200 hover:shadow-md'
+      <div key={item.id} className={`bg-white border rounded-lg p-4 transition-shadow ${isDebtInterest ? 'border-gray-300 bg-gray-50/50 opacity-90' : 'border-gray-200 hover:shadow-md'
         }`}>
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
-            <h4 className="font-semibold text-grey-900">{item.programme || item.department}</h4>
+            <h4 className="font-semibold text-gray-900">{item.programme || item.department}</h4>
             <div className="flex flex-wrap gap-2 items-center mt-1">
-              <span className="text-xs text-grey-600">{item.department}</span>
+              <span className="text-xs text-gray-600">{item.department}</span>
               <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'capital' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                 }`}>
                 {item.type === 'capital' ? 'Capital' : 'Resource'}
@@ -3393,15 +3434,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </span>
               )}
               {isDebtInterest && (
-                <span className="text-xs px-2 py-0.5 rounded bg-grey-200 text-grey-700 font-medium">
+                <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-700 font-medium">
                   Non-Discretionary
                 </span>
               )}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-grey-900">
-              £{item.proposedBudget.toFixed(1)}<span className="text-sm font-normal text-grey-600">bn</span>
+            <div className="text-2xl font-bold text-gray-900">
+              £{item.proposedBudget.toFixed(1)}<span className="text-sm font-normal text-gray-600">bn</span>
             </div>
             {change !== 0 && (
               <div className={`text-sm font-semibold ${changeColour}`}>
@@ -3412,11 +3453,11 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-grey-600 uppercase tracking-wide">
+          <label className="text-xs text-gray-600 uppercase tracking-wide">
             {isDebtInterest ? 'Current interest commitment' : 'Proposed budget'}
           </label>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-grey-600">£</span>
+            <span className="text-sm text-gray-600">£</span>
             <input
               type="number"
               min={0}
@@ -3429,15 +3470,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 const nextValue = Number.isFinite(parsed) ? Math.max(0, parsed) : item.currentBudget;
                 handleSpendingChange(item.id, nextValue);
               }}
-              className={`w-full border rounded px-3 py-2 text-grey-900 ${isDebtInterest
-                ? 'bg-grey-100 border-grey-200 text-grey-500 cursor-not-allowed font-medium'
-                : 'bg-white border-grey-300'
+              className={`w-full border rounded px-3 py-2 text-gray-900 ${isDebtInterest
+                ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed font-medium'
+                : 'bg-white border-gray-300'
                 }`}
             />
-            <span className="text-sm text-grey-600">bn</span>
+            <span className="text-sm text-gray-600">bn</span>
           </div>
-          <div className="flex justify-between text-xs text-grey-500">
-            <span className="font-semibold text-grey-700">Current: £{item.currentBudget.toFixed(1)}bn</span>
+          <div className="flex justify-between text-xs text-gray-500">
+            <span className="font-semibold text-gray-700">Current: £{item.currentBudget.toFixed(1)}bn</span>
             {targetBudget && (
               <span className="font-semibold text-amber-700">Target: £{targetBudget.toFixed(1)}bn</span>
             )}
@@ -3461,7 +3502,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
         {/* Set to target button */}
         {targetBudget && Math.abs(item.proposedBudget - targetBudget) > 0.01 && (
-          <div className="mt-3 pt-3 border-t border-grey-100">
+          <div className="mt-3 pt-3 border-t border-gray-100">
             <button
               onClick={() => handleSpendingChange(item.id, targetBudget!)}
               className="w-full px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 text-sm font-semibold rounded transition-colors"
@@ -3513,7 +3554,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 Impact: {warning.impact}
               </p>
             )}
-            <div className="mt-2 text-xs font-semibold text-grey-600 uppercase">
+            <div className="mt-2 text-xs font-semibold text-gray-600 uppercase">
               {warning.category} · {warning.severity}
             </div>
           </div>
@@ -3548,7 +3589,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               )}
-              <h4 className="font-semibold text-grey-900">{constraint.description}</h4>
+              <h4 className="font-semibold text-gray-900">{constraint.description}</h4>
             </div>
             <div className="mt-1 flex gap-2">
               <span className={`text-xs px-2 py-0.5 rounded ${constraint.type === 'fiscal_rule' ? 'bg-purple-100 text-purple-700' :
@@ -3559,7 +3600,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               </span>
               <span className={`text-xs px-2 py-0.5 rounded ${constraint.severity === 'critical' ? 'bg-red-100 text-red-700' :
                 constraint.severity === 'major' ? 'bg-amber-100 text-amber-700' :
-                  'bg-grey-100 text-grey-700'
+                  'bg-gray-100 text-gray-700'
                 }`}>
                 {constraint.severity}
               </span>
@@ -3569,7 +3610,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {canApply && (
               <button
                 onClick={() => applyManifestoCommitment(constraint.id)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colours"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
                 title="Automatically adjust values to the minimum required to satisfy this commitment"
               >
                 Apply
@@ -3615,8 +3656,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       Math.max(0, (gameState.fiscal.welfareAME_bn || 115) - 115) +
       Math.max(0, gameState.fiscal.housingAMEPressure_bn || 0) +
       Math.max(0, (gameState.fiscal.debtInterest_bn || 0) - 95);
-    const baselineAnnualDEL = 1200;
-    const annualEnvelope = Math.max(0, baselineAnnualDEL + gameState.fiscal.fiscalHeadroom_bn - amePressures - prudenceMargin);
+    const baselineAnnualDEL = SPENDING_REVIEW_DEPARTMENT_ORDER.reduce((sum, key) => {
+      const dept = gameState.spendingReview.departments[key];
+      return sum + (dept.resourceDEL_bn || 0) + (dept.capitalDEL_bn || 0);
+    }, 0);
+    const annualEnvelope = Math.max(
+      0,
+      baselineAnnualDEL + gameState.fiscal.fiscalHeadroom_bn - amePressures - prudenceMargin
+    );
     return {
       prudenceMargin,
       amePressures,
@@ -3629,6 +3676,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     gameState.fiscal.housingAMEPressure_bn,
     gameState.fiscal.debtInterest_bn,
     gameState.political.chosenFiscalRule,
+    gameState.spendingReview.departments,
   ]);
 
   const handleSpendingReviewPlanChange = useCallback((
@@ -3655,34 +3703,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
     gameActions.updateSpendingReviewPlans(nextDepartments);
   }, [gameActions, gameState.spendingReview.departments]);
 
-  const barnettPreview = useMemo(() => {
-    const nhsCurrent = spending.get('nhsEngland')?.proposedBudget ?? (gameState.fiscal.detailedSpending.find((item) => item.id === 'nhsEngland')?.currentBudget || 164.9);
-    const educationCurrent = spending.get('schools')?.proposedBudget ?? (gameState.fiscal.detailedSpending.find((item) => item.id === 'schools')?.currentBudget || 59.8);
-    const transportHousing = (spending.get('railSubsidy')?.proposedBudget ?? 5.5) + (spending.get('housingCapital')?.proposedBudget ?? 2.5);
-    const baselineTransportHousing = 5.5 + 2.5;
-    const comparableChange =
-      (nhsCurrent - 164.9) +
-      (educationCurrent - 59.8) +
-      (transportHousing - baselineTransportHousing);
-    const scotland = comparableChange * 0.0998;
-    const wales = comparableChange * 0.0597;
-    const northernIreland = comparableChange * 0.0348;
-    return {
-      scotland,
-      wales,
-      northernIreland,
-      total: scotland + wales + northernIreland,
-    };
-  }, [spending, gameState.fiscal.detailedSpending]);
-
   // ============================================================================
   // MAIN RENDER
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-grey-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-900 to-red-800 text-white shadow-lg">
+      <div className="bg-red-900 text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex justify-between items-start">
             <div>
@@ -3785,32 +3813,32 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
       </div>
 
       {/* Fiscal Impact Summary Bar */}
-      <div className="bg-white border-b border-grey-200 shadow-sm sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="grid grid-cols-7 gap-4">
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Deficit Change</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Deficit Change</div>
               <div className={`text-2xl font-bold ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
                 fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                  'text-grey-900'
+                  'text-gray-900'
                 }`}>
                 {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Projected Deficit</div>
-              <div className="text-2xl font-bold text-grey-900">
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Projected Deficit</div>
+              <div className="text-2xl font-bold text-gray-900">
                 £{fiscalImpact.projectedDeficit.toFixed(1)}bn
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Debt-to-GDP</div>
-              <div className="text-2xl font-bold text-grey-900">
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Debt-to-GDP</div>
+              <div className="text-2xl font-bold text-gray-900">
                 {fiscalImpact.debtGDPRatio.toFixed(1)}%
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Fiscal Rules</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Fiscal Rules</div>
               <div className={`text-2xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
                 {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
               </div>
@@ -3820,7 +3848,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               fiscalImpact.headroom > 0 ? 'bg-amber-50' :
               'bg-red-50'
             }`}>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">{getRuleHeadroomLabel(getFiscalRuleById(gameState.political.chosenFiscalRule))}</div>
               <div className={`text-2xl font-bold ${
                 fiscalImpact.headroom > 10 ? 'text-green-700' :
                 fiscalImpact.headroom > 0 ? 'text-amber-700' :
@@ -3839,7 +3867,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Warnings</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Warnings</div>
               <div className={`text-2xl font-bold ${warnings.filter(w => w.severity === 'critical').length > 0 ? 'text-red-600' :
                 warnings.length > 0 ? 'text-amber-600' :
                   'text-green-600'
@@ -3848,18 +3876,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               </div>
             </div>
             <div>
-              <div className="text-xs text-grey-600 uppercase tracking-wide mb-1">Debt Issuance</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Debt Issuance</div>
               <select
                 value={gameState.debtManagement.issuanceStrategy}
                 onChange={(e) => gameActions.setDebtIssuanceStrategy(e.target.value as 'short' | 'balanced' | 'long')}
-                className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                className="w-full border border-gray-300 rounded-sm px-2 py-1 text-sm"
               >
                 <option value="short">Short</option>
                 <option value="balanced">Balanced</option>
                 <option value="long">Long</option>
               </select>
-              <div className="text-xs text-grey-500 mt-1">WAM {gameState.debtManagement.weightedAverageMaturity.toFixed(1)} years</div>
-              <div className="text-xs text-grey-500">
+              <div className="text-xs text-gray-500 mt-1">WAM {gameState.debtManagement.weightedAverageMaturity.toFixed(1)} years</div>
+              <div className="text-xs text-gray-500">
                 Yield effect {((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps
               </div>
             </div>
@@ -3877,15 +3905,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
           {/* Main Content */}
           <div className="flex-1">
             {/* View Tabs */}
-            <div className="bg-white rounded-lg shadow-sm border border-grey-200 mb-6">
-              <div className="flex border-b border-grey-200">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+              <div className="flex border-b border-gray-200">
                 {(['taxes', 'spending', 'del', 'impact', 'constraints', 'debt'] as const).map((view) => (
                   <button
                     key={view}
                     onClick={() => setActiveView(view)}
-                    className={`flex-1 px-6 py-4 font-semibold transition-colours ${activeView === view
+                    className={`flex-1 px-6 py-4 font-semibold transition-colors ${activeView === view
                       ? 'bg-red-50 text-red-900 border-b-2 border-red-600'
-                      : 'text-grey-600 hover:text-grey-900 hover:bg-grey-50'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                       }`}
                   >
                     {view === 'taxes' && 'Taxation'}
@@ -3901,31 +3929,31 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
 
             {activeView === 'del' && (
               <div className="space-y-4">
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900">Departmental Expenditure Limits (3-Year Plan)</h2>
-                  <p className="text-sm text-grey-600 mt-1">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900">Departmental Expenditure Limits (3-Year Plan)</h2>
+                  <p className="text-sm text-gray-600 mt-1">
                     Edit DEL plans at any time. Markets can react to out-year plans, but less than to current budgets and headroom.
                   </p>
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <div className="text-grey-600">Projected 3Y DEL total</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <div className="text-gray-600">Projected 3Y DEL total</div>
                       <div className="text-2xl font-bold">£{spendingReviewPlanTotal.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <div className="text-grey-600">Headroom envelope (3Y)</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <div className="text-gray-600">Headroom envelope (3Y)</div>
                       <div className="text-2xl font-bold">£{spendingReviewEnvelope.threeYearEnvelope.toFixed(1)}bn</div>
                     </div>
                     <div className={`border rounded-sm p-3 ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'border-amber-300 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-                      <div className="text-grey-600">Envelope check</div>
+                      <div className="text-gray-600">Envelope check</div>
                       <div className={`text-2xl font-bold ${spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'text-amber-700' : 'text-green-700'}`}>
                         {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope ? 'Above envelope' : 'Below envelope'}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-grey-600">
+                  <div className="mt-3 text-xs text-gray-600">
                     Indicative envelope = headroom minus AME pressures (£{spendingReviewEnvelope.amePressures.toFixed(1)}bn) and prudence margin (£{spendingReviewEnvelope.prudenceMargin.toFixed(1)}bn).
                   </div>
-                  <div className="mt-2 text-xs font-medium text-grey-700">
+                  <div className="mt-2 text-xs font-medium text-gray-700">
                     Spending Review plans are indicative guidelines and may be revised.
                   </div>
                   {spendingReviewPlanTotal > spendingReviewEnvelope.threeYearEnvelope && (
@@ -3938,15 +3966,15 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 {SPENDING_REVIEW_DEPARTMENT_ORDER.map((key) => {
                   const dept = gameState.spendingReview.departments[key];
                   return (
-                    <div key={key} className="bg-white rounded-lg shadow-sm border border-grey-200 p-5">
+                    <div key={key} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                       <div className="flex justify-between items-center mb-3">
                         <div>
-                          <h3 className="text-lg font-bold text-grey-900">{dept.name}</h3>
-                          <div className="text-xs text-grey-600">
+                          <h3 className="text-lg font-bold text-gray-900">{dept.name}</h3>
+                          <div className="text-xs text-gray-600">
                             Service quality and backlog context from latest turn
                           </div>
                         </div>
-                        <div className="text-xs text-grey-600">
+                        <div className="text-xs text-gray-600">
                           Backlog {dept.backlog.toFixed(0)} · Delivery capacity {dept.deliveryCapacity.toFixed(0)}
                         </div>
                       </div>
@@ -3964,26 +3992,26 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       })()}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[0, 1, 2].map((yearIdx) => (
-                          <div key={`${key}_year_${yearIdx}`} className="border border-grey-100 rounded-sm p-3">
-                            <div className="text-xs uppercase tracking-wide text-grey-600 mb-2">Year {yearIdx + 1}</div>
-                            <label className="text-xs text-grey-600 block mb-1">Resource DEL (£bn)</label>
+                          <div key={`${key}_year_${yearIdx}`} className="border border-gray-100 rounded-sm p-3">
+                            <div className="text-xs uppercase tracking-wide text-gray-600 mb-2">Year {yearIdx + 1}</div>
+                            <label className="text-xs text-gray-600 block mb-1">Resource DEL (£bn)</label>
                             <input
                               type="number"
-                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              className="w-full border border-gray-300 rounded-sm px-2 py-1 text-sm"
                               value={yearIdx === 0 ? dept.resourceDEL_bn : dept.plannedResourceDEL_bn[yearIdx]}
                               disabled={yearIdx === 0}
                               onChange={(e) => handleSpendingReviewPlanChange(key, 'resource', yearIdx, Number(e.target.value))}
                             />
-                            <label className="text-xs text-grey-600 block mt-3 mb-1">Capital DEL (£bn)</label>
+                            <label className="text-xs text-gray-600 block mt-3 mb-1">Capital DEL (£bn)</label>
                             <input
                               type="number"
-                              className="w-full border border-grey-300 rounded-sm px-2 py-1 text-sm"
+                              className="w-full border border-gray-300 rounded-sm px-2 py-1 text-sm"
                               value={yearIdx === 0 ? dept.capitalDEL_bn : dept.plannedCapitalDEL_bn[yearIdx]}
                               disabled={yearIdx === 0}
                               onChange={(e) => handleSpendingReviewPlanChange(key, 'capital', yearIdx, Number(e.target.value))}
                             />
                             {yearIdx === 0 && (
-                              <div className="text-[11px] text-grey-500 mt-2">Year 1 is synced to current budget values.</div>
+                              <div className="text-[11px] text-gray-500 mt-2">Year 1 is synced to current budget values.</div>
                             )}
                           </div>
                         ))}
@@ -3995,10 +4023,10 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             )}
 
             {activeView === 'debt' && (
-              <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6 space-y-4">
-                <h2 className="text-xl font-bold text-grey-900">Debt Management</h2>
-                <p className="text-sm text-grey-600">Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing risk.</p>
-                <div className="text-sm text-grey-700 bg-blue-50 border border-blue-200 rounded-sm p-3">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+                <h2 className="text-xl font-bold text-gray-900">Debt Management</h2>
+                <p className="text-sm text-gray-600">Choose issuance strategy before advancing turn. Short lowers near-term cost but raises refinancing risk.</p>
+                <div className="text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-sm p-3">
                   Active strategy: <span className="font-semibold capitalize">{gameState.debtManagement.issuanceStrategy}</span> ·
                   Yield effect: <span className="font-semibold">{((gameState.debtManagement.strategyYieldEffect_bps || 0) >= 0 ? '+' : '')}{(gameState.debtManagement.strategyYieldEffect_bps || 0).toFixed(0)} bps</span>
                   {gameState.debtManagement.issuanceStrategy === 'short' && (
@@ -4006,30 +4034,30 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">Refinancing risk</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">Refinancing risk</div>
                     <div className="text-2xl font-bold">{gameState.debtManagement.refinancingRisk.toFixed(1)}</div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">APF stock (QE/QT)</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">APF stock (QE/QT)</div>
                     <div className="text-2xl font-bold">£{(gameState.markets.assetPurchaseFacility_bn || 0).toFixed(0)}bn</div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">Debt interest</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">Debt interest</div>
                     <div className="text-2xl font-bold">£{gameState.fiscal.debtInterest_bn.toFixed(1)}bn</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">Projected annual interest (Short)</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">Projected annual interest (Short)</div>
                     <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.short ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">Projected annual interest (Balanced)</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">Projected annual interest (Balanced)</div>
                     <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.balanced ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
                   </div>
-                  <div className="border border-grey-200 rounded-sm p-3">
-                    <div className="text-grey-600">Projected annual interest (Long)</div>
+                  <div className="border border-gray-200 rounded-sm p-3">
+                    <div className="text-gray-600">Projected annual interest (Long)</div>
                     <div className="text-xl font-bold">£{(gameState.debtManagement.projectedDebtInterestByStrategy_bn?.long ?? gameState.fiscal.debtInterest_bn).toFixed(1)}bn</div>
                   </div>
                 </div>
@@ -4040,9 +4068,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {activeView === 'taxes' && (
               <div className="space-y-6">
                 {/* Income Tax Rates */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Rates</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Income Tax Rates</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £269bn · Affects 34 million taxpayers
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4052,34 +4080,34 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Welfare and Labour Market Levers</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Welfare and Labour Market Levers</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     AME measures: reducing taper or increasing work allowances and childcare support can lower structural unemployment over time, but increase welfare spending.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Universal Credit taper rate</label>
-                      <input type="number" min={35} max={75} step={1} value={welfareLevers.ucTaperRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate >= 0 ? '+' : '')}{(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate).toFixed(0)}pp</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Universal Credit taper rate</label>
+                      <input type="number" min={35} max={75} step={1} value={welfareLevers.ucTaperRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, ucTaperRate: Number(e.target.value) }))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-xs text-gray-600 mt-2">Delta: {(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate >= 0 ? '+' : '')}{(welfareLevers.ucTaperRate - gameState.fiscal.ucTaperRate).toFixed(0)}pp</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Work allowance</label>
-                      <input type="number" min={200} max={700} step={10} value={welfareLevers.workAllowanceMonthly} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, workAllowanceMonthly: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly >= 0 ? '+' : '')}£{(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly).toFixed(0)}/month</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Work allowance</label>
+                      <input type="number" min={200} max={700} step={10} value={welfareLevers.workAllowanceMonthly} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, workAllowanceMonthly: Number(e.target.value) }))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-xs text-gray-600 mt-2">Delta: {(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly >= 0 ? '+' : '')}£{(welfareLevers.workAllowanceMonthly - gameState.fiscal.workAllowanceMonthly).toFixed(0)}/month</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Childcare support rate</label>
-                      <input type="number" min={0} max={100} step={1} value={welfareLevers.childcareSupportRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, childcareSupportRate: Number(e.target.value) }))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate >= 0 ? '+' : '')}{(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate).toFixed(0)}pp</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Childcare support rate</label>
+                      <input type="number" min={0} max={100} step={1} value={welfareLevers.childcareSupportRate} onChange={(e) => setWelfareLevers((prev) => ({ ...prev, childcareSupportRate: Number(e.target.value) }))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-xs text-gray-600 mt-2">Delta: {(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate >= 0 ? '+' : '')}{(welfareLevers.childcareSupportRate - gameState.fiscal.childcareSupportRate).toFixed(0)}pp</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Income Tax Thresholds & Allowances */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Income Tax Thresholds and Allowances</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Income Tax Thresholds and Allowances</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Frozen thresholds drag more earners into higher bands (fiscal drag). Moving thresholds has enormous revenue impact.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4090,85 +4118,70 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Threshold and Base Policy</h2>
-                  <p className="text-sm text-grey-600 mb-4">
-                    Choose uprating regime, anti-avoidance capacity, and housing-supply policy levers that influence inflation, labour supply, and medium-term revenue.
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Tax Base and Capacity</h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Choose anti-avoidance capacity and housing-supply policy levers that influence inflation, labour supply, and medium-term revenue.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Threshold uprating</label>
-                      <select value={thresholdUprating} onChange={(e) => setThresholdUprating(e.target.value as typeof thresholdUprating)} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
-                        <option value="frozen">Frozen</option>
-                        <option value="cpi_linked">CPI-linked</option>
-                        <option value="earnings_linked">Earnings-linked</option>
-                        <option value="custom">Custom thresholds</option>
-                      </select>
-                      <div className="text-xs text-grey-600 mt-2">
-                        {thresholdUprating === 'frozen' && 'Raises revenue through fiscal drag.'}
-                        {thresholdUprating === 'cpi_linked' && 'Keeps thresholds moving with inflation.'}
-                        {thresholdUprating === 'earnings_linked' && 'Looser than inflation-linking, with a larger revenue cost.'}
-                        {thresholdUprating === 'custom' && 'Use the threshold controls above for bespoke settings.'}
-                      </div>
-                    </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Full expensing</label>
-                      <select value={fullExpensing ? 'enabled' : 'disabled'} onChange={(e) => setFullExpensing(e.target.value === 'enabled')} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Full expensing</label>
+                      <select value={fullExpensing ? 'enabled' : 'disabled'} onChange={(e) => setFullExpensing(e.target.value === 'enabled')} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm">
                         <option value="disabled">Disabled</option>
                         <option value="enabled">Enabled</option>
                       </select>
-                      <div className="text-xs text-grey-600 mt-2">Corp tax cost ~£3.5bn/yr, higher investment quality.</div>
+                      <div className="text-xs text-gray-600 mt-2">Corp tax cost ~£3.5bn/yr, higher investment quality.</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">HMRC anti-avoidance spend</label>
-                      <input type="number" min={0} max={3} step={0.1} value={antiAvoidanceInvestment} onChange={(e) => setAntiAvoidanceInvestment(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-sm text-grey-700 mt-2">£{antiAvoidanceInvestment.toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">HMRC anti-avoidance spend</label>
+                      <input type="number" min={0} max={3} step={0.1} value={antiAvoidanceInvestment} onChange={(e) => setAntiAvoidanceInvestment(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-sm text-gray-700 mt-2">£{antiAvoidanceInvestment.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">HMRC systems investment</label>
-                      <input type="number" min={0.3} max={1.5} step={0.1} value={hmrcSystemsInvestment} onChange={(e) => setHmrcSystemsInvestment(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-sm text-grey-700 mt-2">£{hmrcSystemsInvestment.toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">HMRC systems investment</label>
+                      <input type="number" min={0.3} max={1.5} step={0.1} value={hmrcSystemsInvestment} onChange={(e) => setHmrcSystemsInvestment(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-sm text-gray-700 mt-2">£{hmrcSystemsInvestment.toFixed(1)}bn</div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Planning reform package</label>
-                      <select value={planningReformPackage ? 'active' : 'inactive'} onChange={(e) => setPlanningReformPackage(e.target.value === 'active')} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm">
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Planning reform package</label>
+                      <select value={planningReformPackage ? 'active' : 'inactive'} onChange={(e) => setPlanningReformPackage(e.target.value === 'active')} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm">
                         <option value="inactive">Inactive</option>
                         <option value="active">Active</option>
                       </select>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Infrastructure guarantees</label>
-                      <input type="number" min={0} max={10} step={0.5} value={infrastructureGuarantees} onChange={(e) => setInfrastructureGuarantees(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-sm text-grey-700 mt-2">£{infrastructureGuarantees.toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Infrastructure guarantees</label>
+                      <input type="number" min={0} max={10} step={0.5} value={infrastructureGuarantees} onChange={(e) => setInfrastructureGuarantees(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-sm text-gray-700 mt-2">£{infrastructureGuarantees.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Demand-side support</label>
-                      <input type="number" min={0} max={5} step={0.1} value={htbSupport} onChange={(e) => setHtbSupport(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-sm text-grey-700 mt-2">£{htbSupport.toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Demand-side support</label>
+                      <input type="number" min={0} max={5} step={0.1} value={htbSupport} onChange={(e) => setHtbSupport(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-sm text-gray-700 mt-2">£{htbSupport.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Council house building grant</label>
-                      <input type="number" min={0} max={3} step={0.1} value={councilHousingGrant} onChange={(e) => setCouncilHousingGrant(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-sm text-grey-700 mt-2">£{councilHousingGrant.toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Council house building grant</label>
+                      <input type="number" min={0} max={3} step={0.1} value={councilHousingGrant} onChange={(e) => setCouncilHousingGrant(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-sm text-gray-700 mt-2">£{councilHousingGrant.toFixed(1)}bn</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Industrial Strategy</h2>
-                  <p className="text-sm text-grey-600 mb-4">Select interventions to activate at this fiscal event. Outcomes are uncertain and revealed after delivery lags.</p>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Industrial Strategy</h2>
+                  <p className="text-sm text-gray-600 mb-4">Select interventions to activate at this fiscal event. Outcomes are uncertain and revealed after delivery lags.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {INDUSTRIAL_INTERVENTION_CATALOGUE.map((intervention) => {
                       const alreadyActive = (gameState.industrialStrategy.activeInterventions || []).some((item) => item.id === intervention.id);
                       const selected = selectedIndustrialInterventions.has(intervention.id);
                       return (
-                        <div key={intervention.id} className="border border-grey-200 rounded-sm p-3">
+                        <div key={intervention.id} className="border border-gray-200 rounded-sm p-3">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <div className="font-semibold text-grey-900">{intervention.name}</div>
-                              <div className="text-xs text-grey-600 mt-1">£{intervention.annualCost_bn.toFixed(1)}bn/yr · Lag {intervention.turnsToEffect} turns · Success {(intervention.successProbability * 100).toFixed(0)}%</div>
+                              <div className="font-semibold text-gray-900">{intervention.name}</div>
+                              <div className="text-xs text-gray-600 mt-1">£{intervention.annualCost_bn.toFixed(1)}bn/yr · Lag {intervention.turnsToEffect} turns · Success {(intervention.successProbability * 100).toFixed(0)}%</div>
                             </div>
                             <button
                               disabled={alreadyActive}
@@ -4180,7 +4193,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                                   return next;
                                 });
                               }}
-                              className={`px-3 py-1 rounded-sm text-xs font-semibold ${alreadyActive ? 'bg-grey-100 text-grey-500 cursor-not-allowed' : selected ? 'bg-blue-100 border border-blue-300 text-blue-800' : 'bg-grey-100 border border-grey-300 text-grey-800'}`}
+                              className={`px-3 py-1 rounded-sm text-xs font-semibold ${alreadyActive ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : selected ? 'bg-blue-100 border border-blue-300 text-blue-800' : 'bg-gray-100 border border-gray-300 text-gray-800'}`}
                             >
                               {alreadyActive ? 'Active' : selected ? 'Selected' : 'Select'}
                             </button>
@@ -4189,7 +4202,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       );
                     })}
                   </div>
-                  <div className="mt-3 text-sm text-grey-700">
+                  <div className="mt-3 text-sm text-gray-700">
                     Active annual cost: £{(gameState.industrialStrategy.totalAnnualCost_bn || 0).toFixed(1)}bn ·
                     Productivity boost: +{(gameState.industrialStrategy.productivityBoostAccumulated || 0).toFixed(2)}pp ·
                     State aid risk: {(gameState.industrialStrategy.stateAidRisk || 0).toFixed(0)}
@@ -4197,9 +4210,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* National Insurance */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">National Insurance</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">National Insurance</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £164bn · Employee rate (Class 1) and employer contributions. Thresholds determine who pays.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4213,9 +4226,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* VAT */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">VAT and Indirect Consumption Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">VAT and Indirect Consumption Taxes</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £171bn · Standard rate, reduced rates, and exemptions. VAT on energy and school fees are politically charged.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4228,9 +4241,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Corporation Tax & Business */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Corporation Tax and Business Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Corporation Tax and Business Taxes</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £88bn · Main rate, small profits rate, and business reliefs. Investment incentives affect business decisions.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4246,9 +4259,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Capital Gains Tax */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Capital Gains Tax</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Capital Gains Tax</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £15bn · Rates, annual exempt amount, and entrepreneur reliefs. Residential property has a surcharge.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4262,9 +4275,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Inheritance Tax */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Inheritance Tax</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Inheritance Tax</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £7.5bn · Rate, nil-rate band, and residence nil-rate band. Only ~4% of estates pay IHT.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4275,9 +4288,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Property Taxes */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Property Transaction Taxes</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Property Transaction Taxes</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £14bn · Stamp duty rates, first-time buyer relief, and second-home surcharge.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4289,9 +4302,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Savings and Investment Reliefs */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Savings and Investment Reliefs</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Savings and Investment Reliefs</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Allowances for pensions, ISAs, and dividends. Reducing these raises revenue but affects savings incentives.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4302,9 +4315,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                 </div>
 
                 {/* Excise Duties */}
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Excise Duties</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Excise Duties</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Revenue: £{(25 + 13 + 9 + 4 + 8).toFixed(0)}bn · Fuel, alcohol, tobacco, air travel, and vehicle duties.
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -4322,35 +4335,35 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Spending View */}
             {activeView === 'spending' && (
               <div className="space-y-4">
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-4">
-                  <h3 className="text-lg font-bold text-grey-900">Local Government</h3>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <h3 className="text-lg font-bold text-gray-900">Local Government</h3>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Local government grant settlement (£bn)</label>
-                      <input type="number" min={20} max={60} step={0.1} value={localGovernmentGrantSettlement} onChange={(e) => setLocalGovernmentGrantSettlement(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Delta: {(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30) >= 0 ? '+' : '')}£{(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30)).toFixed(1)}bn</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Local government grant settlement (£bn)</label>
+                      <input type="number" min={20} max={60} step={0.1} value={localGovernmentGrantSettlement} onChange={(e) => setLocalGovernmentGrantSettlement(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-xs text-gray-600 mt-2">Delta: {(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30) >= 0 ? '+' : '')}£{(localGovernmentGrantSettlement - (gameState.devolution.localGov.centralGrant_bn || 30)).toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-3">
-                      <label className="text-sm font-semibold text-grey-800">Council tax referendum cap (%)</label>
-                      <input type="number" min={3} max={10} step={0.1} value={councilTaxReferendumCap} onChange={(e) => setCouncilTaxReferendumCap(Number(e.target.value))} className="w-full mt-2 border border-grey-300 rounded-sm px-2 py-1 text-sm" />
-                      <div className="text-xs text-grey-600 mt-2">Higher caps reduce central grant pressure but increase household tax pressure.</div>
+                    <div className="border border-gray-200 rounded-sm p-3">
+                      <label className="text-sm font-semibold text-gray-800">Council tax referendum cap (%)</label>
+                      <input type="number" min={3} max={10} step={0.1} value={councilTaxReferendumCap} onChange={(e) => setCouncilTaxReferendumCap(Number(e.target.value))} className="w-full mt-2 border border-gray-300 rounded-sm px-2 py-1 text-sm" />
+                      <div className="text-xs text-gray-600 mt-2">Higher caps reduce central grant pressure but increase household tax pressure.</div>
                     </div>
                   </div>
                   <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Core settlement</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Core settlement</div>
                       <div className="text-xl font-bold">£{(gameState.devolution.localGov.coreSettlement_bn || 0).toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Adult social care pressure</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Adult social care pressure</div>
                       <div className="text-xl font-bold">£{(gameState.devolution.localGov.adultSocialCarePressure_bn || 0).toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Funding gap</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Funding gap</div>
                       <div className="text-xl font-bold">£{Math.max(0, (gameState.devolution.localGov.adultSocialCarePressure_bn || 0) - (gameState.devolution.localGov.coreSettlement_bn || 0)).toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Stress index</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Stress index</div>
                       <div className="text-xl font-bold">{(gameState.devolution.localGov.councilFundingStress || gameState.devolution.localGov.localGovStressIndex || 0).toFixed(0)}</div>
                     </div>
                   </div>
@@ -4360,24 +4373,24 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                     </div>
                   )}
                 </div>
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-4">
-                  <h3 className="text-lg font-bold text-grey-900 mb-2">Devolution and Barnett Consequentials</h3>
-                  <p className="text-sm text-grey-600 mb-3">Automatic consequential payments generated by England programme changes.</p>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Devolution and Barnett Consequentials</h3>
+                  <p className="text-sm text-gray-600 mb-3">Automatic consequential payments generated by England programme changes.</p>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Scotland</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Scotland</div>
                       <div className="text-lg font-bold">£{barnettPreview.scotland.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Wales</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Wales</div>
                       <div className="text-lg font-bold">£{barnettPreview.wales.toFixed(1)}bn</div>
                     </div>
-                    <div className="border border-grey-200 rounded-sm p-2">
-                      <div className="text-grey-600">Northern Ireland</div>
+                    <div className="border border-gray-200 rounded-sm p-2">
+                      <div className="text-gray-600">Northern Ireland</div>
                       <div className="text-lg font-bold">£{barnettPreview.northernIreland.toFixed(1)}bn</div>
                     </div>
                     <div className="border border-blue-200 bg-blue-50 rounded-sm p-2">
-                      <div className="text-grey-600">Total Barnett</div>
+                      <div className="text-gray-600">Total Barnett</div>
                       <div className="text-lg font-bold">£{barnettPreview.total.toFixed(1)}bn</div>
                     </div>
                   </div>
@@ -4389,14 +4402,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   const change = totalProposed - totalCurrent;
 
                   return (
-                    <div key={department} className="bg-white rounded-lg shadow-sm border border-grey-200">
+                    <div key={department} className="bg-white rounded-lg shadow-sm border border-gray-200">
                       <button
                         onClick={() => toggleDepartment(department)}
-                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-grey-50 transition-colours"
+                        className="w-full px-6 py-4 flex justify-between items-center hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-center gap-3">
                           <svg
-                            className={`w-5 h-5 text-grey-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            className={`w-5 h-5 text-gray-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -4404,12 +4417,12 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                           <div className="text-left">
-                            <h3 className="text-lg font-bold text-grey-900">{department}</h3>
-                            <p className="text-sm text-grey-600">{items.length} programme{items.length !== 1 ? 's' : ''}</p>
+                            <h3 className="text-lg font-bold text-gray-900">{department}</h3>
+                            <p className="text-sm text-gray-600">{items.length} programme{items.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-grey-900">
+                          <div className="text-2xl font-bold text-gray-900">
                             £{totalProposed.toFixed(1)}bn
                           </div>
                           {change !== 0 && (
@@ -4422,7 +4435,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </button>
 
                       {isExpanded && (
-                        <div className="px-6 pb-6 pt-2 border-t border-grey-100">
+                        <div className="px-6 pb-6 pt-2 border-t border-gray-100">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {items.map(item => renderSpendingControl(item))}
                           </div>
@@ -4437,36 +4450,36 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Impact View */}
             {activeView === 'impact' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-4">Fiscal Position</h2>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Fiscal Position</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="border border-grey-200 rounded-lg p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Current Deficit</div>
-                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.currentDeficit.toFixed(1)}bn</div>
-                      <div className="text-sm text-grey-600 mt-1">OBR March 2024 forecast</div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <div className="text-sm text-gray-600 uppercase tracking-wide mb-2">Current Deficit</div>
+                      <div className="text-3xl font-bold text-gray-900">£{fiscalImpact.currentDeficit.toFixed(1)}bn</div>
+                      <div className="text-sm text-gray-600 mt-1">OBR March 2024 forecast</div>
                     </div>
-                    <div className="border border-grey-200 rounded-lg p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Projected Deficit</div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <div className="text-sm text-gray-600 uppercase tracking-wide mb-2">Projected Deficit</div>
                       <div className={`text-3xl font-bold ${fiscalImpact.projectedDeficit > fiscalImpact.currentDeficit ? 'text-red-600' :
                         fiscalImpact.projectedDeficit < fiscalImpact.currentDeficit ? 'text-green-600' :
-                          'text-grey-900'
+                          'text-gray-900'
                         }`}>
                         £{fiscalImpact.projectedDeficit.toFixed(1)}bn
                       </div>
                       <div className={`text-sm font-semibold mt-1 ${fiscalImpact.deficitChange > 0 ? 'text-red-600' :
                         fiscalImpact.deficitChange < 0 ? 'text-green-600' :
-                          'text-grey-600'
+                          'text-gray-600'
                         }`}>
                         {fiscalImpact.deficitChange > 0 ? '+' : ''}£{fiscalImpact.deficitChange.toFixed(1)}bn change
                       </div>
                     </div>
-                    <div className="border border-grey-200 rounded-lg p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Public Sector Net Debt</div>
-                      <div className="text-3xl font-bold text-grey-900">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
-                      <div className="text-sm text-grey-600 mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <div className="text-sm text-gray-600 uppercase tracking-wide mb-2">Public Sector Net Debt</div>
+                      <div className="text-3xl font-bold text-gray-900">£{fiscalImpact.projectedDebt.toFixed(0)}bn</div>
+                      <div className="text-sm text-gray-600 mt-1">{fiscalImpact.debtGDPRatio.toFixed(1)}% of GDP</div>
                     </div>
-                    <div className="border border-grey-200 rounded-lg p-4">
-                      <div className="text-sm text-grey-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <div className="text-sm text-gray-600 uppercase tracking-wide mb-2">Fiscal Rules Status</div>
                       <div className={`text-3xl font-bold ${fiscalImpact.fiscalRulesMet ? 'text-green-600' : 'text-red-600'}`}>
                         {fiscalImpact.fiscalRulesMet ? 'MET' : 'BREACHED'}
                       </div>
@@ -4481,18 +4494,18 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Policy Pipeline</h2>
-                  <p className="text-sm text-grey-600 mb-4">Announced measures take time to clear legislation and systems delivery.</p>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Policy Pipeline</h2>
+                  <p className="text-sm text-gray-600 mb-4">Announced measures take time to clear legislation and systems delivery.</p>
                   {(gameState.legislativePipeline.queue || []).length === 0 ? (
-                    <div className="text-sm text-grey-600">No measures in the pipeline.</div>
+                    <div className="text-sm text-gray-600">No measures in the pipeline.</div>
                   ) : (
                     <div className="space-y-2">
                       {(gameState.legislativePipeline.queue || []).slice(-8).reverse().map((item) => (
-                        <div key={item.measureId} className="border border-grey-200 rounded-sm p-3 text-sm flex justify-between gap-3">
+                        <div key={item.measureId} className="border border-gray-200 rounded-sm p-3 text-sm flex justify-between gap-3">
                           <div>
-                            <div className="font-semibold text-grey-900">{item.description}</div>
-                            <div className="text-grey-600">Effective turn {item.effectiveTurn} · Type {item.type.replace('_', ' ')}</div>
+                            <div className="font-semibold text-gray-900">{item.description}</div>
+                            <div className="text-gray-600">Effective turn {item.effectiveTurn} · Type {item.type.replace('_', ' ')}</div>
                           </div>
                           <div className={`font-semibold ${item.status === 'delayed' ? 'text-red-700' : item.status === 'active' ? 'text-green-700' : 'text-amber-700'}`}>
                             {item.status}
@@ -4503,14 +4516,14 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                   )}
                 </div>
 
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">OBR Policy Costings</h2>
-                  <p className="text-sm text-grey-600 mb-4">Latest certified annual impacts from the independent forecast vintage.</p>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">OBR Policy Costings</h2>
+                  <p className="text-sm text-gray-600 mb-4">Latest certified annual impacts from the independent forecast vintage.</p>
                   {gameState.obr.latestForecast?.policyScorings?.length ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-grey-200 text-grey-600">
+                          <tr className="border-b border-gray-200 text-gray-600">
                             <th className="text-left py-2">Measure</th>
                             <th className="text-right py-2">Annual impact</th>
                             <th className="text-right py-2">Certainty</th>
@@ -4518,7 +4531,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                         </thead>
                         <tbody>
                           {gameState.obr.latestForecast.policyScorings.map((row, idx) => (
-                            <tr key={`${row.measureDescription}_${idx}`} className="border-b border-grey-100">
+                            <tr key={`${row.measureDescription}_${idx}`} className="border-b border-gray-100">
                               <td className="py-2">{row.measureDescription}</td>
                               <td className="py-2 text-right font-semibold">{row.annualImpact_bn >= 0 ? '+' : ''}£{row.annualImpact_bn.toFixed(1)}bn</td>
                               <td className="py-2 text-right">{row.certaintylevel.replace('_', ' ')}</td>
@@ -4528,13 +4541,13 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
                       </table>
                     </div>
                   ) : (
-                    <div className="text-sm text-grey-600">No OBR costing table available until the next Budget or Autumn Statement.</div>
+                    <div className="text-sm text-gray-600">No OBR costing table available until the next Budget or Autumn Statement.</div>
                   )}
                 </div>
 
                 {warnings.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                    <h2 className="text-xl font-bold text-grey-900 mb-4">Adviser Warnings</h2>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Adviser Warnings</h2>
                     <div className="space-y-3">
                       {warnings.map(warning => renderWarning(warning))}
                     </div>
@@ -4560,9 +4573,9 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             {/* Constraints View */}
             {activeView === 'constraints' && (
               <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm border border-grey-200 p-6">
-                  <h2 className="text-xl font-bold text-grey-900 mb-2">Manifesto Commitments</h2>
-                  <p className="text-sm text-grey-600 mb-4">
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">Manifesto Commitments</h2>
+                  <p className="text-sm text-gray-600 mb-4">
                     Your manifesto commitments and fiscal rules. Breaking these will have serious political consequences.
                   </p>
                   <div className="space-y-3">
@@ -4644,19 +4657,19 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
             <div className="mt-8 flex gap-4 justify-end">
               <button
                 onClick={resetBudget}
-                className="px-6 py-3 border-2 border-grey-300 text-grey-700 font-semibold rounded-lg hover:bg-grey-50 transition-colours"
+                className="px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Reset to Baseline
               </button>
               <button
                 onClick={() => setShowPMInterventionModal(true)}
-                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colours shadow-lg"
+                className="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors shadow-lg"
               >
                 Force PM Intervention
               </button>
               <button
                 onClick={submitBudget}
-                className="px-6 py-3 bg-gradient-to-r from-red-900 to-red-800 text-white font-semibold rounded-lg hover:from-red-800 hover:to-red-700 transition-colours shadow-lg"
+                className="px-6 py-3 bg-red-900 text-white font-semibold rounded-lg hover:bg-red-800 transition-colors shadow-lg"
               >
                 Submit Budget for Parliamentary Approval
               </button>
@@ -4790,7 +4803,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setFiscalRuleMessage(null)}
-                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colours"
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
                 >
                   Understood
                 </button>
@@ -4831,7 +4844,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setBrokenPromisesAlert(null)}
-                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colours"
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
                 >
                   Understood
                 </button>
@@ -4872,7 +4885,7 @@ export const BudgetSystem: React.FC<BudgetSystemProps> = ({ adviserSystem }) => 
               <div className="flex gap-4">
                 <button
                   onClick={() => setPMInterventionSuccess(false)}
-                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colours"
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors"
                 >
                   Understood
                 </button>

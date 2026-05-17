@@ -523,6 +523,7 @@ export function createInitialFiscalState(): FiscalState {
     ],
 
     detailedTaxes: [
+      { id: 'stampDuty', name: 'Stamp Duty Land Tax Main Residential Rate', currentRate: 5, unit: '%' },
       { id: 'sdltAdditionalSurcharge', name: 'SDLT Additional Property Surcharge', currentRate: 3, unit: '%' },
       { id: 'sdltFirstTimeBuyerThreshold', name: 'SDLT First-Time Buyer Threshold', currentRate: 425000, unit: '£' },
       { id: 'pensionAnnualAllowance', name: 'Pension Annual Allowance', currentRate: 60000, unit: '£' },
@@ -772,19 +773,34 @@ export function createInitialDevolutionState() {
 
 export function createInitialDistributionalState() {
   const incomes = [9, 14, 18, 22, 27, 33, 40, 51, 68, 120];
-  return {
-    deciles: incomes.map((avgIncome_k, i) => ({
+  const deciles = incomes.map((avgIncome_k, i) => {
+    const income = avgIncome_k * 1000;
+    const personalAllowance = 12570;
+    const basicUpper = 50270;
+    const additionalThreshold = 125140;
+    const taxable = Math.max(0, income - personalAllowance);
+    const basicBand = Math.max(0, Math.min(basicUpper - personalAllowance, taxable));
+    const higherBand = Math.max(0, Math.min(additionalThreshold - basicUpper, taxable - basicBand));
+    const additionalBand = Math.max(0, taxable - basicBand - higherBand);
+    const taxCash = basicBand * 0.20 + higherBand * 0.40 + additionalBand * 0.45;
+    const niCash = Math.max(0, Math.min(basicUpper - personalAllowance, taxable)) * 0.08;
+    const vatBurden = 0.08 * (1 - (i + 1) / 12);
+    const effectiveTaxRate = Math.max(0, Math.min(70, ((taxCash + niCash) / income) * 100 + vatBurden * 100));
+    return {
       id: i + 1,
       avgIncome_k,
-      effectiveTaxRate: 0,
+      effectiveTaxRate,
       realIncomeChange: 0,
       isWinner: false,
-    })),
+    };
+  });
+  return {
+    deciles,
     giniCoefficient: 0.35,
     povertyRate: 17.5,
     childPovertyRate: 29.0,
     bottomQuintileRealIncomeGrowth: 0,
-    topDecileEffectiveTaxRate: 0,
+    topDecileEffectiveTaxRate: deciles[9].effectiveTaxRate,
     lastTaxChangeDistribution: null as 'regressive' | 'neutral' | 'progressive' | null,
     decileImpacts: Array.from({ length: 10 }, () => 0),
   };

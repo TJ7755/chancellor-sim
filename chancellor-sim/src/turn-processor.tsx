@@ -1414,19 +1414,21 @@ function calculateTaxRevenues(state: GameState): GameState {
     fiscalDragMultiplier = 0.985;
   }
 
-  // CRITICAL FIX: Tax avoidance on additional rate (top 1% of earners)
+  // Tax avoidance on additional rate (top 1% of earners)
   // Above 50%, avoidance accelerates (salary sacrifice, incorporation, emigration)
   // Scaled by difficulty setting
   let additionalRateAvoidanceLoss = 0;
   if (fiscal.incomeTaxAdditionalRate > 50) {
     const excessRate = fiscal.incomeTaxAdditionalRate - 50;
-    // Each pp above 50% loses 0.8% of the additional rate base (£54bn at baseline)
-    // Accelerates: at 60%, loses 10*0.8=8% = £4.3bn; at 70%, loses 20*0.8=16% = £8.6bn
-    const avoidanceRate = Math.pow(1.016, excessRate) - 1; // Exponential: ~1.6% per pp, accelerating
+    const avoidanceRate = Math.pow(1.06, excessRate) - 1;
     additionalRateAvoidanceLoss = 54 * avoidanceRate * effectiveTaxAvoidanceScale;
   }
 
-  const incomeTaxRevenue = (incomeTaxBase + incomeTaxRateEffect + personalAllowanceEffect + basicThresholdEffect + higherThresholdEffect - additionalRateAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.1) * fiscalDragMultiplier;
+  const additionalRateBehaviouralFactor = Math.max(
+    0.02,
+    1 - Math.pow(Math.max(0, (fiscal.incomeTaxAdditionalRate - 55) / 45), 2.0)
+  );
+  const incomeTaxRevenue = (incomeTaxBase + incomeTaxRateEffect + personalAllowanceEffect + basicThresholdEffect + higherThresholdEffect - additionalRateAvoidanceLoss) * Math.pow(nominalGDPRatio, 1.1) * fiscalDragMultiplier * additionalRateBehaviouralFactor;
 
   // National Insurance (elasticity 1.0)
   // Employee NI + Employer NI combined
@@ -2746,11 +2748,16 @@ function calculateDevolution(state: GameState): GameState {
   const comparableEnglandDELChange = nhsChange + educationChange + transportChange + housingProgrammeChange;
   const programmeBarnett_bn = comparableEnglandDELChange * (0.0998 + 0.0597 + 0.0348);
   const nations = { ...dev.nations };
+  const baselineBlockGrants = {
+    scotland: 41,
+    wales: 21,
+    northernIreland: 18,
+  };
   (Object.keys(nations) as Array<keyof typeof nations>).forEach((key) => {
     const nation = { ...nations[key] };
     const explicitRate = key === 'scotland' ? 0.0998 : key === 'wales' ? 0.0597 : 0.0348;
     const consequential = comparableEnglandDELChange * explicitRate * dev.barnettConsequentialMultiplier;
-    nation.blockGrant_bn = Math.max(0, nation.blockGrant_bn + consequential);
+    nation.blockGrant_bn = Math.max(0, baselineBlockGrants[key] + consequential);
     const inflationRealCut = comparableEnglandDELChange < (state.economic.inflationCPI / 100) * nation.blockGrant_bn;
     if (key === 'scotland') {
       if (inflationRealCut) nation.politicalTension += 1;
@@ -2779,7 +2786,7 @@ function calculateDevolution(state: GameState): GameState {
   const adultSocialCarePressure_bn = (dev.localGov.adultSocialCarePressure_bn || 12) * (1 + (3.5 / 12) / 100);
   const retainedRatesBoost = (dev.localGov.businessRatesRetention || 50) * 0.02;
   const councilTaxFlexBoost = Math.max(0, ((dev.localGov.councilTaxGrowthCap || 3) - 3) * 0.4);
-  const coreSettlement_bn = Math.max(0, (dev.localGov.coreSettlement_bn || 14) + retainedRatesBoost + councilTaxFlexBoost);
+  const coreSettlement_bn = Math.max(0, (dev.localGov.centralGrant_bn || 30) + retainedRatesBoost + councilTaxFlexBoost);
   const fundingGap = Math.max(0, adultSocialCarePressure_bn - coreSettlement_bn);
 
   let localGovStress = dev.localGov.localGovStressIndex;
