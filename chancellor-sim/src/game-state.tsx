@@ -1141,7 +1141,7 @@ export function readSave(key: string): { state: any; warnings: string[] } | null
 // Initial Game State
 // ===========================
 
-function createInitialGameState(): GameState {
+export function createInitialGameState(): GameState {
   // Initialize July 2024 baseline conditions
   const economic = createInitialEconomicState();
   const fiscal = createInitialFiscalState();
@@ -3071,11 +3071,16 @@ export const GameStateProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const setDebtIssuanceStrategy = useCallback((strategy: DebtManagementState['issuanceStrategy']) => {
+    const strategyYieldEffect_bps =
+      strategy === 'short' ? -14 :
+      strategy === 'long' ? 14 :
+      0;
     setGameState((prevState) => ({
       ...prevState,
       debtManagement: {
         ...prevState.debtManagement,
         issuanceStrategy: strategy,
+        strategyYieldEffect_bps,
       },
     }));
   }, []);

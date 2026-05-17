@@ -81,6 +81,7 @@ export interface NewsArticle {
   headline: string;
   subheading: string;
   paragraphs: string[];
+  institutionalPageHeadlines?: Array<{ headline: string; subheading: string }>;
   secondaryPageHeadlines?: Array<{ headline: string; subheading: string }>;
   oppositionQuote: OppositionQuote;
   month: number;
@@ -829,6 +830,17 @@ const GENERIC_HEADLINE_POOL: Array<{ headline: string; subheading: string }> = [
   { headline: 'Policy Fatigue Sets In as Households Seek Predictability', subheading: 'Voters tell pollsters they want fewer surprises and clearer long-term direction from ministers.' },
 ];
 
+const INSTITUTIONAL_HEADLINE_POOL: Array<{ headline: string; subheading: string }> = [
+  { headline: 'OBR Readies Fiscal Headroom Scrutiny', subheading: 'Forecasters focus on implementation risk, policy costings and the margin against the active fiscal rule.' },
+  { headline: 'Bank of England Watches Fiscal Mix', subheading: 'MPC members weigh demand pressure, inflation persistence and gilt-market conditions before the next rate decision.' },
+  { headline: 'Debt Management Office Reviews Issuance Profile', subheading: 'Officials assess maturity composition and investor appetite as refinancing needs remain elevated.' },
+  { headline: 'HMRC Capacity Becomes Reform Constraint', subheading: 'Tax-base changes and anti-avoidance measures depend on systems capacity as well as legislation.' },
+  { headline: 'Select Committees Prepare Treasury Hearings', subheading: 'MPs are expected to press officials on value for money, delivery timetables and distributional effects.' },
+  { headline: 'Devolved Administrations Watch Barnett Flows', subheading: 'Spending changes in England feed directly into block grant expectations across Scotland, Wales and Northern Ireland.' },
+  { headline: 'Rating Agencies Stress Medium-Term Credibility', subheading: 'Analysts say the UK retains strong institutions but needs a convincing debt-stabilisation path.' },
+  { headline: 'Local Authorities Seek Settlement Clarity', subheading: 'Councils warn that adult social care and temporary accommodation pressures need more predictable funding.' },
+];
+
 function generateSecondaryPageHeadlines(state: any, primaryHeadline: string): Array<{ headline: string; subheading: string }> {
   const pool = [...GENERIC_HEADLINE_POOL];
   if ((state?.political?.governmentApproval ?? 50) < 32) {
@@ -870,6 +882,38 @@ function generateSecondaryPageHeadlines(state: any, primaryHeadline: string): Ar
     if (selected.length >= 6) break;
   }
   return selected;
+}
+
+function generateInstitutionalPageHeadlines(state: any, primaryHeadline: string): Array<{ headline: string; subheading: string }> {
+  const pool = [...INSTITUTIONAL_HEADLINE_POOL];
+  const headroom = state?.obr?.fiscalHeadroomForecast_bn ?? state?.fiscal?.fiscalHeadroom_bn ?? 10;
+  if (headroom < 5) {
+    pool.unshift({
+      headline: 'OBR Headroom Warning Dominates Whitehall',
+      subheading: 'Departments are told that policy promises need firm offsets before the next fiscal event.',
+    });
+  }
+  if ((state?.debtManagement?.strategyYieldEffect_bps ?? 0) !== 0) {
+    pool.unshift({
+      headline: 'Gilt Issuance Strategy Moves Market Assumptions',
+      subheading: 'The planned maturity mix changes near-term borrowing costs and rollover exposure.',
+    });
+  }
+  if ((state?.fiscal?.barnettConsequentials_bn ?? 0) > 0.1) {
+    pool.unshift({
+      headline: 'Barnett Consequentials Add to Settlement Talks',
+      subheading: 'Devolved finance ministers expect additional block grant funding after English spending changes.',
+    });
+  }
+
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  return pool
+    .filter((item, idx, arr) => item.headline !== primaryHeadline && arr.findIndex((entry) => entry.headline === item.headline) === idx)
+    .slice(0, 4);
 }
 
 // ============================================================================
@@ -1535,6 +1579,7 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
 
   // Generate opposition quote
   const oppositionQuote = generateOppositionQuote(state, selectedNewspaper);
+  const institutionalPageHeadlines = generateInstitutionalPageHeadlines(state, headline);
   const secondaryPageHeadlines = generateSecondaryPageHeadlines(state, headline);
 
   return {
@@ -1542,6 +1587,7 @@ export function generateNewspaper(state: any, event?: RandomEvent): NewsArticle 
     headline,
     subheading,
     paragraphs,
+    institutionalPageHeadlines,
     secondaryPageHeadlines,
     oppositionQuote,
     month: state.metadata?.currentMonth ?? 1,
@@ -1681,7 +1727,7 @@ interface NewspaperProps {
 }
 
 export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
-  const { newspaper, headline, subheading, paragraphs, secondaryPageHeadlines, oppositionQuote, date, isSpecialEdition } = article;
+  const { newspaper, headline, subheading, paragraphs, institutionalPageHeadlines, secondaryPageHeadlines, oppositionQuote, date, isSpecialEdition } = article;
 
   // Newspaper styling based on publication
   const getMastheadColor = () => {
@@ -1841,6 +1887,27 @@ export const Newspaper: React.FC<NewspaperProps> = ({ article, onClose }) => {
               — {oppositionQuote.speaker}
             </div>
           </div>
+
+          {Array.isArray(institutionalPageHeadlines) && institutionalPageHeadlines.length > 0 && (
+            <div style={{ marginTop: '28px', borderTop: '2px solid #e2e8f0', paddingTop: '18px' }}>
+              <div style={{
+                fontSize: '16px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                marginBottom: '12px',
+                color: '#334155'
+              }}>
+                Institutions
+              </div>
+              {institutionalPageHeadlines.map((item, idx) => (
+                <div key={`${item.headline}_${idx}`} style={{ marginBottom: '12px', paddingBottom: '10px', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 }}>{item.headline}</div>
+                  <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px', lineHeight: 1.45 }}>{item.subheading}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {Array.isArray(secondaryPageHeadlines) && secondaryPageHeadlines.length > 0 && (
             <div style={{ marginTop: '28px', borderTop: '2px solid #e2e8f0', paddingTop: '18px' }}>

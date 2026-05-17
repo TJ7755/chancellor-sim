@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useGameState, PMMessage, PMRelationshipState } from './game-state';
-import { markMessageAsRead } from './pm-system';
+import { useGameState, PMMessage } from './game-state';
 
 // ============================================================================
 // PM MESSAGES SCREEN
@@ -22,7 +21,7 @@ export const PMMessagesScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
+    <div className="min-h-screen bg-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -135,7 +134,7 @@ export const PMMessagesScreen: React.FC = () => {
             {/* Message List */}
             {!selectedMessage && (
               <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-900 to-blue-800 px-6 py-4">
+                <div className="bg-blue-900 px-6 py-4">
                   <h2 className="text-2xl font-bold text-white">Messages from the Prime Minister</h2>
                   <p className="text-blue-200 text-sm mt-1">
                     {messages.length === 0 ? 'No messages yet' : `${messages.length} message${messages.length !== 1 ? 's' : ''}`}
@@ -320,10 +319,10 @@ function getToneBadgeColor(tone: string): string {
 
 function getMessageHeaderColor(tone: string): string {
   const colors: Record<string, string> = {
-    supportive: 'bg-gradient-to-r from-green-700 to-green-600',
-    neutral: 'bg-gradient-to-r from-blue-900 to-blue-800',
-    stern: 'bg-gradient-to-r from-orange-700 to-orange-600',
-    angry: 'bg-gradient-to-r from-red-900 to-red-800',
+    supportive: 'bg-green-700',
+    neutral: 'bg-blue-900',
+    stern: 'bg-orange-700',
+    angry: 'bg-red-900',
   };
-  return colors[tone] || 'bg-gradient-to-r from-slate-700 to-slate-600';
+  return colors[tone] || 'bg-slate-700';
 }

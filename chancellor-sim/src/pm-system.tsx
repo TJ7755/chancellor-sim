@@ -195,6 +195,9 @@ export function generatePMMessage(
     if (c.reshuffleRisk !== undefined && pmRelationship.reshuffleRisk < c.reshuffleRisk) return false;
     if (c.minGrowth !== undefined && economic.gdpGrowthAnnual < c.minGrowth) return false;
     if (c.maxGrowth !== undefined && economic.gdpGrowthAnnual > c.maxGrowth) return false;
+    if (c.minInflation !== undefined && economic.inflationCPI < c.minInflation) return false;
+    if (c.maxInflation !== undefined && economic.inflationCPI > c.maxInflation) return false;
+    if (c.minUnemployment !== undefined && economic.unemploymentRate < c.minUnemployment) return false;
     if (c.serviceMetric) {
       const metricValue = c.serviceMetric === 'localGovServices'
         ? (gameState.devolution?.localGov?.localServicesQuality ?? 50)
@@ -241,18 +244,17 @@ export function generatePMMessage(
     selectedTemplate = topBand[Math.floor(Math.random() * topBand.length)];
   }
 
-  if (!selectedTemplate && potentialMessages.length > 0) {
-    selectedTemplate = potentialMessages[Math.floor(Math.random() * potentialMessages.length)];
+  if (!selectedTemplate) {
+    selectedTemplate = potentialMessages.find((template) => Object.keys(template.conditions || {}).length === 0);
   }
 
   if (!selectedTemplate) {
-    // Absolute fallback
     return {
       id: generateMessageId(turn, messageType),
       turn,
       type: messageType,
-      subject: 'Update form Number 10',
-      content: 'Chancellor, we need to speak about the economy.',
+      subject: 'Update from Number 10',
+      content: `Chancellor,\n\nKeep monitoring the fiscal rule, headroom and service delivery. I do not need another recycled warning unless the data actually justify it.\n\nPrime Minister`,
       tone: 'neutral',
       read: false,
       timestamp: Date.now()
